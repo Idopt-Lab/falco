@@ -5,32 +5,6 @@ from typing import Union, Literal
 from enum import Enum
 
 
-def build_rotation_matrix(angles: csdl.Variable, seq:np.ndarray):
-    # todo: check this rotation again
-    R = np.identity(3)
-    for dimen in seq:
-        ang = angles[dimen - 1]
-        # print(ang)
-        if dimen == 1:
-            D = np.array([(1, 0, 0),
-                          (0, csdl.cos(ang), csdl.sin(ang)),
-                          (0, -csdl.sin(ang), csdl.cos(ang))])
-        elif dimen == 2:
-            D = np.array([(csdl.cos(ang), 0, -csdl.sin(ang)),
-                          (0, 1, 0),
-                          (csdl.sin(ang), 0, csdl.cos(ang))])
-        elif dimen == 3:
-            D = np.array([(csdl.cos(ang), -csdl.sin(ang), 0),
-                          (csdl.sin(ang), csdl.cos(ang), 0),
-                          (0, 0, 1)])
-        else:
-            D = np.identity(3)
-        # print(D)
-        R = np.matmul(D, R)
-        # print(R)
-    return R
-
-
 class ValidOrigins(Enum):
     Inertial = "inertial"
     Reference = "ref"
@@ -55,7 +29,7 @@ class Axis:
     def __init__(self, name: str,
                  translation: Union[ureg.Quantity, csdl.Variable],
                  angles: Union[ureg.Quantity, csdl.Variable],
-                 origin: str,
+                 origin: str = 'ref',
                  sequence=np.array([3, 2, 1]),
                  reference = None):
 
