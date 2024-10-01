@@ -49,7 +49,7 @@ class ForcesMomentsTests(TestCase):
             origin='ref'
         )
 
-    def test_forces_moments_obj(self):
+    def test_vector_obj(self):
         force_vector_1 = Vector(vector=np.array([100, 400, 0]) * ureg.lbf, axis=self.inertial_axis)
         np.testing.assert_almost_equal(force_vector_1.magnitude.value, desired=1834.0481, decimal=3)
 
