@@ -15,8 +15,14 @@ A 6 DoF flight simulator with visualization in Unreal Engine
 
 ## Needed software for Unreal and MathWorks
 1. Unreal 5.4.4 w/ components:
-    - cesium for unreal
-3. Mathworks R2023a w/ components:
-    - ...
+    - Cesium for unreal
+    - Mathworks Plugin w/
+         - MathWorksAerospaceContent
+         - MathWorksGeoSpatial
+         - MathworksSimulation
+         - RoadRunnerMaterials
+3. Mathworks R2024b w/ components:
+    - Aerospace Blockset
+    - Aerospace Interface for Unreal
 
 
