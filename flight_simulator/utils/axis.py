@@ -73,6 +73,7 @@ class Axis:
             self._translation = translation_vector
         else:
             raise IOError
+
     @property
     def angles(self):
         return self._angles
