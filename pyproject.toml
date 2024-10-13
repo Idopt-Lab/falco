@@ -1,0 +1,44 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "aircraft_flight_simulator"
+description = "A package for 6 DoF aircraft flight simulator with automatic derivatives"
+readme = "README.md"
+requires-python = ">=3.10, <3.11"
+license = {file = "LICENSE.txt"}
+keywords = ["auto-differentation", "optimization"]
+authors = [{name = "Darshan Sarojini", email = "sdarshan@vt.edu"}]
+dependencies = [
+    'numpy',
+    'vedo',
+    'pint',
+    'pandas',
+    'scipy',
+]
+dynamic = ['version']
+
+[project.optional-dependencies]
+test = ['pytest']
+docs = [
+    'myst-nb',
+    'sphinx==5.3.0',
+    'sphinx_rtd_theme',
+    'sphinx-copybutton',
+    'sphinx-autoapi==2.1.0',
+    'astroid==2.15.5',
+    'numpydoc',
+    'gitpython',
+    'sphinxcontrib-collections @ git+https://github.com/anugrahjo/sphinx-collections.git',
+    'sphinxcontrib-bibtex',
+]
+
+[tool.setuptools.dynamic]
+version = {attr = "flight_simulator.__version__"}
+
+[tool.setuptools]
+package-dir = {"" = "."}
+
+[tool.setuptools.packages.find]
+exclude = ["tutorials"]
