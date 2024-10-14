@@ -1,5 +1,3 @@
-import csdl_alpha as csdl
-import numpy as np
 import lsdo_function_spaces as lfs
 
 from lsdo_geo.core.parameterization.free_form_deformation_functions import (
@@ -22,8 +20,8 @@ from flight_simulator.utils.axis_lsdogeo import AxisLsdoGeo
 from flight_simulator.utils.forces_moments import Vector, ForcesMoments
 
 
-plot_flag = True
-ft2m = 0.3048
+plot_flag = False
+in2m = 0.0254
 
 # Every CSDl code starts with a recorder
 recorder = csdl.Recorder(inline=True)
@@ -36,37 +34,47 @@ recorder.start()
 geometry = lsdo_geo.import_geometry(
     "x57.stp",
     parallelize=False,
-    scale=ft2m
+    scale=in2m
 )
 geometry.plot()
+if plot_flag:
+    geometry.plot()
 
 # region Define geometry components
 
 # Cruise Motor
 cruise_motor_hub = geometry.declare_component(function_search_names=['CruiseNacelle-Spinner'])
-cruise_motor_hub.plot()
+if plot_flag:
+    cruise_motor_hub.plot()
 # Wing
 wing = geometry.declare_component(function_search_names=['CleanWing'])
-wing.plot()
+if plot_flag:
+    wing.plot()
 # endregion
 
 # region Wing Info
-wing_root_le_guess = np.array([120., 0,   87.649])*ft2m
+wing_root_le_guess = np.array([120., 0,   87.649])*in2m
 wing_root_le_parametric = wing.project(wing_root_le_guess, plot=plot_flag)
 wing_root_le = geometry.evaluate(wing_root_le_parametric)
 
-wing_root_te_guess = np.array([180., 0,   87.649])*ft2m
+wing_root_te_guess = np.array([180., 0,   87.649])*in2m
 wing_root_te_parametric = wing.project(wing_root_te_guess, plot=plot_flag)
 wing_root_te = geometry.evaluate(wing_root_te_parametric)
+
+wing_tip_left_le_guess = np.array([144.87186743367556, -200,   87.649])*in2m
+wing_tip_left_le_parametric = wing.project(wing_tip_left_le_guess, plot=plot_flag)
+
+wing_tip_right_le_guess = np.array([144.87186743367556, 200,   87.649])*in2m
+wing_tip_right_le_parametric = wing.project(wing_tip_right_le_guess, plot=plot_flag)
 # endregion
 
 # region Cruise Motor Hub Info
-cruise_motor_hub_tip_guess = np.array([120., -189.741,   87.649])*ft2m
+cruise_motor_hub_tip_guess = np.array([120., -189.741,   87.649])*in2m
 cruise_motor_hub_tip_parametric = cruise_motor_hub.project(cruise_motor_hub_tip_guess, plot=plot_flag)
 cruise_motor_hub_tip = geometry.evaluate(cruise_motor_hub_tip_parametric)
 print(cruise_motor_hub_tip.value)
 
-cruise_motor_hub_base_guess = cruise_motor_hub_tip.value + np.array([20., 0., 0.])*ft2m
+cruise_motor_hub_base_guess = cruise_motor_hub_tip.value + np.array([20., 0., 0.])*in2m
 cruise_motor_hub_base_parametric = cruise_motor_hub.project(cruise_motor_hub_base_guess, plot=plot_flag)
 cruise_motor_hub_base = geometry.evaluate(cruise_motor_hub_base_parametric)
 print(cruise_motor_hub_base.value)
@@ -110,9 +118,10 @@ cruise_motor_axis = AxisLsdoGeo(
     reference=fd_axis,
     origin='ref'
 )
+print('Cruise motor axis translation: ', cruise_motor_axis.translation.value)
 # endregion
 
-# # region Aerodynamic axis
+# region Aerodynamic axis
 # # Wing aerodynamic axis is the wing quarter chord
 # # todo: make this come directly from geometry rather than specifying values like this
 # waa_x = wing_root_le.value[0] + (wing_root_te.value[0]-wing_root_le.value[0])/4
@@ -127,21 +136,86 @@ cruise_motor_axis = AxisLsdoGeo(
 #     origin='ref'
 # )
 # del waa_x, waa_y, waa_z
-# # endregion
+# endregion
+
+wingspan = csdl.norm(
+    geometry.evaluate(wing_tip_left_le_parametric) - geometry.evaluate(wing_tip_right_le_parametric)
+)
+print("Wingspan: ", wingspan.value)
 
 # endregion
 
 
-print(cruise_motor_axis.translation.value)
-
-
 cruise_motor_hub_rotation = csdl.Variable(value=np.deg2rad(15))
 cruise_motor_hub.rotate(cruise_motor_hub_base, np.array([0., 1., 0.]), angles=cruise_motor_hub_rotation)
-cruise_motor_hub.plot()
+if plot_flag:
+    cruise_motor_hub.plot()
 
 print(cruise_motor_axis.translation.value)
 
+# # region Geometry Parametrization
+#
+# # region Create wing parametrization objects
+# num_ffd_sections = 3
+# num_wing_sections = 2
+# wing_ffd_block = construct_tight_fit_ffd_block(
+#     entities=wing,
+#     num_coefficients=(2, (num_ffd_sections // num_wing_sections + 1), 2),
+#     degree=(1,1,1)
+# )
+# if plot_flag:
+#     wing_ffd_block.plot()
+#
+# ffd_sectional_parameterization = VolumeSectionalParameterization(
+#     name="ffd_sectional_parameterization",
+#     parameterized_points=wing_ffd_block.coefficients,
+#     principal_parametric_dimension=1,
+# )
+# if plot_flag:
+#     ffd_sectional_parameterization.plot()
+#
+# space_of_linear_2_dof_b_splines = lfs.BSplineSpace(num_parametric_dimensions=1, degree=1, coefficients_shape=(2,))
+# wingspan_stretching_b_spline = lfs.Function(
+#     space=space_of_linear_2_dof_b_splines,
+#     coefficients=csdl.Variable(shape=(2,), value=np.array([-4., 4.])),
+#     name='wingspan_stretching_b_spline_coefficients'
+# )
+# # endregion
+#
+# # region Evaluate Parameterization To Define Parameterization Forward Model For Parameterization Solver
+# parametric_b_spline_inputs = np.linspace(0.0, 1.0, 3).reshape((-1, 1))
+# wingspan_stretch_sectional_parameters = wingspan_stretching_b_spline.evaluate(
+#     parametric_b_spline_inputs
+# )
+#
+# sectional_parameters = VolumeSectionalParameterizationInputs()
+# sectional_parameters.add_sectional_translation(axis=1, translation=wingspan_stretch_sectional_parameters)
+#
+# ffd_coefficients = ffd_sectional_parameterization.evaluate(sectional_parameters, plot=plot_flag)
+#
+# wing_coefficients = wing_ffd_block.evaluate(ffd_coefficients, plot=plot_flag)
+# wing.set_coefficients(wing_coefficients)
+# # endregion
+#
+# # region Create Newton solver for inner optimization
+# wingspan_outer_dv = csdl.Variable(shape=(1,), value=np.array([20.0]))
+# geometry_solver = lsdo_geo.ParameterizationSolver()
+# geometry_solver.add_parameter(wingspan_stretching_b_spline.coefficients)
+#
+# geometric_variables = lsdo_geo.GeometricVariables()
+# geometric_variables.add_variable(computed_value=wingspan, desired_value=wingspan_outer_dv)
+#
+# geometry_solver.evaluate(geometric_variables)
+# print("Wingspan: ", wingspan.value)
+# geometry.plot()
+# # endregion
+#
+# # endregion
+
 exit()
+
+
+
 
 
 
