@@ -16,3 +16,7 @@ numpydoc
 gitpython==3.1.31
 git+https://github.com/anugrahjo/sphinx-collections.git
 sphinxcontrib-bibtex==2.5.0
+
+git+https://github.com/LSDOlab/lsdo_function_spaces.git
+git+https://github.com/LSDOlab/lsdo_geo.git
+git+https://github.com/LSDOlab/CSDL_alpha.git
