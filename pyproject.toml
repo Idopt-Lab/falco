@@ -11,7 +11,7 @@ license = {file = "LICENSE.txt"}
 keywords = ["auto-differentation", "optimization"]
 authors = [{name = "Darshan Sarojini", email = "sdarshan@vt.edu"}]
 dependencies = [
-    'numpy',
+    'numpy==1.26.4',
     'vedo',
     'pint',
     'pandas',
