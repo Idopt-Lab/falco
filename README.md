@@ -1,6 +1,18 @@
 # aircraft-flight-simulator
 A 6 DoF flight simulator with visualization in Unreal Engine
 
+<!---
+[![Python](https://img.shields.io/pypi/pyversions/csdl_alpha)](https://img.shields.io/pypi/pyversions/csdl_alpha)
+[![Pypi](https://img.shields.io/pypi/v/csdl_alpha)](https://pypi.org/project/csdl_alpha/)
+[![Coveralls Badge][13]][14]
+[![PyPI version][10]][11]
+[![PyPI Monthly Downloads][12]][11]
+-->
+
+[![GitHub Actions Test Badge](https://github.com/LSDOlab/csdl_alpha/actions/workflows/actions.yml/badge.svg)](https://github.com/csdl_alpha/csdl_alpha/.github)
+[![Forks](https://img.shields.io/github/forks/LSDOlab/csdl_alpha.svg)](https://github.com/LSDOlab/csdl_alpha/network)
+[![Issues](https://img.shields.io/github/issues/LSDOlab/csdl_alpha.svg)](https://github.com/LSDOlab/csdl_alpha/issues)
+
 ## Needed software for Unreal and JSBSim (Antiquated)
 1. JSBSim (most modern version)
 2. Unreal 5.0.3 (roll back version)
