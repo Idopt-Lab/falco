@@ -11,16 +11,16 @@ from lsdo_geo.core.parameterization.volume_sectional_parameterization import (
 )
 import lsdo_geo
 
-from flight_simulator import ureg, Q_
+from flight_simulator import ureg, Q_, REPO_ROOT_FOLDER
 import csdl_alpha as csdl
 import numpy as np
 
 from flight_simulator.utils.axis import Axis
 from flight_simulator.utils.axis_lsdogeo import AxisLsdoGeo
 from flight_simulator.utils.forces_moments import Vector, ForcesMoments
+from flight_simulator.utils.import_geometry import import_geometry
 
-
-plot_flag = False
+plot_flag = True
 in2m = 0.0254
 
 # Every CSDl code starts with a recorder
@@ -29,14 +29,13 @@ recorder.start()
 
 # region Base Geometry
 # Create all parametric functions on this base geometry
-
-# Import the .stp file of the X-57
-geometry = lsdo_geo.import_geometry(
-    "x57.stp",
-    parallelize=False,
-    scale=in2m
+geometry = import_geometry(
+    file_name="x57.stp",
+    file_path= REPO_ROOT_FOLDER / 'examples'/ 'advanced_examples' / 'x57',
+    refit=False,
+    scale=in2m,
+    rotate_to_body_fixed_frame=True
 )
-geometry.plot()
 if plot_flag:
     geometry.plot()
 
@@ -53,28 +52,28 @@ if plot_flag:
 # endregion
 
 # region Wing Info
-wing_root_le_guess = np.array([120., 0,   87.649])*in2m
+wing_root_le_guess = np.array([-120., 0,   -87.649])*in2m
 wing_root_le_parametric = wing.project(wing_root_le_guess, plot=plot_flag)
 wing_root_le = geometry.evaluate(wing_root_le_parametric)
 
-wing_root_te_guess = np.array([180., 0,   87.649])*in2m
+wing_root_te_guess = np.array([-180., 0,   -87.649])*in2m
 wing_root_te_parametric = wing.project(wing_root_te_guess, plot=plot_flag)
 wing_root_te = geometry.evaluate(wing_root_te_parametric)
 
-wing_tip_left_le_guess = np.array([144.87186743367556, -200,   87.649])*in2m
+wing_tip_left_le_guess = np.array([-144.87186743367556, -200,   -87.649])*in2m
 wing_tip_left_le_parametric = wing.project(wing_tip_left_le_guess, plot=plot_flag)
 
-wing_tip_right_le_guess = np.array([144.87186743367556, 200,   87.649])*in2m
+wing_tip_right_le_guess = np.array([-144.87186743367556, 200,   -87.649])*in2m
 wing_tip_right_le_parametric = wing.project(wing_tip_right_le_guess, plot=plot_flag)
 # endregion
 
 # region Cruise Motor Hub Info
-cruise_motor_hub_tip_guess = np.array([120., -189.741,   87.649])*in2m
+cruise_motor_hub_tip_guess = np.array([-120., -189.741,   -87.649])*in2m
 cruise_motor_hub_tip_parametric = cruise_motor_hub.project(cruise_motor_hub_tip_guess, plot=plot_flag)
 cruise_motor_hub_tip = geometry.evaluate(cruise_motor_hub_tip_parametric)
 print(cruise_motor_hub_tip.value)
 
-cruise_motor_hub_base_guess = cruise_motor_hub_tip.value + np.array([20., 0., 0.])*in2m
+cruise_motor_hub_base_guess = cruise_motor_hub_tip.value + np.array([-20., 0., 0.])*in2m
 cruise_motor_hub_base_parametric = cruise_motor_hub.project(cruise_motor_hub_base_guess, plot=plot_flag)
 cruise_motor_hub_base = geometry.evaluate(cruise_motor_hub_base_parametric)
 print(cruise_motor_hub_base.value)
@@ -85,35 +84,53 @@ print(cruise_motor_hub_base.value)
 
 # region Use Geometry to define quantities I need
 
+# region OpenVSP Axis
+openvsp_axis = Axis(
+    name='OpenVSP Axis',
+    translation=np.array([0, 0, 0]) * ureg.meter,
+)
+# endregion
+
 # region Inertial Axis
 # I am picking the inertial axis location as the OpenVSP (0,0,0)
 inertial_axis = Axis(
     name='Inertial Axis',
     translation=np.array([0, 0, 0]) * ureg.meter,
-    angles=np.array([0, 0, 0]) * ureg.degree,
-    origin='inertial'
+    reference=openvsp_axis,
 )
 # endregion
 
 # region Aircraft FD Axis
-fd_euler_angles = csdl.Variable(value=np.array([np.deg2rad(0.), np.deg2rad(5.), np.deg2rad(0.)]))
 fd_axis = Axis(
     name='Flight Dynamics Body Fixed Axis',
     translation=np.array([0, 0, 5000]) * ureg.ft,
-    angles=fd_euler_angles,
+    phi=csdl.Variable(shape=(1, ), value=np.array([np.deg2rad(0.), ])),
+    theta=csdl.Variable(shape=(1, ), value=np.array([np.deg2rad(4.), ])),
+    psi=csdl.Variable(shape=(1, ), value=np.array([np.deg2rad(0.), ])),
     sequence=np.array([3, 2, 1]),
     reference=inertial_axis,
     origin='inertial'
 )
-print('Flight Dynamics angles (deg)', np.rad2deg(fd_axis.angles.value))
+print('Flight Dynamics angles (deg)', np.rad2deg(fd_axis.euler_angles.value))
 # endregion
+
+cruise_motor_hub_rotation = csdl.Variable(value=np.deg2rad(15))
+cruise_motor_hub.rotate(cruise_motor_hub_base, np.array([0., 1., 0.]), angles=cruise_motor_hub_rotation)
+cruise_motor_hub.plot()
+geometry.plot()
+
+# Reference point -> Body frame
+# Center of gravity
+#
+# Intertial/Earth frame
+# Wind frame
+# Stability frame
 
 # region Cruise Motor
 cruise_motor_axis = AxisLsdoGeo(
     name='Cruise Motor Axis',
     geometry=cruise_motor_hub,
     parametric_coords=cruise_motor_hub_base_parametric,
-    angles=np.array([0, 0, 0]) * ureg.degree,
     sequence=np.array([3, 2, 1]),
     reference=fd_axis,
     origin='ref'
@@ -231,9 +248,7 @@ geometry.plot()
 thrust_axis = geometry.evaluate(cruise_motor_hub_tip_parametric) - geometry.evaluate(cruise_motor_hub_base_parametric)
 print(thrust_axis.value)
 
-cruise_motor_hub_rotation = csdl.Variable(value=np.deg2rad(15))
-cruise_motor_hub.rotate(cruise_motor_hub_base, np.array([0., 1., 0.]), angles=cruise_motor_hub_rotation)
-cruise_motor_hub.plot()
+
 
 
 

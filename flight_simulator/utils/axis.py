@@ -13,7 +13,7 @@ class ValidOrigins(Enum):
 
 def validate_origin(func):
     def test_origin_value(*args, **kwargs):
-        origin_valid = {'inertial', 'ref', 'cg'}
+        origin_valid = {'inertial', 'ref', 'cg', 'openvsp'}
         # Check kwargs for origin
         origin_in = kwargs.get('origin')
         if origin_in not in ValidOrigins._value2member_map_ and origin_in is not None:
@@ -31,7 +31,7 @@ class Axis:
                  phi: Union[ureg.Quantity, csdl.Variable] = np.array([0., ])*ureg.radian,
                  theta: Union[ureg.Quantity, csdl.Variable] = np.array([0., ])*ureg.radian,
                  psi: Union[ureg.Quantity, csdl.Variable] = np.array([0., ])*ureg.radian,
-                 origin: str = 'ref',
+                 origin: Union[str, None] = None,
                  sequence=np.array([3, 2, 1]),
                  reference = None):
 
