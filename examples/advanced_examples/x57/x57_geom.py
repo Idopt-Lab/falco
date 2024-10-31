@@ -1,4 +1,8 @@
+from abc import abstractmethod
+from symtable import Class
+
 import lsdo_function_spaces as lfs
+from lsdo_geo.core.geometry.temp_test import axis_origin
 
 from lsdo_geo.core.parameterization.free_form_deformation_functions import (
     construct_tight_fit_ffd_block,
@@ -279,3 +283,8 @@ fd_axis.angles = fd_euler_angles.set(csdl.slice[0], np.deg2rad(10.))
 print('Flight Dynamics angles (deg)', np.rad2deg(fd_axis.angles.value))
 
 pass
+
+
+
+
+
