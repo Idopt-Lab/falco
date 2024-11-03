@@ -1,30 +1,19 @@
-from abc import abstractmethod
-from symtable import Class
-
-import lsdo_function_spaces as lfs
-from lsdo_geo.core.geometry.temp_test import axis_origin
-
-from lsdo_geo.core.parameterization.free_form_deformation_functions import (
-    construct_tight_fit_ffd_block,
-    construct_ffd_block_around_entities,
-    construct_ffd_block_from_corners
-)
-from lsdo_geo.core.parameterization.volume_sectional_parameterization import (
-    VolumeSectionalParameterization,
-    VolumeSectionalParameterizationInputs
-)
-import lsdo_geo
+from dataclasses import dataclass
 
 from flight_simulator import ureg, Q_, REPO_ROOT_FOLDER
 import csdl_alpha as csdl
 import numpy as np
+from typing import Union
 
-from flight_simulator.utils.axis import Axis
+
+from flight_simulator.utils.axis import Axis, ValidOrigins
 from flight_simulator.utils.axis_lsdogeo import AxisLsdoGeo
 from flight_simulator.utils.forces_moments import Vector, ForcesMoments
 from flight_simulator.utils.import_geometry import import_geometry
+from flight_simulator.core.aircraft_states import AircaftStates
+from flight_simulator.utils.euler_rotations import build_rotation_matrix
 
-plot_flag = True
+plot_flag = False
 in2m = 0.0254
 
 # Every CSDl code starts with a recorder
@@ -75,12 +64,12 @@ wing_tip_right_le_parametric = wing.project(wing_tip_right_le_guess, plot=plot_f
 cruise_motor_hub_tip_guess = np.array([-120., -189.741,   -87.649])*in2m
 cruise_motor_hub_tip_parametric = cruise_motor_hub.project(cruise_motor_hub_tip_guess, plot=plot_flag)
 cruise_motor_hub_tip = geometry.evaluate(cruise_motor_hub_tip_parametric)
-print(cruise_motor_hub_tip.value)
+print('From geometry, cruise motor hub tip (m): ', cruise_motor_hub_tip.value)
 
 cruise_motor_hub_base_guess = cruise_motor_hub_tip.value + np.array([-20., 0., 0.])*in2m
 cruise_motor_hub_base_parametric = cruise_motor_hub.project(cruise_motor_hub_base_guess, plot=plot_flag)
 cruise_motor_hub_base = geometry.evaluate(cruise_motor_hub_base_parametric)
-print(cruise_motor_hub_base.value)
+print('From geometry, cruise motor hub base (m): ', cruise_motor_hub_base.value)
 # endregion
 
 # endregion
@@ -92,71 +81,167 @@ print(cruise_motor_hub_base.value)
 openvsp_axis = Axis(
     name='OpenVSP Axis',
     translation=np.array([0, 0, 0]) * ureg.meter,
+    origin=ValidOrigins.OpenVSP.value
 )
 # endregion
+
+# region Cruise Motor
+@dataclass
+class CruiseMotorRotation(csdl.VariableGroup):
+    cant : Union[csdl.Variable, ureg.Quantity] = np.array([0, ]) * ureg.degree
+    pitch : Union[csdl.Variable, np.ndarray, ureg.Quantity] = csdl.Variable(value=np.deg2rad(15), name='CruiseMotorPitchAngle')
+    yaw : Union[csdl.Variable, ureg.Quantity] = np.array([0, ]) * ureg.degree
+
+cruise_motor_hub_rotation = CruiseMotorRotation()
+cruise_motor_hub.rotate(cruise_motor_hub_base, np.array([0., 1., 0.]), angles=cruise_motor_hub_rotation.pitch)
+if plot_flag:
+    cruise_motor_hub.plot()
+    geometry.plot()
+
+cruise_motor_axis = AxisLsdoGeo(
+    name='Cruise Motor Axis',
+    geometry=cruise_motor_hub,
+    parametric_coords=cruise_motor_hub_base_parametric,
+    sequence=np.array([3, 2, 1]),
+    phi=cruise_motor_hub_rotation.cant,
+    theta=cruise_motor_hub_rotation.pitch,
+    psi=cruise_motor_hub_rotation.yaw,
+    reference=openvsp_axis,
+    origin=ValidOrigins.OpenVSP.value
+)
+print('Cruise motor axis translation (m): ', cruise_motor_axis.translation.value)
+print('Cruise motor axis rotation (deg): ', np.rad2deg(cruise_motor_axis.euler_angles.value))
+# endregion
+
+# region Wing
+
+wing_incidence = csdl.Variable(shape=(1, ), value=np.deg2rad(1.5), name='Wing incidence')
+wing.rotate(wing_root_le, np.array([0., 1., 0.]), angles=wing_incidence)
+if plot_flag:
+    wing.plot()
+    geometry.plot()
+
+wing_axis = AxisLsdoGeo(
+    name='Wing Axis',
+    geometry=wing,
+    parametric_coords=wing_root_le_parametric,
+    sequence=np.array([3, 2, 1]),
+    phi=np.array([0, ]) * ureg.degree,
+    theta=wing_incidence,
+    psi=np.array([0, ]) * ureg.degree,
+    reference=openvsp_axis,
+    origin=ValidOrigins.OpenVSP.value
+)
+print('Wing axis translation (m): ', wing_axis.translation.value)
+print('Wing axis rotation (deg): ', np.rad2deg(wing_axis.euler_angles.value))
+# endregion
+
+# endregion
+
+# region FD axis that do not depend on geometry
 
 # region Inertial Axis
 # I am picking the inertial axis location as the OpenVSP (0,0,0)
 inertial_axis = Axis(
     name='Inertial Axis',
     translation=np.array([0, 0, 0]) * ureg.meter,
-    reference=openvsp_axis,
+    origin=ValidOrigins.Inertial.value
 )
 # endregion
 
 # region Aircraft FD Axis
+ac_states = AircaftStates()
+ac_states.phi = csdl.Variable(shape=(1, ), value=np.array([np.deg2rad(0.), ]), name='phi')
+ac_states.theta = csdl.Variable(shape=(1, ), value=np.array([np.deg2rad(4.), ]), name='theta')
+ac_states.psi = csdl.Variable(shape=(1, ), value=np.array([np.deg2rad(0.), ]), name='psi')
+
 fd_axis = Axis(
     name='Flight Dynamics Body Fixed Axis',
     translation=np.array([0, 0, 5000]) * ureg.ft,
-    phi=csdl.Variable(shape=(1, ), value=np.array([np.deg2rad(0.), ])),
-    theta=csdl.Variable(shape=(1, ), value=np.array([np.deg2rad(4.), ])),
-    psi=csdl.Variable(shape=(1, ), value=np.array([np.deg2rad(0.), ])),
+    phi=ac_states.phi,
+    theta=ac_states.theta,
+    psi=ac_states.psi,
     sequence=np.array([3, 2, 1]),
     reference=inertial_axis,
-    origin='inertial'
+    origin=ValidOrigins.Inertial.value
 )
-print('Flight Dynamics angles (deg)', np.rad2deg(fd_axis.euler_angles.value))
+print('Body-fixed angles (deg)', np.rad2deg(fd_axis.euler_angles.value))
 # endregion
 
-cruise_motor_hub_rotation = csdl.Variable(value=np.deg2rad(15))
-cruise_motor_hub.rotate(cruise_motor_hub_base, np.array([0., 1., 0.]), angles=cruise_motor_hub_rotation)
-cruise_motor_hub.plot()
-geometry.plot()
+# region Aircraft Wind Axis
+@dataclass
+class WindAxisRotations(csdl.VariableGroup):
+    mu : Union[csdl.Variable, ureg.Quantity] = np.array([0, ]) * ureg.degree # bank
+    gamma : Union[csdl.Variable, np.ndarray, ureg.Quantity] = csdl.Variable(value=np.deg2rad(2), name='Flight path angle')
+    xi : Union[csdl.Variable, ureg.Quantity] = np.array([0, ]) * ureg.degree  # Heading
+wind_axis_rotations = WindAxisRotations()
 
-# Reference point -> Body frame
-# Center of gravity
-#
-# Intertial/Earth frame
-# Wind frame
-# Stability frame
-
-# region Cruise Motor
-cruise_motor_axis = AxisLsdoGeo(
-    name='Cruise Motor Axis',
-    geometry=cruise_motor_hub,
-    parametric_coords=cruise_motor_hub_base_parametric,
+wind_axis = Axis(
+    name='Wind Axis',
+    translation=np.array([0, 0, 0]) * ureg.ft,
+    phi=wind_axis_rotations.mu,
+    theta=wind_axis_rotations.gamma,
+    psi=wind_axis_rotations.xi,
     sequence=np.array([3, 2, 1]),
-    reference=fd_axis,
-    origin='ref'
+    reference=inertial_axis,
+    origin=ValidOrigins.Inertial.value
 )
-print('Cruise motor axis translation: ', cruise_motor_axis.translation.value)
+print('Wind axis angles (deg)', np.rad2deg(wind_axis.euler_angles.value))
 # endregion
 
-# region Aerodynamic axis
-# # Wing aerodynamic axis is the wing quarter chord
-# # todo: make this come directly from geometry rather than specifying values like this
-# waa_x = wing_root_le.value[0] + (wing_root_te.value[0]-wing_root_le.value[0])/4
-# waa_y = 0.
-# waa_z = wing_root_le.value[2]
-#
-# wing_aerodynamic_axis = Axis(
-#     name='Inertial Axis',
-#     translation=np.array([waa_x, waa_y, waa_z]) * ureg.meter,
-#     angles=np.array([0, 0, 0]) * ureg.degree,
-#     reference=fd_axis,
-#     origin='ref'
-# )
-# del waa_x, waa_y, waa_z
+# endregion
+
+# region Forces and Moments
+
+# region Aero forces
+
+velocity_vector_in_wind = Vector(vector=csdl.Variable(shape=(3,), value=np.array([-1, 0, 0]), name='wind_vector'), axis=wind_axis)
+print('Unit wind vector in wind axis: ', velocity_vector_in_wind.vector.value)
+
+R_wind_to_inertial = build_rotation_matrix(wind_axis.euler_angles, np.array([3, 2, 1]))
+wind_vector_in_inertial =  Vector(csdl.matvec(R_wind_to_inertial, velocity_vector_in_wind.vector), axis=inertial_axis)
+print('Unit wind vector in inertial axis: ', wind_vector_in_inertial.vector.value)
+
+R_body_to_inertial = build_rotation_matrix(fd_axis.euler_angles, np.array([3, 2, 1]))
+wind_vector_in_body =  Vector(csdl.matvec(csdl.transpose(R_body_to_inertial), wind_vector_in_inertial.vector), axis=fd_axis)
+print('Unit wind vector in body axis: ', wind_vector_in_body.vector.value)
+
+R_wing_to_openvsp = build_rotation_matrix(wing_axis.euler_angles, np.array([3, 2, 1]))
+wind_vector_in_wing =  Vector(csdl.matvec(csdl.transpose(R_wing_to_openvsp), wind_vector_in_body.vector), axis=wing_axis)
+print('Unit wind vector in wing axis: ', wind_vector_in_wing.vector.value)
+alpha = csdl.arctan(wind_vector_in_wing.vector[2]/wind_vector_in_wing.vector.value[0])
+print('Effective angle of attack (deg): ', np.rad2deg(alpha.value))
+
+CL = 2*np.pi*alpha
+CD = 0.001 + 1/(np.pi*0.87*12) * CL**2
+rho = 1.225
+S = 50
+V = 10
+L = 0.5*rho*V**2*CL*S
+D = 0.5*rho*V**2*CD*S
+
+aero_force = csdl.Variable(shape=(3, ), value=0.)
+aero_force = aero_force.set(csdl.slice[0], -D)
+aero_force = aero_force.set(csdl.slice[2], -L)
+
+aero_force_vector_in_wind = Vector(vector=aero_force, axis=wind_axis)
+print('Aero force vector in wind-axis: ', aero_force_vector_in_wind.vector.value)
+aero_force_vector_in_inertial =  Vector(csdl.matvec(R_wind_to_inertial, aero_force_vector_in_wind.vector), axis=inertial_axis)
+print('Aero force vector in inertial-axis: ', aero_force_vector_in_inertial.vector.value)
+aero_force_vector_in_body =  Vector(csdl.matvec(csdl.transpose(R_body_to_inertial), aero_force_vector_in_inertial.vector), axis=fd_axis)
+print('Aero force vector in body-axis: ', aero_force_vector_in_body.vector.value)
+aero_force_vector_in_wing =  Vector(csdl.matvec(csdl.transpose(R_wing_to_openvsp), aero_force_vector_in_body.vector), axis=fd_axis)
+print('Aero force vector in wing-axis: ', aero_force_vector_in_wing.vector.value)
+# endregion
+
+exit()
+
+# region Rotor forces
+cruise_motor_force = Vector(vector=np.array([0, 400, 0])*ureg.lbf, axis=cruise_motor_axis)
+cruise_motor_moment = Vector(vector=np.array([0, 0, 0])*ureg.lbf*ureg.inch, axis=cruise_motor_axis)
+cruise_motor_loads = ForcesMoments(force=cruise_motor_force, moment=cruise_motor_moment)
+
+
 # endregion
 
 wingspan = csdl.norm(

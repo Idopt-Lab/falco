@@ -3,7 +3,7 @@ from flight_simulator import ureg, Q_
 import csdl_alpha as csdl
 import numpy as np
 
-from flight_simulator.utils.axis import Axis
+from flight_simulator.utils.axis import Axis, ValidOrigins
 
 
 class AxisTests(TestCase):
@@ -15,7 +15,7 @@ class AxisTests(TestCase):
         inertial_axis = Axis(
             name='Inertial Axis',
             translation=np.array([0, 0, 0]) * ureg.meter,
-            origin='inertial'
+            origin=ValidOrigins.Inertial.value
         )
         np.testing.assert_almost_equal(inertial_axis.translation.value, desired=np.zeros(3,))
 
@@ -23,7 +23,7 @@ class AxisTests(TestCase):
         inertial_axis = Axis(
             name='Inertial Axis',
             translation=np.array([0, 0, 0]) * ureg.meter,
-            origin='inertial'
+            origin=ValidOrigins.Inertial.value
         )
         inertial_axis.translation = np.array([3, 0, 0]) * ureg.ft
         np.testing.assert_almost_equal(inertial_axis.translation.value, desired=np.array([3*0.3048, 0, 0]), decimal=5)
@@ -32,7 +32,7 @@ class AxisTests(TestCase):
         inertial_axis = Axis(
             name='Inertial Axis',
             translation=np.array([0, 0, 0]) * ureg.meter,
-            origin='inertial'
+            origin=ValidOrigins.Inertial.value
         )
         inertial_axis.translation.set_value(np.array([0, 5, 0]))
         np.testing.assert_almost_equal(inertial_axis.translation.value, desired=np.array([0, 5, 0]))
@@ -41,7 +41,7 @@ class AxisTests(TestCase):
         axis = Axis(
             name='Inertial Axis',
             translation=np.array([0, 0, 0]) * ureg.meter,
-            origin='inertial',
+            origin=ValidOrigins.Inertial.value,
             phi=np.array([0, ]) * ureg.degree,
             theta=np.array([5, ]) * ureg.degree,
             psi=np.array([0, ]) * ureg.degree,
@@ -53,7 +53,7 @@ class AxisTests(TestCase):
         axis = Axis(
             name='Inertial Axis',
             translation=np.array([0, 0, 0]) * ureg.meter,
-            origin='inertial',
+            origin=ValidOrigins.Inertial.value,
             phi=np.array([0, ]) * ureg.degree,
             theta=np.array([5, ]) * ureg.degree,
             psi=np.array([0, ]) * ureg.degree,
@@ -66,7 +66,7 @@ class AxisTests(TestCase):
         axis = Axis(
             name='Inertial Axis',
             translation=np.array([0, 0, 0]) * ureg.meter,
-            origin='inertial',
+            origin=ValidOrigins.Inertial.value,
             phi=np.array([0, ]) * ureg.degree,
             theta=np.array([5, ]) * ureg.degree,
             psi=np.array([0, ]) * ureg.degree,

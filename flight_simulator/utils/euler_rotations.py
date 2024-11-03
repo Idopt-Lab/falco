@@ -4,6 +4,7 @@ import csdl_alpha as csdl
 
 def build_rotation_matrix(angles: csdl.Variable, seq:np.ndarray):
     # todo: check this rotation again
+    #  https://www.mathworks.com/help/robotics/ref/eul2rotm.html#d126e44534
     R = csdl.Variable(shape=(3, 3), value=np.identity(3))
     for dimen in seq:
         ang = angles[dimen - 1]
@@ -34,4 +35,5 @@ def build_rotation_matrix(angles: csdl.Variable, seq:np.ndarray):
         # print(D)
         R = csdl.matmat(D, R)
         # print(R)
+    R = csdl.transpose(R)
     return R

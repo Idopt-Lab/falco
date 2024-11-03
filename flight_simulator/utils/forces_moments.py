@@ -55,27 +55,22 @@ class ForcesMoments:
         orig_force = self.F.vector
         orig_moment = self.M.vector
 
-        # There are 2 possibilities
-        # 1. The forces and moments are in the B1 frame and we want to transform to the B2 frame
-        if parent_or_child_axis.reference.name == self.axis.name:
-            euler = parent_or_child_axis.angles
-            seq = parent_or_child_axis.sequence
-            raise NotImplementedError
-        # 2. The forces and moments are in the B2 frame and we want to transform to the B1 frame
-        elif self.axis.reference.name == parent_or_child_axis.name:
-            euler = self.axis.angles
+        # The loads are in the child axis and we want to transform into the parent axis
+        if self.axis.reference.name == parent_or_child_axis.name:
+            euler = self.axis.euler_angles
             seq = self.axis.sequence
             displacement = self.axis.translation
             R = build_rotation_matrix(euler, seq)
-            # R = R.transpose()
             # perform vector rotation first
             InterForce = csdl.matvec(R, orig_force)
             InterMoment = csdl.matvec(R, orig_moment)
             # then perform displacement
             newForce = InterForce
+            newForce.add_tag(orig_force.tags[0])
             newMoment = InterMoment + csdl.cross(displacement, InterForce)
+            newMoment.add_tag(orig_moment.tags[0])
         else:
-            raise IOError
+            raise NotImplementedError
 
         new_load = ForcesMoments(force=Vector(vector=newForce, axis=parent_or_child_axis),
                                  moment=Vector(vector=newMoment, axis=parent_or_child_axis))

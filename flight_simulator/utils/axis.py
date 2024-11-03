@@ -7,31 +7,37 @@ from enum import Enum
 
 class ValidOrigins(Enum):
     Inertial = "inertial"
-    Reference = "ref"
-    CenterOfGravity = "cg"
+    OpenVSP = "openvsp_rotated_to_fd"
 
 
-def validate_origin(func):
+def axis_checkers(func):
     def test_origin_value(*args, **kwargs):
-        origin_valid = {'inertial', 'ref', 'cg', 'openvsp'}
         # Check kwargs for origin
         origin_in = kwargs.get('origin')
-        if origin_in not in ValidOrigins._value2member_map_ and origin_in is not None:
-            print('Axis origin "%s" not permitted, defaulting to reference origin' % origin_in)
-            kwargs['origin'] = 'ref'
+        if origin_in not in ValidOrigins._value2member_map_:
+            print('Axis origin "%s" not permitted' % origin_in)
+            raise IOError
+            kwargs['origin'] = ValidOrigins.Inertial.value
         func(*args, **kwargs)
+
+    # def test_reference(*args, **kwargs):
+    #     # Check kwargs for name
+    #     name = kwargs.get('name')
+    #     if name in ValidOrigins._value2member_map_:
+    #         # todo: check that reference is None
+    #         pass
 
     return test_origin_value
 
 
 class Axis:
-    @validate_origin
+    @axis_checkers
     def __init__(self, name: str,
                  translation: Union[ureg.Quantity, csdl.Variable],
+                 origin: str,
                  phi: Union[ureg.Quantity, csdl.Variable] = np.array([0., ])*ureg.radian,
                  theta: Union[ureg.Quantity, csdl.Variable] = np.array([0., ])*ureg.radian,
                  psi: Union[ureg.Quantity, csdl.Variable] = np.array([0., ])*ureg.radian,
-                 origin: Union[str, None] = None,
                  sequence=np.array([3, 2, 1]),
                  reference = None):
 
