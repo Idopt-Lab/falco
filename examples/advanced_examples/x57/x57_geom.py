@@ -1,19 +1,19 @@
 from dataclasses import dataclass
 
-from flight_simulator import ureg, Q_, REPO_ROOT_FOLDER
+from flight_simulator import ureg, REPO_ROOT_FOLDER
 import csdl_alpha as csdl
 import numpy as np
 from typing import Union
 
 
-from flight_simulator.utils.axis import Axis, ValidOrigins
-from flight_simulator.utils.axis_lsdogeo import AxisLsdoGeo
-from flight_simulator.utils.forces_moments import Vector, ForcesMoments
+from flight_simulator.core.dynamics.axis import Axis, ValidOrigins
+from flight_simulator.core.dynamics.axis_lsdogeo import AxisLsdoGeo
+from flight_simulator.core.loads.forces_moments import Vector, ForcesMoments
 from flight_simulator.utils.import_geometry import import_geometry
-from flight_simulator.core.aircraft_states import AircaftStates
+from flight_simulator.core.dynamics.aircraft_states import AircaftStates
 from flight_simulator.utils.euler_rotations import build_rotation_matrix
 
-plot_flag = False
+plot_flag = True
 in2m = 0.0254
 
 # Every CSDl code starts with a recorder
@@ -21,7 +21,7 @@ recorder = csdl.Recorder(inline=True)
 recorder.start()
 
 # region Base Geometry
-# Create all parametric functions on this base geometry
+# Create all parametric functions on this base aircraft
 geometry = import_geometry(
     file_name="x57.stp",
     file_path= REPO_ROOT_FOLDER / 'examples'/ 'advanced_examples' / 'x57',
@@ -32,7 +32,7 @@ geometry = import_geometry(
 if plot_flag:
     geometry.plot()
 
-# region Define geometry components
+# region Define aircraft components
 
 # Cruise Motor
 cruise_motor_hub = geometry.declare_component(function_search_names=['CruiseNacelle-Spinner'])
@@ -64,12 +64,12 @@ wing_tip_right_le_parametric = wing.project(wing_tip_right_le_guess, plot=plot_f
 cruise_motor_hub_tip_guess = np.array([-120., -189.741,   -87.649])*in2m
 cruise_motor_hub_tip_parametric = cruise_motor_hub.project(cruise_motor_hub_tip_guess, plot=plot_flag)
 cruise_motor_hub_tip = geometry.evaluate(cruise_motor_hub_tip_parametric)
-print('From geometry, cruise motor hub tip (m): ', cruise_motor_hub_tip.value)
+print('From aircraft, cruise motor hub tip (m): ', cruise_motor_hub_tip.value)
 
 cruise_motor_hub_base_guess = cruise_motor_hub_tip.value + np.array([-20., 0., 0.])*in2m
 cruise_motor_hub_base_parametric = cruise_motor_hub.project(cruise_motor_hub_base_guess, plot=plot_flag)
 cruise_motor_hub_base = geometry.evaluate(cruise_motor_hub_base_parametric)
-print('From geometry, cruise motor hub base (m): ', cruise_motor_hub_base.value)
+print('From aircraft, cruise motor hub base (m): ', cruise_motor_hub_base.value)
 # endregion
 
 # endregion
@@ -138,7 +138,7 @@ print('Wing axis rotation (deg): ', np.rad2deg(wing_axis.euler_angles.value))
 
 # endregion
 
-# region FD axis that do not depend on geometry
+# region FD axis that do not depend on aircraft
 
 # region Inertial Axis
 # I am picking the inertial axis location as the OpenVSP (0,0,0)
@@ -313,7 +313,7 @@ print(cruise_motor_axis.translation.value)
 #
 # geometry_solver.evaluate(geometric_variables)
 # print("Wingspan: ", wingspan.value)
-# geometry.plot()
+# aircraft.plot()
 # # endregion
 #
 # # endregion

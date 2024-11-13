@@ -1,16 +1,11 @@
-from flight_simulator.utils.mass_properties import MassProperties
+from flight_simulator.core.loads.mass_properties import MassProperties
 
 
 from lsdo_geo import Geometry
 from lsdo_function_spaces import FunctionSet
-from typing import Union, List
-import numpy as np
-from lsdo_geo.core.parameterization.free_form_deformation_functions import construct_ffd_block_around_entities
-import lsdo_function_spaces as lfs
+from typing import Union
 import csdl_alpha as csdl
 from dataclasses import dataclass
-import time
-
 
 
 class ComponentQuantities:
@@ -66,7 +61,7 @@ class Component:
 
     def __init__(self, geometry: Union[FunctionSet, None] = None,
                  **kwargs) -> None:
-        csdl.check_parameter(geometry, "geometry", types=(FunctionSet), allow_none=True)
+        csdl.check_parameter(geometry, "aircraft", types=(FunctionSet), allow_none=True)
 
         # Increment instance count and set private component name (will be obsolete in the future)
         Component._instance_count += 1

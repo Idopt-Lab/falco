@@ -1,13 +1,11 @@
 from unittest import TestCase
 
-from sympy.physics.mechanics.functions import inertia
-
 from flight_simulator import ureg, Q_
 import csdl_alpha as csdl
 import numpy as np
 
-from flight_simulator.utils.axis import Axis, ValidOrigins
-from flight_simulator.utils.forces_moments import Vector, ForcesMoments
+from flight_simulator.core.dynamics.axis import Axis, ValidOrigins
+from flight_simulator.core.loads.forces_moments import Vector, ForcesMoments
 
 
 class TestVector(TestCase):

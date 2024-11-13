@@ -1,9 +1,9 @@
 from unittest import TestCase
-from flight_simulator import ureg, Q_
+from flight_simulator import ureg
 import csdl_alpha as csdl
 import numpy as np
 
-from flight_simulator.utils.axis import Axis, ValidOrigins
+from flight_simulator.core.dynamics.axis import Axis, ValidOrigins
 
 
 class AxisTests(TestCase):

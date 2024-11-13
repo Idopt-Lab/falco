@@ -24,7 +24,7 @@ geometry = lsdo_geo.import_geometry(
 geometry.plot()
 
 
-# Define geometry components
+# Define aircraft components
 cruise_motor = geometry.declare_component(function_search_names=['CruiseNacelle-Spinner'])
 # cruise_motor.plot()
 
@@ -63,7 +63,7 @@ geometry_parameterization_variables.add_variable(computed_value=alignment_constr
 
 # geometry_parameterization_solver.evaluate(geometry_parameterization_variables)
 
-# geometry.plot()
+# aircraft.plot()
 
 for surface in wing.functions.values():
     surface.coefficients = surface.coefficients.set(csdl.slice[:,:,1], surface.coefficients[:,:,1]*2)

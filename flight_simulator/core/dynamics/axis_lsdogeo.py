@@ -1,11 +1,10 @@
 import numpy as np
-from flight_simulator import ureg, Q_
+from flight_simulator import ureg
 import csdl_alpha as csdl
-from typing import Union, Literal
-from enum import Enum
+from typing import Union
 import lsdo_geo
 
-from flight_simulator.utils.axis import Axis
+from flight_simulator.core.dynamics.axis import Axis
 
 
 

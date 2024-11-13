@@ -25,7 +25,7 @@ def import_geometry(
     file_path : Path
         Path to the file.
     refit : bool, optional
-        Whether to refit the geometry, by default False.
+        Whether to refit the aircraft, by default False.
     refit_num_coefficients : tuple, optional
         Number of coefficients for refitting, by default (40, 40).
     refit_b_spline_order : tuple, optional
@@ -35,12 +35,12 @@ def import_geometry(
     rotate_to_body_fixed_frame : bool, optional
         Apply a 180° rotation about the z-axis followed by a 180° rotation about the x-axis, by default True.
     scale : float, optional
-        Scaling factor for the geometry, by default 1.0.
+        Scaling factor for the aircraft, by default 1.0.
 
     Returns
     -------
     lg.Geometry
-        The imported geometry.
+        The imported aircraft.
 
     Raises
     ------
@@ -63,10 +63,10 @@ def import_geometry(
     if not full_path.is_file():
         raise Exception(f"Unknown file path or file. File path: {full_path}")
 
-    # Import geometry
+    # Import aircraft
     geometry = lg.import_geometry(full_path, parallelize=False, scale=scale)
 
-    # Refit geometry if required
+    # Refit aircraft if required
     if refit:
         refit_space = lfs.BSplineSpace(2, refit_b_spline_order, refit_num_coefficients)
         geometry.refit(refit_space, grid_resolution=refit_resolution)
