@@ -1,4 +1,4 @@
-from flight_simulator.utils.axis import Axis
+from flight_simulator.core.dynamics.axis import Axis
 import csdl_alpha as csdl
 from flight_simulator import ureg
 import numpy as np
