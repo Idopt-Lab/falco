@@ -1,42 +1,9 @@
-from flight_simulator.core.dynamics.axis import Axis
+from flight_simulator.utils.axis import Axis
 import csdl_alpha as csdl
 import numpy as np
-from flight_simulator import ureg
+from flight_simulator import ureg, Q_
 from flight_simulator.utils.euler_rotations import build_rotation_matrix
-
-
-class Vector:
-    def __init__(self, vector, axis):
-        """
-        :param vector: Stores 3 components of the vector in SI units
-        :param axis: coordinate system in which the vector is stored
-        """
-
-        if isinstance(vector, ureg.Quantity):
-            self.vector = csdl.Variable(
-                shape=(3,),
-            )
-            vector_si = vector.to_base_units()
-            self.vector.set_value(vector_si.magnitude)
-            self.vector.add_tag(str(vector_si.units))
-        elif isinstance(vector, csdl.Variable):
-            self.vector = vector
-        else:
-            raise IOError
-
-        assert isinstance(axis, Axis)
-        self.axis = axis
-
-    @property
-    def magnitude(self):
-        return csdl.norm(self.vector)
-
-    def __str__(self):
-        print_string = """Vector: %s \nUnit: %s \nAxis: %s""" % \
-                       (np.array_str(np.around(self.vector.value, 2)),
-                        self.vector.tags[0],
-                        self.axis.name)
-        return print_string
+from flight_simulator.utils.vector import Vector
 
 
 class ForcesMoments:
@@ -84,7 +51,9 @@ if __name__ == "__main__":
     inertial_axis = Axis(
         name='Inertial Axis',
         translation=np.array([0, 0, 0]) * ureg.meter,
-        angles=np.array([0, 0, 0]) * ureg.degree,
+        phi=np.array([0, ]) * ureg.degree,
+        theta=np.array([5, ]) * ureg.degree,
+        psi=np.array([0, ]) * ureg.degree,
         origin='inertial'
     )
 
