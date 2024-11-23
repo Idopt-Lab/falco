@@ -11,16 +11,10 @@ from dataclasses import dataclass
 class ComponentQuantities:
     def __init__(
             self,
-            mass_properties: MassProperties = None,
+            mass_properties: MassProperties = None
     ) -> None:
 
         self._mass_properties = mass_properties
-
-        self.surface_mesh = []
-        self.surface_area = None
-
-        if mass_properties is None:
-            self.mass_properties = MassProperties()
 
     @property
     def mass_properties(self):
@@ -29,8 +23,7 @@ class ComponentQuantities:
     @mass_properties.setter
     def mass_properties(self, value):
         if not isinstance(value, MassProperties):
-            raise ValueError(f"'mass_properties' must be of type {MassProperties}, received {value}")
-
+            raise ValueError(f"'mass_properties' must be of type {MassProperties}, received {type(value)}")
         self._mass_properties = value
 
 
@@ -40,71 +33,77 @@ class ComponentParameters:
 
 
 class Component:
-    """The base component class.
+    """
+    The base component class.
 
     Attributes
-    ---------
-    comps : dictionary
-        Dictionary of the sub/children components
+    ----------
+    name : str
+        A unique name for the component.
 
-    geometry : Union[Geometry]
+    parent : Component
+        The parent component, if the current component is part of a hierarchy.
 
-    quantities : dictionary
-        General container data; by default contains
-        - mass_properties
+    comps : dict
+        A dictionary of subcomponents with their names as keys.
+
+    geometry : FunctionSet or None
+        The geometry associated with the component, enabling geometric operations.
+
+    quantities : ComponentQuantities
+        Essential quantities a component must always have, such as mass properties.
+
+    parameters : ComponentParameters
+        A container for user-defined parameters, initialized using keyword arguments.
+
+    compute_surface_area : bool
+        Indicates whether to compute the surface area of the geometry upon initialization.
+
+    surface_area : csdl.Variable
+        The computed surface area of the geometry, if applicable.
     """
 
-    # Instance counter for naming components under the hood
-    _instance_count = 0
-
-    parent = None
-
-    def __init__(self, geometry: Union[FunctionSet, None] = None,
+    def __init__(self,
+                 name: str,
+                 geometry: Union[FunctionSet, None] = None,
+                 compute_surface_area_flag: bool = False,
                  **kwargs) -> None:
-        csdl.check_parameter(geometry, "aircraft", types=(FunctionSet), allow_none=True)
+        """
+        Initialize a Component instance.
 
-        # Increment instance count and set private component name (will be obsolete in the future)
-        Component._instance_count += 1
-        self._name = f"component_{self._instance_count}"
+        Parameters
+        ----------
+        geometry : FunctionSet or None, optional
+            The geometry associated with the component.
 
-        # set class attributes
+        name : str
+            A custom name for the component. If not provided, a unique name will be generated.
+
+        compute_surface_area : bool, optional
+            Whether to compute the surface area of the geometry upon initialization. Default is True.
+
+        **kwargs : dict
+            User-defined parameters to be stored in the `parameters` attribute.
+        """
+        # Increment instance count and set the name
+        self._name = name
+
+        # Hierarchical attributes
+        self.parent = None
+        self.comps = {}  # Dictionary to hold subcomponents
+
+        # Geometry-related attributes
         self.geometry: Union[FunctionSet, Geometry, None] = geometry
-        self.comps: ComponentDict = ComponentDict(parent=self)
+        self.surface_area = None
+        self.compute_surface_area_flag = compute_surface_area_flag
+
+        if geometry and compute_surface_area_flag:
+            self.surface_area = self._compute_surface_area(geometry)
+
+        # Essential quantities and user-defined parameters
         self.quantities: ComponentQuantities = ComponentQuantities()
         self.parameters: ComponentParameters = ComponentParameters()
 
-        # Set any keyword arguments on parameters
+        # Store user-defined parameters
         for key, value in kwargs.items():
             setattr(self.parameters, key, value)
-
-
-class ComponentDict(dict):
-    def __init__(self, parent: Component, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        csdl.check_parameter(parent, "parent", types=(Component))
-        self.parent = parent
-
-    def __getitem__(self, key) -> Component:
-        # Check if key exists
-        if key not in self:
-            raise KeyError(f"The component '{key}' does not exist. Existing components: {list(self.keys())}")
-        else:
-            return super().__getitem__(key)
-
-    def __setitem__(self, key, value: Component, allow_overwrite=False):
-        # Check type
-        if not isinstance(value, Component):
-            raise TypeError(f"Components must be of type(s) {Component}; received {type(value)}")
-
-        # Check if key is already specified
-        elif key in self:
-            if allow_overwrite is False:
-                raise Exception(f"Component {key} has already been set and cannot be re-set.")
-            else:
-                super().__setitem__(key, value)
-                value.parent = self.parent
-
-        # Set item otherwise
-        else:
-            super().__setitem__(key, value)
-            value.parent = self.parent
