@@ -145,9 +145,27 @@ class MassProperties(Loads):
                  mass: Union[ureg.Quantity, csdl.Variable] = Q_(0, 'kg')):
         assert cg_vector.axis.name == inertia_tensor.axis.name
         super().__init__()
+
+        self.mass = csdl.Variable(shape=(1,), value=np.array([0, ]))
+
         self.mass = mass
         self.cg_vector = cg_vector
         self.inertia_tensor = inertia_tensor
+
+    @property
+    def mass(self):
+        return self._mass
+
+    @mass.setter
+    def mass(self, mass):
+        if isinstance(mass, ureg.Quantity):
+            mass_si = mass.to_base_units()
+            self._mass.set_value(mass_si.magnitude)
+            self._mass.add_tag(str(mass_si.units))
+        elif isinstance(mass, csdl.Variable):
+            self._mass = mass
+        else:
+            raise IOError
 
     def get_FM_refPoint(self, states_obj, controls_obj):
         """Use vehicle state and control objects to generate an estimate

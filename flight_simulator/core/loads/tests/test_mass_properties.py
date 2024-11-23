@@ -1,7 +1,5 @@
 from unittest import TestCase
 
-from unicodedata import decimal
-
 from flight_simulator import ureg, Q_
 import csdl_alpha as csdl
 import numpy as np
@@ -43,3 +41,8 @@ class TestMassProperties(TestCase):
         actual[1, 1] = 0.04214 * (10 * 5 ** 2)
         actual[2, 2] = 0.04214 * (10 * 5 ** 2)
         np.testing.assert_almost_equal(mi.inertia_tensor.value, actual, decimal=3)
+
+    def test_mp_initialization(self):
+        mi = MassMI(axis=self.axis)
+        mp = MassProperties(cg_vector=self.vector, inertia_tensor=mi, mass=Q_(10, 'lb'))
+        np.testing.assert_almost_equal(actual=mp.mass.value, desired=4.53592, decimal=5)
