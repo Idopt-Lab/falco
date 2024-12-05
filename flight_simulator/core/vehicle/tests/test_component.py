@@ -7,7 +7,7 @@ import numpy as np
 from flight_simulator.core.dynamics.axis import Axis, ValidOrigins
 from flight_simulator.core.loads.forces_moments import Vector
 from flight_simulator.core.loads.mass_properties import MassProperties, MassMI
-from flight_simulator.core.aircraft.component import Component, ComponentQuantities, ComponentParameters
+from flight_simulator.core.vehicle.component import Component, ComponentQuantities, ComponentParameters
 from flight_simulator.utils.import_geometry import import_geometry
 
 
