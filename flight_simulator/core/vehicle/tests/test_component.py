@@ -1,3 +1,4 @@
+from pathlib import Path
 from unittest import TestCase
 
 from flight_simulator import ureg, Q_
@@ -82,3 +83,61 @@ class TestComponentGeometry(TestCase):
                                    geometry=self.wing_geometry,
                                    compute_surface_area_flag=True)
         np.testing.assert_almost_equal(wing_component.surface_area.value, 97.229, decimal=3)
+
+
+class TestComponentHierarchy(TestCase):
+    def setUp(self):
+        recorder = csdl.Recorder(inline=True)
+        recorder.start()
+
+    def test_adding_subcomponent(self):
+        """Test adding a subcomponent to a Component."""
+        parent_component = Component(name="parent_component")
+        sub_component = Component(name="sub_component")
+
+        parent_component.add_subcomponent(sub_component)
+
+        self.assertIn("sub_component", parent_component.comps)
+        self.assertEqual(parent_component.comps["sub_component"], sub_component)
+        self.assertEqual(sub_component.parent, parent_component)
+
+    def test_adding_subcomponent_that_already_exists(self):
+        """Test adding a subcomponent that already exists in the parent Component."""
+        parent_component = Component(name="parent_component")
+        sub_component = Component(name="sub_component")
+
+        parent_component.add_subcomponent(sub_component)
+
+        with self.assertRaises(KeyError):
+            parent_component.add_subcomponent(sub_component)
+
+    def test_removing_subcomponent(self):
+        """Test removing a subcomponent from a Component."""
+        parent_component = Component(name="parent_component")
+        sub_component1 = Component(name="sub_component1")
+        sub_component2 = Component(name="sub_component2")
+
+        parent_component.add_subcomponent(sub_component1)
+        parent_component.add_subcomponent(sub_component2)
+
+        parent_component.remove_subcomponent(sub_component1)
+
+        self.assertNotIn("sub_component1", parent_component.comps)
+        self.assertIsNone(sub_component1.parent)
+        self.assertIn("sub_component2", parent_component.comps)
+
+    def test_viz_component_hierarchy(self):
+        """Test removing a subcomponent from a Component."""
+        parent_component = Component(name="parent_component")
+        sub_component1 = Component(name="sub_component1")
+        sub_component2 = Component(name="sub_component2")
+
+        parent_component.add_subcomponent(sub_component1)
+        parent_component.add_subcomponent(sub_component2)
+
+        parent_component.visualize_component_hierarchy(filepath=Path.cwd()/"python_test_outputs")
+        self.assertTrue((Path.cwd()/"python_test_outputs/component_hierarchy.png").exists())
+        # Delete the folder and all its files after the test
+        (Path.cwd()/"python_test_outputs/component_hierarchy.png").unlink()
+        (Path.cwd()/"python_test_outputs/component_hierarchy").unlink()
+        (Path.cwd() / "python_test_outputs/").rmdir()

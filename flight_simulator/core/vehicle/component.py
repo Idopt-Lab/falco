@@ -1,5 +1,6 @@
-from flight_simulator.core.loads.mass_properties import MassProperties
+from pathlib import Path
 
+from flight_simulator.core.loads.mass_properties import MassProperties
 
 from lsdo_geo import Geometry
 from lsdo_function_spaces import FunctionSet
@@ -128,6 +129,10 @@ class Component:
         if not isinstance(subcomponent, Component):
             raise TypeError(f"Subcomponent must be of type 'Component'. Received: {type(subcomponent)}")
 
+        # Check if component already exists
+        if subcomponent._name in self.comps:
+            raise KeyError(f"Subcomponent with name '{subcomponent._name}' already exists.")
+
         self.comps[subcomponent._name] = subcomponent
         subcomponent.parent = self
 
@@ -147,10 +152,41 @@ class Component:
         """
         for name, comp in self.comps.items():
             if comp == subcomponent:
-                del self.comps[name]
+                self.comps.pop(name)
                 subcomponent.parent = None
                 return
         raise KeyError(f"Subcomponent {subcomponent._name} not found.")
+
+    def visualize_component_hierarchy(
+            self,
+            file_name: str = "component_hierarchy",
+            file_format: str = "png",
+            filepath: Path = Path.cwd(),
+            show: bool = False,
+    ):
+        csdl.check_parameter(file_name, "file_name", types=str)
+        csdl.check_parameter(file_format, "file_format", values=("png", "pdf"))
+        csdl.check_parameter(show, "show", types=bool)
+        try:
+            from graphviz import Graph
+        except ImportError:
+            raise ImportError("Must install graphviz. Can do 'pip install graphviz'")
+
+        # make graph object
+        graph = Graph(comment="Component Hierarchy")
+
+        # Go through component hierarchy and components to nodes
+        def add_component_to_graph(comp: Component, comp_name: str, parent_name=None):
+            graph.node(comp_name, comp_name)
+            if parent_name is not None:
+                graph.edge(parent_name, comp_name)
+            for child_name, child in comp.comps.items():
+                add_component_to_graph(child, child_name, comp_name)
+
+        add_component_to_graph(self, self._name)
+        graph.render("component_hierarchy",
+                     directory=filepath,
+                     format=file_format, view=show)
 
     def _compute_surface_area(self, geometry: Geometry,
                               plot_flag: bool = False):
