@@ -14,6 +14,11 @@ class ComponentQuantities:
             self,
             mass_properties: MassProperties = None
     ) -> None:
+        """
+        Initialize a ComponentQuantities instance.
+            surface_area : csdl.Variable
+                The computed surface area of the geometry, if applicable.
+        """
 
         self._mass_properties = mass_properties
 
@@ -62,9 +67,6 @@ class Component:
 
     compute_surface_area : bool
         Indicates whether to compute the surface area of the geometry upon initialization.
-
-    surface_area : csdl.Variable
-        The computed surface area of the geometry, if applicable.
     """
 
     def __init__(self,
@@ -98,7 +100,6 @@ class Component:
 
         # Geometry-related attributes
         self.geometry: Union[FunctionSet, Geometry, None] = geometry
-        self.surface_area = None
         self.compute_surface_area_flag = compute_surface_area_flag
 
         # Essential quantities and user-defined parameters
@@ -110,7 +111,7 @@ class Component:
             setattr(self.parameters, key, value)
 
         if geometry and compute_surface_area_flag:
-            self.surface_area = self._compute_surface_area(geometry)
+            self.quantities.surface_area = self._compute_surface_area(geometry)
 
     def add_subcomponent(self, subcomponent):
         """

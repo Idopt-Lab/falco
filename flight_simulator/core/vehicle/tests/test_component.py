@@ -25,7 +25,7 @@ class TestComponentInitialization(TestCase):
         self.assertIsInstance(component.quantities, ComponentQuantities)
         self.assertIsInstance(component.parameters, ComponentParameters)
         self.assertEqual(component.comps, {})
-        self.assertIsNone(component.surface_area)
+        self.assertIsNone(component.quantities.surface_area)
         self.assertFalse(component.compute_surface_area_flag)
 
     def test_kwargs_parameters(self):
@@ -82,7 +82,7 @@ class TestComponentGeometry(TestCase):
         wing_component = Component(name="Wing",
                                    geometry=self.wing_geometry,
                                    compute_surface_area_flag=True)
-        np.testing.assert_almost_equal(wing_component.surface_area.value, 97.229, decimal=3)
+        np.testing.assert_almost_equal(wing_component.quantities.surface_area.value, 97.229, decimal=3)
 
 
 class TestComponentHierarchy(TestCase):
