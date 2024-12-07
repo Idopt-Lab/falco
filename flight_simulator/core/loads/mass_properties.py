@@ -141,10 +141,14 @@ class MassMI:
 
 
 class MassProperties(Loads):
-    def __init__(self, cg_vector: Vector, inertia_tensor: MassMI,
+    def __init__(self,
+                 states, controls,
+                 cg_vector: Vector, inertia_tensor: MassMI,
                  mass: Union[ureg.Quantity, csdl.Variable] = Q_(0, 'kg')):
+
         assert cg_vector.axis.name == inertia_tensor.axis.name
-        super().__init__()
+
+        super().__init__(states=states, controls=controls)
 
         self.mass = csdl.Variable(shape=(1,), value=np.array([0, ]))
 
@@ -167,7 +171,7 @@ class MassProperties(Loads):
         else:
             raise IOError
 
-    def get_FM_refPoint(self, states_obj, controls_obj):
+    def get_FM_refPoint(self):
         """Use vehicle state and control objects to generate an estimate
         of gravity forces and moments about a reference point."""
         # Gravity FM
