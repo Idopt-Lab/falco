@@ -3,6 +3,7 @@ from flight_simulator import ureg, Q_
 import csdl_alpha as csdl
 from typing import Union, Literal
 from enum import Enum
+from dataclasses import dataclass
 
 
 class ValidOrigins(Enum):
@@ -31,146 +32,98 @@ def axis_checkers(func):
 
 
 class Axis:
+
+    @dataclass
+    class euler_angles(csdl.VariableGroup):
+        phi : csdl.Variable
+        theta : csdl.Variable
+        psi: csdl.Variable
+
+        def define_checks(self):
+            self.add_check('phi', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
+            self.add_check('theta', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
+            self.add_check('psi', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
+
+        def _check_pamaeters(self, name, value):
+            if self._metadata[name]['type'] is not None:
+                if type(value) not in self._metadata[name]['type']:
+                    raise ValueError(f"Variable {name} must be of type {self._metadata[name]['type']}.")
+
+            if self._metadata[name]['variablize']:
+                if isinstance(value, ureg.Quantity):
+                    value_si = value.to_base_units()
+                    value = csdl.Variable(value=value_si.magnitude, shape=(1,), name=name)
+                    value.add_tag(tag=str(value_si.units))
+
+            if self._metadata[name]['shape'] is not None:
+                if value.shape != self._metadata[name]['shape']:
+                    raise ValueError(f"Variable {name} must have shape {self._metadata[name]['shape']}.")
+            return value
+
+    @dataclass
+    class translation_from_origin(csdl.VariableGroup):
+        x: csdl.Variable
+        y: csdl.Variable
+        z: csdl.Variable
+
+        def define_checks(self):
+            self.add_check('x', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
+            self.add_check('y', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
+            self.add_check('z', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
+
+        def _check_pamaeters(self, name, value):
+            if self._metadata[name]['type'] is not None:
+                if type(value) not in self._metadata[name]['type']:
+                    raise ValueError(f"Variable {name} must be of type {self._metadata[name]['type']}.")
+
+            if self._metadata[name]['variablize']:
+                if isinstance(value, ureg.Quantity):
+                    value_si = value.to_base_units()
+                    value = csdl.Variable(value=value_si.magnitude, shape=(1,), name=name)
+                    value.add_tag(tag=str(value_si.units))
+
+            if self._metadata[name]['shape'] is not None:
+                if value.shape != self._metadata[name]['shape']:
+                    raise ValueError(f"Variable {name} must have shape {self._metadata[name]['shape']}.")
+            return value
+
     @axis_checkers
     def __init__(self, name: str,
-                 translation: Union[ureg.Quantity, csdl.Variable],
                  origin: str,
-                 phi: Union[ureg.Quantity, csdl.Variable] = np.array([0., ])*ureg.radian,
-                 theta: Union[ureg.Quantity, csdl.Variable] = np.array([0., ])*ureg.radian,
-                 psi: Union[ureg.Quantity, csdl.Variable] = np.array([0., ])*ureg.radian,
-                 sequence=np.array([3, 2, 1]),
-                 reference = None):
-
-        self.translation = csdl.Variable(
-            shape=(3,),
-            value=np.array([0, 0, 0]),
-        )
-        self.phi = csdl.Variable(shape=(1,), value=np.array([0, ]))
-        self.theta = csdl.Variable(shape=(1,), value=np.array([0, ]))
-        self.psi = csdl.Variable(shape=(1,), value=np.array([0, ]))
+                 x: Union[ureg.Quantity, csdl.Variable] = None,
+                 y: Union[ureg.Quantity, csdl.Variable] = None,
+                 z: Union[ureg.Quantity, csdl.Variable] = None,
+                 phi: Union[ureg.Quantity, csdl.Variable] = None,
+                 theta: Union[ureg.Quantity, csdl.Variable] = None,
+                 psi: Union[ureg.Quantity, csdl.Variable] = None,
+                 sequence = None,
+                 reference=None):
 
         self.name = name
-        self.translation = translation
-        self.phi = phi
-        self.theta = theta
-        self.psi = psi
+
+        if x is not None:
+            self.translation_from_origin = self.translation_from_origin(
+                x=x, y=y, z=z
+            )
+            self.translation_from_origin_vector = csdl.concatenate(
+                (self.translation_from_origin.x, self.translation_from_origin.y, self.translation_from_origin.z),
+                axis=0
+            )
+        else:
+            self.translation_from_origin = None
+            self.translation_from_origin_vector = None
+
+        if phi is not None:
+            self.euler_angles = self.euler_angles(phi=phi, theta=theta, psi=psi)
+            self.euler_angles_vector = csdl.concatenate(
+                (self.euler_angles.phi, self.euler_angles.theta, self.euler_angles.psi), axis=0)
+        else:
+            self.euler_angles = None
+            self.euler_angles_vector = None
+
         self.sequence = sequence
         self.reference = reference
         self.origin = origin
-
-    @property
-    def name(self):
-        return self._name
-
-    @name.setter
-    def name(self, name_string):
-        self._name = name_string
-
-    @property
-    def translation(self):
-        return self._translation
-
-    @translation.setter
-    def translation(self, translation_vector):
-        if translation_vector is None:
-            self._translation = None
-        elif isinstance(translation_vector, ureg.Quantity):
-            vector_si = translation_vector.to_base_units()
-            self._translation.set_value(vector_si.magnitude)
-            self._translation.add_tag(str(vector_si.units))
-        elif isinstance(translation_vector, csdl.Variable):
-            self._translation = translation_vector
-        else:
-            raise IOError
-
-    @property
-    def phi(self):
-        return self._phi
-
-    @phi.setter
-    def phi(self, phi_value):
-        if phi_value is None:
-            self._phi = None
-        elif isinstance(phi_value, ureg.Quantity):
-            scalar_si = phi_value.to_base_units()
-            assert scalar_si.shape[0] == 1
-            self._phi.set_value(scalar_si.magnitude)
-            self._phi.add_tag(str(scalar_si.units))
-        elif isinstance(phi_value, csdl.Variable):
-            assert phi_value.shape[0] == 1
-            self._phi = phi_value
-        else:
-            raise IOError
-
-    @property
-    def theta(self):
-        return self._theta
-
-    @theta.setter
-    def theta(self, theta_value):
-        if theta_value is None:
-            self._theta = None
-        elif isinstance(theta_value, ureg.Quantity):
-            scalar_si = theta_value.to_base_units()
-            assert scalar_si.shape[0] == 1
-            self._theta.set_value(scalar_si.magnitude)
-            self._theta.add_tag(str(scalar_si.units))
-        elif isinstance(theta_value, csdl.Variable):
-            assert theta_value.shape[0] == 1
-            self._theta = theta_value
-        else:
-            raise IOError
-
-    @property
-    def psi(self):
-        return self._psi
-
-    @psi.setter
-    def psi(self, psi_value):
-        if psi_value is None:
-            self._psi = None
-        elif isinstance(psi_value, ureg.Quantity):
-            scalar_si = psi_value.to_base_units()
-            assert scalar_si.shape[0] == 1
-            self._psi.set_value(scalar_si.magnitude)
-            self._psi.add_tag(str(scalar_si.units))
-        elif isinstance(psi_value, csdl.Variable):
-            assert psi_value.shape[0] == 1
-            self._psi = psi_value
-        else:
-            raise IOError
-
-    @property
-    def euler_angles(self):
-        euler_angles = csdl.Variable(shape=(3,), value=0.)
-        euler_angles = euler_angles.set(csdl.slice[0], self.phi)
-        euler_angles = euler_angles.set(csdl.slice[1], self.theta)
-        euler_angles = euler_angles.set(csdl.slice[2], self.psi)
-        return euler_angles
-
-    @property
-    def sequence(self):
-        return self._sequence
-
-    @sequence.setter
-    def sequence(self, sequence_vector):
-        if sequence_vector is None:
-            self._sequence = None
-        else:
-            # todo: check if the sequence vector is one of the two possibilities
-            self._sequence = sequence_vector
-
-    @property
-    def reference(self):
-        return self._reference
-
-    @reference.setter
-    def reference(self, axis_obj):
-        if axis_obj is None:
-            self._reference = None
-        else:
-            isinstance(axis_obj, Axis)
-            self._reference = axis_obj
 
 
 if __name__ == "__main__":
@@ -179,48 +132,21 @@ if __name__ == "__main__":
 
     inertial_axis = Axis(
         name='Inertial Axis',
-        translation=np.array([0, 0, 0]) * ureg.meter,
         origin=ValidOrigins.Inertial.value
     )
 
     axis = Axis(name='Reference Axis',
-                translation=np.array([0, 0, 0])*ureg.meter,
-                phi=np.array([0, ])*ureg.degree,
+                x=np.array([10, ]) * ureg.meter,
+                y=np.array([0, ]) * ureg.meter,
+                z=np.array([0, ]) * ureg.meter,
+                phi=np.array([0, ]) * ureg.degree,
                 theta=np.array([5, ]) * ureg.degree,
                 psi=np.array([0, ]) * ureg.degree,
                 reference=inertial_axis,
-                origin=ValidOrigins.Reference.value)
+                origin=ValidOrigins.Inertial.value)
 
-    # Translation automatically creates a CSDL variable
-    print('Axis translation: ', axis.translation)
-    print('Axis translation value: ', axis.translation.value)
-    print('Axis angles value: ', axis.euler_angles.value)
-
-    # Update using the class' setter.
-    # Here we need it to be a Pint Quantity with units
-    # It will automatically be converted to base SI units
-
-    print('\n Using class setter to update')
-
-    axis.translation = np.array([3, 0, 0])*ureg.meter
-    print('Axis translation: ', axis.translation)
-    print('Axis translation value: ', axis.translation.value)
-
-    axis.phi = np.array([4, ]) * ureg.degree
-    print('Changed phi value: ', axis.phi.value)
-    print('Changed Euler angles value: ', axis.euler_angles.value)
-
-    # Update by directly accessing the CSDL Variable and using the set_value() method
-    print('\n Using set_value() to update')
-
-    axis.translation.set_value(np.array([0, 5, 0]))
-    print('Axis translation value: ', axis.translation.value)
-
-    # Since the shape is given as (3, ), giving a scalar will broadcast
-    axis.translation.set_value(5)
-    print('Axis translation value: ', axis.translation.value)
-
-    axis.psi.set_value(np.array([np.deg2rad(-3.)]))
-    print('Changed psi value: ', axis.psi.value)
-    print('Changed Euler angles value: ', axis.euler_angles.value)
+    print('Axis translation: ', axis.translation_from_origin_vector)
+    print('Axis translation value: ', axis.translation_from_origin_vector.value)
+    print('Axis angles: ', axis.euler_angles_vector)
+    print('Axis angles value: ', axis.euler_angles_vector.value)
     pass
