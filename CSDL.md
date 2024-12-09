@@ -2,6 +2,9 @@
 
 ## Discilpinary Packages
 
+### Atmosphere model
+[NRLMSIS2](https://github.com/nichco/NRLMSIS2/tree/main)
+
 ### Beam model
 Simple Euler-Bernoulli beam model for structural analysis.
 It is restricted to Tube cross-sections as of 8 Decemeber 2024.
@@ -16,7 +19,11 @@ Vortex lattice method for aerodynamic analysis.
 ### BEM
 Blade Element Momentum theory for rotor analysis.
 
-[VLM](https://github.com/lscotzni/VortexAD_temp)
+[BEM](https://github.com/LSDOlab/BladeAD)
+
+### Propulsion
+Max thrust surrogate model for 2 J79 engines.
+[J79x2](https://github.com/nichco/J79X2)
 
 ### Stability
 Linear stability analysis for a 6 DoF model. 
