@@ -1,9 +1,14 @@
 from abc import ABC, abstractmethod
+
+import NRLMSIS2
 import csdl_alpha as csdl
 from typing import Union
 from dataclasses import dataclass
 import numpy as np
 from flight_simulator import ureg, Q_
+from flight_simulator.core.dynamics.axis import Axis, ValidOrigins
+from flight_simulator.core.dynamics.axis_lsdogeo import AxisLsdoGeo
+
 
 class RigidBodyStates(ABC):
     def __init__(self, state_axis):
@@ -77,17 +82,148 @@ class MassSpringDamperState(RigidBodyStates):
     def return_state_vector(self):
         return np.array([self.x.value, self.x_dot.value], dtype=float)
 
+
 @dataclass
-class AircaftStates(csdl.VariableGroup):
-    u : Union[float, int, csdl.Variable, np.ndarray] = 0
-    v : Union[float, int, csdl.Variable, np.ndarray] = 0
-    w : Union[float, int, csdl.Variable, np.ndarray] = 0
-    p : Union[float, int, csdl.Variable, np.ndarray] = 0
-    q : Union[float, int, csdl.Variable, np.ndarray] = 0
-    r : Union[float, int, csdl.Variable, np.ndarray] = 0
-    phi : Union[float, int, csdl.Variable, np.ndarray] = 0
-    theta : Union[float, int, csdl.Variable, np.ndarray] = 0
-    psi : Union[float, int, csdl.Variable, np.ndarray] = 0
-    x : Union[float, int, csdl.Variable, np.ndarray] = 0
-    y : Union[float, int, csdl.Variable, np.ndarray] = 0
-    z : Union[float, int, csdl.Variable, np.ndarray] = 0
+class AircaftStates:
+
+    @dataclass
+    class states_6DoF(csdl.VariableGroup):
+        u: csdl.Variable
+        v: csdl.Variable
+        w: csdl.Variable
+        p: csdl.Variable
+        q: csdl.Variable
+        r: csdl.Variable
+        phi: csdl.Variable
+        theta: csdl.Variable
+        psi: csdl.Variable
+        x: csdl.Variable
+        y: csdl.Variable
+        z: csdl.Variable
+
+        def define_checks(self):
+            self.add_check('u', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
+            self.add_check('v', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
+            self.add_check('w', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
+            self.add_check('p', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
+            self.add_check('q', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
+            self.add_check('r', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
+            self.add_check('phi', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
+            self.add_check('theta', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
+            self.add_check('psi', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
+            self.add_check('x', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
+            self.add_check('y', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
+            self.add_check('z', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
+
+        def _check_pamaeters(self, name, value):
+            if self._metadata[name]['type'] is not None:
+                if type(value) not in self._metadata[name]['type']:
+                    raise ValueError(f"Variable {name} must be of type {self._metadata[name]['type']}.")
+
+            if self._metadata[name]['variablize']:
+                if isinstance(value, ureg.Quantity):
+                    value_si = value.to_base_units()
+                    value = csdl.Variable(value=value_si.magnitude, shape=(1,), name=name)
+                    value.add_tag(tag=str(value_si.units))
+
+            if self._metadata[name]['shape'] is not None:
+                if value.shape != self._metadata[name]['shape']:
+                    raise ValueError(f"Variable {name} must have shape {self._metadata[name]['shape']}.")
+            return value
+
+    def __init__(self,
+                 axis: Union[Axis, AxisLsdoGeo],
+                 u: Union[ureg.Quantity, csdl.Variable]=Q_(0, 'm/s'),
+                 v: Union[ureg.Quantity, csdl.Variable]=Q_(0, 'm/s'),
+                 w: Union[ureg.Quantity, csdl.Variable]=Q_(0, 'm/s'),
+                 p: Union[ureg.Quantity, csdl.Variable]=Q_(0, 'rad/s'),
+                 q: Union[ureg.Quantity, csdl.Variable]=Q_(0, 'rad/s'),
+                 r: Union[ureg.Quantity, csdl.Variable]=Q_(0, 'rad/s'),
+                 ):
+        self.axis = axis
+        self.atm = NRLMSIS2.Atmosphere()
+        self.atmospheric_states = self.atm.evaluate(self.axis.translation_from_origin.z)
+
+        self.states = self.states_6DoF(
+            u=u, v=v, w=w,
+            p=p, q=q, r=r,
+            x=self.axis.translation_from_origin.x, y=self.axis.translation_from_origin.y, z=self.axis.translation_from_origin.z,
+            phi=axis.euler_angles.phi, theta=axis.euler_angles.theta, psi=axis.euler_angles.psi
+        )
+        self.velocity_vector = csdl.concatenate((self.states.u, self.states.v, self.states.w), axis=0)
+        self.angular_rates_vector = csdl.concatenate((self.states.p, self.states.q, self.states.r), axis=0)
+        self.position_vector = self.axis.translation_from_origin_vector
+        self.euler_angles_vector = self.axis.euler_angles_vector
+
+        self.states_vector = csdl.concatenate(
+            (self.velocity_vector, self.angular_rates_vector, self.position_vector, self.euler_angles_vector),
+            axis=0
+        )
+
+        self.linear_acceleration = csdl.VariableGroup()
+        self.linear_acceleration.uDot = csdl.Variable(value=0, shape=(1,), name='uDot', tags=['m/s^2'])
+        self.linear_acceleration.vDot = csdl.Variable(value=0, shape=(1,), name='vDot', tags=['m/s^2'])
+        self.linear_acceleration.wDot = csdl.Variable(value=0, shape=(1,), name='wDot', tags=['m/s^2'])
+        self.linear_acceleration_vector = csdl.concatenate(
+            (self.linear_acceleration.uDot, self.linear_acceleration.vDot, self.linear_acceleration.wDot),
+            axis=0)
+
+        self.angular_acceleration = csdl.VariableGroup()
+        self.angular_acceleration.pDot = csdl.Variable(value=0, shape=(1,), name='pDot', tags=['rad/s^2'])
+        self.angular_acceleration.qDot = csdl.Variable(value=0, shape=(1,), name='qDot', tags=['rad/s^2'])
+        self.angular_acceleration.rDot = csdl.Variable(value=0, shape=(1,), name='rDot', tags=['rad/s^2'])
+        self.angular_acceleration_vector = csdl.concatenate(
+            (self.angular_acceleration.pDot, self.angular_acceleration.qDot, self.angular_acceleration.rDot),
+            axis=0)
+
+        self.statesdot_vector = csdl.concatenate(
+            (self.linear_acceleration_vector, self.angular_acceleration_vector, self.velocity_vector, self.angular_rates_vector),
+            axis=0
+        )
+
+        self.VTAS = csdl.norm(self.velocity_vector, ord=2)
+        self.VTAS.add_name(name='VTAS')
+        self.VTAS.add_tag(tag='m/s')
+
+        self.alpha = csdl.arctan(self.states.w / self.states.u)  # Todo: Change to atan2
+        self.alpha.add_name(name='alpha')
+        self.alpha.add_tag(tag='rad')
+
+        self.beta = csdl.arcsin(self.states.v / self.VTAS)
+        self.beta.add_name(name='beta')
+        self.beta.add_tag(tag='rad')
+
+        self.gamma = self.axis.euler_angles.theta - self.alpha
+        self.gamma.add_name(name='gamma')
+        self.gamma.add_tag(tag='rad')
+
+        self.psi_W = self.beta - self.axis.euler_angles.psi
+        self.psi_W.add_name(name='psi_W')
+        self.psi_W.add_tag(tag='rad')
+
+        self.Mach = self.VTAS / self.atmospheric_states.speed_of_sound
+        self.Mach.add_name(name='Mach')
+        self.Mach.add_tag(tag='')
+
+
+if __name__ == "__main__":
+    recorder = csdl.Recorder(inline=True)
+    recorder.start()
+
+    inertial_axis = Axis(
+        name='Inertial Axis',
+        origin=ValidOrigins.Inertial.value
+    )
+
+    axis = Axis(name='Reference Axis',
+                x=np.array([10, ]) * ureg.meter,
+                y=np.array([0, ]) * ureg.meter,
+                z=np.array([0, ]) * ureg.meter,
+                phi=np.array([0, ]) * ureg.degree,
+                theta=np.array([5, ]) * ureg.degree,
+                psi=np.array([0, ]) * ureg.degree,
+                reference=inertial_axis,
+                origin=ValidOrigins.Inertial.value)
+
+    aircraft_states = AircaftStates(axis=axis)
+    pass
