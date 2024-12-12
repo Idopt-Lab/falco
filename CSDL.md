@@ -1,5 +1,11 @@
 # CSDL Packages
 
+[CSDL](https://github.com/LSDOlab/CSDL_alpha)
+
+## Geoemtry Modeling
+
+[Geometry](https://github.com/LSDOlab/lsdo_geo)
+
 ## Discilpinary Packages
 
 ### Atmosphere model
