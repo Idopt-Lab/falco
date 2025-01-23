@@ -87,7 +87,7 @@ class MassSpringDamperState(RigidBodyStates):
 class AircaftStates:
 
     @dataclass
-    class states_6DoF(csdl.VariableGroup):
+    class States6dof(csdl.VariableGroup):
         u: csdl.Variable
         v: csdl.Variable
         w: csdl.Variable
@@ -131,6 +131,33 @@ class AircaftStates:
                     raise ValueError(f"Variable {name} must have shape {self._metadata[name]['shape']}.")
             return value
 
+    @dataclass
+    class StatesInertialFrameWindVelocityVector(csdl.VariableGroup):
+        Vwx: csdl.Variable
+        Vwy: csdl.Variable
+        Vwz: csdl.Variable
+
+        def define_checks(self):
+            self.add_check('Vwx', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
+            self.add_check('Vwy', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
+            self.add_check('Vwz', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
+
+        def _check_pamaeters(self, name, value):
+            if self._metadata[name]['type'] is not None:
+                if type(value) not in self._metadata[name]['type']:
+                    raise ValueError(f"Variable {name} must be of type {self._metadata[name]['type']}.")
+
+            if self._metadata[name]['variablize']:
+                if isinstance(value, ureg.Quantity):
+                    value_si = value.to_base_units()
+                    value = csdl.Variable(value=value_si.magnitude, shape=(1,), name=name)
+                    value.add_tag(tag=str(value_si.units))
+
+            if self._metadata[name]['shape'] is not None:
+                if value.shape != self._metadata[name]['shape']:
+                    raise ValueError(f"Variable {name} must have shape {self._metadata[name]['shape']}.")
+            return value
+
     def __init__(self,
                  axis: Union[Axis, AxisLsdoGeo],
                  u: Union[ureg.Quantity, csdl.Variable]=Q_(0, 'm/s'),
@@ -139,24 +166,32 @@ class AircaftStates:
                  p: Union[ureg.Quantity, csdl.Variable]=Q_(0, 'rad/s'),
                  q: Union[ureg.Quantity, csdl.Variable]=Q_(0, 'rad/s'),
                  r: Union[ureg.Quantity, csdl.Variable]=Q_(0, 'rad/s'),
+                 Vwx: Union[ureg.Quantity, csdl.Variable] = Q_(0, 'm/s'),
+                 Vwy: Union[ureg.Quantity, csdl.Variable] = Q_(0, 'm/s'),
+                 Vwz: Union[ureg.Quantity, csdl.Variable] = Q_(0, 'm/s'),
                  ):
         self.axis = axis
         self.atm = NRLMSIS2.Atmosphere()
         self.atmospheric_states = self.atm.evaluate(self.axis.translation_from_origin.z)
 
-        self.states = self.states_6DoF(
+        self.states = self.States6dof(
             u=u, v=v, w=w,
             p=p, q=q, r=r,
             x=self.axis.translation_from_origin.x, y=self.axis.translation_from_origin.y, z=self.axis.translation_from_origin.z,
             phi=axis.euler_angles.phi, theta=axis.euler_angles.theta, psi=axis.euler_angles.psi
         )
-        self.velocity_vector = csdl.concatenate((self.states.u, self.states.v, self.states.w), axis=0)
+        self.states_inertial_frame_wind = self.StatesInertialFrameWindVelocityVector(Vwx=Vwx, Vwy=Vwy, Vwz=Vwz)
+
+        self.body_frame_velocity_vector = csdl.concatenate((self.states.u, self.states.v, self.states.w), axis=0)
+        self.inertial_frame_wind_velocity_vector = csdl.concatenate((self.states_inertial_frame_wind.Vwx,
+                                                                     self.states_inertial_frame_wind.Vwy,
+                                                                     self.states_inertial_frame_wind.Vwz), axis=0)
         self.angular_rates_vector = csdl.concatenate((self.states.p, self.states.q, self.states.r), axis=0)
         self.position_vector = self.axis.translation_from_origin_vector
         self.euler_angles_vector = self.axis.euler_angles_vector
 
         self.states_vector = csdl.concatenate(
-            (self.velocity_vector, self.angular_rates_vector, self.position_vector, self.euler_angles_vector),
+            (self.body_frame_velocity_vector, self.angular_rates_vector, self.position_vector, self.euler_angles_vector),
             axis=0
         )
 
@@ -177,11 +212,11 @@ class AircaftStates:
             axis=0)
 
         self.statesdot_vector = csdl.concatenate(
-            (self.linear_acceleration_vector, self.angular_acceleration_vector, self.velocity_vector, self.angular_rates_vector),
+            (self.linear_acceleration_vector, self.angular_acceleration_vector, self.body_frame_velocity_vector, self.angular_rates_vector),
             axis=0
         )
 
-        self.VTAS = csdl.norm(self.velocity_vector, ord=2)
+        self.VTAS = csdl.norm(self.body_frame_velocity_vector, ord=2)
         self.VTAS.add_name(name='VTAS')
         self.VTAS.add_tag(tag='m/s')
 
@@ -197,13 +232,20 @@ class AircaftStates:
         self.gamma.add_name(name='gamma')
         self.gamma.add_tag(tag='rad')
 
-        self.psi_W = self.beta - self.axis.euler_angles.psi
-        self.psi_W.add_name(name='psi_W')
-        self.psi_W.add_tag(tag='rad')
+        self.sigma = self.beta - self.axis.euler_angles.psi  # Aircraft Heading
+        self.sigma.add_name(name='sigma')
+        self.sigma.add_tag(tag='rad')
 
         self.Mach = self.VTAS / self.atmospheric_states.speed_of_sound
         self.Mach.add_name(name='Mach')
         self.Mach.add_tag(tag='')
+
+        # Ground Speed
+        R_B_to_I = np.eye(3)  # Todo: Implement rotation matrix
+        self.inertial_velocity_vector = csdl.matvec(R_B_to_I, self.body_frame_velocity_vector) + self.inertial_frame_wind_velocity_vector
+
+        self.course_angle = csdl.arctan(self.inertial_velocity_vector[1]/self.inertial_velocity_vector[0])
+
 
 
 if __name__ == "__main__":
@@ -225,5 +267,5 @@ if __name__ == "__main__":
                 reference=inertial_axis,
                 origin=ValidOrigins.Inertial.value)
 
-    aircraft_states = AircaftStates(axis=axis)
+    aircraft_states = AircaftStates(axis=axis, u=Q_(10, 'm/s'))
     pass

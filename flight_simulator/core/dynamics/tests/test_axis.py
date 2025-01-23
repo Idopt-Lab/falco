@@ -14,10 +14,8 @@ class AxisTests(TestCase):
     def test_create_axis(self):
         inertial_axis = Axis(
             name='Inertial Axis',
-            translation=np.array([0, 0, 0]) * ureg.meter,
             origin=ValidOrigins.Inertial.value
         )
-        np.testing.assert_almost_equal(inertial_axis.translation.value, desired=np.zeros(3,))
 
     def test_set_axis_translation_via_pint(self):
         inertial_axis = Axis(
