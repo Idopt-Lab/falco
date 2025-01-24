@@ -1,14 +1,50 @@
 import csdl_alpha as csdl
 from typing import Union
+from dataclasses import dataclass
 import numpy as np
 from flight_simulator import ureg, Q_
 from flight_simulator.core.loads.loads import Loads
 from flight_simulator.core.dynamics.axis import Axis
 from flight_simulator.core.dynamics.axis_lsdogeo import AxisLsdoGeo
 from flight_simulator.core.loads.forces_moments import Vector
+from flight_simulator.core.dynamics.axis import Axis, ValidOrigins
 
 
 class MassMI:
+
+    @dataclass
+    class MomentOfInertiaComponents(csdl.VariableGroup):
+        Ixx: csdl.Variable
+        Iyy: csdl.Variable
+        Izz: csdl.Variable
+        Ixy: csdl.Variable
+        Ixz: csdl.Variable
+        Iyz: csdl.Variable
+
+        def define_checks(self):
+            self.add_check('Ixx', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
+            self.add_check('Iyy', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
+            self.add_check('Izz', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
+            self.add_check('Ixy', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
+            self.add_check('Ixz', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
+            self.add_check('Iyz', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
+
+        def _check_pamaeters(self, name, value):
+            if self._metadata[name]['type'] is not None:
+                if type(value) not in self._metadata[name]['type']:
+                    raise ValueError(f"Variable {name} must be of type {self._metadata[name]['type']}.")
+
+            if self._metadata[name]['variablize']:
+                if isinstance(value, ureg.Quantity):
+                    value_si = value.to_base_units()
+                    value = csdl.Variable(value=value_si.magnitude, shape=(1,), name=name)
+                    value.add_tag(tag=str(value_si.units))
+
+            if self._metadata[name]['shape'] is not None:
+                if value.shape != self._metadata[name]['shape']:
+                    raise ValueError(f"Variable {name} must have shape {self._metadata[name]['shape']}.")
+            return value
+
     def __init__(
             self,
             axis: Union[Axis, AxisLsdoGeo],
@@ -21,155 +57,47 @@ class MassMI:
     ):
 
         self.axis = axis
-        self.Ixx = csdl.Variable(shape=(1,), value=np.array([0, ]))
-        self.Iyy = csdl.Variable(shape=(1,), value=np.array([0, ]))
-        self.Izz = csdl.Variable(shape=(1,), value=np.array([0, ]))
-        self.Ixy = csdl.Variable(shape=(1,), value=np.array([0, ]))
-        self.Ixz = csdl.Variable(shape=(1,), value=np.array([0, ]))
-        self.Iyz = csdl.Variable(shape=(1,), value=np.array([0, ]))
 
-        self.Ixx = Ixx
-        self.Iyy = Iyy
-        self.Izz = Izz
-        self.Ixy = Ixy
-        self.Ixz = Ixz
-        self.Iyz = Iyz
+        self.mass_mi_components = self.MomentOfInertiaComponents(
+            Ixx=Ixx, Iyy=Iyy, Izz=Izz, Ixy=Ixy, Ixz=Ixz, Iyz=Iyz
+        )
 
-    @property
-    def Ixx(self):
-        return self._Ixx
-
-    @Ixx.setter
-    def Ixx(self, Ixx):
-        if isinstance(Ixx, ureg.Quantity):
-            Ixx_si = Ixx.to_base_units()
-            self._Ixx.set_value(Ixx_si.magnitude)
-            self._Ixx.add_tag(str(Ixx_si.units))
-        elif isinstance(Ixx, csdl.Variable):
-            self._Ixx = Ixx
-        else:
-            raise IOError
-
-    @property
-    def Iyy(self):
-        return self._Ixx
-
-    @Iyy.setter
-    def Iyy(self, Iyy):
-        if isinstance(Iyy, ureg.Quantity):
-            Iyy_si = Iyy.to_base_units()
-            self._Iyy.set_value(Iyy_si.magnitude)
-            self._Iyy.add_tag(str(Iyy_si.units))
-        elif isinstance(Iyy, csdl.Variable):
-            self._Iyy = Iyy
-        else:
-            raise IOError
-
-    @property
-    def Izz(self):
-        return self._Izz
-
-    @Izz.setter
-    def Izz(self, Izz):
-        if isinstance(Izz, ureg.Quantity):
-            Izz_si = Izz.to_base_units()
-            self._Izz.set_value(Izz_si.magnitude)
-            self._Izz.add_tag(str(Izz_si.units))
-        elif isinstance(Izz, csdl.Variable):
-            self._Izz = Izz
-        else:
-            raise IOError
-
-    @property
-    def Ixy(self):
-        return self._Ixy
-
-    @Ixy.setter
-    def Ixy(self, Ixy):
-        if isinstance(Ixy, ureg.Quantity):
-            Ixy_si = Ixy.to_base_units()
-            self._Ixy.set_value(Ixy_si.magnitude)
-            self._Ixy.add_tag(str(Ixy_si.units))
-        elif isinstance(Ixy, csdl.Variable):
-            self._Ixy = Ixy
-        else:
-            raise IOError
-
-    @property
-    def Ixz(self):
-        return self._Ixz
-
-    @Ixz.setter
-    def Ixz(self, Ixz):
-        if isinstance(Ixz, ureg.Quantity):
-            Ixz_si = Ixz.to_base_units()
-            self._Ixz.set_value(Ixz_si.magnitude)
-            self._Ixz.add_tag(str(Ixz_si.units))
-        elif isinstance(Ixz, csdl.Variable):
-            self._Ixz = Ixz
-        else:
-            raise IOError
-
-    @property
-    def Iyz(self):
-        return self._Iyz
-
-    @Iyz.setter
-    def Iyz(self, Iyz):
-        if isinstance(Iyz, ureg.Quantity):
-            Iyz_si = Iyz.to_base_units()
-            self._Iyz.set_value(Iyz_si.magnitude)
-            self._Iyz.add_tag(str(Iyz_si.units))
-        elif isinstance(Iyz, csdl.Variable):
-            self._Iyz = Iyz
-        else:
-            raise IOError
-
-    @property
-    def inertia_tensor(self):
-        inertia_tensor = csdl.Variable(shape=(3, 3), value=0.)
-        inertia_tensor = inertia_tensor.set(csdl.slice[0, 0], self.Ixx)
-        inertia_tensor = inertia_tensor.set(csdl.slice[1, 1], self.Iyy)
-        inertia_tensor = inertia_tensor.set(csdl.slice[2, 2], self.Izz)
-        inertia_tensor = inertia_tensor.set(csdl.slice[0, 1], -self.Ixy)
-        inertia_tensor = inertia_tensor.set(csdl.slice[1, 0], -self.Ixy)
-        inertia_tensor = inertia_tensor.set(csdl.slice[0, 2], -self.Ixz)
-        inertia_tensor = inertia_tensor.set(csdl.slice[2, 0], -self.Ixz)
-        inertia_tensor = inertia_tensor.set(csdl.slice[1, 2], -self.Iyz)
-        inertia_tensor = inertia_tensor.set(csdl.slice[2, 1], -self.Iyz)
-        return inertia_tensor
+        self.inertia_tensor = csdl.Variable(shape=(3, 3), value=0.)
+        self.inertia_tensor = self.inertia_tensor.set(csdl.slice[0, 0], self.mass_mi_components.Ixx)
+        self.inertia_tensor = self.inertia_tensor.set(csdl.slice[1, 1], self.mass_mi_components.Iyy)
+        self.inertia_tensor = self.inertia_tensor.set(csdl.slice[2, 2], self.mass_mi_components.Izz)
+        self.inertia_tensor = self.inertia_tensor.set(csdl.slice[0, 1], -self.mass_mi_components.Ixy)
+        self.inertia_tensor = self.inertia_tensor.set(csdl.slice[1, 0], -self.mass_mi_components.Ixy)
+        self.inertia_tensor = self.inertia_tensor.set(csdl.slice[0, 2], -self.mass_mi_components.Ixz)
+        self.inertia_tensor = self.inertia_tensor.set(csdl.slice[2, 0], -self.mass_mi_components.Ixz)
+        self.inertia_tensor = self.inertia_tensor.set(csdl.slice[1, 2], -self.mass_mi_components.Iyz)
+        self.inertia_tensor = self.inertia_tensor.set(csdl.slice[2, 1], -self.mass_mi_components.Iyz)
+        return
 
 
-class MassProperties(Loads):
+class MassProperties:
     def __init__(self,
-                 states, controls,
                  cg_vector: Vector, inertia_tensor: MassMI,
                  mass: Union[ureg.Quantity, csdl.Variable] = Q_(0, 'kg')):
 
         assert cg_vector.axis.name == inertia_tensor.axis.name
 
-        super().__init__(states=states, controls=controls)
+        if isinstance(mass, ureg.Quantity):
+            value_si = mass.to_base_units()
+            self.mass = csdl.Variable(value=value_si.magnitude, shape=(1,), name='mass')
+            self.mass.add_tag(tag=str(value_si.units))
+        elif isinstance(mass, csdl.Variable):
+            self.mass = mass
+        else:
+            raise IOError
 
-        self.mass = csdl.Variable(shape=(1,), value=np.array([0, ]))
-
-        self.mass = mass
         self.cg_vector = cg_vector
         self.inertia_tensor = inertia_tensor
 
-    @property
-    def mass(self):
-        return self._mass
 
-    @mass.setter
-    def mass(self, mass):
-        if isinstance(mass, ureg.Quantity):
-            mass_si = mass.to_base_units()
-            self._mass.set_value(mass_si.magnitude)
-            self._mass.add_tag(str(mass_si.units))
-        elif isinstance(mass, csdl.Variable):
-            self._mass = mass
-        else:
-            raise IOError
+class GravityLoads(Loads):
+
+    # TODO: Implement this class
 
     def get_FM_refPoint(self):
         """Use vehicle state and control objects to generate an estimate
@@ -206,3 +134,18 @@ class MassProperties(Loads):
                                 z=Mgrav[2], axis=FD_body_fixed_axis)
         FM_grav_FDbodyfixed = ForcesMoments(F=F_FD_BodyFixed, M=M_FD_BodyFixed)
         return FM_grav_FDbodyfixed
+
+
+
+if __name__ == "__main__":
+    recorder = csdl.Recorder(inline=True)
+    recorder.start()
+
+    inertial_axis = Axis(
+        name='Inertial Axis',
+        origin=ValidOrigins.Inertial.value
+    )
+
+    mi = MassMI(axis=inertial_axis)
+    cg = Vector(vector=np.array([0, 0, 0])*ureg.meter, axis=inertial_axis)
+    mass_properties = MassProperties(cg_vector=cg, inertia_tensor=mi)

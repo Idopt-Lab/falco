@@ -24,10 +24,7 @@ class Vector:
 
         assert isinstance(axis, Axis)
         self.axis = axis
-
-    @property
-    def magnitude(self):
-        return csdl.norm(self.vector)
+        self.magnitude = csdl.norm(self.vector)
 
     def __str__(self):
         print_string = """Vector: %s \nUnit: %s \nAxis: %s""" % \
