@@ -1,0 +1,64 @@
+// Component Hierarchy
+graph {
+	Aircraft [label=Aircraft]
+	Wing [label=Wing]
+	Aircraft -- Wing
+	"Horizontal Tail" [label="Horizontal Tail"]
+	Aircraft -- "Horizontal Tail"
+	"Vertical Tail" [label="Vertical Tail"]
+	Aircraft -- "Vertical Tail"
+	Fuselage [label=Fuselage]
+	Aircraft -- Fuselage
+	"Landing Gear" [label="Landing Gear"]
+	Aircraft -- "Landing Gear"
+	" Landing Gear Forward Pylon" [label=" Landing Gear Forward Pylon"]
+	"Landing Gear" -- " Landing Gear Forward Pylon"
+	"Landing Gear Aft Pylon" [label="Landing Gear Aft Pylon"]
+	"Landing Gear" -- "Landing Gear Aft Pylon"
+	"Landing Gear Base" [label="Landing Gear Base"]
+	"Landing Gear" -- "Landing Gear Base"
+	Propulsion [label=Propulsion]
+	Aircraft -- Propulsion
+	"Lift+Cruise Propulsion (FWD)" [label="Lift+Cruise Propulsion (FWD)"]
+	Propulsion -- "Lift+Cruise Propulsion (FWD)"
+	"Motor Outboard Left FWD" [label="Motor Outboard Left FWD"]
+	"Lift+Cruise Propulsion (FWD)" -- "Motor Outboard Left FWD"
+	"Motor Middle Left FWD" [label="Motor Middle Left FWD"]
+	"Lift+Cruise Propulsion (FWD)" -- "Motor Middle Left FWD"
+	"Motor Inboard Left FWD" [label="Motor Inboard Left FWD"]
+	"Lift+Cruise Propulsion (FWD)" -- "Motor Inboard Left FWD"
+	"Motor Outboard Right FWD" [label="Motor Outboard Right FWD"]
+	"Lift+Cruise Propulsion (FWD)" -- "Motor Outboard Right FWD"
+	"Motor Middle Right FWD" [label="Motor Middle Right FWD"]
+	"Lift+Cruise Propulsion (FWD)" -- "Motor Middle Right FWD"
+	"Motor Inboard Right FWD" [label="Motor Inboard Right FWD"]
+	"Lift+Cruise Propulsion (FWD)" -- "Motor Inboard Right FWD"
+	"Lift Only Propulsion (AFT)" [label="Lift Only Propulsion (AFT)"]
+	Propulsion -- "Lift Only Propulsion (AFT)"
+	"Motor Outboard Left AFT" [label="Motor Outboard Left AFT"]
+	"Lift Only Propulsion (AFT)" -- "Motor Outboard Left AFT"
+	"Motor Middle Left AFT" [label="Motor Middle Left AFT"]
+	"Lift Only Propulsion (AFT)" -- "Motor Middle Left AFT"
+	"Motor Inboard Left AFT" [label="Motor Inboard Left AFT"]
+	"Lift Only Propulsion (AFT)" -- "Motor Inboard Left AFT"
+	"Motor Outboard Right AFT" [label="Motor Outboard Right AFT"]
+	"Lift Only Propulsion (AFT)" -- "Motor Outboard Right AFT"
+	"Motor Middle Right AFT" [label="Motor Middle Right AFT"]
+	"Lift Only Propulsion (AFT)" -- "Motor Middle Right AFT"
+	"Motor Inboard Right AFT" [label="Motor Inboard Right AFT"]
+	"Lift Only Propulsion (AFT)" -- "Motor Inboard Right AFT"
+	"Prop Pylons" [label="Prop Pylons"]
+	Propulsion -- "Prop Pylons"
+	"Pylon Outboard Left" [label="Pylon Outboard Left"]
+	"Prop Pylons" -- "Pylon Outboard Left"
+	"Pylon Outboard Right" [label="Pylon Outboard Right"]
+	"Prop Pylons" -- "Pylon Outboard Right"
+	"Pylon Middle Left" [label="Pylon Middle Left"]
+	"Prop Pylons" -- "Pylon Middle Left"
+	"Pylon Middle Right" [label="Pylon Middle Right"]
+	"Prop Pylons" -- "Pylon Middle Right"
+	"Pylon Inboard Left" [label="Pylon Inboard Left"]
+	"Prop Pylons" -- "Pylon Inboard Left"
+	"Pylon Inboard Right" [label="Pylon Inboard Right"]
+	"Prop Pylons" -- "Pylon Inboard Right"
+}
