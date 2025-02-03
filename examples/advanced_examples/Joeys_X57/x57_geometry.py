@@ -596,10 +596,10 @@ trimTab_axis = AxisLsdoGeo(
     geometry=trimTab,
     parametric_coords=trimTab_le_center_parametric,
     sequence=np.array([3, 2, 1]),
-    phi = ht_incidence,
+    phi = np.array([0, ]) * ureg.degree,
     theta=np.array([0, ]) * ureg.degree,
     psi=np.array([0, ]) * ureg.degree,
-    reference=openvsp_axis,
+    reference=ht_tail_axis,
     origin=ValidOrigins.OpenVSP.value
 )
 
