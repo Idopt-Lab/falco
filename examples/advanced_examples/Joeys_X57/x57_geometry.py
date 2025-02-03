@@ -291,6 +291,9 @@ ht_te_center = geometry.evaluate(h_tail.project(np.array([-30, 0., -5.5])*ft2m, 
 ht_te_right = geometry.evaluate(h_tail.project(np.array([-30, 5.25, -5.5])*ft2m, plot=False))
 ht_qc = geometry.evaluate(h_tail.project(np.array([-27 + (0.25*(-30+27)), 0., -5.5])*ft2m, plot=False))
 
+trimTab_le_center_parametric = trimTab.project(np.array([-29.4, 0, -5.5])*ft2m, plot=False)
+trimTab_le_center = geometry.evaluate(trimTab_le_center_parametric)
+
 HTspan = csdl.norm(
     ht_le_left - ht_le_right
 )
@@ -308,6 +311,7 @@ vt_qc = geometry.evaluate(vertTail.project(np.array([-23 + (0.25*(-28.7+23)), 0.
 
 rudder_le_mid_parametric = rudder.project(np.array([-28.7, 0., -8.])*ft2m, plot=False)
 rudder_le_mid = geometry.evaluate(rudder_le_mid_parametric)
+
 
 VTspan = csdl.norm(
     vt_le_base - vt_le_tip
@@ -570,6 +574,7 @@ print('Right Innermost motor axis rotation (deg): ', np.rad2deg(r_im_axis.euler_
 
 ht_incidence = csdl.Variable(shape=(1, ), value=np.deg2rad(45), name='HT incidence')
 h_tail.rotate(ht_le_center, np.array([0., 1., 0.]), angles=ht_incidence)
+trimTab.rotate(ht_le_center, np.array([0., 1., 0.]), angles=ht_incidence)
 
 
 ht_tail_axis = AxisLsdoGeo(
@@ -585,10 +590,20 @@ ht_tail_axis = AxisLsdoGeo(
 )
 print('HT axis translation (ft): ', ht_tail_axis.translation.value)
 print('HT axis rotation (deg): ', np.rad2deg(ht_tail_axis.euler_angles_vector.value))
-# geometry.plot()
 
+trimTab_axis = AxisLsdoGeo(
+    name='Trim Tab Axis',
+    geometry=trimTab,
+    parametric_coords=trimTab_le_center_parametric,
+    sequence=np.array([3, 2, 1]),
+    phi = ht_incidence,
+    theta=np.array([0, ]) * ureg.degree,
+    psi=np.array([0, ]) * ureg.degree,
+    reference=openvsp_axis,
+    origin=ValidOrigins.OpenVSP.value
+)
 
-
+geometry.plot()
 
 
 
@@ -609,7 +624,7 @@ vt_tail_axis = AxisLsdoGeo(
 )
 print('VT axis translation (ft): ', vt_tail_axis.translation.value)
 print('VT axis rotation (deg): ', np.rad2deg(vt_tail_axis.euler_angles_vector.value))
-geometry.plot()
+# geometry.plot()
 
 
 
