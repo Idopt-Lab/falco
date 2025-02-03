@@ -19,7 +19,7 @@ recorder=csdl.Recorder(inline=True)
 recorder.start()
 
 geometry=import_geometry(
-    "Wisk_V6_1.stp",
+    "Wisk_V6.stp",
     file_path= REPO_ROOT_FOLDER / 'examples' / 'advanced_examples' / 'wiskgen6',
     refit=False,
     scale=ft2m,
@@ -29,13 +29,6 @@ if plot_flag:
     geometry.plot()
 
 Aircraft = Component(name='Aircraft')
-
-# OpenVSP Axis
-# openvsp_axis = Axis(
-#     name='OpenVSP Axis',
-#     translation=np.array([0, 0, 0]) * ureg.meter,
-#     origin=ValidOrigins.OpenVSP.value
-# )
 
 # Define Aircraft Components
 ## Wing
@@ -183,10 +176,66 @@ vtail_tip_te_guess = np.array([-29.8, 0, -10.25])*ft2m
 vtail_tip_te_parametric = v_tail.project(vtail_tip_te_guess, plot=plot_flag)
 
 # Propeller Region Info
-pt_disk_ob_left_fwd = np.array([4.262,-22.672,5.984])
-# geometry.plot()
-# pt_disk_ob_left_fwd.plot()
+pt_ob_left_fwd_top_guess = np.array([-4.262,-22.672,-6])*ft2m
+pt_ob_left_fwd_top_parametric = rotor_hub_ob_left_fwd.project(pt_ob_left_fwd_top_guess, plot=plot_flag)
+pt_ob_left_fwd_bot_guess = np.array([-4.262,-22.672,-4.9])*ft2m
+pt_ob_left_fwd_bot_parametric = rotor_hub_ob_left_fwd.project(pt_ob_left_fwd_bot_guess, plot=plot_flag)
+pt_ob_left_fwd_mid_guess=1/2*(rotor_hub_ob_left_fwd.evaluate(pt_ob_left_fwd_top_parametric)+rotor_hub_ob_left_fwd.evaluate(pt_ob_left_fwd_bot_parametric))
 
+pt_mid_left_fwd_top_guess = np.array([-4.262,-15.4,-6])*ft2m
+pt_mid_left_fwd_bot_guess = np.array([-4.262,-15.4,-4.9])*ft2m
+pt_mid_left_fwd_top_parametric = rotor_hub_mid_left_fwd.project(pt_mid_left_fwd_top_guess, plot=plot_flag)
+pt_mid_left_fwd_bot_parametric = rotor_hub_mid_left_fwd.project(pt_mid_left_fwd_bot_guess, plot=plot_flag)
+
+pt_ib_left_fwd_top_guess = np.array([-4.262,-7.4,-6.2])*ft2m
+pt_ib_left_fwd_bot_guess = np.array([-4.262,-7.4,-4.9])*ft2m
+pt_ib_left_fwd_top_parametric = rotor_hub_ib_left_fwd.project(pt_ib_left_fwd_top_guess, plot=plot_flag)
+pt_ib_left_fwd_bot_parametric = rotor_hub_ib_left_fwd.project(pt_ib_left_fwd_bot_guess, plot=plot_flag)
+
+pt_ib_right_fwd_top_guess = np.array([-4.262,7.4,-6.2])*ft2m
+pt_ib_right_fwd_bot_guess = np.array([-4.262,7.4,-4.9])*ft2m
+pt_ib_right_fwd_top_parametric = rotor_hub_ib_right_fwd.project(pt_ib_right_fwd_top_guess, plot=plot_flag)
+pt_ib_right_fwd_bot_parametric = rotor_hub_ib_right_fwd.project(pt_ib_right_fwd_bot_guess, plot=plot_flag)
+
+pt_ob_right_fwd_top_guess = np.array([-4.262,22.672,-6])*ft2m
+pt_ob_right_fwd_bot_guess = np.array([-4.262,22.672,-4.9])*ft2m
+pt_ob_right_fwd_top_parametric = rotor_hub_ob_right_fwd.project(pt_ob_right_fwd_top_guess, plot=plot_flag)
+pt_ob_right_fwd_bot_parametric = rotor_hub_ob_right_fwd.project(pt_ob_right_fwd_bot_guess, plot=plot_flag)
+
+pt_mid_right_fwd_top_guess = np.array([-4.262,15.4,-6])*ft2m
+pt_mid_right_fwd_bot_guess = np.array([-4.262,15.4,-4.9])*ft2m
+pt_mid_right_fwd_top_parametric = rotor_hub_mid_right_fwd.project(pt_mid_right_fwd_top_guess, plot=plot_flag)
+pt_mid_right_fwd_bot_parametric = rotor_hub_mid_right_fwd.project(pt_mid_right_fwd_bot_guess, plot=plot_flag)
+
+pt_ob_left_aft_top_guess = np.array([-17.4,-22.2,-6.2])*ft2m
+pt_ob_left_aft_top_parametric = rotor_hub_ob_left_aft.project(pt_ob_left_aft_top_guess, plot=plot_flag)
+pt_ob_left_aft_bot_guess = np.array([-17.4,-22.2,-4.8])*ft2m
+pt_ob_left_aft_bot_parametric = rotor_hub_ob_left_aft.project(pt_ob_left_aft_bot_guess, plot=plot_flag)
+
+pt_mid_left_aft_top_guess = np.array([-17.4,-15.1,-6.2])*ft2m
+pt_mid_left_aft_top_parametric = rotor_hub_mid_left_aft.project(pt_mid_left_aft_top_guess, plot=plot_flag)
+pt_mid_left_aft_bot_guess = np.array([-17.4,-15.1,-4.8])*ft2m
+pt_mid_left_aft_bot_parametric = rotor_hub_mid_left_aft.project(pt_mid_left_aft_bot_guess, plot=plot_flag)
+
+pt_ib_left_aft_top_guess = np.array([-17.4,-7,-6.2])*ft2m
+pt_ib_left_aft_top_parametric = rotor_hub_ib_left_aft.project(pt_ib_left_aft_top_guess, plot=plot_flag)
+pt_ib_left_aft_bot_guess = np.array([-17.4,-7,-4.8])*ft2m
+pt_ib_left_aft_bot_parametric = rotor_hub_ib_left_aft.project(pt_ib_left_aft_bot_guess, plot=plot_flag)
+
+pt_ib_right_aft_top_guess = np.array([-17.4,7,-6.2])*ft2m
+pt_ib_right_aft_top_parametric = rotor_hub_ib_right_aft.project(pt_ib_right_aft_top_guess, plot=plot_flag)
+pt_ib_right_aft_bot_guess = np.array([-17.4,7,-4.8])*ft2m
+pt_ib_right_aft_bot_parametric = rotor_hub_ib_right_aft.project(pt_ib_right_aft_bot_guess, plot=plot_flag)
+
+pt_ob_right_aft_top_guess = np.array([-17.4,22.2,-6.2])*ft2m
+pt_ob_right_aft_top_parametric = rotor_hub_ob_right_aft.project(pt_ob_right_aft_top_guess, plot=plot_flag)
+pt_ob_right_aft_bot_guess = np.array([-17.4,22.2,-4.8])*ft2m
+pt_ob_right_aft_bot_parametric = rotor_hub_ob_right_aft.project(pt_ob_right_aft_bot_guess, plot=plot_flag)
+
+pt_mid_right_aft_top_guess = np.array([-17.4,15.1,-6.2])*ft2m
+pt_mid_right_aft_top_parametric = rotor_hub_mid_right_aft.project(pt_mid_right_aft_top_guess, plot=plot_flag)
+pt_mid_right_aft_bot_guess = np.array([-17.4,15.1,-4.8])*ft2m
+pt_mid_right_aft_bot_parametric = rotor_hub_mid_right_aft.project(pt_mid_right_aft_bot_guess, plot=plot_flag)
 
 # Axis Creation
 openvsp_axis = Axis(
@@ -208,8 +257,13 @@ wing_axis = AxisLsdoGeo(
     reference=openvsp_axis,
     origin=ValidOrigins.OpenVSP.value
 )
-print('Wing Axis Translation (m): ', wing_axis.translation.value)
-print('Wing Axis Rotation (deg): ', np.rad2deg(wing_axis.euler_angles_vector.value))
+# print('Wing Axis Translation (m): ', wing_axis.translation.value)
+# print('Wing Axis Rotation (deg): ', np.rad2deg(wing_axis.euler_angles_vector.value))
+
+wingspan = csdl.norm(
+    geometry.evaluate(wing_tip_left_le_parametric) - geometry.evaluate(wing_tip_right_le_parametric)
+)
+# print('Wingspan: ',wingspan.value)
 
 vtail_axis = AxisLsdoGeo(
     name='Vtail Axis',
@@ -222,8 +276,8 @@ vtail_axis = AxisLsdoGeo(
     reference=openvsp_axis,
     origin=ValidOrigins.OpenVSP.value
 )
-print('Vtail Axis Translation (m): ', vtail_axis.translation.value)
-print('Vtail Axis Rotation (deg): ', np.rad2deg(vtail_axis.euler_angles_vector.value))
+# print('Vtail Axis Translation (m): ', vtail_axis.translation.value)
+# print('Vtail Axis Rotation (deg): ', np.rad2deg(vtail_axis.euler_angles_vector.value))
 
 htail_axis = AxisLsdoGeo(
     name='Htail Axis',
@@ -236,8 +290,155 @@ htail_axis = AxisLsdoGeo(
     reference=openvsp_axis,
     origin=ValidOrigins.OpenVSP.value
 )
-print('Htail Axis Translation (m): ', htail_axis.translation.value)
-print('Htail Axis Rotation (deg): ', np.rad2deg(htail_axis.euler_angles_vector.value))
+# print('Htail Axis Translation (m): ', htail_axis.translation.value)
+# print('Htail Axis Rotation (deg): ', np.rad2deg(htail_axis.euler_angles_vector.value))
+
+pt_axis_ob_left_fwd = AxisLsdoGeo(
+    name='PT Axis Outboard Left FWD',
+    geometry=rotor_hub_ob_left_fwd,
+    parametric_coords = pt_ob_left_fwd_bot_parametric,
+    sequence = np.array([3,2,1]),
+    phi=np.array([0, ])*ureg.degree,
+    theta=np.array([0, ])*ureg.degree,  
+    psi=np.array([0, ])*ureg.degree,
+    reference=openvsp_axis,
+    origin=ValidOrigins.OpenVSP.value
+)
+
+# print('Prop Axis Outboard Left FWD Translation (m): ', pt_axis_ob_left_fwd.translation.value)
+# print('Prop Axis Outboard Left FWD Rotation (deg): ', np.rad2deg(pt_axis_ob_left_fwd.euler_angles_vector.value))
+
+pt_axis_mid_left_fwd = AxisLsdoGeo(
+    name='PT Axis Middle Left FWD',
+    geometry=rotor_hub_mid_left_fwd,
+    parametric_coords=pt_mid_left_fwd_bot_parametric,
+    sequence=np.array([3, 2, 1]),
+    phi=np.array([0, ]) * ureg.degree,
+    theta=np.array([0, ]) * ureg.degree,
+    psi=np.array([0, ]) * ureg.degree,
+    reference=openvsp_axis,
+    origin=ValidOrigins.OpenVSP.value
+)
+
+pt_axis_ib_left_fwd = AxisLsdoGeo(
+    name='PT Axis Inboard Left FWD',
+    geometry=rotor_hub_ib_left_fwd,
+    parametric_coords=pt_ib_left_fwd_bot_parametric,
+    sequence=np.array([3, 2, 1]),
+    phi=np.array([0, ]) * ureg.degree,
+    theta=np.array([0, ]) * ureg.degree,
+    psi=np.array([0, ]) * ureg.degree,
+    reference=openvsp_axis,
+    origin=ValidOrigins.OpenVSP.value
+)
+
+pt_axis_ob_right_fwd = AxisLsdoGeo(
+    name='PT Axis Outboard Right FWD',
+    geometry=rotor_hub_ob_right_fwd,
+    parametric_coords=pt_ob_right_fwd_bot_parametric,
+    sequence=np.array([3, 2, 1]),
+    phi=np.array([0, ]) * ureg.degree,
+    theta=np.array([0, ]) * ureg.degree,
+    psi=np.array([0, ]) * ureg.degree,
+    reference=openvsp_axis,
+    origin=ValidOrigins.OpenVSP.value
+)
+
+pt_axis_mid_right_fwd = AxisLsdoGeo(
+    name='PT Axis Middle Right FWD',
+    geometry=rotor_hub_mid_right_fwd,
+    parametric_coords=pt_mid_right_fwd_bot_parametric,
+    sequence=np.array([3, 2, 1]),
+    phi=np.array([0, ]) * ureg.degree,
+    theta=np.array([0, ]) * ureg.degree,
+    psi=np.array([0, ]) * ureg.degree,
+    reference=openvsp_axis,
+    origin=ValidOrigins.OpenVSP.value
+)
+
+pt_axis_ib_right_fwd = AxisLsdoGeo(
+    name='PT Axis Inboard Right FWD',
+    geometry=rotor_hub_ib_right_fwd,
+    parametric_coords=pt_ib_right_fwd_bot_parametric,
+    sequence=np.array([3, 2, 1]),
+    phi=np.array([0, ]) * ureg.degree,
+    theta=np.array([0, ]) * ureg.degree,
+    psi=np.array([0, ]) * ureg.degree,
+    reference=openvsp_axis,
+    origin=ValidOrigins.OpenVSP.value
+)
+
+pt_axis_ob_left_aft = AxisLsdoGeo(
+    name='PT Axis Outboard Left AFT',
+    geometry=rotor_hub_ob_left_aft,
+    parametric_coords=pt_ob_left_aft_bot_parametric,
+    sequence=np.array([3, 2, 1]),
+    phi=np.array([0, ]) * ureg.degree,
+    theta=np.array([0, ]) * ureg.degree,
+    psi=np.array([0, ]) * ureg.degree,
+    reference=openvsp_axis,
+    origin=ValidOrigins.OpenVSP.value
+)
+
+pt_axis_mid_left_aft = AxisLsdoGeo(
+    name='PT Axis Middle Left AFT',
+    geometry=rotor_hub_mid_left_aft,
+    parametric_coords=pt_mid_left_aft_bot_parametric,
+    sequence=np.array([3, 2, 1]),
+    phi=np.array([0, ]) * ureg.degree,
+    theta=np.array([0, ]) * ureg.degree,
+    psi=np.array([0, ]) * ureg.degree,
+    reference=openvsp_axis,
+    origin=ValidOrigins.OpenVSP.value
+)
+
+pt_axis_ib_left_aft = AxisLsdoGeo(
+    name='PT Axis Inboard Left AFT',
+    geometry=rotor_hub_ib_left_aft,
+    parametric_coords=pt_ib_left_aft_bot_parametric,
+    sequence=np.array([3, 2, 1]),
+    phi=np.array([0, ]) * ureg.degree,
+    theta=np.array([0, ]) * ureg.degree,
+    psi=np.array([0, ]) * ureg.degree,
+    reference=openvsp_axis,
+    origin=ValidOrigins.OpenVSP.value
+)
+
+pt_axis_ob_right_aft = AxisLsdoGeo(
+    name='PT Axis Outboard Right AFT',
+    geometry=rotor_hub_ob_right_aft,
+    parametric_coords=pt_ob_right_aft_bot_parametric,
+    sequence=np.array([3, 2, 1]),
+    phi=np.array([0, ]) * ureg.degree,
+    theta=np.array([0, ]) * ureg.degree,
+    psi=np.array([0, ]) * ureg.degree,
+    reference=openvsp_axis,
+    origin=ValidOrigins.OpenVSP.value
+)
+
+pt_axis_mid_right_aft = AxisLsdoGeo(
+    name='PT Axis Middle Right AFT',
+    geometry=rotor_hub_mid_right_aft,
+    parametric_coords=pt_mid_right_aft_bot_parametric,
+    sequence=np.array([3, 2, 1]),
+    phi=np.array([0, ]) * ureg.degree,
+    theta=np.array([0, ]) * ureg.degree,
+    psi=np.array([0, ]) * ureg.degree,
+    reference=openvsp_axis,
+    origin=ValidOrigins.OpenVSP.value
+)
+
+pt_axis_ib_right_aft = AxisLsdoGeo(
+    name='PT Axis Inboard Right AFT',
+    geometry=rotor_hub_ib_right_aft,
+    parametric_coords=pt_ib_right_aft_bot_parametric,
+    sequence=np.array([3, 2, 1]),
+    phi=np.array([0, ]) * ureg.degree,
+    theta=np.array([0, ]) * ureg.degree,
+    psi=np.array([0, ]) * ureg.degree,
+    reference=openvsp_axis,
+    origin=ValidOrigins.OpenVSP.value
+)
 
 # Non dependent on Aircraft FD axes
 # Choosing Inertial aaxis as OpenVSP [0,0,0]
@@ -269,7 +470,7 @@ fd_axis = Axis(
     reference=inertial_axis,
     origin=ValidOrigins.Inertial.value
 )
-print('Body-Fixed Angles (deg)', np.rad2deg(fd_axis.euler_angles_vector.value))
+# print('Body-Fixed Angles (deg)', np.rad2deg(fd_axis.euler_angles_vector.value))
 
 @dataclass
 class WindAxisRotations(csdl.VariableGroup):
@@ -290,7 +491,7 @@ wind_axis = Axis(
     reference=inertial_axis,
     origin=ValidOrigins.Inertial.value
 )
-print('Wind axis angles (deg)', np.rad2deg(wind_axis.euler_angles_vector.value))
+# print('Wind axis angles (deg)', np.rad2deg(wind_axis.euler_angles_vector.value))
 # endregion
 
 # endregion
@@ -300,21 +501,21 @@ print('Wind axis angles (deg)', np.rad2deg(wind_axis.euler_angles_vector.value))
 # region Aero forces
 
 velocity_vector_in_wind = Vector(vector=csdl.Variable(shape=(3,), value=np.array([-1, 0, 0]), name='wind_vector'), axis=wind_axis)
-print('Unit wind vector in wind axis: ', velocity_vector_in_wind.vector.value)
+# print('Unit wind vector in wind axis: ', velocity_vector_in_wind.vector.value)
 
 R_wind_to_inertial = build_rotation_matrix(wind_axis.euler_angles_vector, np.array([3, 2, 1]))
 wind_vector_in_inertial =  Vector(csdl.matvec(R_wind_to_inertial, velocity_vector_in_wind.vector), axis=inertial_axis)
-print('Unit wind vector in inertial axis: ', wind_vector_in_inertial.vector.value)
+# print('Unit wind vector in inertial axis: ', wind_vector_in_inertial.vector.value)
 
 R_body_to_inertial = build_rotation_matrix(fd_axis.euler_angles_vector, np.array([3, 2, 1]))
 wind_vector_in_body =  Vector(csdl.matvec(csdl.transpose(R_body_to_inertial), wind_vector_in_inertial.vector), axis=fd_axis)
-print('Unit wind vector in body axis: ', wind_vector_in_body.vector.value)
+# print('Unit wind vector in body axis: ', wind_vector_in_body.vector.value)
 
 R_wing_to_openvsp = build_rotation_matrix(wing_axis.euler_angles_vector, np.array([3, 2, 1]))
 wind_vector_in_wing =  Vector(csdl.matvec(csdl.transpose(R_wing_to_openvsp), wind_vector_in_body.vector), axis=wing_axis)
-print('Unit wind vector in wing axis: ', wind_vector_in_wing.vector.value)
+# print('Unit wind vector in wing axis: ', wind_vector_in_wing.vector.value)
 alpha = csdl.arctan(wind_vector_in_wing.vector[2]/wind_vector_in_wing.vector.value[0])
-print('Effective angle of attack (deg): ', np.rad2deg(alpha.value))
+# print('Effective angle of attack (deg): ', np.rad2deg(alpha.value))
 
 CL = 2*np.pi*alpha
 CD = 0.001 + 1/(np.pi*0.87*12) * CL**2
@@ -329,18 +530,14 @@ aero_force = aero_force.set(csdl.slice[0], -D)
 aero_force = aero_force.set(csdl.slice[2], -L)
 
 aero_force_vector_in_wind = Vector(vector=aero_force, axis=wind_axis)
-print('Aero force vector in wind-axis: ', aero_force_vector_in_wind.vector.value)
+# print('Aero force vector in wind-axis: ', aero_force_vector_in_wind.vector.value)
 aero_force_vector_in_inertial =  Vector(csdl.matvec(R_wind_to_inertial, aero_force_vector_in_wind.vector), axis=inertial_axis)
-print('Aero force vector in inertial-axis: ', aero_force_vector_in_inertial.vector.value)
+# print('Aero force vector in inertial-axis: ', aero_force_vector_in_inertial.vector.value)
 aero_force_vector_in_body =  Vector(csdl.matvec(csdl.transpose(R_body_to_inertial), aero_force_vector_in_inertial.vector), axis=fd_axis)
-print('Aero force vector in body-axis: ', aero_force_vector_in_body.vector.value)
+# print('Aero force vector in body-axis: ', aero_force_vector_in_body.vector.value)
 aero_force_vector_in_wing =  Vector(csdl.matvec(csdl.transpose(R_wing_to_openvsp), aero_force_vector_in_body.vector), axis=fd_axis)
-print('Aero force vector in wing-axis: ', aero_force_vector_in_wing.vector.value)
+# print('Aero force vector in wing-axis: ', aero_force_vector_in_wing.vector.value)
 
-wingspan = csdl.norm(
-    geometry.evaluate(wing_tip_left_le_parametric) - geometry.evaluate(wing_tip_right_le_parametric)
-)
-print('Wingspan: ',wingspan.value)
-
+# Aircraft.visualize_component_hierarchy(show=True)
+# geometry.plot()
 recorder.stop()
-Aircraft.visualize_component_hierarchy(show=True)
