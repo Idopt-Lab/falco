@@ -711,7 +711,7 @@ e = 0.87
 AR = 12
 CD = 0.001 + 1/(np.pi*e*AR) * CL**2
 rho = 1.225
-S = 50*ft2m
+S = 50
 V = 10
 L = 0.5*rho*V**2*CL*S
 D = 0.5*rho*V**2*CD*S
@@ -874,7 +874,7 @@ fuselage_coefficients = fuselage_and_nose_hub_coefficients[0]
 nose_hub_coefficients = fuselage_and_nose_hub_coefficients[1]
 
 fuselage.set_coefficients(coefficients=fuselage_coefficients)
-# cruise_spinner.set_coefficients(coefficients=nose_hub_coefficients)
+cruise_spinner.set_coefficients(coefficients=nose_hub_coefficients)
 
 
 
