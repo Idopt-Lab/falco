@@ -261,11 +261,6 @@ Complete_Aircraft.add_subcomponent(Total_Prop_Sys)
 # Complete_Aircraft.visualize_component_hierarchy(show=True)
 
 
-
-
-
-
-
 # Wing Region Info
 wing_le_left = geometry.evaluate(wing.project(np.array([-12.356, -16, -5.5])*ft2m, plot=False))
 wing_le_right = geometry.evaluate(wing.project(np.array([-12.356, 16, -5.5])*ft2m, plot=False))
