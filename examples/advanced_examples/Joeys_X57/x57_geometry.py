@@ -603,7 +603,11 @@ trimTab_axis = AxisLsdoGeo(
     origin=ValidOrigins.OpenVSP.value
 )
 
-geometry.plot()
+trimTab.rotate(trimTab_le_center, np.array([0., 1., 0.]), angles=trimTab_axis.euler_angles.theta)
+
+print('Trim Tab axis translation (ft): ', trimTab_axis.translation.value)
+print('Trim Tab axis rotation (deg): ', np.rad2deg(trimTab_axis.euler_angles_vector.value))
+# geometry.plot()
 
 
 
