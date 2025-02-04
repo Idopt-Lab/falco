@@ -10,7 +10,7 @@ recorder.start()
 in2m=0.0254
 ft2m = 0.3048
 
-# geometry = lg.import_geometry("C:/Users/joeyg/OneDrive/Documents/GitHub/Sarojini_Research/MyAirframe/x57.stp", scale=in2ft, parallelize=False)
+# geometry = lg.import_geometry("C:/Users/joeyg/OneDrive/Documents/GitHub/Sarojini_Research/MyAirframe/x57.stp", scale=in2m, parallelize=False)
 # geometry.plot()
 
 from flight_simulator.utils.import_geometry import import_geometry
@@ -757,7 +757,7 @@ parameterization_design_parameters = lg.GeometricVariables()
 
 # wing_ffd_block = lg.construct_tight_fit_ffd_block(name='wing_ffd_block', entities=wing,num_coefficients=(2,(3 // 2 + 1),2),degree=(1,1,1))
 
-wing_ffd_block = lg.construct_ffd_block_around_entities(name='wing_ffd_block', entities=wing,num_coefficients=(2,(3 // 2 + 1),2),degree=(1,1,1))
+wing_ffd_block = lg.construct_ffd_block_around_entities(name='wing_ffd_block', entities=wing,num_coefficients=(2,11,2),degree=(1,3,1))
 wing_ffd_block_sectional_parameterization = lg.VolumeSectionalParameterization(name='wing_sect_param',parameterized_points=wing_ffd_block.coefficients,principal_parametric_dimension=1)
 
 wing_chord_stretch_coefficients = csdl.Variable(name='wing_chord_stretch_coefficients', value=np.array([0., 0., 0.]))
@@ -806,7 +806,7 @@ wing.set_coefficients(wing_coefficients)
 
 
 ## HT FFD Setup
-h_tail_ffd_block = lg.construct_ffd_block_around_entities(name='h_tail_ffd_block', entities=h_tail, num_coefficients=(2,(3 // 2 + 1),2), degree=(1,1,1))
+h_tail_ffd_block = lg.construct_ffd_block_around_entities(name='h_tail_ffd_block', entities=h_tail, num_coefficients=(2,11,2), degree=(1,3,1))
 h_tail_ffd_block_sectional_parameterization = lg.VolumeSectionalParameterization(name='h_tail_sectional_param',
                                                                             parameterized_points=h_tail_ffd_block.coefficients,
                                                                             principal_parametric_dimension=1)
@@ -873,8 +873,8 @@ fuselage_and_nose_hub_coefficients = fuselage_ffd_block.evaluate(fuselage_ffd_bl
 fuselage_coefficients = fuselage_and_nose_hub_coefficients[0]
 nose_hub_coefficients = fuselage_and_nose_hub_coefficients[1]
 
-fuselage.set_coefficients(coefficients=fuselage_coefficients)
-cruise_spinner.set_coefficients(coefficients=nose_hub_coefficients)
+
+# fuselage.set_coefficients(coefficients=fuselage_coefficients)
 
 
 
