@@ -573,6 +573,8 @@ print('Right Innermost motor axis rotation (deg): ', np.rad2deg(r_im_axis.euler_
 
 
 ht_incidence = csdl.Variable(shape=(1, ), value=np.deg2rad(45), name='HT incidence')
+trimTab_deflection = csdl.Variable(shape=(1, ), value=np.deg2rad(60), name='Trim Tab Deflection')
+
 h_tail.rotate(ht_le_center, np.array([0., 1., 0.]), angles=ht_incidence)
 trimTab.rotate(ht_le_center, np.array([0., 1., 0.]), angles=ht_incidence)
 
@@ -597,17 +599,17 @@ trimTab_axis = AxisLsdoGeo(
     parametric_coords=trimTab_le_center_parametric,
     sequence=np.array([3, 2, 1]),
     phi = np.array([0, ]) * ureg.degree,
-    theta=np.array([0, ]) * ureg.degree,
+    theta=trimTab_deflection,
     psi=np.array([0, ]) * ureg.degree,
     reference=ht_tail_axis,
-    origin=ValidOrigins.OpenVSP.value
+    origin=ValidOrigins.Inertial.value
 )
 
-trimTab.rotate(trimTab_le_center, np.array([0., 1., 0.]), angles=trimTab_axis.euler_angles.theta)
+# trimTab.rotate(trimTab_le_center, np.array([0., 1., 0.]), angles=trimTab_axis.euler_angles.theta)
 
 print('Trim Tab axis translation (ft): ', trimTab_axis.translation.value)
 print('Trim Tab axis rotation (deg): ', np.rad2deg(trimTab_axis.euler_angles_vector.value))
-# geometry.plot()
+geometry.plot()
 
 
 
