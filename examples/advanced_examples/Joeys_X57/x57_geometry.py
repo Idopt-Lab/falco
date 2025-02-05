@@ -943,10 +943,23 @@ fuselage_coefficients = fuselage_ffd_block.evaluate(fuselage_ffd_block_coefficie
 fuselage.set_coefficients(coefficients=fuselage_coefficients)
 
 
-
+ 
 
 
 # for surface in wing.functions.values():
+#     surface.coefficients = surface.coefficients.set(csdl.slice[:,:,1], surface.coefficients[:,:,1]*2)
+# geometry.plot()
+
+
+# for surface in fuselage.functions.values():
+#     surface.coefficients = surface.coefficients.set(csdl.slice[:,:,1], surface.coefficients[:,:,1]*2)
+# geometry.plot()
+
+# for surface in h_tail.functions.values():
+#     surface.coefficients = surface.coefficients.set(csdl.slice[:,:,1], surface.coefficients[:,:,1]*2)
+# geometry.plot()
+
+# for surface in vertTail.functions.values():
 #     surface.coefficients = surface.coefficients.set(csdl.slice[:,:,1], surface.coefficients[:,:,1]*2)
 # geometry.plot()
 
