@@ -846,6 +846,71 @@ sectional_h_tail_twist = h_tail_twist_b_spline.evaluate(section_parametric_coord
 sectional_h_tail_translation_x = h_tail_translation_x_b_spline.evaluate(section_parametric_coordinates)
 sectional_h_tail_translation_z = h_tail_translation_z_b_spline.evaluate(section_parametric_coordinates)
 
+sectional_parameters = lg.VolumeSectionalParameterizationInputs(
+    stretches={0: sectional_h_tail_chord_stretch},
+    translations={1: sectional_h_tail_span_stretch, 0: sectional_h_tail_translation_x, 2: sectional_h_tail_translation_z}
+)
+
+h_tail_ffd_block_coefficients = h_tail_ffd_block_sectional_parameterization.evaluate(sectional_parameters, plot=False)
+h_tail_coefficients = h_tail_ffd_block.evaluate(h_tail_ffd_block_coefficients, plot=False)
+h_tail.set_coefficients(coefficients=h_tail_coefficients)
+
+
+## VT FFD Setup
+
+v_tail_ffd_block = lg.construct_ffd_block_around_entities(name='v_tail_ffd_block', entities=vertTail, num_coefficients=(2,11,2), degree=(1,3,1))
+v_tail_ffd_block_sectional_parameterization = lg.VolumeSectionalParameterization(name='v_tail_sectional_param',
+                                                                            parameterized_points=v_tail_ffd_block.coefficients,
+                                                                            principal_parametric_dimension=1)
+
+v_tail_chord_stretch_coefficients = csdl.Variable(name='v_tail_chord_stretch_coefficients', value=np.array([0., 0., 0.]))
+v_tail_chord_stretch_b_spline = lfs.Function(name='h_tail_chord_stretch_b_spline', space=linear_b_spline_curve_3_dof_space, 
+                                          coefficients=v_tail_chord_stretch_coefficients)
+
+v_tail_span_stretch_coefficients = csdl.Variable(name='v_tail_span_stretch_coefficients', value=np.array([-0., 0.]))
+v_tail_span_stretch_b_spline = lfs.Function(name='v_tail_span_stretch_b_spline', space=linear_b_spline_curve_2_dof_space, 
+                                          coefficients=v_tail_span_stretch_coefficients)
+
+v_tail_twist_coefficients = csdl.Variable(name='v_tail_twist_coefficients', value=np.array([0., 0., 0., 0., 0.]))
+v_tail_twist_b_spline = lfs.Function(name='v_tail_twist_b_spline', space=cubic_b_spline_curve_5_dof_space,
+                                          coefficients=v_tail_twist_coefficients)
+
+v_tail_translation_x_coefficients = csdl.Variable(name='v_tail_translation_x_coefficients', value=np.array([0.]))
+v_tail_translation_x_b_spline = lfs.Function(name='v_tail_translation_x_b_spline', space=constant_b_spline_curve_1_dof_space,
+                                          coefficients=v_tail_translation_x_coefficients)
+
+v_tail_translation_z_coefficients = csdl.Variable(name='v_tail_translation_z_coefficients', value=np.array([0.]))
+v_tail_translation_z_b_spline = lfs.Function(name='v_tail_translation_z_b_spline', space=constant_b_spline_curve_1_dof_space,
+                                          coefficients=v_tail_translation_z_coefficients)
+
+parameterization_solver.add_parameter(parameter=v_tail_chord_stretch_coefficients)
+parameterization_solver.add_parameter(parameter=v_tail_span_stretch_coefficients)
+parameterization_solver.add_parameter(parameter=v_tail_twist_coefficients)
+parameterization_solver.add_parameter(parameter=v_tail_translation_x_coefficients)
+parameterization_solver.add_parameter(parameter=v_tail_translation_z_coefficients)
+
+## Vertical Stabilizer Parameterization Evaluation for Parameterization Solver
+
+section_parametric_coordinates = np.linspace(0., 1., v_tail_ffd_block_sectional_parameterization.num_sections).reshape((-1,1))
+sectional_v_tail_chord_stretch = v_tail_chord_stretch_b_spline.evaluate(section_parametric_coordinates)
+sectional_v_tail_span_stretch = v_tail_span_stretch_b_spline.evaluate(section_parametric_coordinates)
+sectional_v_tail_twist = v_tail_twist_b_spline.evaluate(section_parametric_coordinates)
+sectional_v_tail_translation_x = v_tail_translation_x_b_spline.evaluate(section_parametric_coordinates)
+sectional_v_tail_translation_z = v_tail_translation_z_b_spline.evaluate(section_parametric_coordinates)
+
+sectional_parameters = lg.VolumeSectionalParameterizationInputs(
+    stretches={0: sectional_v_tail_chord_stretch},
+    translations={1: sectional_v_tail_span_stretch, 0: sectional_v_tail_translation_x, 2: sectional_v_tail_translation_z}
+)
+
+v_tail_ffd_block_coefficients = v_tail_ffd_block_sectional_parameterization.evaluate(sectional_parameters, plot=False)
+v_tail_coefficients = v_tail_ffd_block.evaluate(v_tail_ffd_block_coefficients, plot=False)
+vertTail.set_coefficients(coefficients=v_tail_coefficients)
+
+
+
+
+
 ## Fuselage FFD Setup
 
 fuselage_ffd_block = lg.construct_ffd_block_around_entities(name='fuselage_ffd_block', entities=fuselage, num_coefficients=(2,2,2), degree=(1,1,1))
@@ -869,12 +934,11 @@ sectional_parameters = lg.VolumeSectionalParameterizationInputs(
 )
 
 fuselage_ffd_block_coefficients = fuselage_ffd_block_sectional_parameterization.evaluate(sectional_parameters, plot=False)
-fuselage_and_nose_hub_coefficients = fuselage_ffd_block.evaluate(fuselage_ffd_block_coefficients, plot=False)
-fuselage_coefficients = fuselage_and_nose_hub_coefficients[0]
-nose_hub_coefficients = fuselage_and_nose_hub_coefficients[1]
+fuselage_coefficients = fuselage_ffd_block.evaluate(fuselage_ffd_block_coefficients, plot=False)
+fuselage.set_coefficients(coefficients=fuselage_coefficients)
 
 
-# fuselage.set_coefficients(coefficients=fuselage_coefficients)
+
 
 
 
@@ -885,9 +949,9 @@ nose_hub_coefficients = fuselage_and_nose_hub_coefficients[1]
 #     surface.coefficients = surface.coefficients.set(csdl.slice[:,:,1], surface.coefficients[:,:,1]*2)
 # geometry.plot()
 
-# for twist in wing.functions.values():
-#     twist.coefficients = twist.coefficients.set(csdl.slice[:,:,1], twist.coefficients[:,:,1]*2)
-# geometry.plot()
+for twist in wing.functions.values():
+    twist.coefficients = twist.coefficients.set(csdl.slice[1,1,1], twist.coefficients[1,1,1]*2)
+geometry.plot()
 
 
 recorder.stop()
