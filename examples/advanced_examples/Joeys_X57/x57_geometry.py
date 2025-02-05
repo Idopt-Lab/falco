@@ -262,13 +262,18 @@ Complete_Aircraft.add_subcomponent(Total_Prop_Sys)
 
 
 # Wing Region Info
-wing_le_left = geometry.evaluate(wing.project(np.array([-12.356, -16, -5.5])*ft2m, plot=False))
-wing_le_right = geometry.evaluate(wing.project(np.array([-12.356, 16, -5.5])*ft2m, plot=False))
+wing_le_left_parametric = wing.project(np.array([-12.356, -16, -5.5])*ft2m, plot=False)
+wing_le_left = geometry.evaluate(wing_le_left_parametric)
+wing_le_right_parametric = wing.project(np.array([-12.356, 16, -5.5])*ft2m, plot=False)
+wing_le_right = geometry.evaluate(wing_le_right_parametric)
 wing_le_center_parametric = wing.project(np.array([-12.356, 0., -5.5])*ft2m, plot=False)
 wing_le_center = geometry.evaluate(wing_le_center_parametric)
-wing_te_left = geometry.evaluate(wing.project(np.array([-14.25, -16, -5.5])*ft2m, plot=False))
-wing_te_right = geometry.evaluate(wing.project(np.array([-14.25, 16, -5.5])*ft2m, plot=False))
-wing_te_center = geometry.evaluate(wing.project(np.array([-14.25, 0, -5.5])*ft2m, plot=False))
+wing_te_left_parametric = wing.project(np.array([-14.25, -16, -5.5])*ft2m, plot=False)
+wing_te_left = geometry.evaluate(wing_te_left_parametric)
+wing_te_right_parametric = wing.project(np.array([-14.25, 16, -5.5])*ft2m, plot=False)
+wing_te_right = geometry.evaluate(wing_te_right_parametric)
+wing_te_center_parametric = wing.project(np.array([-14.25, 0., -5.5])*ft2m, plot=False)
+wing_te_center = geometry.evaluate(wing_te_center_parametric)
 wing_qc = geometry.evaluate(wing.project(np.array([-12.356+(0.25*(-14.25+12.356)), 0., -5.5])*ft2m, plot=False))
 
 wingspan = csdl.norm(
@@ -941,17 +946,11 @@ fuselage.set_coefficients(coefficients=fuselage_coefficients)
 
 
 
-
-
-
-
 # for surface in wing.functions.values():
 #     surface.coefficients = surface.coefficients.set(csdl.slice[:,:,1], surface.coefficients[:,:,1]*2)
 # geometry.plot()
 
-for twist in wing.functions.values():
-    twist.coefficients = twist.coefficients.set(csdl.slice[1,1,1], twist.coefficients[1,1,1]*2)
-geometry.plot()
+
 
 
 recorder.stop()
