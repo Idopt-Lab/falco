@@ -19,7 +19,7 @@ from flight_simulator.core.vehicle.component import Component
 from flight_simulator.core.loads.mass_properties import MassProperties
 
 geometry = import_geometry(
-    file_name="x57.stp",
+    file_name="x57_big.stp",
     file_path= REPO_ROOT_FOLDER / 'examples'/ 'advanced_examples' / 'Joeys_X57',
     refit=False,
     scale=in2m,
@@ -34,7 +34,7 @@ Complete_Aircraft = Component(name='Complete Aircraft')
 
 # region Declaring all components
 # Wing, tails, fuselage
-wing = geometry.declare_component(function_search_names=['Wing'], name='wing')
+wing = geometry.declare_component(function_search_names=['CleanWing'], name='wing')
 # wing.plot()
 aileronR = geometry.declare_component(function_search_names=['Rt_Aileron'], name='aileronR')
 # aileronR.plot()
