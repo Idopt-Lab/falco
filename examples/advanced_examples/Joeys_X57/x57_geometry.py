@@ -128,6 +128,7 @@ Motor1.add_subcomponent(Component(name='Spinner 1',geometry=spinner))
 Motor1.add_subcomponent(Component(name='Prop 1',geometry=prop))
 Motor1.add_subcomponent(Component(name='Motor 1',geometry=motor))
 Motor1.add_subcomponent(Component(name='Motor Interface 1',geometry=motor_interface))
+M1_components = [pylon7, nacelle7, spinner, prop, motor, motor_interface]
 
 Motor2 = Component(name='Propulsor 2')
 Motor2.add_subcomponent(Component(name='Pylon 2', geometry=pylon8))
@@ -136,6 +137,7 @@ Motor2.add_subcomponent(Component(name='Spinner 2',geometry=spinner))
 Motor2.add_subcomponent(Component(name='Prop 2',geometry=prop))
 Motor2.add_subcomponent(Component(name='Motor 2',geometry=motor))
 Motor2.add_subcomponent(Component(name='Motor Interface 2',geometry=motor_interface))
+M2_components = [pylon8, nacelle8, spinner, prop, motor, motor_interface]
 
 Motor3 = Component(name='Propulsor 3')
 Motor3.add_subcomponent(Component(name='Pylon 3', geometry=pylon9))
@@ -144,6 +146,7 @@ Motor3.add_subcomponent(Component(name='Spinner 3',geometry=spinner))
 Motor3.add_subcomponent(Component(name='Prop 3',geometry=prop))
 Motor3.add_subcomponent(Component(name='Motor 3',geometry=motor))
 Motor3.add_subcomponent(Component(name='Motor Interface 3',geometry=motor_interface))
+M3_components = [pylon9, nacelle9, spinner, prop, motor, motor_interface]
 
 Motor4 = Component(name='Propulsor 4')
 Motor4.add_subcomponent(Component(name='Pylon 4', geometry=pylon10))
@@ -152,6 +155,7 @@ Motor4.add_subcomponent(Component(name='Spinner 4',geometry=spinner))
 Motor4.add_subcomponent(Component(name='Prop 4',geometry=prop))
 Motor4.add_subcomponent(Component(name='Motor 4',geometry=motor))
 Motor4.add_subcomponent(Component(name='Motor Interface 4',geometry=motor_interface))
+M4_components = [pylon10, nacelle10, spinner, prop, motor, motor_interface]
 
 Motor5 = Component(name='Propulsor 5')
 Motor5.add_subcomponent(Component(name='Pylon 5', geometry=pylon11))
@@ -160,6 +164,7 @@ Motor5.add_subcomponent(Component(name='Spinner 5',geometry=spinner))
 Motor5.add_subcomponent(Component(name='Prop 5',geometry=prop))
 Motor5.add_subcomponent(Component(name='Motor 5',geometry=motor))
 Motor5.add_subcomponent(Component(name='Motor Interface 5',geometry=motor_interface))
+M5_components = [pylon11, nacelle11, spinner, prop, motor, motor_interface]
 
 Motor6 = Component(name='Propulsor 6')
 Motor6.add_subcomponent(Component(name='Pylon 6', geometry=pylon12))
@@ -168,6 +173,7 @@ Motor6.add_subcomponent(Component(name='Spinner 6',geometry=spinner))
 Motor6.add_subcomponent(Component(name='Prop 6',geometry=prop))
 Motor6.add_subcomponent(Component(name='Motor 6',geometry=motor))
 Motor6.add_subcomponent(Component(name='Motor Interface 6',geometry=motor_interface))
+M6_components = [pylon12, nacelle12, spinner, prop, motor, motor_interface]
 
 Motor7 = Component(name='Propulsor 7')
 Motor7.add_subcomponent(Component(name='Pylon 7', geometry=pylon7))
@@ -176,6 +182,7 @@ Motor7.add_subcomponent(Component(name='Spinner 7',geometry=spinner))
 Motor7.add_subcomponent(Component(name='Prop 7',geometry=prop))
 Motor7.add_subcomponent(Component(name='Motor 7',geometry=motor))
 Motor7.add_subcomponent(Component(name='Motor Interface 7',geometry=motor_interface))
+M7_components = [pylon7, nacelle7, spinner, prop, motor, motor_interface]
 
 Motor8 = Component(name='Propulsor 8')
 Motor8.add_subcomponent(Component(name='Pylon 8', geometry=pylon8))
@@ -184,6 +191,7 @@ Motor8.add_subcomponent(Component(name='Spinner 8',geometry=spinner))
 Motor8.add_subcomponent(Component(name='Prop 8',geometry=prop))
 Motor8.add_subcomponent(Component(name='Motor 8',geometry=motor))
 Motor8.add_subcomponent(Component(name='Motor Interface 8',geometry=motor_interface))
+M8_components = [pylon8, nacelle8, spinner, prop, motor, motor_interface]
 
 Motor9 = Component(name='Propulsor 9')
 Motor9.add_subcomponent(Component(name='Pylon 9', geometry=pylon9))
@@ -192,6 +200,7 @@ Motor9.add_subcomponent(Component(name='Spinner 9',geometry=spinner))
 Motor9.add_subcomponent(Component(name='Prop 9',geometry=prop))
 Motor9.add_subcomponent(Component(name='Motor 9',geometry=motor))
 Motor9.add_subcomponent(Component(name='Motor Interface 9',geometry=motor_interface))
+M9_components = [pylon9, nacelle9, spinner, prop, motor, motor_interface]
 
 Motor10 = Component(name='Propulsor 10')
 Motor10.add_subcomponent(Component(name='Pylon 10', geometry=pylon10))
@@ -200,6 +209,7 @@ Motor10.add_subcomponent(Component(name='Spinner 10',geometry=spinner))
 Motor10.add_subcomponent(Component(name='Prop 10',geometry=prop))
 Motor10.add_subcomponent(Component(name='Motor 10',geometry=motor))
 Motor10.add_subcomponent(Component(name='Motor Interface 10',geometry=motor_interface))
+M10_components = [pylon10, nacelle10, spinner, prop, motor, motor_interface]
 
 Motor11 = Component(name='Propulsor 11')
 Motor11.add_subcomponent(Component(name='Pylon 11', geometry=pylon11))
@@ -208,6 +218,7 @@ Motor11.add_subcomponent(Component(name='Spinner 11',geometry=spinner))
 Motor11.add_subcomponent(Component(name='Prop 11',geometry=prop))
 Motor11.add_subcomponent(Component(name='Motor 11',geometry=motor))
 Motor11.add_subcomponent(Component(name='Motor Interface 11',geometry=motor_interface))
+M11_components = [pylon11, nacelle11, spinner, prop, motor, motor_interface]
 
 Motor12 = Component(name='Propulsor 12')
 Motor12.add_subcomponent(Component(name='Pylon 12', geometry=pylon12))
@@ -216,6 +227,7 @@ Motor12.add_subcomponent(Component(name='Spinner 12',geometry=spinner))
 Motor12.add_subcomponent(Component(name='Prop 12',geometry=prop))
 Motor12.add_subcomponent(Component(name='Motor 12',geometry=motor))
 Motor12.add_subcomponent(Component(name='Motor Interface 12',geometry=motor_interface))
+M12_components = [pylon12, nacelle12, spinner, prop, motor, motor_interface]
 
 Total_Prop_Sys.add_subcomponent(Motor1)
 Total_Prop_Sys.add_subcomponent(Motor2)
@@ -245,13 +257,17 @@ CruiseMotor1.add_subcomponent(Component(name='Cruise Nacelle 1',geometry=cruise_
 CruiseMotor1.add_subcomponent(Component(name='Cruise Spinner 1',geometry=cruise_spinner))
 CruiseMotor1.add_subcomponent(Component(name='Cruise Prop 1',geometry=cruise_prop))
 CruiseMotor1.add_subcomponent(Component(name='Cruise Motor 1',geometry=cruise_motor))
+CM1_components = [cruise_nacelle, cruise_spinner, cruise_prop, cruise_motor]
 
 CruiseMotor2 = Component(name='Cruise Propulsor 2')
 CruiseMotor2.add_subcomponent(Component(name='Cruise Nacelle 2',geometry=cruise_nacelle))
 CruiseMotor2.add_subcomponent(Component(name='Cruise Spinner 2',geometry=cruise_spinner))
 CruiseMotor2.add_subcomponent(Component(name='Cruise Prop 2',geometry=cruise_prop))
 CruiseMotor2.add_subcomponent(Component(name='Cruise Motor 2',geometry=cruise_motor))
+CM2_components = [cruise_nacelle, cruise_spinner, cruise_prop, cruise_motor]
 
+total_HL_motor_components = [M1_components, M2_components, M3_components, M4_components, M5_components, M6_components, M7_components, M8_components, M9_components, M10_components, M11_components, M12_components]
+total_prop_sys_components = [M1_components, M2_components, M3_components, M4_components, M5_components, M6_components, M7_components, M8_components, M9_components, M10_components, M11_components, M12_components, CM1_components, CM2_components]
 Total_Prop_Sys.add_subcomponent(CruiseMotor1)
 Total_Prop_Sys.add_subcomponent(CruiseMotor2)
 # Total_Prop_Sys.visualize_component_hierarchy(show=True)
@@ -433,7 +449,7 @@ print('Cruise motor axis rotation (deg): ', np.rad2deg(cruise_motor_axis.euler_a
 
 # Wing Axis Region
 
-wing_incidence = csdl.Variable(shape=(1, ), value=np.deg2rad(45), name='Wing incidence')
+wing_incidence = csdl.Variable(shape=(1, ), value=np.deg2rad(0), name='Wing incidence')
 wing.rotate(wing_le_center, np.array([0., 1., 0.]), angles=wing_incidence)
 
 wing_axis = AxisLsdoGeo(
@@ -571,8 +587,8 @@ print('Right Innermost motor axis rotation (deg): ', np.rad2deg(r_im_axis.euler_
 ## Tail Region Axis
 
 
-ht_incidence = csdl.Variable(shape=(1, ), value=np.deg2rad(45), name='HT incidence')
-trimTab_deflection = csdl.Variable(shape=(1, ), value=np.deg2rad(60), name='Trim Tab Deflection')
+ht_incidence = csdl.Variable(shape=(1, ), value=np.deg2rad(0), name='HT incidence')
+trimTab_deflection = csdl.Variable(shape=(1, ), value=np.deg2rad(0), name='Trim Tab Deflection')
 
 h_tail.rotate(ht_le_center, np.array([0., 1., 0.]), angles=ht_incidence)
 trimTab.rotate(ht_le_center, np.array([0., 1., 0.]), angles=ht_incidence)
@@ -612,7 +628,7 @@ print('Trim Tab axis rotation (deg): ', np.rad2deg(trimTab_axis.euler_angles_vec
 
 
 
-rudder_incidence = csdl.Variable(shape=(1, ), value=np.deg2rad(45), name='VT incidence')
+rudder_incidence = csdl.Variable(shape=(1, ), value=np.deg2rad(0), name='VT incidence')
 rudder.rotate(rudder_le_mid, np.array([0., 0., 1.]), angles=rudder_incidence)
 
 
@@ -772,9 +788,13 @@ wing_wingspan_stretch_coefficients = csdl.Variable(name='wing_wingspan_stretch_c
 wing_wingspan_stretch_b_spline = lfs.Function(name='wing_wingspan_stretch_b_spline', space=linear_b_spline_curve_2_dof_space, 
                                           coefficients=wing_wingspan_stretch_coefficients)
 
-wing_twist_coefficients = csdl.Variable(name='wing_twist_coefficients', value=np.array([0., 0., 0., 0., 0.]))
+wing_twist_coefficients = csdl.Variable(name='wing_twist_coefficients', value=np.array([-10, 90, -90, 90, -10])*np.pi/180)
 wing_twist_b_spline = lfs.Function(name='wing_twist_b_spline', space=cubic_b_spline_curve_5_dof_space,
                                           coefficients=wing_twist_coefficients)
+
+wing_sweep_coefficients = csdl.Variable(name='wing_sweep_coefficients', value=np.array([4., 0.0, 0.0]))
+wing_sweep_b_spline = lfs.Function(space=linear_b_spline_curve_3_dof_space,
+                                            coefficients=wing_sweep_coefficients, name='wing_sweep_b_spline')
 
 wing_translation_x_coefficients = csdl.Variable(name='wing_translation_x_coefficients', value=np.array([0.]))
 wing_translation_x_b_spline = lfs.Function(name='wing_translation_x_b_spline', space=constant_b_spline_curve_1_dof_space,
@@ -794,19 +814,78 @@ parameterization_solver.add_parameter(parameter=wing_translation_z_coefficients)
 section_parametric_coordinates = np.linspace(0., 1., wing_ffd_block_sectional_parameterization.num_sections).reshape((-1,1))
 sectional_wing_chord_stretch = wing_chord_stretch_b_spline.evaluate(section_parametric_coordinates)
 sectional_wing_wingspan_stretch = wing_wingspan_stretch_b_spline.evaluate(section_parametric_coordinates)
+sectional_wing_sweep = wing_sweep_b_spline.evaluate(section_parametric_coordinates)
 sectional_wing_twist = wing_twist_b_spline.evaluate(section_parametric_coordinates)
 sectional_wing_translation_x = wing_translation_x_b_spline.evaluate(section_parametric_coordinates)
 sectional_wing_translation_z = wing_translation_z_b_spline.evaluate(section_parametric_coordinates)
 
 sectional_parameters = lg.VolumeSectionalParameterizationInputs(
     stretches={0: sectional_wing_chord_stretch},
-    translations={1: sectional_wing_wingspan_stretch, 0: sectional_wing_translation_x, 2: sectional_wing_translation_z}
+    translations={1: sectional_wing_wingspan_stretch, 0: sectional_wing_translation_x, 2: sectional_wing_translation_z, 0: sectional_wing_sweep},
+    rotations={1: sectional_wing_twist}
 )
 
 wing_ffd_block_coefficients = wing_ffd_block_sectional_parameterization.evaluate(sectional_parameters, plot=False)
 wing_coefficients = wing_ffd_block.evaluate(wing_ffd_block_coefficients, plot=False)
 wing.set_coefficients(wing_coefficients)
 # geometry.plot()
+
+# High Lift Rotors setup
+lift_rotor_ffd_blocks = []
+lift_rotor_sectional_parameterizations = []
+lift_rotor_parameterization_b_splines = []
+for i, component_set in enumerate(total_HL_motor_components):
+    rotor_ffd_block = lg.construct_ffd_block_around_entities(name=f'{component_set[0].name[:3]}_rotor_ffd_block', entities=component_set, num_coefficients=(2,2,2), degree=(1,1,1))
+    rotor_ffd_block_sectional_parameterization = lg.VolumeSectionalParameterization(name=f'{component_set[0].name[:3]}_rotor_sectional_parameterization',
+                                                                                parameterized_points=rotor_ffd_block.coefficients,
+                                                                                principal_parametric_dimension=2)
+    
+    rotor_stretch_coefficient = csdl.Variable(name=f'{component_set[0].name[:3]}_rotor_stretch_coefficient', value=wing_wingspan_stretch_coefficients.value)
+    lift_rotor_sectional_stretch_b_spline = lfs.Function(name=f'{component_set[0].name[:3]}_rotor_sectional_stretch_x_b_spline', space=linear_b_spline_curve_2_dof_space,
+                                                coefficients=rotor_stretch_coefficient)
+    
+    rotor_twist_coefficients = csdl.Variable(name=f'{component_set[0].name[:3]}_rotor_twist_coefficients', value=wing_twist_coefficients.value)
+    rotor_twist_b_spline = lfs.Function(name=f'{component_set[0].name[:3]}_rotor_twist_b_spline', space=cubic_b_spline_curve_5_dof_space, coefficients=rotor_twist_coefficients)
+
+    rotor_translation_x_coefficients = csdl.Variable(name=f'{component_set[0].name[:3]}_rotor_translation_x_coefficients', value=np.array([0.]))
+    rotor_translation_x_b_spline = lfs.Function(name=f'{component_set[0].name[:3]}_rotor_translation_x_b_spline', space=constant_b_spline_curve_1_dof_space, coefficients=rotor_translation_x_coefficients)
+
+    rotor_translation_z_coefficients = csdl.Variable(name=f'{component_set[0].name[:3]}_rotor_translation_z_coefficients', value=np.array([0.]))
+    rotor_translation_z_b_spline = lfs.Function(name=f'{component_set[0].name[:3]}_rotor_translation_z_b_spline', space=constant_b_spline_curve_1_dof_space, coefficients=rotor_translation_z_coefficients)
+    
+    lift_rotor_ffd_blocks.append(rotor_ffd_block)
+    lift_rotor_sectional_parameterizations.append(rotor_ffd_block_sectional_parameterization)
+    lift_rotor_parameterization_b_splines.append(lift_rotor_sectional_stretch_b_spline)                 
+
+    parameterization_solver.add_parameter(parameter=rotor_stretch_coefficient)
+
+# region Lift Rotors Parameterization Evaluation for Parameterization Solver
+for i, component_set in enumerate(total_HL_motor_components):
+    rotor_ffd_block = lift_rotor_ffd_blocks[i]
+    rotor_ffd_block_sectional_parameterization = lift_rotor_sectional_parameterizations[i]
+    rotor_stretch_b_spline = lift_rotor_parameterization_b_splines[i]
+
+    section_parametric_coordinates = np.linspace(0., 1., rotor_ffd_block_sectional_parameterization.num_sections).reshape((-1,1))
+    sectional_stretch = rotor_stretch_b_spline.evaluate(section_parametric_coordinates)
+    sectional_twist = rotor_twist_b_spline.evaluate(section_parametric_coordinates)
+    sectional_translation_x = rotor_translation_x_b_spline.evaluate(section_parametric_coordinates)
+    sectional_translation_z = rotor_translation_z_b_spline.evaluate(section_parametric_coordinates)
+
+
+    sectional_parameters = lg.VolumeSectionalParameterizationInputs(
+        stretches={0: sectional_stretch, 1:sectional_stretch},
+        rotations={1: sectional_twist},
+    )
+
+
+    rotor_ffd_block_coefficients = rotor_ffd_block_sectional_parameterization.evaluate(sectional_parameters, plot=False)
+    rotor_coefficients = rotor_ffd_block.evaluate(rotor_ffd_block_coefficients, plot=False)
+    for i, component in enumerate(component_set):
+        component.set_coefficients(rotor_coefficients[i])
+    
+    
+# geometry.plot()
+
 
 
 
@@ -823,6 +902,10 @@ h_tail_chord_stretch_b_spline = lfs.Function(name='h_tail_chord_stretch_b_spline
 h_tail_span_stretch_coefficients = csdl.Variable(name='h_tail_span_stretch_coefficients', value=np.array([-0., 0.]))
 h_tail_span_stretch_b_spline = lfs.Function(name='h_tail_span_stretch_b_spline', space=linear_b_spline_curve_2_dof_space, 
                                           coefficients=h_tail_span_stretch_coefficients)
+
+h_tail_sweep_coefficients = csdl.Variable(name='h_tail_sweep_coefficients', value=np.array([4., 0.0, 0.0]))
+h_tail_sweep_b_spline = lfs.Function(space=linear_b_spline_curve_3_dof_space,
+                                            coefficients=h_tail_sweep_coefficients, name='h_tail_sweep_b_spline')
 
 h_tail_twist_coefficients = csdl.Variable(name='h_tail_twist_coefficients', value=np.array([0., 0., 0., 0., 0.]))
 h_tail_twist_b_spline = lfs.Function(name='h_tail_twist_b_spline', space=cubic_b_spline_curve_5_dof_space,
@@ -847,20 +930,22 @@ parameterization_solver.add_parameter(parameter=h_tail_translation_z_coefficient
 section_parametric_coordinates = np.linspace(0., 1., h_tail_ffd_block_sectional_parameterization.num_sections).reshape((-1,1))
 sectional_h_tail_chord_stretch = h_tail_chord_stretch_b_spline.evaluate(section_parametric_coordinates)
 sectional_h_tail_span_stretch = h_tail_span_stretch_b_spline.evaluate(section_parametric_coordinates)
+sectional_h_tail_sweep = h_tail_sweep_b_spline.evaluate(section_parametric_coordinates)
 sectional_h_tail_twist = h_tail_twist_b_spline.evaluate(section_parametric_coordinates)
 sectional_h_tail_translation_x = h_tail_translation_x_b_spline.evaluate(section_parametric_coordinates)
 sectional_h_tail_translation_z = h_tail_translation_z_b_spline.evaluate(section_parametric_coordinates)
 
 sectional_parameters = lg.VolumeSectionalParameterizationInputs(
     stretches={0: sectional_h_tail_chord_stretch},
-    translations={1: sectional_h_tail_span_stretch, 0: sectional_h_tail_translation_x, 2: sectional_h_tail_translation_z}
+    translations={1: sectional_h_tail_span_stretch, 0: sectional_h_tail_translation_x, 2: sectional_h_tail_translation_z, 0: sectional_h_tail_sweep},
+    rotations={1: sectional_h_tail_twist}
 )
 
 h_tail_ffd_block_coefficients = h_tail_ffd_block_sectional_parameterization.evaluate(sectional_parameters, plot=False)
 h_tail_coefficients = h_tail_ffd_block.evaluate(h_tail_ffd_block_coefficients, plot=False)
 h_tail.set_coefficients(coefficients=h_tail_coefficients)
 
-
+geometry.plot()
 ## VT FFD Setup
 
 v_tail_ffd_block = lg.construct_ffd_block_around_entities(name='v_tail_ffd_block', entities=vertTail, num_coefficients=(2,11,2), degree=(1,3,1))
@@ -868,7 +953,7 @@ v_tail_ffd_block_sectional_parameterization = lg.VolumeSectionalParameterization
                                                                             parameterized_points=v_tail_ffd_block.coefficients,
                                                                             principal_parametric_dimension=1)
 
-v_tail_chord_stretch_coefficients = csdl.Variable(name='v_tail_chord_stretch_coefficients', value=np.array([0., 2.]))
+v_tail_chord_stretch_coefficients = csdl.Variable(name='v_tail_chord_stretch_coefficients', value=np.array([0., 0.]))
 v_tail_chord_stretch_b_spline = lfs.Function(name='h_tail_chord_stretch_b_spline', space=linear_b_spline_curve_2_dof_space, 
                                           coefficients=v_tail_chord_stretch_coefficients)
 
@@ -905,13 +990,14 @@ sectional_v_tail_translation_z = v_tail_translation_z_b_spline.evaluate(section_
 
 sectional_parameters = lg.VolumeSectionalParameterizationInputs(
     stretches={0: sectional_v_tail_chord_stretch, 2: sectional_v_tail_span_stretch},
-    translations={0: sectional_v_tail_translation_x, 2: sectional_v_tail_translation_z}
+    translations={0: sectional_v_tail_translation_x, 2: sectional_v_tail_translation_z},
+    rotations={1: sectional_v_tail_twist}
 )
 
 v_tail_ffd_block_coefficients = v_tail_ffd_block_sectional_parameterization.evaluate(sectional_parameters, plot=False)
 v_tail_coefficients = v_tail_ffd_block.evaluate(v_tail_ffd_block_coefficients, plot=False)
 vertTail.set_coefficients(coefficients=v_tail_coefficients)
-geometry.plot()
+# geometry.plot()
 
 
 
