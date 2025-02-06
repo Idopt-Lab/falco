@@ -627,6 +627,12 @@ wing_twist_coefficients = csdl.Variable(name='wing_twist_coefficients', value=np
 wing_twist_b_spline = lfs.Function(name='wing_twist_b_spline', space=cubic_b_spline_curve_5_dof_space,
                                           coefficients=wing_twist_coefficients)
 
+wing_sweep_amount = csdl.Variable(name='wing_sweep_amount', value=np.array([45.]))
+print(wing_sweep_amount.value)
+
+wing_sweep_coefficients = csdl.Variable(name='wing_sweep_coefficients', value=np.array([-wing_sweep_amount.value[0]*np.pi/180, wing_sweep_amount.value[0]*np.pi/180, -wing_sweep_amount.value[0]*np.pi/180]))
+wing_sweep_b_spline = lfs.Function(name='wing_sweep_b_spline',space=linear_b_spline_curve_3_dof_space, coefficients=wing_sweep_coefficients)
+
 wing_translation_x_coefficients = csdl.Variable(name='wing_translation_x_coefficients', value=np.array([0.]))
 wing_translation_x_b_spline = lfs.Function(name='wing_translation_x_b_spline', space=constant_b_spline_curve_1_dof_space,
                                           coefficients=wing_translation_x_coefficients)
@@ -640,12 +646,13 @@ section_parametric_coordinates = np.linspace(0., 1., wing_ffd_block_sectional_pa
 sectional_wing_chord_stretch = wing_chord_stretch_b_spline.evaluate(section_parametric_coordinates)
 sectional_wing_wingspan_stretch = wing_wingspan_stretch_b_spline.evaluate(section_parametric_coordinates)
 sectional_wing_twist = wing_twist_b_spline.evaluate(section_parametric_coordinates)
+sectional_wing_sweep = wing_sweep_b_spline.evaluate(section_parametric_coordinates)
 sectional_wing_translation_x = wing_translation_x_b_spline.evaluate(section_parametric_coordinates)
 sectional_wing_translation_z = wing_translation_z_b_spline.evaluate(section_parametric_coordinates)
 
 sectional_parameters = lg.VolumeSectionalParameterizationInputs(
     stretches={0: sectional_wing_chord_stretch},
-    translations={1: sectional_wing_wingspan_stretch, 0: sectional_wing_translation_x, 2: sectional_wing_translation_z},
+    translations={1: sectional_wing_wingspan_stretch, 0: sectional_wing_translation_x, 2: sectional_wing_translation_z, 0: sectional_wing_sweep},
     rotations={1: sectional_wing_twist}
     )
 
