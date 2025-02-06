@@ -11,6 +11,7 @@ from flight_simulator.utils.import_geometry import import_geometry
 from flight_simulator.utils.euler_rotations import build_rotation_matrix
 from flight_simulator.core.vehicle.component import Component
 import lsdo_geo as lg
+import vedo
 
 plot_flag=False
 # Exported stl from OpenVSP as feet instead of meters or inches so converting to meters
@@ -33,8 +34,9 @@ Aircraft = Component(name='Aircraft')
 
 # Define Aircraft Components
 ## Wing
+
 wing = geometry.declare_component(function_search_names=['Wing'], name='wing')
-wing.plot()
+# wing.plot()
 
 # if plot_flag:
     # wing.plot()
@@ -280,7 +282,7 @@ wing_axis = AxisLsdoGeo(
 # print('Wing Axis Translation (m): ', wing_axis.translation.value)
 # print('Wing Axis Rotation (deg): ', np.rad2deg(wing_axis.euler_angles_vector.value))
 
-vtail_deflection = csdl.Variable(shape=(1, ), value=np.deg2rad(45), name='Vtail Deflection')
+vtail_deflection = csdl.Variable(shape=(1, ), value=np.deg2rad(0), name='Vtail Deflection')
 v_tail.rotate(vtail_root_le, np.array([0., 0., 1.]), angles=vtail_deflection)
 
 vtail_axis = AxisLsdoGeo(
@@ -299,7 +301,7 @@ vtail_axis = AxisLsdoGeo(
 # print('Vtail Axis Translation (m): ', vtail_axis.translation.value)
 # print('Vtail Axis Rotation (deg): ', np.rad2deg(vtail_axis.euler_angles_vector.value))
 
-htail_deflection = csdl.Variable(shape=(1, ), value=np.deg2rad(45), name='Htail Deflection')
+htail_deflection = csdl.Variable(shape=(1, ), value=np.deg2rad(0), name='Htail Deflection')
 h_tail.rotate(htail_root_le, np.array([0., 1., 0.]), angles=htail_deflection)
 
 htail_axis = AxisLsdoGeo(
@@ -563,20 +565,32 @@ aero_force_vector_in_wing =  Vector(csdl.matvec(csdl.transpose(R_wing_to_openvsp
 # print('Aero force vector in wing-axis: ', aero_force_vector_in_wing.vector.value)
 
 
+
+
+
+
+
+
+
+
+
+
+# thrust_axis = geometry.evaluate(pt_axis_ob_left_fwd)
+
 ## FFD
 
-# region Parameterization
+# # region Parameterization
 
 constant_b_spline_curve_1_dof_space = lfs.BSplineSpace(num_parametric_dimensions=1, degree=0, coefficients_shape=(1,))
 linear_b_spline_curve_2_dof_space = lfs.BSplineSpace(num_parametric_dimensions=1, degree=1, coefficients_shape=(2,))
 linear_b_spline_curve_3_dof_space = lfs.BSplineSpace(num_parametric_dimensions=1, degree=1, coefficients_shape=(3,))
 cubic_b_spline_curve_5_dof_space = lfs.BSplineSpace(num_parametric_dimensions=1, degree=3, coefficients_shape=(5,))
 
-# region Parameterization Setup
-parameterization_solver = lg.ParameterizationSolver()
-parameterization_design_parameters = lg.GeometricVariables()
+# # region Parameterization Setup
+# parameterization_solver = lg.ParameterizationSolver()
+# parameterization_design_parameters = lg.GeometricVariables()
 
-# region Wing Parameterization setup
+# # region Wing Parameterization setup
 wing_ffd_block = lg.construct_ffd_block_around_entities(name='wing_ffd_block', entities=wing, num_coefficients=(2,11,2), degree=(1,3,1))
 wing_ffd_block_sectional_parameterization = lg.VolumeSectionalParameterization(name='wing_sectional_parameterization',
                                                                             parameterized_points=wing_ffd_block.coefficients,
@@ -602,13 +616,32 @@ wing_translation_z_coefficients = csdl.Variable(name='wing_translation_z_coeffic
 wing_translation_z_b_spline = lfs.Function(name='wing_translation_z_b_spline', space=constant_b_spline_curve_1_dof_space,
                                           coefficients=wing_translation_z_coefficients)
 
-parameterization_solver.add_parameter(parameter=wing_chord_stretch_coefficients)
-parameterization_solver.add_parameter(parameter=wing_wingspan_stretch_coefficients, cost=1.e3)
-parameterization_solver.add_parameter(parameter=wing_twist_coefficients)
-parameterization_solver.add_parameter(parameter=wing_translation_x_coefficients)
-parameterization_solver.add_parameter(parameter=wing_translation_z_coefficients)
 
-# region Horizontal Stabilizer setup
+section_parametric_coordinates = np.linspace(0., 1., wing_ffd_block_sectional_parameterization.num_sections).reshape((-1,1))
+sectional_wing_chord_stretch = wing_chord_stretch_b_spline.evaluate(section_parametric_coordinates)
+sectional_wing_wingspan_stretch = wing_wingspan_stretch_b_spline.evaluate(section_parametric_coordinates)
+sectional_wing_twist = wing_twist_b_spline.evaluate(section_parametric_coordinates)
+sectional_wing_translation_x = wing_translation_x_b_spline.evaluate(section_parametric_coordinates)
+sectional_wing_translation_z = wing_translation_z_b_spline.evaluate(section_parametric_coordinates)
+
+sectional_parameters = lg.VolumeSectionalParameterizationInputs(
+    stretches={0: sectional_wing_chord_stretch},
+    translations={1: sectional_wing_wingspan_stretch, 0: sectional_wing_translation_x, 2: sectional_wing_translation_z}
+)
+# sectional_parameters = lg.VolumeSectionalParameterizationInputs()
+# sectional_parameters.add_sectional_stretch(axis=0, stretch=sectional_wing_chord_stretch)
+# sectional_parameters.add_sectional_translation(axis=1, translation=sectional_wing_wingspan_stretch)
+# sectional_parameters.add_sectional_translation(axis=0, translation=sweep_translation_sectional_parameters)
+# sectional_parameters.add_sectional_rotation(axis=1, rotation=twist_sectional_parameters)
+
+wing_ffd_block_coefficients = wing_ffd_block_sectional_parameterization.evaluate(sectional_parameters, plot=False)
+wing_coefficients = wing_ffd_block.evaluate(wing_ffd_block_coefficients, plot=False)
+wing.set_coefficients(wing_coefficients)
+
+
+
+
+# # region Horizontal Stabilizer setup
 h_tail_ffd_block = lg.construct_ffd_block_around_entities(name='h_tail_ffd_block', entities=h_tail, num_coefficients=(2,11,2), degree=(1,3,1))
 h_tail_ffd_block_sectional_parameterization = lg.VolumeSectionalParameterization(name='h_tail_sectional_parameterization',
                                                                             parameterized_points=h_tail_ffd_block.coefficients,
@@ -633,70 +666,7 @@ h_tail_translation_z_coefficients = csdl.Variable(name='h_tail_translation_z_coe
 h_tail_translation_z_b_spline = lfs.Function(name='h_tail_translation_z_b_spline', space=constant_b_spline_curve_1_dof_space,
                                           coefficients=h_tail_translation_z_coefficients)
 
-parameterization_solver.add_parameter(parameter=h_tail_chord_stretch_coefficients)
-parameterization_solver.add_parameter(parameter=h_tail_span_stretch_coefficients)
-parameterization_solver.add_parameter(parameter=h_tail_twist_coefficients)
-parameterization_solver.add_parameter(parameter=h_tail_translation_x_coefficients)
-parameterization_solver.add_parameter(parameter=h_tail_translation_z_coefficients)
-# endregion Horizontal Stabilizer setup
 
-# region Fuselage setup
-fuselage_ffd_block = lg.construct_ffd_block_around_entities(name='fuselage_ffd_block', entities=fuselage, num_coefficients=(2,2,2), degree=(1,1,1))
-fuselage_ffd_block_sectional_parameterization = lg.VolumeSectionalParameterization(name='fuselage_sectional_parameterization',
-                                                                            parameterized_points=fuselage_ffd_block.coefficients,
-                                                                            principal_parametric_dimension=0)
-# fuselage_ffd_block_sectional_parameterization.add_sectional_translation(name='sectional_fuselage_stretch', axis=0)
-
-fuselage_stretch_coefficients = csdl.Variable(name='fuselage_stretch_coefficients', shape=(2,), value=np.array([0., -0.]))
-fuselage_stretch_b_spline = lfs.Function(name='fuselage_stretch_b_spline', space=linear_b_spline_curve_2_dof_space, 
-                                          coefficients=fuselage_stretch_coefficients)
-
-parameterization_solver.add_parameter(parameter=fuselage_stretch_coefficients)
-# endregion
-
-# region Lift Rotors setup
-lift_rotor_ffd_blocks = []
-lift_rotor_sectional_parameterizations = []
-lift_rotor_parameterization_b_splines = []
-lift_rotor_related_components = [rotor_hub_ob_left_fwd, rotor_hub_mid_left_fwd, rotor_hub_ib_left_fwd, rotor_hub_ob_right_fwd, rotor_hub_mid_right_fwd, rotor_hub_ib_right_fwd]
-for i, component_set in enumerate(lift_rotor_related_components):
-    rotor_ffd_block = lg.construct_ffd_block_around_entities(name=f'{component_set[0].name[:3]}_rotor_ffd_block', entities=component_set, num_coefficients=(2,2,2), degree=(1,1,1))
-    rotor_ffd_block_sectional_parameterization = lg.VolumeSectionalParameterization(name=f'{component_set[0].name[:3]}_rotor_sectional_parameterization',
-                                                                                parameterized_points=rotor_ffd_block.coefficients,
-                                                                                principal_parametric_dimension=2)
-    
-    rotor_stretch_coefficient = csdl.Variable(name=f'{component_set[0].name[:3]}_rotor_stretch_coefficient', shape=(1,), value=0.)
-    lift_rotor_sectional_stretch_b_spline = lfs.Function(name=f'{component_set[0].name[:3]}_rotor_sectional_stretch_x_b_spline', space=constant_b_spline_curve_1_dof_space,
-                                                coefficients=rotor_stretch_coefficient)
-    
-    lift_rotor_ffd_blocks.append(rotor_ffd_block)
-    lift_rotor_sectional_parameterizations.append(rotor_ffd_block_sectional_parameterization)
-    lift_rotor_parameterization_b_splines.append(lift_rotor_sectional_stretch_b_spline)                 
-
-    parameterization_solver.add_parameter(parameter=rotor_stretch_coefficient)
-# endregion Lift Rotors setup
-
-
-# region Wing Parameterization Evaluation for Parameterization Solver
-section_parametric_coordinates = np.linspace(0., 1., wing_ffd_block_sectional_parameterization.num_sections).reshape((-1,1))
-sectional_wing_chord_stretch = wing_chord_stretch_b_spline.evaluate(section_parametric_coordinates)
-sectional_wing_wingspan_stretch = wing_wingspan_stretch_b_spline.evaluate(section_parametric_coordinates)
-sectional_wing_twist = wing_twist_b_spline.evaluate(section_parametric_coordinates)
-sectional_wing_translation_x = wing_translation_x_b_spline.evaluate(section_parametric_coordinates)
-sectional_wing_translation_z = wing_translation_z_b_spline.evaluate(section_parametric_coordinates)
-
-sectional_parameters = lg.VolumeSectionalParameterizationInputs(
-    stretches={0: sectional_wing_chord_stretch},
-    translations={1: sectional_wing_wingspan_stretch, 0: sectional_wing_translation_x, 2: sectional_wing_translation_z}
-)
-
-wing_ffd_block_coefficients = wing_ffd_block_sectional_parameterization.evaluate(sectional_parameters, plot=False)
-wing_coefficients = wing_ffd_block.evaluate(wing_ffd_block_coefficients, plot=False)
-wing.set_coefficients(wing_coefficients)
-
-# endregion Wing Parameterization Evaluation for Parameterization Solver
-
-# region Horizontal Stabilizer Parameterization Evaluation for Parameterization Solver
 section_parametric_coordinates = np.linspace(0., 1., h_tail_ffd_block_sectional_parameterization.num_sections).reshape((-1,1))
 sectional_h_tail_chord_stretch = h_tail_chord_stretch_b_spline.evaluate(section_parametric_coordinates)
 sectional_h_tail_span_stretch = h_tail_span_stretch_b_spline.evaluate(section_parametric_coordinates)
@@ -712,157 +682,73 @@ sectional_parameters = lg.VolumeSectionalParameterizationInputs(
 h_tail_ffd_block_coefficients = h_tail_ffd_block_sectional_parameterization.evaluate(sectional_parameters, plot=False)
 h_tail_coefficients = h_tail_ffd_block.evaluate(h_tail_ffd_block_coefficients, plot=False)
 h_tail.set_coefficients(coefficients=h_tail_coefficients)
-geometry.plot()
-# endregion
 
-# region Fuselage Parameterization Evaluation for Parameterization Solver
-section_parametric_coordinates = np.linspace(0., 1., fuselage_ffd_block_sectional_parameterization.num_sections).reshape((-1,1))
-sectional_fuselage_stretch = fuselage_stretch_b_spline.evaluate(section_parametric_coordinates)
 
-# sectional_parameters = {'sectional_fuselage_stretch':sectional_fuselage_stretch}
+
+# region Vertical Stabilizer setup
+v_tail_ffd_block = lg.construct_ffd_block_around_entities(name='v_tail_ffd_block', entities=v_tail, num_coefficients=(2,11,2), degree=(1,3,1))
+v_tail_ffd_block_sectional_parameterization = lg.VolumeSectionalParameterization(name='v_tail_sectional_parameterization',
+                                                                            parameterized_points=v_tail_ffd_block.coefficients,
+                                                                            principal_parametric_dimension=1)
+
+
+vtailchordstretch=np.array([-0., 5.])
+v_tail_chord_stretch_coefficients = csdl.Variable(name='v_tail_chord_stretch_coefficients', value=vtailchordstretch)
+v_tail_chord_stretch_b_spline = lfs.Function(name='v_tail_chord_stretch_b_spline', space=linear_b_spline_curve_2_dof_space,
+                                            coefficients=v_tail_chord_stretch_coefficients)
+geometry.plot(color='red')
+vtailspanstrech=np.array([5.])
+v_tail_span_stretch_coefficients = csdl.Variable(name='v_tail_span_stretch_coefficients', value=vtailspanstrech)
+v_tail_span_stretch_b_spline = lfs.Function(name='v_tail_span_stretch_b_spline', space=constant_b_spline_curve_1_dof_space, 
+                                          coefficients=v_tail_span_stretch_coefficients)
+v_tail_translation_x_coefficients = csdl.Variable(name='v_tail_translation_x_coefficients', value=np.array([-vtailchordstretch[1]/4]))
+v_tail_translation_x_b_spline = lfs.Function(name='v_tail_translation_x_b_spline', space=constant_b_spline_curve_1_dof_space,
+                                          coefficients=v_tail_translation_x_coefficients)
+v_tail_translation_z_coefficients = csdl.Variable(name='v_tail_translation_z_coefficients', value=np.array([-0.5*vtailspanstrech]))
+v_tail_translation_z_b_spline = lfs.Function(name='v_tail_translation_z_b_spline', space=constant_b_spline_curve_1_dof_space,
+                                          coefficients=v_tail_translation_z_coefficients)
+
+
+section_parametric_coordinates = np.linspace(0., 1., v_tail_ffd_block_sectional_parameterization.num_sections).reshape((-1,1))
+sectional_v_tail_chord_stretch = v_tail_chord_stretch_b_spline.evaluate(section_parametric_coordinates)
+sectional_v_tail_span_stretch = v_tail_span_stretch_b_spline.evaluate(section_parametric_coordinates)
+sectional_v_tail_translation_x = v_tail_translation_x_b_spline.evaluate(section_parametric_coordinates)
+sectional_v_tail_translation_z = v_tail_translation_z_b_spline.evaluate(section_parametric_coordinates)
+
 sectional_parameters = lg.VolumeSectionalParameterizationInputs(
-    translations={0: sectional_fuselage_stretch}
+    stretches={0: sectional_v_tail_chord_stretch,2: sectional_v_tail_span_stretch},
+    translations={0: sectional_v_tail_translation_x, 2: sectional_v_tail_translation_z}
 )
 
-fuselage_ffd_block_coefficients = fuselage_ffd_block_sectional_parameterization.evaluate(sectional_parameters, plot=False)
-fuselage_and_nose_hub_coefficients = fuselage_ffd_block.evaluate(fuselage_ffd_block_coefficients, plot=False)
-fuselage_coefficients = fuselage_and_nose_hub_coefficients[0]
-nose_hub_coefficients = fuselage_and_nose_hub_coefficients[1]
+v_tail_ffd_block_coefficients = v_tail_ffd_block_sectional_parameterization.evaluate(sectional_parameters, plot=False)
+v_tail_coefficients = v_tail_ffd_block.evaluate(v_tail_ffd_block_coefficients, plot=False)
+v_tail.set_coefficients(coefficients=v_tail_coefficients)
 
-fuselage.set_coefficients(coefficients=fuselage_coefficients)
-nose_hub.set_coefficients(coefficients=nose_hub_coefficients)
-# geometry.plot()
 
-# endregion
+# # region Fuselage setup
+# fuselage_ffd_block = lg.construct_ffd_block_around_entities(name='fuselage_ffd_block', entities=fuselage, num_coefficients=(2,2,2), degree=(1,1,1))
+# fuselage_ffd_block_sectional_parameterization = lg.VolumeSectionalParameterization(name='fuselage_sectional_parameterization',
+#                                                                             parameterized_points=fuselage_ffd_block.coefficients,
+#                                                                             principal_parametric_dimension=0)
+# fuselage_ffd_block_sectional_parameterization.add_sectional_translation(name='sectional_fuselage_stretch', axis=0)
 
-# region Lift Rotors rigid body translation
-for i, component_set in enumerate(lift_rotor_related_components):
-    # disk = component_set[0]
-    # blade_1 = component_set[1]
-    # blade_2 = component_set[2]
-    # hub = component_set[3]
+# fuselage_stretch_coefficients = csdl.Variable(name='fuselage_stretch_coefficients', shape=(2,), value=np.array([0., 0.]))
+# fuselage_stretch_b_spline = lfs.Function(name='fuselage_stretch_b_spline', space=linear_b_spline_curve_2_dof_space, 
+#                                           coefficients=fuselage_stretch_coefficients)
 
-    boom = boom_components[i]
+# section_parametric_coordinates = np.linspace(0., 1., fuselage_ffd_block_sectional_parameterization.num_sections).reshape((-1,1))
+# sectional_fuselage_stretch = fuselage_stretch_b_spline.evaluate(section_parametric_coordinates)
 
-    # Add rigid body translation
-    rigid_body_translation = csdl.Variable(shape=(3,), value=0., name=f'{component_set[0].name[:3]}_rotor_rigid_body_translation')
+# sectional_parameters = lg.VolumeSectionalParameterizationInputs(
+#     translations={0: sectional_fuselage_stretch}
+# )
 
-    for component in component_set:
-        for function in component.functions.values():
-            function.coefficients = function.coefficients + csdl.expand(rigid_body_translation, function.coefficients.shape, action='k->ijk')
+# fuselage_ffd_block_coefficients = fuselage_ffd_block_sectional_parameterization.evaluate(sectional_parameters, plot=False)
+# fuselage_coefficients = fuselage_ffd_block.evaluate(fuselage_ffd_block_coefficients, plot=False)
+# fuselage.set_coefficients(coefficients=fuselage_coefficients)
 
-    for function in boom.functions.values():
-        function.coefficients = function.coefficients + csdl.expand(rigid_body_translation, function.coefficients.shape, action='k->ijk')
+geometry.plot()
 
-    parameterization_solver.add_parameter(parameter=rigid_body_translation)
-# endregion Lift Rotors rigid body translation
-
-# region pusher rigid body translation
-rigid_body_translation = csdl.Variable(shape=(3,), value=0., name='pp_rotor_rigid_body_translation')
-for component in pp_components:
-    for function in component.functions.values():
-        function.coefficients = function.coefficients + csdl.expand(rigid_body_translation, function.coefficients.shape, action='k->ijk')
-
-parameterization_solver.add_parameter(parameter=rigid_body_translation)
-# endregion pusher rigid body translation
-
-# region Vertical Stabilizer rigid body translation
-rigid_body_translation = csdl.Variable(shape=(3,), value=0., name='pp_rotor_rigid_body_translation')
-for function in v_tail.functions.values():
-    function.coefficients = function.coefficients + csdl.expand(rigid_body_translation, function.coefficients.shape, action='k->ijk')
-
-parameterization_solver.add_parameter(parameter=rigid_body_translation)
-# endregion Vertical Stabilizer rigid body translation
-
-# endregion Parameterization Solver Setup Evaluations
-
-# Aircraft.visualize_component_hierarchy(show=True)
-# geometry.plot()
-# region Define Design Parameters
-
-# region wing design parameters
-wing_span_computed = csdl.norm(geometry.evaluate(wing_le_right) - geometry.evaluate(wing_le_left))
-wing_root_chord_computed = csdl.norm(geometry.evaluate(wing_te_center) - geometry.evaluate(wing_le_center))
-wing_tip_chord_left_computed = csdl.norm(geometry.evaluate(wing_te_left) - geometry.evaluate(wing_le_left))
-wing_tip_chord_right_computed = csdl.norm(geometry.evaluate(wing_te_right) - geometry.evaluate(wing_le_right))
-
-wing_span = csdl.Variable(name='wing_span', value=np.array([50.]))
-wing_root_chord = csdl.Variable(name='wing_root_chord', value=np.array([5.]))
-wing_tip_chord = csdl.Variable(name='wing_tip_chord_left', value=np.array([1.]))
-
-parameterization_design_parameters.add_variable(computed_value=wing_span_computed, desired_value=wing_span)
-parameterization_design_parameters.add_variable(computed_value=wing_root_chord_computed, desired_value=wing_root_chord)
-parameterization_design_parameters.add_variable(computed_value=wing_tip_chord_left_computed, desired_value=wing_tip_chord)
-parameterization_design_parameters.add_variable(computed_value=wing_tip_chord_right_computed, desired_value=wing_tip_chord)
-# endregion wing design parameters
-
-# region h_tail design parameterization inputs
-h_tail_span_computed = csdl.norm(geometry.evaluate(tail_le_right) - geometry.evaluate(tail_le_left))
-h_tail_root_chord_computed = csdl.norm(geometry.evaluate(tail_te_center) - geometry.evaluate(tail_le_center))
-h_tail_tip_chord_left_computed = csdl.norm(geometry.evaluate(tail_te_left) - geometry.evaluate(tail_le_left))
-h_tail_tip_chord_right_computed = csdl.norm(geometry.evaluate(tail_te_right) - geometry.evaluate(tail_le_right))
-
-h_tail_span = csdl.Variable(name='h_tail_span', value=np.array([12.]))
-h_tail_root_chord = csdl.Variable(name='h_tail_root_chord', value=np.array([3.]))
-h_tail_tip_chord = csdl.Variable(name='h_tail_tip_chord_left', value=np.array([2.]))
-
-parameterization_design_parameters.add_variable(computed_value=h_tail_span_computed, desired_value=h_tail_span)
-parameterization_design_parameters.add_variable(computed_value=h_tail_root_chord_computed, desired_value=h_tail_root_chord)
-parameterization_design_parameters.add_variable(computed_value=h_tail_tip_chord_left_computed, desired_value=h_tail_tip_chord)
-parameterization_design_parameters.add_variable(computed_value=h_tail_tip_chord_right_computed, desired_value=h_tail_tip_chord)
-# endregion h_tail design parameterization inputs
-
-# region tail moment arm variables
-tail_moment_arm_computed = csdl.norm(geometry.evaluate(tail_qc) - geometry.evaluate(wing_qc))
-tail_moment_arm = csdl.Variable(name='tail_moment_arm', value=np.array([25.]))
-parameterization_design_parameters.add_variable(computed_value=tail_moment_arm_computed, desired_value=tail_moment_arm)
-
-wing_fuselage_connection = geometry.evaluate(wing_te_center) - geometry.evaluate(fuselage_wing_te_center)
-h_tail_fuselage_connection = geometry.evaluate(tail_te_center) - geometry.evaluate(fuselage_tail_te_center)
-parameterization_design_parameters.add_variable(computed_value=wing_fuselage_connection, desired_value=wing_fuselage_connection.value)
-parameterization_design_parameters.add_variable(computed_value=h_tail_fuselage_connection, desired_value=h_tail_fuselage_connection.value)
-
-# endregion tail moment arm variables
-
-# region v-tail connection
-vtail_fuselage_connection_point = geometry.evaluate(v_tail.project(np.array([30.543, 0., 8.231])))
-vtail_fuselage_connection = geometry.evaluate(fueslage_rear_points_parametric) - vtail_fuselage_connection_point
-parameterization_design_parameters.add_variable(computed_value=vtail_fuselage_connection, desired_value=vtail_fuselage_connection.value)
-
-# endregion v-tail connection
-
-# region lift + pusher rotor parameterization inputs
-pusher_fuselage_connection = geometry.evaluate(fueslage_rear_points_parametric) - geometry.evaluate(fuselage_rear_point_on_pusher_disk_parametric)
-parameterization_design_parameters.add_variable(computed_value=pusher_fuselage_connection, desired_value=pusher_fuselage_connection.value)
-
-flo_radius = fro_radius = front_outer_radius = csdl.Variable(name='front_outer_radius', value=10/2)
-fli_radius = fri_radius = front_inner_radius = csdl.Variable(name='front_inner_radius', value=10/2)
-rlo_radius = rro_radius = rear_outer_radius = csdl.Variable(name='rear_outer_radius', value=10/2)
-rli_radius = rri_radius = rear_inner_radius = csdl.Variable(name='rear_inner_radius', value=10/2)
-dv_radius_list = [rlo_radius, rli_radius, rri_radius, rro_radius, flo_radius, fli_radius, fri_radius, fro_radius]
-
-boom_points = [boom_rlo, boom_rli, boom_rri, boom_rro, boom_flo, boom_fli, boom_fri, boom_fro]
-boom_points_on_wing = [wing_boom_rlo, wing_boom_rli, wing_boom_rri, wing_boom_rro, wing_boom_flo, wing_boom_fli, wing_boom_fri, wing_boom_fro]
-rotor_prefixes = ['rlo', 'rli', 'rri', 'rro', 'flo', 'fli', 'fri', 'fro']
-
-for i in range(len(boom_points)):
-    boom_connection = geometry.evaluate(boom_points[i]) - geometry.evaluate(boom_points_on_wing[i])
-
-    parameterization_design_parameters.add_variable(computed_value=boom_connection, desired_value=boom_connection.value)
-    
-    component_rotor_edges = rotor_edges[i]
-    radius_computed = csdl.norm(geometry.evaluate(component_rotor_edges[0]) - geometry.evaluate(component_rotor_edges[1]))/2
-    parameterization_design_parameters.add_variable(computed_value=radius_computed, desired_value=dv_radius_list[i])
-
-# endregion lift + pusher rotor parameterization inputs
-
-# endregion Define Design Parameters
-
-# geometry.plot()
-parameterization_solver.evaluate(parameterization_design_parameters)
-# geometry.plot()
-
-# endregion
 
 
 recorder.stop()
