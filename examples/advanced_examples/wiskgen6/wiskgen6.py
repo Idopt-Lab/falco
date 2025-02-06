@@ -20,117 +20,115 @@ ft2m=0.3048
 recorder=csdl.Recorder(inline=True)
 recorder.start()
 
-geometry=import_geometry(
-    "Wisk_V6.stp",
-    file_path= REPO_ROOT_FOLDER / 'examples' / 'advanced_examples' / 'wiskgen6',
-    refit=False,
-    scale=ft2m,
-    rotate_to_body_fixed_frame=True
-)
-if plot_flag:
-    geometry.plot()
 
-Aircraft = Component(name='Aircraft')
+def define_base_geometry():
+    geometry=import_geometry(
+        "Wisk_V6.stp",
+        file_path= REPO_ROOT_FOLDER / 'examples' / 'advanced_examples' / 'wiskgen6',
+        refit=False,
+        scale=ft2m,
+        rotate_to_body_fixed_frame=True
+    )
+    if plot_flag:
+        geometry.plot()
+    # Define Aircraft Components
+    ## Wing
+    wing = geometry.declare_component(function_search_names=['Wing'], name='wing')
+    ## Tail(s)
+    h_tail = geometry.declare_component(function_search_names=['HTail'], name='h_tail')
+    v_tail = geometry.declare_component(function_search_names=['VTail'], name='v_tail')
+    ## Fuselage
+    fuselage = geometry.declare_component(function_search_names=['Fuselage'], name='fuselage')
+    # Landing Gear
+    fwd_landing_gear_pylon = geometry.declare_component(function_search_names=['FWD_LG'], name='fwd_landing_gear_pylon')
+    aft_landing_gear_pylon = geometry.declare_component(function_search_names=['AFT_LG'], name='aft_landing_gear_pylon')
+    base_landing_gear = geometry.declare_component(function_search_names=['LG_BASE'], name='base_landing_gear')
+    # Pylons for Propulsors
+    pylon_ob_left = geometry.declare_component(function_search_names=['OB_SUPPORT_L'], name='pylon_ob_left')
+    pylon_mid_left = geometry.declare_component(function_search_names=['MID_SUPPORT_L'], name='pylon_mid_left')
+    pylon_ib_left = geometry.declare_component(function_search_names=['IB_SUPPORT_L'], name='pylon_ib_left')
+    pylon_ob_right = geometry.declare_component(function_search_names=['OB_SUPPORT_R'], name='pylon_ob_right')
+    pylon_mid_right = geometry.declare_component(function_search_names=['MID_SUPPORT_R'], name='pylon_mid_right')
+    pylon_ib_right = geometry.declare_component(function_search_names=['IB_SUPPORT_R'], name='pylon_ib_right')
+    # Rotor Hubs for Cruise (FWD) motors
+    rotor_hub_ob_left_fwd = geometry.declare_component(function_search_names=['ROTOR_HUB_OB_FWD_L'], name='rotor_hub_ob_left_fwd')
+    rotor_hub_mid_left_fwd = geometry.declare_component(function_search_names=['ROTOR_HUB_MID_FWD_L'], name='rotor_hub_mid_left_fwd')
+    rotor_hub_ib_left_fwd = geometry.declare_component(function_search_names=['ROTOR_HUB_IB_FWD_L'], name='rotor_hub_ib_left_fwd')
+    rotor_hub_ob_right_fwd = geometry.declare_component(function_search_names=['ROTOR_HUB_OB_FWD_R'], name='rotor_hub_ob_right_fwd')
+    rotor_hub_mid_right_fwd = geometry.declare_component(function_search_names=['ROTOR_HUB_MID_FWD_R'], name='rotor_hub_mid_right_fwd')
+    rotor_hub_ib_right_fwd = geometry.declare_component(function_search_names=['ROTOR_HUB_IB_FWD_R'], name='rotor_hub_ib_right_fwd')
+    # Rotor Hubs for Lift-only (AFT) motors
+    rotor_hub_ob_left_aft = geometry.declare_component(function_search_names=['ROTOR_HUB_OB_AFT_L'], name='rotor_hub_ob_left_aft')
+    rotor_hub_mid_left_aft = geometry.declare_component(function_search_names=['ROTOR_HUB_MID_AFT_L'], name='rotor_hub_mid_left_aft')
+    rotor_hub_ib_left_aft = geometry.declare_component(function_search_names=['ROTOR_HUB_IB_AFT_L'], name='rotor_hub_ib_left_aft')
+    rotor_hub_ob_right_aft = geometry.declare_component(function_search_names=['ROTOR_HUB_OB_AFT_R'], name='rotor_hub_ob_right_aft')
+    rotor_hub_mid_right_aft = geometry.declare_component(function_search_names=['ROTOR_HUB_MID_AFT_R'], name='rotor_hub_mid_right_aft')
+    rotor_hub_ib_right_aft = geometry.declare_component(function_search_names=['ROTOR_HUB_IB_AFT_R'], name='rotor_hub_ib_right_aft')
+    
+    return geometry, wing, h_tail, v_tail, fuselage, fwd_landing_gear_pylon, aft_landing_gear_pylon, base_landing_gear, \
+           pylon_ob_left, pylon_mid_left, pylon_ib_left, pylon_ob_right, pylon_mid_right, pylon_ib_right, \
+           rotor_hub_ob_left_fwd, rotor_hub_mid_left_fwd, rotor_hub_ib_left_fwd, rotor_hub_ob_right_fwd, rotor_hub_mid_right_fwd, rotor_hub_ib_right_fwd, \
+           rotor_hub_ob_left_aft, rotor_hub_mid_left_aft, rotor_hub_ib_left_aft, rotor_hub_ob_right_aft, rotor_hub_mid_right_aft, rotor_hub_ib_right_aft
 
-# Define Aircraft Components
-## Wing
+geometry, wing, h_tail, v_tail, fuselage, fwd_landing_gear_pylon, aft_landing_gear_pylon, base_landing_gear, \
+pylon_ob_left, pylon_mid_left, pylon_ib_left, pylon_ob_right, pylon_mid_right, pylon_ib_right, \
+rotor_hub_ob_left_fwd, rotor_hub_mid_left_fwd, rotor_hub_ib_left_fwd, rotor_hub_ob_right_fwd, rotor_hub_mid_right_fwd, rotor_hub_ib_right_fwd, \
+rotor_hub_ob_left_aft, rotor_hub_mid_left_aft, rotor_hub_ib_left_aft, rotor_hub_ob_right_aft, rotor_hub_mid_right_aft, rotor_hub_ib_right_aft = define_base_geometry()
 
-wing = geometry.declare_component(function_search_names=['Wing'], name='wing')
-# wing.plot()
-
-# if plot_flag:
-    # wing.plot()
-Aircraft.add_subcomponent(Component(name='Wing',geometry=wing))
-
-## Tail(s)
-h_tail = geometry.declare_component(function_search_names=['HTail'], name='h_tail')
-v_tail = geometry.declare_component(function_search_names=['VTail'], name='v_tail')
-# if plot_flag:
-if plot_flag:
-    h_tail.plot()
-    v_tail.plot()
-Aircraft.add_subcomponent(Component(name='Horizontal Tail',geometry=h_tail))
-Aircraft.add_subcomponent(Component(name='Vertical Tail',geometry=v_tail))
-
-## Fuselage
-fuselage = geometry.declare_component(function_search_names=['Fuselage'], name='fuselage')
-Aircraft.add_subcomponent(Component(name='Fuselage',geometry=fuselage))
-
-# Landing Gear
-fwd_landing_gear_pylon = geometry.declare_component(function_search_names=['FWD_LG'], name='fwd_landing_gear_pylon')
-aft_landing_gear_pylon = geometry.declare_component(function_search_names=['AFT_LG'], name='aft_landing_gear_pylon')
-base_landing_gear = geometry.declare_component(function_search_names=['LG_BASE'], name='base_landing_gear')
-
-Landing_Gear = Component(name='Landing Gear')
-Landing_Gear.add_subcomponent(Component(name=' Landing Gear Forward Pylon',geometry=fwd_landing_gear_pylon))
-Landing_Gear.add_subcomponent(Component(name='Landing Gear Aft Pylon',geometry=aft_landing_gear_pylon))
-Landing_Gear.add_subcomponent(Component(name='Landing Gear Base',geometry=base_landing_gear))
-Aircraft.add_subcomponent(Landing_Gear)
-
-# Pylons for Propulsors
-pylon_ob_left = geometry.declare_component(function_search_names=['OB_SUPPORT_L'], name='pylon_ob_left')
-pylon_mid_left = geometry.declare_component(function_search_names=['MID_SUPPORT_L'], name='pylon_mid_left')
-pylon_ib_left = geometry.declare_component(function_search_names=['IB_SUPPORT_L'], name='pylon_ib_left')
-
-pylon_ob_right = geometry.declare_component(function_search_names=['OB_SUPPORT_R'], name='pylon_ob_right')
-pylon_mid_right = geometry.declare_component(function_search_names=['MID_SUPPORT_R'], name='pylon_mid_right')
-pylon_ib_right = geometry.declare_component(function_search_names=['IB_SUPPORT_R'], name='pylon_ib_right')
-
-# Rotor Hubs for Cruise (FWD) motors
-rotor_hub_ob_left_fwd = geometry.declare_component(function_search_names=['ROTOR_HUB_OB_FWD_L'], name='rotor_hub_ob_left_fwd')
-rotor_hub_mid_left_fwd = geometry.declare_component(function_search_names=['ROTOR_HUB_MID_FWD_L'], name='rotor_hub_mid_left_fwd')
-rotor_hub_ib_left_fwd = geometry.declare_component(function_search_names=['ROTOR_HUB_IB_FWD_L'], name='rotor_hub_ib_left_fwd')
-rotor_hub_ob_right_fwd = geometry.declare_component(function_search_names=['ROTOR_HUB_OB_FWD_R'], name='rotor_hub_ob_right_fwd')
-rotor_hub_mid_right_fwd = geometry.declare_component(function_search_names=['ROTOR_HUB_MID_FWD_R'], name='rotor_hub_mid_right_fwd')
-rotor_hub_ib_right_fwd = geometry.declare_component(function_search_names=['ROTOR_HUB_IB_FWD_R'], name='rotor_hub_ib_right_fwd')
-
-# Rotor Hubs for Lift-only (AFT) motors
-rotor_hub_ob_left_aft = geometry.declare_component(function_search_names=['ROTOR_HUB_OB_AFT_L'], name='rotor_hub_ob_left_aft')
-rotor_hub_mid_left_aft = geometry.declare_component(function_search_names=['ROTOR_HUB_MID_AFT_L'], name='rotor_hub_mid_left_aft')
-rotor_hub_ib_left_aft = geometry.declare_component(function_search_names=['ROTOR_HUB_IB_AFT_L'], name='rotor_hub_ib_left_aft')
-rotor_hub_ob_right_aft = geometry.declare_component(function_search_names=['ROTOR_HUB_OB_AFT_R'], name='rotor_hub_ob_right_aft')
-rotor_hub_mid_right_aft = geometry.declare_component(function_search_names=['ROTOR_HUB_MID_AFT_R'], name='rotor_hub_mid_right_aft')
-rotor_hub_ib_right_aft = geometry.declare_component(function_search_names=['ROTOR_HUB_IB_AFT_R'], name='rotor_hub_ib_right_aft')
-
-
-Propulsion = Component(name='Propulsion')
-LPC_Propulsion = Component(name='Lift+Cruise Propulsion (FWD)')
-Propulsion.add_subcomponent(LPC_Propulsion)
-Motor_ob_left_fwd = Component(name='Motor Outboard Left FWD')
-Motor_mid_left_fwd = Component(name='Motor Middle Left FWD')
-Motor_ib_left_fwd = Component(name='Motor Inboard Left FWD')
-Motor_ob_right_fwd = Component(name='Motor Outboard Right FWD')
-Motor_mid_right_fwd = Component(name='Motor Middle Right FWD')
-Motor_ib_right_fwd = Component(name='Motor Inboard Right FWD')
-LPC_Propulsion.add_subcomponent(Motor_ob_left_fwd)
-LPC_Propulsion.add_subcomponent(Motor_mid_left_fwd)
-LPC_Propulsion.add_subcomponent(Motor_ib_left_fwd)
-LPC_Propulsion.add_subcomponent(Motor_ob_right_fwd)
-LPC_Propulsion.add_subcomponent(Motor_mid_right_fwd)
-LPC_Propulsion.add_subcomponent(Motor_ib_right_fwd)
-LIFT_Propulsion = Component(name='Lift Only Propulsion (AFT)')
-Propulsion.add_subcomponent(LIFT_Propulsion)
-Motor_ob_left_aft = Component(name='Motor Outboard Left AFT')
-Motor_mid_left_aft = Component(name='Motor Middle Left AFT')
-Motor_ib_left_aft = Component(name='Motor Inboard Left AFT')
-Motor_ob_right_aft = Component(name='Motor Outboard Right AFT')
-Motor_mid_right_aft = Component(name='Motor Middle Right AFT')
-Motor_ib_right_aft = Component(name='Motor Inboard Right AFT')
-LIFT_Propulsion.add_subcomponent(Motor_ob_left_aft)
-LIFT_Propulsion.add_subcomponent(Motor_mid_left_aft)
-LIFT_Propulsion.add_subcomponent(Motor_ib_left_aft)
-LIFT_Propulsion.add_subcomponent(Motor_ob_right_aft)
-LIFT_Propulsion.add_subcomponent(Motor_mid_right_aft)
-LIFT_Propulsion.add_subcomponent(Motor_ib_right_aft)
-Supports = Component(name='Prop Pylons')
-Supports.add_subcomponent(Component("Pylon Outboard Left",geometry=pylon_ob_left))
-Supports.add_subcomponent(Component("Pylon Outboard Right",geometry=pylon_ob_right))
-Supports.add_subcomponent(Component("Pylon Middle Left",geometry=pylon_mid_left))
-Supports.add_subcomponent(Component("Pylon Middle Right",geometry=pylon_mid_right))
-Supports.add_subcomponent(Component("Pylon Inboard Left",geometry=pylon_ib_left))
-Supports.add_subcomponent(Component("Pylon Inboard Right",geometry=pylon_ib_right))
-Propulsion.add_subcomponent(Supports)
-Aircraft.add_subcomponent(Propulsion)
+def define_heirarchy():
+    Aircraft = Component(name='Aircraft')
+    # Wing, Tails, Fuselage
+    Aircraft.add_subcomponent(Component(name='Wing',geometry=wing))
+    Aircraft.add_subcomponent(Component(name='Horizontal Tail',geometry=h_tail))
+    Aircraft.add_subcomponent(Component(name='Vertical Tail',geometry=v_tail))
+    Aircraft.add_subcomponent(Component(name='Fuselage',geometry=fuselage))
+    # Landing Gears
+    Landing_Gear = Component(name='Landing Gear')
+    Landing_Gear.add_subcomponent(Component(name=' Landing Gear Forward Pylon',geometry=fwd_landing_gear_pylon))
+    Landing_Gear.add_subcomponent(Component(name='Landing Gear Aft Pylon',geometry=aft_landing_gear_pylon))
+    Landing_Gear.add_subcomponent(Component(name='Landing Gear Base',geometry=base_landing_gear))
+    Aircraft.add_subcomponent(Landing_Gear)
+    # Propulsion and Pylons
+    Propulsion = Component(name='Propulsion')
+    LPC_Propulsion = Component(name='Lift+Cruise Propulsion (FWD)')
+    Propulsion.add_subcomponent(LPC_Propulsion)
+    Motor_ob_left_fwd = Component(name='Motor Outboard Left FWD')
+    Motor_mid_left_fwd = Component(name='Motor Middle Left FWD')
+    Motor_ib_left_fwd = Component(name='Motor Inboard Left FWD')
+    Motor_ob_right_fwd = Component(name='Motor Outboard Right FWD')
+    Motor_mid_right_fwd = Component(name='Motor Middle Right FWD')
+    Motor_ib_right_fwd = Component(name='Motor Inboard Right FWD')
+    LPC_Propulsion.add_subcomponent(Motor_ob_left_fwd)
+    LPC_Propulsion.add_subcomponent(Motor_mid_left_fwd)
+    LPC_Propulsion.add_subcomponent(Motor_ib_left_fwd)
+    LPC_Propulsion.add_subcomponent(Motor_ob_right_fwd)
+    LPC_Propulsion.add_subcomponent(Motor_mid_right_fwd)
+    LPC_Propulsion.add_subcomponent(Motor_ib_right_fwd)
+    LIFT_Propulsion = Component(name='Lift Only Propulsion (AFT)')
+    Propulsion.add_subcomponent(LIFT_Propulsion)
+    Motor_ob_left_aft = Component(name='Motor Outboard Left AFT')
+    Motor_mid_left_aft = Component(name='Motor Middle Left AFT')
+    Motor_ib_left_aft = Component(name='Motor Inboard Left AFT')
+    Motor_ob_right_aft = Component(name='Motor Outboard Right AFT')
+    Motor_mid_right_aft = Component(name='Motor Middle Right AFT')
+    Motor_ib_right_aft = Component(name='Motor Inboard Right AFT')
+    LIFT_Propulsion.add_subcomponent(Motor_ob_left_aft)
+    LIFT_Propulsion.add_subcomponent(Motor_mid_left_aft)
+    LIFT_Propulsion.add_subcomponent(Motor_ib_left_aft)
+    LIFT_Propulsion.add_subcomponent(Motor_ob_right_aft)
+    LIFT_Propulsion.add_subcomponent(Motor_mid_right_aft)
+    LIFT_Propulsion.add_subcomponent(Motor_ib_right_aft)
+    Supports = Component(name='Prop Pylons')
+    Supports.add_subcomponent(Component("Pylon Outboard Left",geometry=pylon_ob_left))
+    Supports.add_subcomponent(Component("Pylon Outboard Right",geometry=pylon_ob_right))
+    Supports.add_subcomponent(Component("Pylon Middle Left",geometry=pylon_mid_left))
+    Supports.add_subcomponent(Component("Pylon Middle Right",geometry=pylon_mid_right))
+    Supports.add_subcomponent(Component("Pylon Inboard Left",geometry=pylon_ib_left))
+    Supports.add_subcomponent(Component("Pylon Inboard Right",geometry=pylon_ib_right))
+    Propulsion.add_subcomponent(Supports)
+    Aircraft.add_subcomponent(Propulsion)
+    return Aircraft
+AircraftHeirarchy = define_heirarchy()
 
 
 # Wing info
@@ -147,7 +145,6 @@ wing_tip_left_le_parametric = wing.project(wing_tip_left_le_guess,plot=plot_flag
 
 wing_tip_right_le_guess = np.array([-10, 26, -5.5])*ft2m
 wing_tip_right_le_parametric = wing.project(wing_tip_right_le_guess,plot=plot_flag)
-
 
 wingspan = csdl.norm(
     geometry.evaluate(wing_tip_left_le_parametric) - geometry.evaluate(wing_tip_right_le_parametric)
@@ -259,268 +256,287 @@ pt_mid_right_aft_top_parametric = rotor_hub_mid_right_aft.project(pt_mid_right_a
 pt_mid_right_aft_bot_guess = np.array([-17.4,15.1,-4.8])*ft2m
 pt_mid_right_aft_bot_parametric = rotor_hub_mid_right_aft.project(pt_mid_right_aft_bot_guess, plot=plot_flag)
 
-# Axis Creation
-openvsp_axis = Axis(
-    name='OpenVSP Axis',
-    x = np.array([0, ])*ureg.meter,
-    y = np.array([0, ])*ureg.meter,
-    z = np.array([0, ])*ureg.meter,
-    origin = ValidOrigins.OpenVSP.value
-)
 
-wing_axis = AxisLsdoGeo(
-    name='Wing Axis',
-    geometry=wing,
-    parametric_coords = wing_root_le_parametric,
-    sequence = np.array([3,2,1]),
-    phi=np.array([0, ])*ureg.degree,
-    theta=np.array([0, ])*ureg.degree,
-    psi=np.array([0, ])*ureg.degree,
-    reference=openvsp_axis,
-    origin=ValidOrigins.OpenVSP.value
-)
-# print('Wing Axis Translation (m): ', wing_axis.translation.value)
-# print('Wing Axis Rotation (deg): ', np.rad2deg(wing_axis.euler_angles_vector.value))
-
-vtail_deflection = csdl.Variable(shape=(1, ), value=np.deg2rad(0), name='Vtail Deflection')
-v_tail.rotate(vtail_root_le, np.array([0., 0., 1.]), angles=vtail_deflection)
-
-vtail_axis = AxisLsdoGeo(
-    name='Vtail Axis',
-    geometry=v_tail,
-    parametric_coords = vtail_root_le_parametric,
-    sequence = np.array([3,2,1]),
-    phi=np.array([0, ])*ureg.degree,
-    theta=np.array([0, ])*ureg.degree,
-    psi=vtail_deflection,
-    reference=openvsp_axis,
-    origin=ValidOrigins.OpenVSP.value
-)
-# geometry.plot()
-
-# print('Vtail Axis Translation (m): ', vtail_axis.translation.value)
-# print('Vtail Axis Rotation (deg): ', np.rad2deg(vtail_axis.euler_angles_vector.value))
-
-htail_deflection = csdl.Variable(shape=(1, ), value=np.deg2rad(0), name='Htail Deflection')
-h_tail.rotate(htail_root_le, np.array([0., 1., 0.]), angles=htail_deflection)
-
-htail_axis = AxisLsdoGeo(
-    name='Htail Axis',
-    geometry=h_tail,
-    parametric_coords = htail_root_le_parametric,
-    sequence = np.array([3,2,1]),
-    phi=np.array([0, ])*ureg.degree,
-    theta=htail_deflection,
-    psi=np.array([0, ])*ureg.degree,
-    reference=openvsp_axis,
-    origin=ValidOrigins.OpenVSP.value
-)
-# print('Htail Axis Translation (m): ', htail_axis.translation.value)
-# print('Htail Axis Rotation (deg): ', np.rad2deg(htail_axis.euler_angles_vector.value))
-# geometry.plot()
-
-pt_axis_ob_left_fwd = AxisLsdoGeo(
-    name='PT Axis Outboard Left FWD',
-    geometry=rotor_hub_ob_left_fwd,
-    parametric_coords = pt_ob_left_fwd_bot_parametric,
-    sequence = np.array([3,2,1]),
-    phi=np.array([0, ])*ureg.degree,
-    theta=np.array([0, ])*ureg.degree,  
-    psi=np.array([0, ])*ureg.degree,
-    reference=openvsp_axis,
-    origin=ValidOrigins.OpenVSP.value
-)
-
-# print('Prop Axis Outboard Left FWD Translation (m): ', pt_axis_ob_left_fwd.translation.value)
-# print('Prop Axis Outboard Left FWD Rotation (deg): ', np.rad2deg(pt_axis_ob_left_fwd.euler_angles_vector.value))
-
-pt_axis_mid_left_fwd = AxisLsdoGeo(
-    name='PT Axis Middle Left FWD',
-    geometry=rotor_hub_mid_left_fwd,
-    parametric_coords=pt_mid_left_fwd_bot_parametric,
-    sequence=np.array([3, 2, 1]),
-    phi=np.array([0, ]) * ureg.degree,
-    theta=np.array([0, ]) * ureg.degree,
-    psi=np.array([0, ]) * ureg.degree,
-    reference=openvsp_axis,
-    origin=ValidOrigins.OpenVSP.value
-)
-
-pt_axis_ib_left_fwd = AxisLsdoGeo(
-    name='PT Axis Inboard Left FWD',
-    geometry=rotor_hub_ib_left_fwd,
-    parametric_coords=pt_ib_left_fwd_bot_parametric,
-    sequence=np.array([3, 2, 1]),
-    phi=np.array([0, ]) * ureg.degree,
-    theta=np.array([0, ]) * ureg.degree,
-    psi=np.array([0, ]) * ureg.degree,
-    reference=openvsp_axis,
-    origin=ValidOrigins.OpenVSP.value
-)
-
-pt_axis_ob_right_fwd = AxisLsdoGeo(
-    name='PT Axis Outboard Right FWD',
-    geometry=rotor_hub_ob_right_fwd,
-    parametric_coords=pt_ob_right_fwd_bot_parametric,
-    sequence=np.array([3, 2, 1]),
-    phi=np.array([0, ]) * ureg.degree,
-    theta=np.array([0, ]) * ureg.degree,
-    psi=np.array([0, ]) * ureg.degree,
-    reference=openvsp_axis,
-    origin=ValidOrigins.OpenVSP.value
-)
-
-pt_axis_mid_right_fwd = AxisLsdoGeo(
-    name='PT Axis Middle Right FWD',
-    geometry=rotor_hub_mid_right_fwd,
-    parametric_coords=pt_mid_right_fwd_bot_parametric,
-    sequence=np.array([3, 2, 1]),
-    phi=np.array([0, ]) * ureg.degree,
-    theta=np.array([0, ]) * ureg.degree,
-    psi=np.array([0, ]) * ureg.degree,
-    reference=openvsp_axis,
-    origin=ValidOrigins.OpenVSP.value
-)
-
-pt_axis_ib_right_fwd = AxisLsdoGeo(
-    name='PT Axis Inboard Right FWD',
-    geometry=rotor_hub_ib_right_fwd,
-    parametric_coords=pt_ib_right_fwd_bot_parametric,
-    sequence=np.array([3, 2, 1]),
-    phi=np.array([0, ]) * ureg.degree,
-    theta=np.array([0, ]) * ureg.degree,
-    psi=np.array([0, ]) * ureg.degree,
-    reference=openvsp_axis,
-    origin=ValidOrigins.OpenVSP.value
-)
-
-pt_axis_ob_left_aft = AxisLsdoGeo(
-    name='PT Axis Outboard Left AFT',
-    geometry=rotor_hub_ob_left_aft,
-    parametric_coords=pt_ob_left_aft_bot_parametric,
-    sequence=np.array([3, 2, 1]),
-    phi=np.array([0, ]) * ureg.degree,
-    theta=np.array([0, ]) * ureg.degree,
-    psi=np.array([0, ]) * ureg.degree,
-    reference=openvsp_axis,
-    origin=ValidOrigins.OpenVSP.value
-)
-
-pt_axis_mid_left_aft = AxisLsdoGeo(
-    name='PT Axis Middle Left AFT',
-    geometry=rotor_hub_mid_left_aft,
-    parametric_coords=pt_mid_left_aft_bot_parametric,
-    sequence=np.array([3, 2, 1]),
-    phi=np.array([0, ]) * ureg.degree,
-    theta=np.array([0, ]) * ureg.degree,
-    psi=np.array([0, ]) * ureg.degree,
-    reference=openvsp_axis,
-    origin=ValidOrigins.OpenVSP.value
-)
-
-pt_axis_ib_left_aft = AxisLsdoGeo(
-    name='PT Axis Inboard Left AFT',
-    geometry=rotor_hub_ib_left_aft,
-    parametric_coords=pt_ib_left_aft_bot_parametric,
-    sequence=np.array([3, 2, 1]),
-    phi=np.array([0, ]) * ureg.degree,
-    theta=np.array([0, ]) * ureg.degree,
-    psi=np.array([0, ]) * ureg.degree,
-    reference=openvsp_axis,
-    origin=ValidOrigins.OpenVSP.value
-)
-
-pt_axis_ob_right_aft = AxisLsdoGeo(
-    name='PT Axis Outboard Right AFT',
-    geometry=rotor_hub_ob_right_aft,
-    parametric_coords=pt_ob_right_aft_bot_parametric,
-    sequence=np.array([3, 2, 1]),
-    phi=np.array([0, ]) * ureg.degree,
-    theta=np.array([0, ]) * ureg.degree,
-    psi=np.array([0, ]) * ureg.degree,
-    reference=openvsp_axis,
-    origin=ValidOrigins.OpenVSP.value
-)
-
-pt_axis_mid_right_aft = AxisLsdoGeo(
-    name='PT Axis Middle Right AFT',
-    geometry=rotor_hub_mid_right_aft,
-    parametric_coords=pt_mid_right_aft_bot_parametric,
-    sequence=np.array([3, 2, 1]),
-    phi=np.array([0, ]) * ureg.degree,
-    theta=np.array([0, ]) * ureg.degree,
-    psi=np.array([0, ]) * ureg.degree,
-    reference=openvsp_axis,
-    origin=ValidOrigins.OpenVSP.value
-)
-
-pt_axis_ib_right_aft = AxisLsdoGeo(
-    name='PT Axis Inboard Right AFT',
-    geometry=rotor_hub_ib_right_aft,
-    parametric_coords=pt_ib_right_aft_bot_parametric,
-    sequence=np.array([3, 2, 1]),
-    phi=np.array([0, ]) * ureg.degree,
-    theta=np.array([0, ]) * ureg.degree,
-    psi=np.array([0, ]) * ureg.degree,
-    reference=openvsp_axis,
-    origin=ValidOrigins.OpenVSP.value
-)
-
-# Non dependent on Aircraft FD axes
-# Choosing Inertial aaxis as OpenVSP [0,0,0]
-inertial_axis = Axis(
-    name='Inertial Axis',
-    x=np.array([0, ])*ureg.meter,
-    y=np.array([0, ])*ureg.meter,
-    z=np.array([0, ])*ureg.meter,
-    origin = ValidOrigins.Inertial.value
-)
+# pylons = 
 
 
-from flight_simulator.core.dynamics.aircraft_states import AircaftStates
 
-# ac_states = AircaftStates()
-# ac_states.phi = csdl.Variable(shape=(1, ), value=np.array([np.deg2rad(0.), ]), name='phi')
-# ac_states.theta = csdl.Variable(shape=(1, ), value=np.array([np.deg2rad(0.), ]), name='theta')
-# ac_states.psi = csdl.Variable(shape=(1, ), value=np.array([np.deg2rad(0.), ]), name='psi')
 
-fd_axis = Axis(
-    name='Flight Dynamics Body Fixed Axis',
-    x=np.array([0, ])*ureg.meter,
-    y=np.array([0, ])*ureg.meter,
-    z=np.array([5000, ])*ureg.meter,
-    phi=csdl.Variable(shape=(1, ), value=np.array([np.deg2rad(0.), ]), name='phi'),
-    theta=csdl.Variable(shape=(1, ), value=np.array([np.deg2rad(0.), ]), name='theta'),
-    psi=csdl.Variable(shape=(1, ), value=np.array([np.deg2rad(0.), ]), name='psi'),
-    sequence=np.array([3,2,1]),
-    reference=inertial_axis,
-    origin=ValidOrigins.Inertial.value
-)
-# print('Body-Fixed Angles (deg)', np.rad2deg(fd_axis.euler_angles_vector.value))
+# # Region Axis Creation
+def define_axes():
+    openvsp_axis = Axis(
+        name='OpenVSP Axis',
+        x = np.array([0, ])*ureg.meter,
+        y = np.array([0, ])*ureg.meter,
+        z = np.array([0, ])*ureg.meter,
+        origin = ValidOrigins.OpenVSP.value
+    )
 
-@dataclass
-class WindAxisRotations(csdl.VariableGroup):
-    mu : Union[csdl.Variable, ureg.Quantity] = np.array([0, ]) * ureg.degree # bank
-    gamma : Union[csdl.Variable, np.ndarray, ureg.Quantity] = csdl.Variable(value=np.deg2rad(2), name='Flight path angle')
-    xi : Union[csdl.Variable, ureg.Quantity] = np.array([0, ]) * ureg.degree  # Heading
-wind_axis_rotations = WindAxisRotations()
+    wing_axis = AxisLsdoGeo(
+        name='Wing Axis',
+        geometry=wing,
+        parametric_coords = wing_root_le_parametric,
+        sequence = np.array([3,2,1]),
+        phi=np.array([0, ])*ureg.degree,
+        theta=np.array([0, ])*ureg.degree,
+        psi=np.array([0, ])*ureg.degree,
+        reference=openvsp_axis,
+        origin=ValidOrigins.OpenVSP.value
+    )
+    # print('Wing Axis Translation (m): ', wing_axis.translation.value)
+    # print('Wing Axis Rotation (deg): ', np.rad2deg(wing_axis.euler_angles_vector.value))
 
-wind_axis = Axis(
-    name='Wind Axis',
-    x=np.array([0, ])*ureg.meter,
-    y=np.array([0, ])*ureg.meter,
-    z=np.array([0, ])*ureg.meter,
-    phi=wind_axis_rotations.mu,
-    theta=wind_axis_rotations.gamma,
-    psi=wind_axis_rotations.xi,
-    sequence=np.array([3, 2, 1]),
-    reference=inertial_axis,
-    origin=ValidOrigins.Inertial.value
-)
-# print('Wind axis angles (deg)', np.rad2deg(wind_axis.euler_angles_vector.value))
-# endregion
+    vtail_deflection = csdl.Variable(shape=(1, ), value=np.deg2rad(0), name='Vtail Deflection')
+    v_tail.rotate(vtail_root_le, np.array([0., 0., 1.]), angles=vtail_deflection)
 
-# endregion
+    vtail_axis = AxisLsdoGeo(
+        name='Vtail Axis',
+        geometry=v_tail,
+        parametric_coords = vtail_root_le_parametric,
+        sequence = np.array([3,2,1]),
+        phi=np.array([0, ])*ureg.degree,
+        theta=np.array([0, ])*ureg.degree,
+        psi=vtail_deflection,
+        reference=openvsp_axis,
+        origin=ValidOrigins.OpenVSP.value
+    )
+    # geometry.plot()
+
+    # print('Vtail Axis Translation (m): ', vtail_axis.translation.value)
+    # print('Vtail Axis Rotation (deg): ', np.rad2deg(vtail_axis.euler_angles_vector.value))
+
+    htail_deflection = csdl.Variable(shape=(1, ), value=np.deg2rad(0), name='Htail Deflection')
+    h_tail.rotate(htail_root_le, np.array([0., 1., 0.]), angles=htail_deflection)
+
+    htail_axis = AxisLsdoGeo(
+        name='Htail Axis',
+        geometry=h_tail,
+        parametric_coords = htail_root_le_parametric,
+        sequence = np.array([3,2,1]),
+        phi=np.array([0, ])*ureg.degree,
+        theta=htail_deflection,
+        psi=np.array([0, ])*ureg.degree,
+        reference=openvsp_axis,
+        origin=ValidOrigins.OpenVSP.value
+    )
+    # print('Htail Axis Translation (m): ', htail_axis.translation.value)
+    # print('Htail Axis Rotation (deg): ', np.rad2deg(htail_axis.euler_angles_vector.value))
+    # geometry.plot()
+
+    pt_axis_ob_left_fwd = AxisLsdoGeo(
+        name='PT Axis Outboard Left FWD',
+        geometry=rotor_hub_ob_left_fwd,
+        parametric_coords = pt_ob_left_fwd_bot_parametric,
+        sequence = np.array([3,2,1]),
+        phi=np.array([0, ])*ureg.degree,
+        theta=np.array([0, ])*ureg.degree,  
+        psi=np.array([0, ])*ureg.degree,
+        reference=openvsp_axis,
+        origin=ValidOrigins.OpenVSP.value
+    )
+
+    # print('Prop Axis Outboard Left FWD Translation (m): ', pt_axis_ob_left_fwd.translation.value)
+    # print('Prop Axis Outboard Left FWD Rotation (deg): ', np.rad2deg(pt_axis_ob_left_fwd.euler_angles_vector.value))
+
+    pt_axis_mid_left_fwd = AxisLsdoGeo(
+        name='PT Axis Middle Left FWD',
+        geometry=rotor_hub_mid_left_fwd,
+        parametric_coords=pt_mid_left_fwd_bot_parametric,
+        sequence=np.array([3, 2, 1]),
+        phi=np.array([0, ]) * ureg.degree,
+        theta=np.array([0, ]) * ureg.degree,
+        psi=np.array([0, ]) * ureg.degree,
+        reference=openvsp_axis,
+        origin=ValidOrigins.OpenVSP.value
+    )
+
+    pt_axis_ib_left_fwd = AxisLsdoGeo(
+        name='PT Axis Inboard Left FWD',
+        geometry=rotor_hub_ib_left_fwd,
+        parametric_coords=pt_ib_left_fwd_bot_parametric,
+        sequence=np.array([3, 2, 1]),
+        phi=np.array([0, ]) * ureg.degree,
+        theta=np.array([0, ]) * ureg.degree,
+        psi=np.array([0, ]) * ureg.degree,
+        reference=openvsp_axis,
+        origin=ValidOrigins.OpenVSP.value
+    )
+
+    pt_axis_ob_right_fwd = AxisLsdoGeo(
+        name='PT Axis Outboard Right FWD',
+        geometry=rotor_hub_ob_right_fwd,
+        parametric_coords=pt_ob_right_fwd_bot_parametric,
+        sequence=np.array([3, 2, 1]),
+        phi=np.array([0, ]) * ureg.degree,
+        theta=np.array([0, ]) * ureg.degree,
+        psi=np.array([0, ]) * ureg.degree,
+        reference=openvsp_axis,
+        origin=ValidOrigins.OpenVSP.value
+    )
+
+    pt_axis_mid_right_fwd = AxisLsdoGeo(
+        name='PT Axis Middle Right FWD',
+        geometry=rotor_hub_mid_right_fwd,
+        parametric_coords=pt_mid_right_fwd_bot_parametric,
+        sequence=np.array([3, 2, 1]),
+        phi=np.array([0, ]) * ureg.degree,
+        theta=np.array([0, ]) * ureg.degree,
+        psi=np.array([0, ]) * ureg.degree,
+        reference=openvsp_axis,
+        origin=ValidOrigins.OpenVSP.value
+    )
+
+    pt_axis_ib_right_fwd = AxisLsdoGeo(
+        name='PT Axis Inboard Right FWD',
+        geometry=rotor_hub_ib_right_fwd,
+        parametric_coords=pt_ib_right_fwd_bot_parametric,
+        sequence=np.array([3, 2, 1]),
+        phi=np.array([0, ]) * ureg.degree,
+        theta=np.array([0, ]) * ureg.degree,
+        psi=np.array([0, ]) * ureg.degree,
+        reference=openvsp_axis,
+        origin=ValidOrigins.OpenVSP.value
+    )
+
+    pt_axis_ob_left_aft = AxisLsdoGeo(
+        name='PT Axis Outboard Left AFT',
+        geometry=rotor_hub_ob_left_aft,
+        parametric_coords=pt_ob_left_aft_bot_parametric,
+        sequence=np.array([3, 2, 1]),
+        phi=np.array([0, ]) * ureg.degree,
+        theta=np.array([0, ]) * ureg.degree,
+        psi=np.array([0, ]) * ureg.degree,
+        reference=openvsp_axis,
+        origin=ValidOrigins.OpenVSP.value
+    )
+
+    pt_axis_mid_left_aft = AxisLsdoGeo(
+        name='PT Axis Middle Left AFT',
+        geometry=rotor_hub_mid_left_aft,
+        parametric_coords=pt_mid_left_aft_bot_parametric,
+        sequence=np.array([3, 2, 1]),
+        phi=np.array([0, ]) * ureg.degree,
+        theta=np.array([0, ]) * ureg.degree,
+        psi=np.array([0, ]) * ureg.degree,
+        reference=openvsp_axis,
+        origin=ValidOrigins.OpenVSP.value
+    )
+
+    pt_axis_ib_left_aft = AxisLsdoGeo(
+        name='PT Axis Inboard Left AFT',
+        geometry=rotor_hub_ib_left_aft,
+        parametric_coords=pt_ib_left_aft_bot_parametric,
+        sequence=np.array([3, 2, 1]),
+        phi=np.array([0, ]) * ureg.degree,
+        theta=np.array([0, ]) * ureg.degree,
+        psi=np.array([0, ]) * ureg.degree,
+        reference=openvsp_axis,
+        origin=ValidOrigins.OpenVSP.value
+    )
+
+    pt_axis_ob_right_aft = AxisLsdoGeo(
+        name='PT Axis Outboard Right AFT',
+        geometry=rotor_hub_ob_right_aft,
+        parametric_coords=pt_ob_right_aft_bot_parametric,
+        sequence=np.array([3, 2, 1]),
+        phi=np.array([0, ]) * ureg.degree,
+        theta=np.array([0, ]) * ureg.degree,
+        psi=np.array([0, ]) * ureg.degree,
+        reference=openvsp_axis,
+        origin=ValidOrigins.OpenVSP.value
+    )
+
+    pt_axis_mid_right_aft = AxisLsdoGeo(
+        name='PT Axis Middle Right AFT',
+        geometry=rotor_hub_mid_right_aft,
+        parametric_coords=pt_mid_right_aft_bot_parametric,
+        sequence=np.array([3, 2, 1]),
+        phi=np.array([0, ]) * ureg.degree,
+        theta=np.array([0, ]) * ureg.degree,
+        psi=np.array([0, ]) * ureg.degree,
+        reference=openvsp_axis,
+        origin=ValidOrigins.OpenVSP.value
+    )
+
+    pt_axis_ib_right_aft = AxisLsdoGeo(
+        name='PT Axis Inboard Right AFT',
+        geometry=rotor_hub_ib_right_aft,
+        parametric_coords=pt_ib_right_aft_bot_parametric,
+        sequence=np.array([3, 2, 1]),
+        phi=np.array([0, ]) * ureg.degree,
+        theta=np.array([0, ]) * ureg.degree,
+        psi=np.array([0, ]) * ureg.degree,
+        reference=openvsp_axis,
+        origin=ValidOrigins.OpenVSP.value
+    )
+
+    # Non dependent on Aircraft FD axes
+    # Choosing Inertial aaxis as OpenVSP [0,0,0]
+    inertial_axis = Axis(
+        name='Inertial Axis',
+        x=np.array([0, ])*ureg.meter,
+        y=np.array([0, ])*ureg.meter,
+        z=np.array([0, ])*ureg.meter,
+        origin = ValidOrigins.Inertial.value
+    )
+
+
+    from flight_simulator.core.dynamics.aircraft_states import AircaftStates
+
+    fd_axis = Axis(
+        name='Flight Dynamics Body Fixed Axis',
+        x=np.array([0, ])*ureg.meter,
+        y=np.array([0, ])*ureg.meter,
+        z=np.array([5000, ])*ureg.meter,
+        phi=csdl.Variable(shape=(1, ), value=np.array([np.deg2rad(0.), ]), name='phi'),
+        theta=csdl.Variable(shape=(1, ), value=np.array([np.deg2rad(0.), ]), name='theta'),
+        psi=csdl.Variable(shape=(1, ), value=np.array([np.deg2rad(0.), ]), name='psi'),
+        sequence=np.array([3,2,1]),
+        reference=inertial_axis,
+        origin=ValidOrigins.Inertial.value
+    )
+    # print('Body-Fixed Angles (deg)', np.rad2deg(fd_axis.euler_angles_vector.value))
+
+    @dataclass
+    class WindAxisRotations(csdl.VariableGroup):
+        mu : Union[csdl.Variable, ureg.Quantity] = np.array([0, ]) * ureg.degree # bank
+        gamma : Union[csdl.Variable, np.ndarray, ureg.Quantity] = csdl.Variable(value=np.deg2rad(2), name='Flight path angle')
+        xi : Union[csdl.Variable, ureg.Quantity] = np.array([0, ]) * ureg.degree  # Heading
+    wind_axis_rotations = WindAxisRotations()
+
+    wind_axis = Axis(
+        name='Wind Axis',
+        x=np.array([0, ])*ureg.meter,
+        y=np.array([0, ])*ureg.meter,
+        z=np.array([0, ])*ureg.meter,
+        phi=wind_axis_rotations.mu,
+        theta=wind_axis_rotations.gamma,
+        psi=wind_axis_rotations.xi,
+        sequence=np.array([3, 2, 1]),
+        reference=inertial_axis,
+        origin=ValidOrigins.Inertial.value
+    )
+    # print('Wind axis angles (deg)', np.rad2deg(wind_axis.euler_angles_vector.value))
+    # endregion
+
+    # endregion
+    return [
+        openvsp_axis, 
+        wing_axis, vtail_axis, htail_axis,
+        pt_axis_ob_left_fwd, pt_axis_mid_left_fwd, pt_axis_ib_left_fwd,
+        pt_axis_ob_right_fwd, pt_axis_mid_right_fwd, pt_axis_ib_right_fwd,
+        pt_axis_ob_left_aft, pt_axis_mid_left_aft, pt_axis_ib_left_aft,
+        pt_axis_ob_right_aft, pt_axis_mid_right_aft, pt_axis_ib_right_aft,
+        inertial_axis, fd_axis, wind_axis
+    ]
+
+openvsp_axis, wing_axis, vtail_axis, htail_axis, \
+pt_axis_ob_left_fwd, pt_axis_mid_left_fwd, pt_axis_ib_left_fwd, \
+pt_axis_ob_right_fwd, pt_axis_mid_right_fwd, pt_axis_ib_right_fwd, \
+pt_axis_ob_left_aft, pt_axis_mid_left_aft, pt_axis_ib_left_aft, \
+pt_axis_ob_right_aft, pt_axis_mid_right_aft, pt_axis_ib_right_aft, \
+inertial_axis, fd_axis, wind_axis = define_axes()
+
 
 # region Forces and Moments
 
@@ -591,20 +607,23 @@ cubic_b_spline_curve_5_dof_space = lfs.BSplineSpace(num_parametric_dimensions=1,
 # parameterization_design_parameters = lg.GeometricVariables()
 
 # # region Wing Parameterization setup
-wing_ffd_block = lg.construct_ffd_block_around_entities(name='wing_ffd_block', entities=wing, num_coefficients=(2,11,2), degree=(1,3,1))
+wing_ffd_block = lg.construct_ffd_block_around_entities(name='wing_ffd_block', entities=[wing], num_coefficients=(2,11,2), degree=(1,3,1))
+
 wing_ffd_block_sectional_parameterization = lg.VolumeSectionalParameterization(name='wing_sectional_parameterization',
                                                                             parameterized_points=wing_ffd_block.coefficients,
                                                                             principal_parametric_dimension=1)
+
 
 wing_chord_stretch_coefficients = csdl.Variable(name='wing_chord_stretch_coefficients', value=np.array([0., 0., 0.]))
 wing_chord_stretch_b_spline = lfs.Function(name='wing_chord_stretch_b_spline', space=linear_b_spline_curve_3_dof_space, 
                                           coefficients=wing_chord_stretch_coefficients)
 
-wing_wingspan_stretch_coefficients = csdl.Variable(name='wing_wingspan_stretch_coefficients', value=np.array([-0., 0.]))
+wing_wingspan_stretch_amount = csdl.Variable(name='wing_span_stretch_amount', value=np.array([10.]))
+wing_wingspan_stretch_coefficients = csdl.Variable(name='wing_wingspan_stretch_coefficients', value=np.array([-wing_wingspan_stretch_amount.value/2, wing_wingspan_stretch_amount.value/2]))
 wing_wingspan_stretch_b_spline = lfs.Function(name='wing_wingspan_stretch_b_spline', space=linear_b_spline_curve_2_dof_space, 
                                           coefficients=wing_wingspan_stretch_coefficients)
 
-wing_twist_coefficients = csdl.Variable(name='wing_twist_coefficients', value=np.array([0., 0., 0., 0., 0.]))
+wing_twist_coefficients = csdl.Variable(name='wing_twist_coefficients', value=np.array([-10*np.pi/180., 30*np.pi/180, -30*np.pi/180, 30*np.pi/180, -10*np.pi/180.]))
 wing_twist_b_spline = lfs.Function(name='wing_twist_b_spline', space=cubic_b_spline_curve_5_dof_space,
                                           coefficients=wing_twist_coefficients)
 
@@ -626,8 +645,10 @@ sectional_wing_translation_z = wing_translation_z_b_spline.evaluate(section_para
 
 sectional_parameters = lg.VolumeSectionalParameterizationInputs(
     stretches={0: sectional_wing_chord_stretch},
-    translations={1: sectional_wing_wingspan_stretch, 0: sectional_wing_translation_x, 2: sectional_wing_translation_z}
-)
+    translations={1: sectional_wing_wingspan_stretch, 0: sectional_wing_translation_x, 2: sectional_wing_translation_z},
+    rotations={1: sectional_wing_twist}
+    )
+
 # sectional_parameters = lg.VolumeSectionalParameterizationInputs()
 # sectional_parameters.add_sectional_stretch(axis=0, stretch=sectional_wing_chord_stretch)
 # sectional_parameters.add_sectional_translation(axis=1, translation=sectional_wing_wingspan_stretch)
@@ -723,6 +744,58 @@ sectional_parameters = lg.VolumeSectionalParameterizationInputs(
 v_tail_ffd_block_coefficients = v_tail_ffd_block_sectional_parameterization.evaluate(sectional_parameters, plot=False)
 v_tail_coefficients = v_tail_ffd_block.evaluate(v_tail_ffd_block_coefficients, plot=False)
 v_tail.set_coefficients(coefficients=v_tail_coefficients)
+
+
+## region lift only rotor setup
+lift_rotors = [rotor_hub_ib_left_aft, rotor_hub_mid_left_aft, rotor_hub_ob_left_aft, rotor_hub_ib_right_aft, rotor_hub_mid_right_aft, rotor_hub_ob_right_aft]
+lift_rotor_ffd_blocks = []
+lift_rotor_sectional_parameterizations = []
+lift_rotor_parameterization_b_splines = []
+for i, comp_set in enumerate(lift_rotors):
+    lift_rotor_ffd_block = lg.construct_ffd_block_around_entities(name=f'{comp_set[0].name[:11]}_lift_rotor_ffd_block', entities=comp_set, num_coefficients=(2,2,2), degree=(1,1,1))
+    lift_rotor_ffd_block_sectional_parameterization = lg.VolumeSectionalParameterization(name=f'{comp_set[0].name[:11]}_lift_rotor_sectional_parameterization',
+                                                                                parameterized_points=lift_rotor_ffd_block.coefficients,
+                                                                                principal_parametric_dimension=2)
+    
+    lift_rotor_stretch_coefficient = csdl.Variable(name=f'{comp_set[0].name[:11]}_lift_rotor_stretch_coefficient', shape=(2,), value=0)
+    lift_rotor_ffd_blocks.append(rotor_ffd_block)
+    lift_rotor_sectional_parameterizations.append(rotor_ffd_block_sectional_parameterization)
+    lift_rotor_parameterization_b_splines.append(lift_rotor_sectional_stretch_b_spline) 
+
+# region Lift Rotors Parameterization Evaluation for Parameterization Solver
+
+pylons = [pylon_ob_left, pylon_mid_left, pylon_ib_left, pylon_ob_right, pylon_mid_right, pylon_ib_right]
+
+for i, component_set in enumerate(lift_rotor_related_components):
+    rotor_ffd_block = lift_rotor_ffd_blocks[i]
+    rotor_ffd_block_sectional_parameterization = lift_rotor_sectional_parameterizations[i]
+    rotor_stretch_b_spline = lift_rotor_parameterization_b_splines[i]
+
+    section_parametric_coordinates = np.linspace(0., 1., rotor_ffd_block_sectional_parameterization.num_sections).reshape((-1,1))
+    sectional_stretch = rotor_stretch_b_spline.evaluate(section_parametric_coordinates)
+
+    sectional_parameters = lsdo_geo.VolumeSectionalParameterizationInputs(
+        stretches={0: sectional_stretch, 1:sectional_stretch}
+    )
+
+    rotor_ffd_block_coefficients = rotor_ffd_block_sectional_parameterization.evaluate(sectional_parameters, plot=False)
+    rotor_coefficients = rotor_ffd_block.evaluate(rotor_ffd_block_coefficients, plot=False)
+    for i, component in enumerate(component_set):
+        component.set_coefficients(rotor_coefficients[i])
+    
+
+    # Add rigid body translation
+    rigid_body_translation = csdl.Variable(shape=(3,), value=0., name=f'{component_set[0].name[:11]}_rotor_rigid_body_translation')
+
+    for component in component_set:
+        for function in component.functions.values():
+            function.coefficients = function.coefficients + csdl.expand(rigid_body_translation, function.coefficients.shape, action='k->ijk')
+
+    for function in pylon.functions.values():
+        function.coefficients = function.coefficients + csdl.expand(rigid_body_translation, function.coefficients.shape, action='k->ijk')
+
+    parameterization_solver.add_parameter(parameter=rigid_body_translation)
+
 
 
 # # region Fuselage setup
