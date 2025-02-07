@@ -250,7 +250,6 @@ X57Heirarchy = heirarchy()
 # X57Heirarchy.visualize_component_hierarchy(show=True)
 
 
-
 # Wing Region Info
 wing_le_left_parametric = wing.project(np.array([-12.356, -16, -5.5])*ft2m, plot=False)
 wing_le_left = geometry.evaluate(wing_le_left_parametric)
