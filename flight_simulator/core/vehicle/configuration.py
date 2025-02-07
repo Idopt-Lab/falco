@@ -316,8 +316,8 @@ class Configuration:
         
         # Else choose the center points of the FFD block
         else:
-            point_1 = comp_1._ffd_block.evaluate(parametric_coordinates=np.array([0.5, 0.5, 0.5]))
-            point_2 = comp_2._ffd_block.evaluate(parametric_coordinates=np.array([0.5, 0.5, 0.5]))
+            point_1 = comp_1.ffd_block.evaluate(parametric_coordinates=np.array([0.5, 0.5, 0.5]))
+            point_2 = comp_2.ffd_block.evaluate(parametric_coordinates=np.array([0.5, 0.5, 0.5]))
 
             projection_1 = comp_1.geometry.project(point_1)
             projection_2 = comp_2.geometry.project(point_2)
@@ -376,7 +376,7 @@ class Configuration:
             if isinstance(projection_1, list):
                 connection = comp_1.geometry.evaluate(parametric_coordinates=projection_1) - comp_2.geometry.evaluate(parametric_coordinates=projection_2)
             elif isinstance(projection_1, np.ndarray):
-                connection = comp_1._ffd_block.evaluate(parametric_coordinates=projection_1) - comp_2._ffd_block.evaluate(parametric_coordinates=projection_2)
+                connection = comp_1.ffd_block.evaluate(parametric_coordinates=projection_1) - comp_2.ffd_block.evaluate(parametric_coordinates=projection_2)
             else:
                 print(f"wrong type {type(projection_1)} for projection")
                 raise NotImplementedError
