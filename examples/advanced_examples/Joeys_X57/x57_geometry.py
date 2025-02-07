@@ -28,13 +28,12 @@ geometry = import_geometry(
 # geometry.plot()
 
 
-
 Complete_Aircraft = Component(name='Complete Aircraft')
 
 
 # region Declaring all components
 # Wing, tails, fuselage
-wing = geometry.declare_component(function_search_names=['CleanWing'], name='wing')
+wing = geometry.declare_component(function_search_names=['Wing_Sec1','Wing_Sec2','Wing_Sec3','Wing_Sec4'], name='wing')
 # wing.plot()
 aileronR = geometry.declare_component(function_search_names=['Rt_Aileron'], name='aileronR')
 # aileronR.plot()
@@ -43,6 +42,9 @@ flap = geometry.declare_component(function_search_names=['Flap'], name='flap')
 
 Complete_Wing = Component(name='Complete Wing')
 Total_Wing = Component(name='Main Wing', geometry=wing)
+Left_Aileron = Component(name='Left Aileron', geometry=aileronL)
+Right_Aileron = Component(name='Right Aileron', geometry=aileronR)
+Flap = Component(name='Flap', geometry=flap)
 Total_Wing.add_subcomponent(Component(name='Right Aileron', geometry=aileronR))
 Total_Wing.add_subcomponent(Component(name='Left Aileron', geometry=aileronL))
 Total_Wing.add_subcomponent(Component(name='Flap', geometry=flap))
@@ -65,8 +67,10 @@ rudder = geometry.declare_component(function_search_names=['Rudder'], name='rudd
 
 Total_Tail = Component(name='Complete Tail')
 HT_comp = Component(name="Horizontal Tail", geometry=h_tail)
+trimTab_comp = Component(name='Trim Tab', geometry=trimTab)
 HT_comp.add_subcomponent(Component(name='Trim Tab',geometry=trimTab))
 VT_comp = Component(name="Vertical Tail", geometry=vertTail)
+rudder_comp = Component(name='Rudder', geometry=rudder)
 VT_comp.add_subcomponent(Component(name='Rudder',geometry=rudder))
 Total_Tail.add_subcomponent(HT_comp)
 Total_Tail.add_subcomponent(VT_comp)
@@ -90,8 +94,13 @@ Complete_Aircraft.add_subcomponent(fuselage_comp)
 
 
 # Prop buildup
+pylon1 = geometry.declare_component(function_search_names=['Pylon_07'], name='pylon1')
+pylon2 = geometry.declare_component(function_search_names=['Pylon_08'], name='pylon2')
+pylon3 = geometry.declare_component(function_search_names=['Pylon_09'], name='pylon3')
+pylon4 = geometry.declare_component(function_search_names=['Pylon_10'], name='pylon4')
+pylon5 = geometry.declare_component(function_search_names=['Pylon_11'], name='pylon5')
+pylon6 = geometry.declare_component(function_search_names=['Pylon_12'], name='pylon6')
 pylon7 = geometry.declare_component(function_search_names=['Pylon_07'], name='pylon7')
-# pylon7.plot()
 pylon8 = geometry.declare_component(function_search_names=['Pylon_08'], name='pylon8')
 pylon9 = geometry.declare_component(function_search_names=['Pylon_09'], name='pylon9')
 pylon10 = geometry.declare_component(function_search_names=['Pylon_10'], name='pylon10')
@@ -274,6 +283,8 @@ Total_Prop_Sys.add_subcomponent(CruiseMotor2)
 
 Complete_Aircraft.add_subcomponent(Total_Prop_Sys)
 # Complete_Aircraft.visualize_component_hierarchy(show=True)
+
+
 
 
 # Wing Region Info
@@ -769,15 +780,48 @@ linear_b_spline_curve_2_dof_space = lfs.BSplineSpace(num_parametric_dimensions=1
 linear_b_spline_curve_3_dof_space = lfs.BSplineSpace(num_parametric_dimensions=1, degree=1, coefficients_shape=(3,))
 cubic_b_spline_curve_5_dof_space = lfs.BSplineSpace(num_parametric_dimensions=1, degree=3, coefficients_shape=(5,))
 
+# # FFD Blocks
+wing_ffd_block = lg.construct_ffd_block_around_entities(name='wing_ffd_block', entities=wing,num_coefficients=(2,11,2),degree=(1,3,1))
+left_aileron_ffd_block = lg.construct_ffd_block_around_entities(name='left_aileron_ffd_block', entities=aileronL, num_coefficients=(2,11,2), degree=(1,3,1))
+right_aileron_ffd_block = lg.construct_ffd_block_around_entities(name='right_aileron_ffd_block', entities=aileronR, num_coefficients=(2,11,2), degree=(1,3,1))
+flap_ffd_block = lg.construct_ffd_block_around_entities(name='flap_ffd_block', entities=flap, num_coefficients=(2,11,2), degree=(1,3,1))
+h_tail_ffd_block = lg.construct_ffd_block_around_entities(name='h_tail_ffd_block', entities=h_tail, num_coefficients=(2,11,2), degree=(1,3,1))
+trimTab_ffd_block = lg.construct_ffd_block_around_entities(name='trimTab_ffd_block', entities=trimTab, num_coefficients=(2,11,2), degree=(1,3,1))
+v_tail_ffd_block = lg.construct_ffd_block_around_entities(name='v_tail_ffd_block', entities=vertTail, num_coefficients=(2,11,2), degree=(1,3,1))
+rudder_ffd_block = lg.construct_ffd_block_around_entities(name='rudder_ffd_block', entities=rudder, num_coefficients=(2,11,2), degree=(1,3,1))
+fuselage_ffd_block = lg.construct_ffd_block_around_entities(name='fuselage_ffd_block', entities=fuselage, num_coefficients=(2,2,2), degree=(1,1,1))
+
+
+from flight_simulator.core.vehicle.configuration import Configuration
+
+fuselage_comp.ffd_block = fuselage_ffd_block
+Total_Wing.ffd_block = wing_ffd_block
+Left_Aileron.ffd_block = left_aileron_ffd_block
+Right_Aileron.ffd_block = right_aileron_ffd_block
+Flap.ffd_block = flap_ffd_block
+HT_comp.ffd_block = h_tail_ffd_block
+trimTab_comp.ffd_block = trimTab_ffd_block
+VT_comp.ffd_block = v_tail_ffd_block
+rudder_comp.ffd_block = rudder_ffd_block
+
+base_config = Configuration(system=Complete_Aircraft)
+base_config.connect_component_geometries(Total_Wing, Left_Aileron)
+base_config.connect_component_geometries(Total_Wing, Right_Aileron)
+base_config.connect_component_geometries(Total_Wing, Flap)
+base_config.connect_component_geometries(HT_comp, trimTab_comp)
+base_config.connect_component_geometries(VT_comp, rudder_comp)
+base_config.connect_component_geometries(fuselage_comp, Total_Wing)
+base_config.connect_component_geometries(fuselage_comp, HT_comp, ht_te_center)
+base_config.connect_component_geometries(fuselage_comp, VT_comp, vt_te_base)
+# geometry.plot()
+
+
 # Region Parameterization Setup
 parameterization_solver = lg.ParameterizationSolver()
 parameterization_design_parameters = lg.GeometricVariables()
 
 ## Wing Region FFD Setup
 
-# wing_ffd_block = lg.construct_tight_fit_ffd_block(name='wing_ffd_block', entities=wing,num_coefficients=(2,(3 // 2 + 1),2),degree=(1,1,1))
-
-wing_ffd_block = lg.construct_ffd_block_around_entities(name='wing_ffd_block', entities=wing,num_coefficients=(2,11,2),degree=(1,3,1))
 wing_ffd_block_sectional_parameterization = lg.VolumeSectionalParameterization(name='wing_sect_param',parameterized_points=wing_ffd_block.coefficients,principal_parametric_dimension=1)
 
 wing_chord_stretch_coefficients = csdl.Variable(name='wing_chord_stretch_coefficients', value=np.array([0., 0., 0.]))
@@ -792,7 +836,7 @@ wing_twist_coefficients = csdl.Variable(name='wing_twist_coefficients', value=np
 wing_twist_b_spline = lfs.Function(name='wing_twist_b_spline', space=cubic_b_spline_curve_5_dof_space,
                                           coefficients=wing_twist_coefficients)
 
-wing_sweep_coefficients = csdl.Variable(name='wing_sweep_coefficients', value=np.array([4., 0.0, 0.0]))
+wing_sweep_coefficients = csdl.Variable(name='wing_sweep_coefficients', value=np.array([4., 0.0, 4.0]))
 wing_sweep_b_spline = lfs.Function(space=linear_b_spline_curve_3_dof_space,
                                             coefficients=wing_sweep_coefficients, name='wing_sweep_b_spline')
 
@@ -810,6 +854,7 @@ parameterization_solver.add_parameter(parameter=wing_twist_coefficients)
 parameterization_solver.add_parameter(parameter=wing_translation_x_coefficients)
 parameterization_solver.add_parameter(parameter=wing_translation_z_coefficients)
 
+
 ## Wing Parameterization Evaluation for Parameterization Solver
 section_parametric_coordinates = np.linspace(0., 1., wing_ffd_block_sectional_parameterization.num_sections).reshape((-1,1))
 sectional_wing_chord_stretch = wing_chord_stretch_b_spline.evaluate(section_parametric_coordinates)
@@ -825,10 +870,12 @@ sectional_parameters = lg.VolumeSectionalParameterizationInputs(
     rotations={1: sectional_wing_twist}
 )
 
+
+
 wing_ffd_block_coefficients = wing_ffd_block_sectional_parameterization.evaluate(sectional_parameters, plot=False)
 wing_coefficients = wing_ffd_block.evaluate(wing_ffd_block_coefficients, plot=False)
 wing.set_coefficients(wing_coefficients)
-# geometry.plot()
+geometry.plot()
 
 # High Lift Rotors setup
 lift_rotor_ffd_blocks = []
@@ -890,7 +937,6 @@ for i, component_set in enumerate(total_HL_motor_components):
 
 
 ## HT FFD Setup
-h_tail_ffd_block = lg.construct_ffd_block_around_entities(name='h_tail_ffd_block', entities=h_tail, num_coefficients=(2,11,2), degree=(1,3,1))
 h_tail_ffd_block_sectional_parameterization = lg.VolumeSectionalParameterization(name='h_tail_sectional_param',
                                                                             parameterized_points=h_tail_ffd_block.coefficients,
                                                                             principal_parametric_dimension=1)
@@ -945,10 +991,10 @@ h_tail_ffd_block_coefficients = h_tail_ffd_block_sectional_parameterization.eval
 h_tail_coefficients = h_tail_ffd_block.evaluate(h_tail_ffd_block_coefficients, plot=False)
 h_tail.set_coefficients(coefficients=h_tail_coefficients)
 
-geometry.plot()
+# geometry.plot()
+
 ## VT FFD Setup
 
-v_tail_ffd_block = lg.construct_ffd_block_around_entities(name='v_tail_ffd_block', entities=vertTail, num_coefficients=(2,11,2), degree=(1,3,1))
 v_tail_ffd_block_sectional_parameterization = lg.VolumeSectionalParameterization(name='v_tail_sectional_param',
                                                                             parameterized_points=v_tail_ffd_block.coefficients,
                                                                             principal_parametric_dimension=1)
@@ -1005,7 +1051,6 @@ vertTail.set_coefficients(coefficients=v_tail_coefficients)
 
 ## Fuselage FFD Setup
 
-fuselage_ffd_block = lg.construct_ffd_block_around_entities(name='fuselage_ffd_block', entities=fuselage, num_coefficients=(2,2,2), degree=(1,1,1))
 fuselage_ffd_block_sectional_parameterization = lg.VolumeSectionalParameterization(name='fuselage_sectional_param',
                                                                             parameterized_points=fuselage_ffd_block.coefficients,
                                                                             principal_parametric_dimension=0)
@@ -1029,6 +1074,9 @@ fuselage_ffd_block_coefficients = fuselage_ffd_block_sectional_parameterization.
 fuselage_coefficients = fuselage_ffd_block.evaluate(fuselage_ffd_block_coefficients, plot=False)
 fuselage.set_coefficients(coefficients=fuselage_coefficients)
 # geometry.plot() 
+
+
+
 
 
 
