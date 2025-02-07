@@ -251,6 +251,7 @@ class Component:
         csdl.check_parameter(comp_1, "comp_1", types=Component)
         csdl.check_parameter(comp_2, "comp_2", types=Component)
         csdl.check_parameter(connection_point, "connection_point", types=(csdl.Variable, np.ndarray), allow_none=True)
+        self._geometric_connections = []
 
         if comp_1.geometry is None:
             raise Exception(f"Comp {comp_1._name} does not have a geometry.")
