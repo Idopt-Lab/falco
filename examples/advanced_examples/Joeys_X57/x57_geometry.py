@@ -7,7 +7,6 @@ from flight_simulator.utils.import_geometry import import_geometry
 from flight_simulator import REPO_ROOT_FOLDER
 from flight_simulator.core.vehicle.component import Component
 from flight_simulator.core.loads.mass_properties import MassProperties
-from flight_simulator.core.vehicle.configuration import Configuration
 from flight_simulator.core.dynamics.axis import Axis, ValidOrigins
 from flight_simulator.core.dynamics.axis_lsdogeo import AxisLsdoGeo
 from typing import Union
@@ -36,7 +35,6 @@ geometry = import_geometry(
     rotate_to_body_fixed_frame=True
 )
 # geometry.plot()
-
 Complete_Aircraft = Component(name='Complete Aircraft', geometry=geometry)
 
 # region Declaring all components
@@ -392,10 +390,7 @@ print('From aircraft, cruise motor hub base (ft): ', cruise_motor_base.value)
 
 
 
-base_config = Configuration(system=Complete_Aircraft)
-base_config.connect_component_geometries(fuselage_comp, Total_Wing, 0.75 * wing_le_center + 0.25 * wing_te_center)
-base_config.connect_component_geometries(fuselage_comp, HT_comp, ht_te_center)
-base_config.connect_component_geometries(fuselage_comp, VT_comp, vt_te_base)
+
 
 
 
