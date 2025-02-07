@@ -7,6 +7,9 @@ from lsdo_function_spaces import FunctionSet
 from typing import Union
 import csdl_alpha as csdl
 from dataclasses import dataclass
+import warnings
+import time
+import copy
 
 
 class ComponentQuantities:
@@ -246,11 +249,16 @@ class Component:
     
     
     def connect_component_geometries(
-            self, comp_1: "Component", comp_2: "Component",
+            self, 
+            comp_1: "Component", 
+            comp_2: "Component",
             connection_point: Union[csdl.Variable, np.ndarray, None] = None):
+        
         csdl.check_parameter(comp_1, "comp_1", types=Component)
         csdl.check_parameter(comp_2, "comp_2", types=Component)
-        csdl.check_parameter(connection_point, "connection_point", types=(csdl.Variable, np.ndarray), allow_none=True)
+        csdl.check_parameter(connection_point, "connection_point", 
+                             types=(csdl.Variable, np.ndarray), allow_none=True)
+        
         self._geometric_connections = []
 
         if comp_1.geometry is None:
@@ -268,7 +276,8 @@ class Component:
             projection_2 = comp_2.geometry.project(connection_point)
 
             self._geometric_connections.append((projection_1, projection_2, comp_1, comp_2))
-
+            
+        # Else choose the center points of the FFD block
         else:
             point_1 = comp_1.ffd_block.evaluate(parametric_coordinates=np.array([0.5, 0.5, 0.5]))
             point_2 = comp_2.ffd_block.evaluate(parametric_coordinates=np.array([0.5, 0.5, 0.5]))
@@ -278,11 +287,10 @@ class Component:
 
             self._geometric_connections.append((projection_1, projection_2, comp_1, comp_2))
 
-    def setup_geometry(self, run_ffd: bool = True, plot: bool = False):
-        self._geometry_setup_has_been_called = True
+        return
 
-        if self._is_copy and run_ffd:
-            raise Exception("Cannot call setup_geometry with run_ffd=True on a copy of a configuration.")
+    def setup_geometry(self, plot: bool = False):
+        self._geometry_setup_has_been_called = True
 
         from lsdo_geo.core.parameterization.parameterization_solver import ParameterizationSolver, GeometricVariables
 
@@ -297,8 +305,6 @@ class Component:
             raise TypeError(f"The geometry of the system must be of type {FunctionSet}. Received {type(system_geometry)}")
 
         def setup_geometries(component: "Component"):
-            component._skip_ffd = False
-            component._skip_ffd = False
             if component.geometry is not None:
                 if component._skip_ffd is True:
                     pass
