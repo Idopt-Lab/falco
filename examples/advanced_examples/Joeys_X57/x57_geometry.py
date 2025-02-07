@@ -3,6 +3,19 @@ import lsdo_function_spaces as lfs
 import csdl_alpha as csdl
 import numpy as np
 import lsdo_geo as lg
+from flight_simulator.utils.import_geometry import import_geometry
+from flight_simulator import REPO_ROOT_FOLDER
+from flight_simulator.core.vehicle.component import Component
+from flight_simulator.core.loads.mass_properties import MassProperties
+from flight_simulator.core.vehicle.configuration import Configuration
+from flight_simulator.core.dynamics.axis import Axis, ValidOrigins
+from flight_simulator.core.dynamics.axis_lsdogeo import AxisLsdoGeo
+from typing import Union
+from dataclasses import dataclass
+from flight_simulator import ureg
+from flight_simulator.core.loads.forces_moments import Vector, ForcesMoments
+from flight_simulator.utils.euler_rotations import build_rotation_matrix
+
 
 recorder = csdl.Recorder(inline=True)
 recorder.start()
@@ -13,10 +26,7 @@ ft2m = 0.3048
 # geometry = lg.import_geometry("C:/Users/joeyg/OneDrive/Documents/GitHub/Sarojini_Research/MyAirframe/x57.stp", scale=in2m, parallelize=False)
 # geometry.plot()
 
-from flight_simulator.utils.import_geometry import import_geometry
-from flight_simulator import REPO_ROOT_FOLDER
-from flight_simulator.core.vehicle.component import Component
-from flight_simulator.core.loads.mass_properties import MassProperties
+
 
 geometry = import_geometry(
     file_name="x57.stp",
@@ -27,30 +37,21 @@ geometry = import_geometry(
 )
 # geometry.plot()
 
-
-Complete_Aircraft = Component(name='Complete Aircraft')
-
+Complete_Aircraft = Component(name='Complete Aircraft', geometry=geometry)
 
 # region Declaring all components
 # Wing, tails, fuselage
 wing = geometry.declare_component(function_search_names=['Wing_Sec1','Wing_Sec2','Wing_Sec3','Wing_Sec4'], name='wing')
-# wing.plot()
 aileronR = geometry.declare_component(function_search_names=['Rt_Aileron'], name='aileronR')
-# aileronR.plot()
 aileronL = geometry.declare_component(function_search_names=['Lt_Aileron'], name='aileronL')
 flap = geometry.declare_component(function_search_names=['Flap'], name='flap')
 
 Complete_Wing = Component(name='Complete Wing')
 Total_Wing = Component(name='Main Wing', geometry=wing)
-Left_Aileron = Component(name='Left Aileron', geometry=aileronL)
-Right_Aileron = Component(name='Right Aileron', geometry=aileronR)
-Flap = Component(name='Flap', geometry=flap)
 Total_Wing.add_subcomponent(Component(name='Right Aileron', geometry=aileronR))
 Total_Wing.add_subcomponent(Component(name='Left Aileron', geometry=aileronL))
 Total_Wing.add_subcomponent(Component(name='Flap', geometry=flap))
 Complete_Wing.add_subcomponent(Total_Wing)
-# Complete_Wing.visualize_component_hierarchy(show=True)
-
 Complete_Aircraft.add_subcomponent(Complete_Wing)
 
 
@@ -58,37 +59,24 @@ Complete_Aircraft.add_subcomponent(Complete_Wing)
 
 h_tail = geometry.declare_component(function_search_names=['HorzStab'], name='h_tail')
 trimTab = geometry.declare_component(function_search_names=['TrimTab'], name='trimTab')
-# trimTab.plot()
-
 vertTail = geometry.declare_component(function_search_names=['VertTail'], name='vertTail')
 rudder = geometry.declare_component(function_search_names=['Rudder'], name='rudder')
-# rudder.plot()
-
 
 Total_Tail = Component(name='Complete Tail')
 HT_comp = Component(name="Horizontal Tail", geometry=h_tail)
-trimTab_comp = Component(name='Trim Tab', geometry=trimTab)
 HT_comp.add_subcomponent(Component(name='Trim Tab',geometry=trimTab))
 VT_comp = Component(name="Vertical Tail", geometry=vertTail)
-rudder_comp = Component(name='Rudder', geometry=rudder)
 VT_comp.add_subcomponent(Component(name='Rudder',geometry=rudder))
 Total_Tail.add_subcomponent(HT_comp)
 Total_Tail.add_subcomponent(VT_comp)
-# Total_Tail.visualize_component_hierarchy(show=True)
-
 Complete_Aircraft.add_subcomponent(Total_Tail)
 
 
 
 fuselage = geometry.declare_component(function_search_names=['Fuselage'], name='fuselage')
-# fuselage.plot()
-
 fuselage_comp = Component(name="Fuselage", geometry=fuselage)
-
-
 gear_pod = geometry.declare_component(function_search_names=['GearPod'], name='gear_pod')
 fuselage_comp.add_subcomponent(Component(name="Gear Pod", geometry=gear_pod))
-
 Complete_Aircraft.add_subcomponent(fuselage_comp)
 
 
@@ -108,7 +96,6 @@ pylon11 = geometry.declare_component(function_search_names=['Pylon_11'], name='p
 pylon12 = geometry.declare_component(function_search_names=['Pylon_12'], name='pylon12')
 
 nacelle7 = geometry.declare_component(function_search_names=['HLNacelle_7_Tail'], name='nacelle7')
-# nacelle7.plot()
 nacelle8 = geometry.declare_component(function_search_names=['HLNacelle_8_Tail'], name='nacelle8')
 nacelle9 = geometry.declare_component(function_search_names=['HLNacelle_9_Tail'], name='nacelle9')
 nacelle10 = geometry.declare_component(function_search_names=['HLNacelle_10_Tail'], name='nacelle10')
@@ -117,13 +104,9 @@ nacelle12 = geometry.declare_component(function_search_names=['HLNacelle_12_Tail
 
 
 spinner = geometry.declare_component(function_search_names=['HL_Spinner'], name='spinner')
-# spinner.plot()
 prop = geometry.declare_component(function_search_names=['HL-Prop'], name='prop')
-# prop.plot()
 motor = geometry.declare_component(function_search_names=['HL_Motor'], name='motor')
-# motor.plot()
 motor_interface = geometry.declare_component(function_search_names=['HL_Motor_Controller_Interface'], name='motor_interface')
-# motor_interface.plot()
 
 
 
@@ -253,13 +236,9 @@ Total_Prop_Sys.add_subcomponent(Motor12)
 
 
 cruise_spinner =  geometry.declare_component(function_search_names=['CruiseNacelle-Spinner'], name='cruise_spinner')
-# cruise_spinner.plot()
 cruise_motor =  geometry.declare_component(function_search_names=['CruiseNacelle-Motor'], name='cruise_motor')
-# cruise_motor.plot()
 cruise_nacelle =  geometry.declare_component(function_search_names=['CruiseNacelle-Tail'], name='cruise_nacelle')
-# cruise_nacelle.plot()
 cruise_prop = geometry.declare_component(function_search_names=['Cruise-Prop'], name='cruise_prop')
-# cruise_prop.plot()
 
 CruiseMotor1 = Component(name='Cruise Propulsor 1')
 CruiseMotor1.add_subcomponent(Component(name='Cruise Nacelle 1',geometry=cruise_nacelle))
@@ -279,10 +258,9 @@ total_HL_motor_components = [M1_components, M2_components, M3_components, M4_com
 total_prop_sys_components = [M1_components, M2_components, M3_components, M4_components, M5_components, M6_components, M7_components, M8_components, M9_components, M10_components, M11_components, M12_components, CM1_components, CM2_components]
 Total_Prop_Sys.add_subcomponent(CruiseMotor1)
 Total_Prop_Sys.add_subcomponent(CruiseMotor2)
-# Total_Prop_Sys.visualize_component_hierarchy(show=True)
 
 Complete_Aircraft.add_subcomponent(Total_Prop_Sys)
-# Complete_Aircraft.visualize_component_hierarchy(show=True)
+
 
 
 
@@ -412,13 +390,19 @@ cruise_motor_base= geometry.evaluate(cruise_motor_base_parametric)
 print('From aircraft, cruise motor hub base (ft): ', cruise_motor_base.value)
 
 
+
+
+base_config = Configuration(system=Complete_Aircraft)
+base_config.connect_component_geometries(fuselage_comp, Total_Wing, 0.75 * wing_le_center + 0.25 * wing_te_center)
+base_config.connect_component_geometries(fuselage_comp, HT_comp, ht_te_center)
+base_config.connect_component_geometries(fuselage_comp, VT_comp, vt_te_base)
+
+
+
+
 ## AXIS/AXISLSDOGEO CREATION
 
-from flight_simulator.core.dynamics.axis import Axis, ValidOrigins
-from flight_simulator.core.dynamics.axis_lsdogeo import AxisLsdoGeo
-from typing import Union
-from dataclasses import dataclass
-from flight_simulator import ureg
+
 
 
 # OpenVSP Model Axis
@@ -712,8 +696,7 @@ print('Wind axis angles (deg)', np.rad2deg(wind_axis.euler_angles_vector.value))
 
 ## FORCES AND MOMENTS
 
-from flight_simulator.core.loads.forces_moments import Vector, ForcesMoments
-from flight_simulator.utils.euler_rotations import build_rotation_matrix
+
 
 
 velocity_vector_in_wind = Vector(vector=csdl.Variable(shape=(3,), value=np.array([-1, 0, 0]), name='wind_vector'), axis=wind_axis)
@@ -792,27 +775,7 @@ rudder_ffd_block = lg.construct_ffd_block_around_entities(name='rudder_ffd_block
 fuselage_ffd_block = lg.construct_ffd_block_around_entities(name='fuselage_ffd_block', entities=fuselage, num_coefficients=(2,2,2), degree=(1,1,1))
 
 
-from flight_simulator.core.vehicle.configuration import Configuration
 
-fuselage_comp.ffd_block = fuselage_ffd_block
-Total_Wing.ffd_block = wing_ffd_block
-Left_Aileron.ffd_block = left_aileron_ffd_block
-Right_Aileron.ffd_block = right_aileron_ffd_block
-Flap.ffd_block = flap_ffd_block
-HT_comp.ffd_block = h_tail_ffd_block
-trimTab_comp.ffd_block = trimTab_ffd_block
-VT_comp.ffd_block = v_tail_ffd_block
-rudder_comp.ffd_block = rudder_ffd_block
-
-base_config = Configuration(system=Complete_Aircraft)
-base_config.connect_component_geometries(Total_Wing, Left_Aileron)
-base_config.connect_component_geometries(Total_Wing, Right_Aileron)
-base_config.connect_component_geometries(Total_Wing, Flap)
-base_config.connect_component_geometries(HT_comp, trimTab_comp)
-base_config.connect_component_geometries(VT_comp, rudder_comp)
-base_config.connect_component_geometries(fuselage_comp, Total_Wing)
-base_config.connect_component_geometries(fuselage_comp, HT_comp, ht_te_center)
-base_config.connect_component_geometries(fuselage_comp, VT_comp, vt_te_base)
 # geometry.plot()
 
 
