@@ -249,9 +249,9 @@ class Component:
     
     
     def connect_component_geometries(
-            self, 
-            comp_1: "Component", 
-            comp_2: "Component",
+            self,
+            comp_1: "Component", # Component 1
+            comp_2: "Component", # Component 2
             connection_point: Union[csdl.Variable, np.ndarray, None] = None):
         
         csdl.check_parameter(comp_1, "comp_1", types=Component)
@@ -296,13 +296,13 @@ class Component:
 
         parameterization_solver = ParameterizationSolver()
         ffd_geometric_variables = GeometricVariables()
-        system_geometry = self.system.geometry
+        # system_geometry = self.system.geometry
 
-        if system_geometry is None:
-            raise TypeError("'setup_geometry' cannot be called because the geometry associated with the system component is None")
+        # if system_geometry is None:
+        #     raise TypeError("'setup_geometry' cannot be called because the geometry associated with the system component is None")
 
-        if not isinstance(system_geometry, FunctionSet):
-            raise TypeError(f"The geometry of the system must be of type {FunctionSet}. Received {type(system_geometry)}")
+        # if not isinstance(system_geometry, FunctionSet):
+        #     raise TypeError(f"The geometry of the system must be of type {FunctionSet}. Received {type(system_geometry)}")
 
         def setup_geometries(component: "Component"):
             if component.geometry is not None:
@@ -335,6 +335,6 @@ class Component:
         t2 = time.time()
         print(f"Time for inner optimization: {t2 - t1}")
 
-        if plot:
-            system_geometry.plot(show=True)
+        # if plot:
+        #     system_geometry.plot(show=True)
 
