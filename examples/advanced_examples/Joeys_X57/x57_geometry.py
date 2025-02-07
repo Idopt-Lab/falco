@@ -46,12 +46,13 @@ flap = geometry.declare_component(function_search_names=['Flap'], name='flap')
 
 Complete_Wing = Component(name='Complete Wing')
 Total_Wing = Component(name='Main Wing', geometry=wing)
+Wing = Component(name='Wing', geometry=wing)
+LeftAil = Component(name='Left Aileron', geometry=aileronL)
 Total_Wing.add_subcomponent(Component(name='Right Aileron', geometry=aileronR))
 Total_Wing.add_subcomponent(Component(name='Left Aileron', geometry=aileronL))
 Total_Wing.add_subcomponent(Component(name='Flap', geometry=flap))
 Complete_Wing.add_subcomponent(Total_Wing)
 Complete_Aircraft.add_subcomponent(Complete_Wing)
-
 
 
 
@@ -768,6 +769,10 @@ trimTab_ffd_block = lg.construct_ffd_block_around_entities(name='trimTab_ffd_blo
 v_tail_ffd_block = lg.construct_ffd_block_around_entities(name='v_tail_ffd_block', entities=vertTail, num_coefficients=(2,11,2), degree=(1,3,1))
 rudder_ffd_block = lg.construct_ffd_block_around_entities(name='rudder_ffd_block', entities=rudder, num_coefficients=(2,11,2), degree=(1,3,1))
 fuselage_ffd_block = lg.construct_ffd_block_around_entities(name='fuselage_ffd_block', entities=fuselage, num_coefficients=(2,2,2), degree=(1,1,1))
+
+Wing.ffd_block = wing_ffd_block
+LeftAil.ffd_block = left_aileron_ffd_block
+Complete_Wing.connect_component_geometries(Wing, LeftAil)
 
 
 
