@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from flight_simulator.core.loads.mass_properties import MassProperties
+from lsdo_geo.core.parameterization.parameterization_solver import ParameterizationSolver, GeometricVariables
 import numpy as np
 from lsdo_geo import Geometry
 from lsdo_function_spaces import FunctionSet
@@ -10,6 +11,7 @@ from dataclasses import dataclass
 import warnings
 import time
 import copy
+from typing import Union,List
  
 
 
@@ -192,6 +194,17 @@ class Component:
         graph.render("component_hierarchy",
                      directory=filepath,
                      format=file_format, view=show)
+    
+    def _setup_geometry(self, parameterization_solver, ffd_geometric_variables, plot=False):
+        # rigid body translation without FFD
+        rigid_body_translation = csdl.ImplicitVariable(shape=(3, ), value=0.)
+        for function in self.geometry.functions.values():
+            if function.name == "rigid_body_translation":
+                shape = function.coefficients.shape
+                function.coefficients = function.coefficients +  csdl.expand(rigid_body_translation, shape, action="k->ijk")
+        parameterization_solver.add_parameter(rigid_body_translation, cost=0.1)
+                
+
 
     def _compute_surface_area(self, geometry: Geometry,
                               plot_flag: bool = False):
@@ -247,15 +260,29 @@ class Component:
         surface_area = surface_area + wireframe_area
 
         return surface_area
-            
+
+class Configuration:
+    def __init__(self, system : Component) -> None:
+        # Check whether system if a component
+        if not isinstance(system, Component):
+            raise TypeError(f"system must by of type {Component}")
+        # Check that if system geometry is not None, it is of the correct type
+        if system.geometry is not None:
+            if not isinstance(system.geometry, FunctionSet ):
+                raise TypeError(f"If system geometry is not None, it must be of type '{FunctionSet}', received object of type '{type(system.geometry)}'")
+        self.system = system
+        self._is_copy : bool = False
+        self._geometry_setup_has_been_called = False
+        self._geometric_connections = []
+        self._config_copies: List[self] = []
+
+
     def connect_component_geometries(
             self,
-            comp_1: 'Component',
-            comp_2: 'Component',
+            comp_1: Component,
+            comp_2: Component,
             connection_point: Union[csdl.Variable, np.ndarray, None]=None,
     ):
-            self._geometric_connections = []
-
             csdl.check_parameter(comp_1, "comp_1", types=Component)
             csdl.check_parameter(comp_2, "comp_2", types=Component)
             csdl.check_parameter(connection_point, "connection_point" ,
@@ -286,14 +313,15 @@ class Component:
             #     self._geometric_connections.append((projection_1, projection_2, comp_1, comp_2))
             
             return
-    def setup_geometry(self, system : 'Component', run_ffd : bool = True, plot : bool = False):
+    
+    
+    def setup_geometry(self, run_ffd : bool = True, plot : bool = False):
         self.geometry_setup_has_been_run = True
 
-        from lsdo_geo.core.parameterization.parameterization_solver import ParameterizationSolver, GeometricVariables
         parameterization_solver = ParameterizationSolver()
         ffd_geometric_variables = GeometricVariables()
-        self.system = system
         system_geometry = self.system.geometry
+        
 
         if system_geometry is None:
             raise TypeError("'setup_geometry' cannot be called because the geometry asssociated with the system component is None")
@@ -301,9 +329,17 @@ class Component:
         if not isinstance(system_geometry, FunctionSet):
             raise TypeError(f"The geometry of the system must be of type {FunctionSet}. Received {type(system_geometry)}")
         
-        def setup_geometries(component: 'Component'):
+        def setup_geometries(component: Component):
             if component.geometry is not None:
-                component.setup_geometry(parameterization_solver, ffd_geometric_variables, plot=plot)
+                component._skip_ffd = False
+                if component._skip_ffd is True:
+                    pass
+                else:
+                    try:
+                        component._setup_geometry(parameterization_solver, ffd_geometric_variables, plot=plot)
+                    except NotImplementedError:
+                        warnings.warn(f"'_setup_geometry' has not been implemented for component {component._name} of {type(component)}")
+            
             if component.comps:
                 for comp_name, comp in component.comps.items():
                     setup_geometries(comp)
@@ -313,8 +349,8 @@ class Component:
         for connection in self._geometric_connections:
             projection_1 = connection[0]
             projection_2 = connection[1]
-            comp_1 : 'Component' = connection[2]
-            comp_2 : 'Component' = connection[3]
+            comp_1 : Component = connection[2]
+            comp_2 : Component = connection[3]
             if isinstance(projection_1, list):
                 connection = comp_1.geometry.evaluate(parametric_coordinates=projection_1) - comp_2.geometry.evaluate(parametric_coordinates=projection_2)
             elif isinstance(projection_1, np.ndarray):
