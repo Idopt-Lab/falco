@@ -121,10 +121,10 @@ class Component:
         if geometry is not None and isinstance(geometry, FunctionSet):
             if geometry and compute_surface_area_flag:
                 self.quantities.surface_area = self._compute_surface_area(geometry)
-            # if "do_not_remake_ffd_block" in kwargs.keys():
-            #     pass
-            # else:
-            #     self._ffd_block = self._make_ffd_block(self.geometry)
+            if "do_not_remake_ffd_block" in kwargs.keys():
+                pass
+            else:
+                self._ffd_block = self._make_ffd_block(self.geometry)
 
     def add_subcomponent(self, subcomponent):
         """
@@ -202,30 +202,30 @@ class Component:
                      directory=filepath,
                      format=file_format, view=show)
         
-    # def _make_ffd_block(self, entities, 
-    #                     num_coefficients : tuple=(2, 2, 2), 
-    #                     order: tuple=(1, 1, 1), 
-    #                     num_physical_dimensions : int=3):
-    #     """
-    #     Call 'construct_ffd_block_around_entities' function.
+    def _make_ffd_block(self, entities, 
+                        num_coefficients : tuple=(2, 2, 2), 
+                        order: tuple=(1, 1, 1), 
+                        num_physical_dimensions : int=3):
+        """
+        Call 'construct_ffd_block_around_entities' function.
 
-    #     This method constructs a Cartesian FFD block with linear B-splines
-    #     and 2 degrees of freedom in all dimensions.
-    #     """
-    #     ffd_block = construct_ffd_block_around_entities(name=self._name, entities=entities, 
-    #                                                num_coefficients=num_coefficients, degree=order)
-    #     ffd_block.coefficients.name = f'{self._name}_coefficients'
+        This method constructs a Cartesian FFD block with linear B-splines
+        and 2 degrees of freedom in all dimensions.
+        """
+        ffd_block = construct_ffd_block_around_entities(name=self._name, entities=entities, 
+                                                   num_coefficients=num_coefficients, degree=order)
+        ffd_block.coefficients.name = f'{self._name}_coefficients'
 
-    #     return ffd_block 
+        return ffd_block 
     
-    # def _setup_ffd_block(self):
-    #     raise NotImplementedError(f"'_setup_ffd_block' has not been implemented for {type(self)}")
+    def _setup_ffd_block(self):
+        raise NotImplementedError(f"'_setup_ffd_block' has not been implemented for {type(self)}")
     
-    # def _extract_geometric_quantities_from_ffd_block(self):
-    #     raise NotImplementedError(f"'_extract_geometric_quantities_from_ffd_block' has not been implemented for {type(self)}")
+    def _extract_geometric_quantities_from_ffd_block(self):
+        raise NotImplementedError(f"'_extract_geometric_quantities_from_ffd_block' has not been implemented for {type(self)}")
     
-    # def _setup_ffd_parameterization(self):
-    #     raise NotImplementedError(f"'_setup_ffd_parameterization' has not been implemented for {type(self)}")
+    def _setup_ffd_parameterization(self):
+        raise NotImplementedError(f"'_setup_ffd_parameterization' has not been implemented for {type(self)}")
         
     
     
@@ -236,7 +236,7 @@ class Component:
             if function.name == "rigid_body_translation":
                 shape = function.coefficients.shape
                 function.coefficients = function.coefficients +  csdl.expand(rigid_body_translation, shape, action="k->ijk")
-        parameterization_solver.add_parameter(rigid_body_translation, cost=0.1)
+        parameterization_solver.add_parameter(rigid_body_translation)
                 
 
 
@@ -302,7 +302,7 @@ class Configuration:
             raise TypeError(f"system must by of type {Component}")
         # Check that if system geometry is not None, it is of the correct type
         if system.geometry is not None:
-            if not isinstance(system.geometry, FunctionSet ):
+            if not isinstance(system.geometry, FunctionSet):
                 raise TypeError(f"If system geometry is not None, it must be of type '{FunctionSet}', received object of type '{type(system.geometry)}'")
         self.system = system
         self._geometric_connections = []
@@ -369,17 +369,18 @@ class Configuration:
                 projection_2 = comp_2.geometry.project(connection_point)
 
                 self._geometric_connections.append((projection_1, projection_2, comp_1, comp_2,comp1_ffd_block,comp2_ffd_block, desired_value))
-
-            # else:
-            #     point_1 = comp_1._ffd_block.evaluate(parametric_coordinates=np.array([0.5, 0.5, 0.5]))
-            #     point_2 = comp_2._ffd_block.evaluate(parametric_coordinates=np.array([0.5, 0.5, 0.5]))
-
-            #     projection_1 = comp_1.geometry.project(point_1)
-            #     projection_2 = comp_2.geometry.project(point_2)
-
-            #     self._geometric_connections.append((projection_1, projection_2, comp_1, comp_2, comp1_ffd_block,comp2_ffd_block, desired_value))
             
-            # return
+            # Else choose the center points of the FFD block
+            else:
+                point_1 = comp_1._ffd_block.evaluate(parametric_coordinates=np.array([0.5, 0.5, 0.5]))
+                point_2 = comp_2._ffd_block.evaluate(parametric_coordinates=np.array([0.5, 0.5, 0.5]))
+
+                projection_1 = comp_1.geometry.project(point_1)
+                projection_2 = comp_2.geometry.project(point_2)
+
+                self._geometric_connections.append((projection_1, projection_2, comp_1, comp_2, comp1_ffd_block,comp2_ffd_block, desired_value))
+            
+            return
     
     
     def setup_geometry(self, additional_constraints: List[tuple]=None, plot : bool = False, recorder: csdl.Recorder =None):
