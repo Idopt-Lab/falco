@@ -1,13 +1,14 @@
 from pathlib import Path
-
 from flight_simulator.core.loads.mass_properties import MassProperties
-
 from lsdo_geo import Geometry
 from lsdo_function_spaces import FunctionSet
-from typing import Union
+from typing import Union, List
 import csdl_alpha as csdl
 from dataclasses import dataclass
-
+import numpy as np
+from lsdo_geo.core.parameterization.ffd_block import FFDBlock  
+from lsdo_geo.core.parameterization.parameterization_solver import ParameterizationSolver, GeometricVariables
+import time
 
 class ComponentQuantities:
     def __init__(
@@ -243,3 +244,172 @@ class Component:
         surface_area = surface_area + wireframe_area
 
         return surface_area
+    
+    def _setup_geometry(self, parameterization_solver, ffd_geometric_variables, plot : bool = False):
+        """Set up the geometry of the system with no FFD"""
+        rigid_body_translation = csdl.ImplicitVariable(shape=(3, ), value=0., name="rigid_body_translation")
+        for function in self.geometry.functions.values():
+            if function.name == "rigid_body_translation":
+                shape = function.coefficients.shape
+                function.coefficients = function.coefficients + csdl.expand(rigid_body_translation, shape, action="k->ijk")
+        parameterization_solver.add_parameter(rigid_body_translation, cost = 0.1)
+
+
+
+class Configuration:
+    def __init__(self, system : Component) -> None:
+        # Check that the system is Component
+        if not isinstance(system, Component):
+            raise Exception(f"'system' must be an instance of type {Component}. Received {type(system)}")
+        # Check system geometry is not none, it is the correct type
+        if system.geometry is not None:
+            if not isinstance(system.geometry, FunctionSet):
+                raise Exception(f"System geometry must be an instance of type '{FunctionSet}'. Received {type(system.geometry)}")
+        self.system = system
+        
+        self._geometric_connections = []
+        self._config_copies: List[self] = []
+        
+    
+
+    def connect_component_geometries(self, comp_1: Component, comp_2: Component, comp_1_ffd_block: Union[csdl.Variable, None] = None, comp_2_ffd_block: Union[csdl.Variable, None] =None, connection_point: Union[csdl.Variable, np.ndarray, None]=None, desired_value: Union[csdl.Variable, None]=None):
+        """Connect the geometries of two components.
+
+        Function to ensure a component geometries can rigidly 
+        translate if the component it is connected to moves.
+
+        Parameters
+        ----------
+        comp_1 : Component
+            the first component to be connected
+        comp_2 : Component
+            the second component to be connected
+        comp_1_ffd_block : Union[csdl.Variable, None], optional
+            the FFD block of the first component, by default None
+        comp_2_ffd_block : Union[csdl.Variable, None], optional
+            the FFD block of the second component, by default None
+        connection_point : Union[csdl.Variable, np.ndarray, None], optional
+            the point with respect to which the connection is defined. E.g., 
+            if the wing and fuselage geometries are connected, this point 
+            could be the quarter chord of the wing. This means that the distance
+            between the point and the two component will remain constant, 
+            by default None
+        desired_value : Union[csdl.Variable, None], optional
+            The value to be enforced by the inner optimization, if None,
+            the connection point's initial value will be chosen
+
+        Raises
+        ------
+        Exception
+            If 'comp_1' does not have a geometry
+        Exception
+            If 'comp_2' does not have a geometry
+        Exception
+            If 'comp_1_ffd_block' is not an instance of csdl.Variable or None
+        Exception
+            If 'comp_2_ffd_block' is not an instance of csdl.Variable or None
+        Exception
+            If 'connection_point' is not of shape (3, ) or reshapable to (3, )
+        Exception
+            If 'connection_point' is None and both 'comp_1_ffd_block' and 'comp_2_ffd_block' are not provided
+        """
+        if connection_point is None:
+            if comp_1_ffd_block is None and comp_2_ffd_block is None:
+                raise Exception("If 'connection_point' is None, both 'comp_1_ffd_block' and 'comp_2_ffd_block' must be provided.")
+            elif comp_1_ffd_block is None:
+                raise Exception("'connection_point' is None and 'comp_1_ffd_block' is not defined. Please define 'comp_1_ffd_block'.")
+            elif comp_2_ffd_block is None:
+                raise Exception("'connection_point' is None and 'comp_2_ffd_block' is not defined. Please define 'comp_2_ffd_block'.")
+        
+        csdl.check_parameter(comp_1, "comp_1", types=Component)
+        csdl.check_parameter(comp_2, "comp_2", types=Component)
+        csdl.check_parameter(connection_point, "connection_point" ,
+                                types=(csdl.Variable, np.ndarray), allow_none=True)
+
+        # Check that comp_1 and comp_2 have geometries
+        if comp_1.geometry is None:
+            raise Exception(f"Comp {comp_1.name} does not have a geometry.")
+        if comp_2.geometry is None:
+            raise Exception(f"Comp {comp_2.name} does not have a geometry.")
+        
+        # # Ensure comp_1_ffd_block is an instance of csdl.Variable or None
+        # if comp_1_ffd_block is not None and not isinstance(comp_1_ffd_block, csdl.Variable):
+        #     raise Exception(f"comp_1_ffd_block must be an instance of csdl.Variable or None. Received '{type(comp_1_ffd_block)}'")
+        # if comp_2_ffd_block is not None and not isinstance(comp_2_ffd_block, csdl.Variable):
+        #     raise Exception(f"comp_2_ffd_block must be an instance of csdl.Variable or None. Received '{type(comp_2_ffd_block)}'")
+        
+        # If connection point provided, check that its shape is (3, )
+        if connection_point is not None:
+            try:
+                connection_point.reshape((3, ))
+            except:
+                raise Exception(f"'connection_point' must be of shape (3, ) or reshapable to (3, ). Received shape {connection_point.shape}")
+
+            projection_1 = comp_1.geometry.project(connection_point)
+            projection_2 = comp_2.geometry.project(connection_point)
+
+            self._geometric_connections.append((projection_1, projection_2, comp_1, comp_2, desired_value, comp_1_ffd_block, comp_2_ffd_block))
+        
+        # Else choose the center points of the FFD block
+        # else:
+        #     comp_1_center = comp_1_ffd_block.evaluate(parametric_coordinates=np.array([0.5, 0.5, 0.5]))
+        #     comp_2_center = comp_2_ffd_block.evaluate(parametric_coordinates=np.array([0.5, 0.5, 0.5]))
+
+        #     projection_1 = comp_1.geometry.project(comp_1_center)
+        #     projection_2 = comp_2.geometry.project(comp_2_center)
+
+        #     self._geometric_connections.append((projection_1, projection_2, comp_1, comp_2, desired_value, comp_1_ffd_block, comp_2_ffd_block))
+    
+    def setup_geometry(self, plot : bool = False):
+        """Set up the geometry of the system.
+        """
+        parameterization_solver = ParameterizationSolver()
+        ffd_geometric_variables = GeometricVariables()
+        system_geometry = self.system.geometry
+
+        if not isinstance(system_geometry, FunctionSet):
+            raise TypeError(f"System geometry must be an instance of type '{FunctionSet}'. Received {type(system_geometry)}")
+        
+        def setup_geometries(component: Component):
+            if component.geometry is not None:
+                component._skip_ffd = False
+                if component._skip_ffd is True:
+                    pass
+                else:
+                    try:
+                        component._setup_geometry(parameterization_solver, ffd_geometric_variables, plot=plot)
+                    except NotImplementedError:
+                        warnings.warn(f"'_setup_geometry' has not been implemented for component {component._name} of {type(component)}")
+            
+            if component.comps:
+                for comp_name, comp in component.comps.items():
+                    setup_geometries(comp)
+            return
+        setup_geometries(self.system)
+        
+        for connection in self._geometric_connections:
+            projection_1 = connection[0]
+            projection_2 = connection[1]
+            comp_1 : Component = connection[2]
+            comp_2 : Component = connection[3]
+            comp_1_ffd_block = connection[5]
+            comp_2_ffd_block = connection[6]
+            if isinstance(projection_1, list):
+                connection = comp_1.geometry.evaluate(parametric_coordinates=projection_1) - comp_2.geometry.evaluate(parametric_coordinates=projection_2)
+            # elif isinstance(projection_1, np.ndarray):
+                # connection = comp_1_ffd_block.geometry.evaluate(parametric_coordinates=projection_1) - comp_2_ffd_block.evaluate(parametric_coordinates=projection_2)
+            else:
+                print(f"Wrong type {type(projection_1)} for projection.")
+                raise NotImplementedError
+            
+            ffd_geometric_variables.add_variable(connection, connection.value)
+        
+        t1 = time.time()
+        parameterization_solver.evaluate(ffd_geometric_variables)
+        t2 = time.time()
+        print(f"Parameterization/Inner Optimization took {t2-t1} seconds.")
+
+        if plot:
+            self.plot_geometry(show=True)
+
+        return
