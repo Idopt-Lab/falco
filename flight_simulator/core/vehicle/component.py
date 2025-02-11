@@ -112,6 +112,7 @@ class Component:
         self.quantities: ComponentQuantities = ComponentQuantities()
         self.parameters: ComponentParameters = ComponentParameters()
 
+
         # Store user-defined parameters
         for key, value in kwargs.items():
             setattr(self.parameters, key, value)
@@ -194,6 +195,8 @@ class Component:
         graph.render("component_hierarchy",
                      directory=filepath,
                      format=file_format, view=show)
+        
+    
     
     def _setup_geometry(self, parameterization_solver, ffd_geometric_variables, plot=False):
         # rigid body translation without FFD

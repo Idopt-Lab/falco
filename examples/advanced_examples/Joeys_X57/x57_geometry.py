@@ -6,6 +6,7 @@ import lsdo_geo as lg
 from flight_simulator.utils.import_geometry import import_geometry
 from flight_simulator import REPO_ROOT_FOLDER
 from flight_simulator.core.vehicle.component import Component, Configuration
+from flight_simulator.core.vehicle.condition import Condition
 from flight_simulator.core.loads.mass_properties import MassProperties
 from flight_simulator.core.dynamics.axis import Axis, ValidOrigins
 from flight_simulator.core.dynamics.axis_lsdogeo import AxisLsdoGeo
@@ -212,183 +213,6 @@ cruise_motor_base= geometry.evaluate(cruise_motor_base_parametric)
 # print('From aircraft, cruise motor hub base (ft): ', cruise_motor_base.value)
 
 
-def heirarchy():
-    Complete_Aircraft = Component(name='Complete Aircraft')
-
-
-    aircraft = Component(name='Aircraft', geometry=geometry)
-    base_config = Configuration(system=aircraft)    
-
-    
-    Complete_Wing = Component(name='Complete Wing')
-    Total_Wing = Component(name='Main Wing', geometry=wing)
-    LeftAil = Component(name='Left Aileron', geometry=aileronL)
-    RightAil = Component(name='Right Aileron', geometry=aileronR)
-    Flap = Component(name='Flap', geometry=flap)
-    Total_Wing.add_subcomponent(Component(name='Right Aileron', geometry=aileronR))
-    Total_Wing.add_subcomponent(Component(name='Left Aileron', geometry=aileronL))    
-    Total_Wing.add_subcomponent(Component(name='Flap', geometry=flap))
-    Complete_Wing.add_subcomponent(Total_Wing)
-    Complete_Aircraft.add_subcomponent(Complete_Wing)
-    
-    
-    base_config.connect_component_geometries(Total_Wing, LeftAil)
-    base_config.connect_component_geometries(Total_Wing, RightAil)
-    base_config.connect_component_geometries(Total_Wing, Flap)
-
-
-    Total_Tail = Component(name='Complete Tail')
-    HT_comp = Component(name="Horizontal Tail", geometry=h_tail)
-    TrimTab = Component(name='Trim Tab', geometry=trimTab)
-    HT_comp.add_subcomponent(Component(name='Trim Tab',geometry=trimTab))
-    base_config.connect_component_geometries(HT_comp, TrimTab)
-    VT_comp = Component(name="Vertical Tail", geometry=vertTail)
-    VT_comp.add_subcomponent(Component(name='Rudder',geometry=rudder))
-    Rudder = Component(name='Rudder', geometry=rudder)
-    base_config.connect_component_geometries(VT_comp, Rudder)
-
-    Total_Tail.add_subcomponent(HT_comp)
-    Total_Tail.add_subcomponent(VT_comp)
-    base_config.connect_component_geometries(HT_comp, VT_comp)
-    Complete_Aircraft.add_subcomponent(Total_Tail)
-
-    fuselage_comp = Component(name="Fuselage", geometry=fuselage)
-    fuselage_comp.add_subcomponent(Component(name="Gear Pod", geometry=gear_pod))
-    Complete_Aircraft.add_subcomponent(fuselage_comp)
-
-    Total_Prop_Sys = Component(name='Complete Propulsion System')
-    Motor1 = Component(name='Propulsor 1')
-    Motor1.add_subcomponent(Component(name='Pylon 1', geometry=pylon7))
-    Motor1.add_subcomponent(Component(name='Nacelle 1',geometry=nacelle7))
-    Motor1.add_subcomponent(Component(name='Spinner 1',geometry=spinner))
-    Motor1.add_subcomponent(Component(name='Prop 1',geometry=prop))
-    Motor1.add_subcomponent(Component(name='Motor 1',geometry=motor))
-    Motor1.add_subcomponent(Component(name='Motor Interface 1',geometry=motor_interface))
-
-    Motor2 = Component(name='Propulsor 2')
-    Motor2.add_subcomponent(Component(name='Pylon 2', geometry=pylon8))
-    Motor2.add_subcomponent(Component(name='Nacelle 2',geometry=nacelle8))
-    Motor2.add_subcomponent(Component(name='Spinner 2',geometry=spinner))
-    Motor2.add_subcomponent(Component(name='Prop 2',geometry=prop))
-    Motor2.add_subcomponent(Component(name='Motor 2',geometry=motor))
-    Motor2.add_subcomponent(Component(name='Motor Interface 2',geometry=motor_interface))
-
-    Motor3 = Component(name='Propulsor 3')
-    Motor3.add_subcomponent(Component(name='Pylon 3', geometry=pylon9))
-    Motor3.add_subcomponent(Component(name='Nacelle 3',geometry=nacelle9))
-    Motor3.add_subcomponent(Component(name='Spinner 3',geometry=spinner))
-    Motor3.add_subcomponent(Component(name='Prop 3',geometry=prop))
-    Motor3.add_subcomponent(Component(name='Motor 3',geometry=motor))
-    Motor3.add_subcomponent(Component(name='Motor Interface 3',geometry=motor_interface))
-
-    Motor4 = Component(name='Propulsor 4')
-    Motor4.add_subcomponent(Component(name='Pylon 4', geometry=pylon10))
-    Motor4.add_subcomponent(Component(name='Nacelle 4',geometry=nacelle10))
-    Motor4.add_subcomponent(Component(name='Spinner 4',geometry=spinner))
-    Motor4.add_subcomponent(Component(name='Prop 4',geometry=prop))
-    Motor4.add_subcomponent(Component(name='Motor 4',geometry=motor))
-    Motor4.add_subcomponent(Component(name='Motor Interface 4',geometry=motor_interface))
-
-    Motor5 = Component(name='Propulsor 5')
-    Motor5.add_subcomponent(Component(name='Pylon 5', geometry=pylon11))
-    Motor5.add_subcomponent(Component(name='Nacelle 5',geometry=nacelle11))
-    Motor5.add_subcomponent(Component(name='Spinner 5',geometry=spinner))
-    Motor5.add_subcomponent(Component(name='Prop 5',geometry=prop))
-    Motor5.add_subcomponent(Component(name='Motor 5',geometry=motor))
-    Motor5.add_subcomponent(Component(name='Motor Interface 5',geometry=motor_interface))
-
-    Motor6 = Component(name='Propulsor 6')
-    Motor6.add_subcomponent(Component(name='Pylon 6', geometry=pylon12))
-    Motor6.add_subcomponent(Component(name='Nacelle 6',geometry=nacelle12))
-    Motor6.add_subcomponent(Component(name='Spinner 6',geometry=spinner))
-    Motor6.add_subcomponent(Component(name='Prop 6',geometry=prop))
-    Motor6.add_subcomponent(Component(name='Motor 6',geometry=motor))
-    Motor6.add_subcomponent(Component(name='Motor Interface 6',geometry=motor_interface))
-
-    Motor7 = Component(name='Propulsor 7')
-    Motor7.add_subcomponent(Component(name='Pylon 7', geometry=pylon7))
-    Motor7.add_subcomponent(Component(name='Nacelle 7',geometry=nacelle7))
-    Motor7.add_subcomponent(Component(name='Spinner 7',geometry=spinner))
-    Motor7.add_subcomponent(Component(name='Prop 7',geometry=prop))
-    Motor7.add_subcomponent(Component(name='Motor 7',geometry=motor))
-    Motor7.add_subcomponent(Component(name='Motor Interface 7',geometry=motor_interface))
-
-    Motor8 = Component(name='Propulsor 8')
-    Motor8.add_subcomponent(Component(name='Pylon 8', geometry=pylon8))
-    Motor8.add_subcomponent(Component(name='Nacelle 8',geometry=nacelle8))
-    Motor8.add_subcomponent(Component(name='Spinner 8',geometry=spinner))
-    Motor8.add_subcomponent(Component(name='Prop 8',geometry=prop))
-    Motor8.add_subcomponent(Component(name='Motor 8',geometry=motor))
-    Motor8.add_subcomponent(Component(name='Motor Interface 8',geometry=motor_interface))
-
-    Motor9 = Component(name='Propulsor 9')
-    Motor9.add_subcomponent(Component(name='Pylon 9', geometry=pylon9))
-    Motor9.add_subcomponent(Component(name='Nacelle 9',geometry=nacelle9))
-    Motor9.add_subcomponent(Component(name='Spinner 9',geometry=spinner))
-    Motor9.add_subcomponent(Component(name='Prop 9',geometry=prop))
-    Motor9.add_subcomponent(Component(name='Motor 9',geometry=motor))
-    Motor9.add_subcomponent(Component(name='Motor Interface 9',geometry=motor_interface))
-
-    Motor10 = Component(name='Propulsor 10')
-    Motor10.add_subcomponent(Component(name='Pylon 10', geometry=pylon10))
-    Motor10.add_subcomponent(Component(name='Nacelle 10',geometry=nacelle10))
-    Motor10.add_subcomponent(Component(name='Spinner 10',geometry=spinner))
-    Motor10.add_subcomponent(Component(name='Prop 10',geometry=prop))
-    Motor10.add_subcomponent(Component(name='Motor 10',geometry=motor))
-    Motor10.add_subcomponent(Component(name='Motor Interface 10',geometry=motor_interface))
-
-    Motor11 = Component(name='Propulsor 11')
-    Motor11.add_subcomponent(Component(name='Pylon 11', geometry=pylon11))
-    Motor11.add_subcomponent(Component(name='Nacelle 11',geometry=nacelle11))
-    Motor11.add_subcomponent(Component(name='Spinner 11',geometry=spinner))
-    Motor11.add_subcomponent(Component(name='Prop 11',geometry=prop))
-    Motor11.add_subcomponent(Component(name='Motor 11',geometry=motor))
-    Motor11.add_subcomponent(Component(name='Motor Interface 11',geometry=motor_interface))
-
-    Motor12 = Component(name='Propulsor 12')
-    Motor12.add_subcomponent(Component(name='Pylon 12', geometry=pylon12))
-    Motor12.add_subcomponent(Component(name='Nacelle 12',geometry=nacelle12))
-    Motor12.add_subcomponent(Component(name='Spinner 12',geometry=spinner))
-    Motor12.add_subcomponent(Component(name='Prop 12',geometry=prop))
-    Motor12.add_subcomponent(Component(name='Motor 12',geometry=motor))
-    Motor12.add_subcomponent(Component(name='Motor Interface 12',geometry=motor_interface))
-    
-    CruiseMotor1 = Component(name='Cruise Propulsor 1')
-    CruiseMotor1.add_subcomponent(Component(name='Cruise Nacelle 1',geometry=cruise_nacelle))
-    CruiseMotor1.add_subcomponent(Component(name='Cruise Spinner 1',geometry=cruise_spinner))
-    CruiseMotor1.add_subcomponent(Component(name='Cruise Prop 1',geometry=cruise_prop))
-    CruiseMotor1.add_subcomponent(Component(name='Cruise Motor 1',geometry=cruise_motor))
-
-    CruiseMotor2 = Component(name='Cruise Propulsor 2')
-    CruiseMotor2.add_subcomponent(Component(name='Cruise Nacelle 2',geometry=cruise_nacelle))
-    CruiseMotor2.add_subcomponent(Component(name='Cruise Spinner 2',geometry=cruise_spinner))
-    CruiseMotor2.add_subcomponent(Component(name='Cruise Prop 2',geometry=cruise_prop))
-    CruiseMotor2.add_subcomponent(Component(name='Cruise Motor 2',geometry=cruise_motor))
-
-    Total_Prop_Sys.add_subcomponent(Motor1)
-    Total_Prop_Sys.add_subcomponent(Motor2)
-    Total_Prop_Sys.add_subcomponent(Motor3)
-    Total_Prop_Sys.add_subcomponent(Motor4)
-    Total_Prop_Sys.add_subcomponent(Motor5)
-    Total_Prop_Sys.add_subcomponent(Motor6)
-    Total_Prop_Sys.add_subcomponent(Motor7)
-    Total_Prop_Sys.add_subcomponent(Motor8)
-    Total_Prop_Sys.add_subcomponent(Motor9)
-    Total_Prop_Sys.add_subcomponent(Motor10)
-    Total_Prop_Sys.add_subcomponent(Motor11)
-    Total_Prop_Sys.add_subcomponent(Motor12)
-    Total_Prop_Sys.add_subcomponent(CruiseMotor1)
-    Total_Prop_Sys.add_subcomponent(CruiseMotor2)
-    Complete_Aircraft.add_subcomponent(Total_Prop_Sys)
-
-    base_config.setup_geometry(plot=False)
-
-    return Complete_Aircraft, base_config
-X57Heirarchy, base_config = heirarchy()
-# X57Heirarchy.visualize_component_hierarchy(show=True)
-
-
-
 
 
 
@@ -397,7 +221,7 @@ X57Heirarchy, base_config = heirarchy()
 
 def axes_create():
 
-# OpenVSP Model Axis
+    # OpenVSP Model Axis
     openvsp_axis = Axis(
         name='OpenVSP Axis',
         x = np.array([0, ]) * ureg.foot,
@@ -405,7 +229,7 @@ def axes_create():
         z = np.array([0, ])* ureg.foot,
         origin=ValidOrigins.OpenVSP.value
     )
-
+    
     wing_axis = AxisLsdoGeo(
     name='Wing Axis',
     geometry=wing,
@@ -668,10 +492,9 @@ def axes_create():
     )
     # print('Wind axis angles (deg)', np.rad2deg(wind_axis.euler_angles_vector.value))
 
-    return openvsp_axis, wing_axis, ht_tail_axis, trimTab_axis, vt_tail_axis, l_om_axis, r_om_axis, l_o_axis, r_o_axis, l_i_axis, r_i_axis, l_im_axis, r_im_axis, cruise_motor_axis, inertial_axis, fd_axis, wind_axis
+    return openvsp_axis, wing_axis, ht_tail_axis, trimTab_axis, vt_tail_axis, l_om_axis, r_om_axis, l_o_axis, r_o_axis, l_i_axis, r_i_axis, l_im_axis, r_im_axis, cruise_motor_axis, inertial_axis, fd_axis, wind_axis, geometry
 
-openvsp_axis, wing_axis, ht_tail_axis, trimTab_axis, vt_tail_axis, l_om_axis, r_om_axis, l_o_axis, r_o_axis, l_i_axis, r_i_axis, l_im_axis, r_im_axis, cruise_motor_axis, inertial_axis, fd_axis, wind_axis = axes_create()
-
+openvsp_axis, wing_axis, ht_tail_axis, trimTab_axis, vt_tail_axis, l_om_axis, r_om_axis, l_o_axis, r_o_axis, l_i_axis, r_i_axis, l_im_axis, r_im_axis, cruise_motor_axis, inertial_axis, fd_axis, wind_axis,geometry = axes_create()
 
 
 
@@ -741,15 +564,15 @@ linear_b_spline_curve_3_dof_space = lfs.BSplineSpace(num_parametric_dimensions=1
 cubic_b_spline_curve_5_dof_space = lfs.BSplineSpace(num_parametric_dimensions=1, degree=3, coefficients_shape=(5,))
 
 # # FFD Blocks
-wing_ffd_block = lg.construct_ffd_block_around_entities(name='wing_ffd_block', entities=wing, num_coefficients=(2,11,2), degree=(1,3,1))
-left_aileron_ffd_block = lg.construct_ffd_block_around_entities(name='left_aileron_ffd_block', entities=aileronL, num_coefficients=(2,11,2), degree=(1,3,1))
-right_aileron_ffd_block = lg.construct_ffd_block_around_entities(name='right_aileron_ffd_block', entities=aileronR, num_coefficients=(2,11,2), degree=(1,3,1))
-flap_ffd_block = lg.construct_ffd_block_around_entities(name='flap_ffd_block', entities=flap, num_coefficients=(2,11,2), degree=(1,3,1))
-h_tail_ffd_block = lg.construct_ffd_block_around_entities(name='h_tail_ffd_block', entities=h_tail, num_coefficients=(2,11,2), degree=(1,3,1))
-trimTab_ffd_block = lg.construct_ffd_block_around_entities(name='trimTab_ffd_block', entities=trimTab, num_coefficients=(2,11,2), degree=(1,3,1))
-v_tail_ffd_block = lg.construct_ffd_block_around_entities(name='v_tail_ffd_block', entities=vertTail, num_coefficients=(2,11,2), degree=(1,3,1))
-rudder_ffd_block = lg.construct_ffd_block_around_entities(name='rudder_ffd_block', entities=rudder, num_coefficients=(2,11,2), degree=(1,3,1))
-fuselage_ffd_block = lg.construct_ffd_block_around_entities(name='fuselage_ffd_block', entities=fuselage, num_coefficients=(2,2,2), degree=(1,1,1))
+wing.ffd_block = lg.construct_ffd_block_around_entities(name='wing_ffd_block', entities=wing, num_coefficients=(2,11,2), degree=(1,3,1))
+aileronL.ffd_block = lg.construct_ffd_block_around_entities(name='left_aileron_ffd_block', entities=aileronL, num_coefficients=(2,11,2), degree=(1,3,1))
+aileronR.ffd_block = lg.construct_ffd_block_around_entities(name='right_aileron_ffd_block', entities=aileronR, num_coefficients=(2,11,2), degree=(1,3,1))
+flap.ffd_block = lg.construct_ffd_block_around_entities(name='flap_ffd_block', entities=flap, num_coefficients=(2,11,2), degree=(1,3,1))
+h_tail.ffd_block = lg.construct_ffd_block_around_entities(name='h_tail_ffd_block', entities=h_tail, num_coefficients=(2,11,2), degree=(1,3,1))
+trimTab.ffd_block = lg.construct_ffd_block_around_entities(name='trimTab_ffd_block', entities=trimTab, num_coefficients=(2,11,2), degree=(1,3,1))
+vertTail.ffd_block = lg.construct_ffd_block_around_entities(name='v_tail_ffd_block', entities=vertTail, num_coefficients=(2,11,2), degree=(1,3,1))
+rudder.ffd_block = lg.construct_ffd_block_around_entities(name='rudder_ffd_block', entities=rudder, num_coefficients=(2,11,2), degree=(1,3,1))
+fuselage.ffd_block = lg.construct_ffd_block_around_entities(name='fuselage_ffd_block', entities=fuselage, num_coefficients=(2,2,2), degree=(1,1,1))
 
 
 
@@ -760,7 +583,7 @@ parameterization_design_parameters = lg.GeometricVariables()
 
 ## Wing Region FFD Setup
 
-wing_ffd_block_sectional_parameterization = lg.VolumeSectionalParameterization(name='wing_sect_param',parameterized_points=wing_ffd_block.coefficients,principal_parametric_dimension=1)
+wing_ffd_block_sectional_parameterization = lg.VolumeSectionalParameterization(name='wing_sect_param',parameterized_points=wing.ffd_block.coefficients,principal_parametric_dimension=1)
 
 wing_chord_stretch_coefficients = csdl.Variable(name='wing_chord_stretch_coefficients', value=np.array([0., 0., 0.]))
 wing_chord_stretch_b_spline = lfs.Function(name='wing_chord_stretch_b_spline', space=linear_b_spline_curve_3_dof_space, 
@@ -807,59 +630,59 @@ sectional_parameters = lg.VolumeSectionalParameterizationInputs(
 )
 
 wing_ffd_block_coefficients = wing_ffd_block_sectional_parameterization.evaluate(sectional_parameters, plot=False)
-wing_coefficients = wing_ffd_block.evaluate(wing_ffd_block_coefficients, plot=False)
+wing_coefficients = wing.ffd_block.evaluate(wing_ffd_block_coefficients, plot=False)
 wing.set_coefficients(wing_coefficients)
 # geometry.plot()
 
-# High Lift Rotors setup
-lift_rotor_ffd_blocks = []
-lift_rotor_sectional_parameterizations = []
-lift_rotor_parameterization_b_splines = []
-for i, component_set in enumerate(total_HL_motor_components):
-    rotor_ffd_block = lg.construct_ffd_block_around_entities(name=f'{component_set[0].name[:3]}_rotor_ffd_block', entities=component_set, num_coefficients=(2,2,2), degree=(1,1,1))
-    rotor_ffd_block_sectional_parameterization = lg.VolumeSectionalParameterization(name=f'{component_set[0].name[:3]}_rotor_sectional_parameterization',
-                                                                                parameterized_points=rotor_ffd_block.coefficients,
-                                                                                principal_parametric_dimension=2)
+# # High Lift Rotors setup
+# lift_rotor_ffd_blocks = []
+# lift_rotor_sectional_parameterizations = []
+# lift_rotor_parameterization_b_splines = []
+# for i, component_set in enumerate(total_HL_motor_components):
+#     rotor.ffd_block = lg.construct_ffd_block_around_entities(name=f'{component_set[0].name[:3]}_rotor_ffd_block', entities=component_set, num_coefficients=(2,2,2), degree=(1,1,1))
+#     rotor_ffd_block_sectional_parameterization = lg.VolumeSectionalParameterization(name=f'{component_set[0].name[:3]}_rotor_sectional_parameterization',
+#                                                                                 parameterized_points=rotor.ffd_block.coefficients,
+#                                                                                 principal_parametric_dimension=2)
     
-    rotor_stretch_coefficient = csdl.Variable(name=f'{component_set[0].name[:3]}_rotor_stretch_coefficient', value=wing_wingspan_stretch_coefficients.value)
-    lift_rotor_sectional_stretch_b_spline = lfs.Function(name=f'{component_set[0].name[:3]}_rotor_sectional_stretch_x_b_spline', space=linear_b_spline_curve_2_dof_space,
-                                                coefficients=rotor_stretch_coefficient)
+#     rotor_stretch_coefficient = csdl.Variable(name=f'{component_set[0].name[:3]}_rotor_stretch_coefficient', value=wing_wingspan_stretch_coefficients.value)
+#     lift_rotor_sectional_stretch_b_spline = lfs.Function(name=f'{component_set[0].name[:3]}_rotor_sectional_stretch_x_b_spline', space=linear_b_spline_curve_2_dof_space,
+#                                                 coefficients=rotor_stretch_coefficient)
     
-    rotor_twist_coefficients = csdl.Variable(name=f'{component_set[0].name[:3]}_rotor_twist_coefficients', value=wing_twist_coefficients.value)
-    rotor_twist_b_spline = lfs.Function(name=f'{component_set[0].name[:3]}_rotor_twist_b_spline', space=cubic_b_spline_curve_5_dof_space, coefficients=rotor_twist_coefficients)
+#     rotor_twist_coefficients = csdl.Variable(name=f'{component_set[0].name[:3]}_rotor_twist_coefficients', value=wing_twist_coefficients.value)
+#     rotor_twist_b_spline = lfs.Function(name=f'{component_set[0].name[:3]}_rotor_twist_b_spline', space=cubic_b_spline_curve_5_dof_space, coefficients=rotor_twist_coefficients)
 
-    rotor_translation_x_coefficients = csdl.Variable(name=f'{component_set[0].name[:3]}_rotor_translation_x_coefficients', value=np.array([0.]))
-    rotor_translation_x_b_spline = lfs.Function(name=f'{component_set[0].name[:3]}_rotor_translation_x_b_spline', space=constant_b_spline_curve_1_dof_space, coefficients=rotor_translation_x_coefficients)
+#     rotor_translation_x_coefficients = csdl.Variable(name=f'{component_set[0].name[:3]}_rotor_translation_x_coefficients', value=np.array([0.]))
+#     rotor_translation_x_b_spline = lfs.Function(name=f'{component_set[0].name[:3]}_rotor_translation_x_b_spline', space=constant_b_spline_curve_1_dof_space, coefficients=rotor_translation_x_coefficients)
 
-    rotor_translation_z_coefficients = csdl.Variable(name=f'{component_set[0].name[:3]}_rotor_translation_z_coefficients', value=np.array([0.]))
-    rotor_translation_z_b_spline = lfs.Function(name=f'{component_set[0].name[:3]}_rotor_translation_z_b_spline', space=constant_b_spline_curve_1_dof_space, coefficients=rotor_translation_z_coefficients)
+#     rotor_translation_z_coefficients = csdl.Variable(name=f'{component_set[0].name[:3]}_rotor_translation_z_coefficients', value=np.array([0.]))
+#     rotor_translation_z_b_spline = lfs.Function(name=f'{component_set[0].name[:3]}_rotor_translation_z_b_spline', space=constant_b_spline_curve_1_dof_space, coefficients=rotor_translation_z_coefficients)
     
-    lift_rotor_ffd_blocks.append(rotor_ffd_block)
-    lift_rotor_sectional_parameterizations.append(rotor_ffd_block_sectional_parameterization)
-    lift_rotor_parameterization_b_splines.append(lift_rotor_sectional_stretch_b_spline)                 
+#     lift_rotor_ffd_blocks.append(rotor.ffd_block)
+#     lift_rotor_sectional_parameterizations.append(rotor_ffd_block_sectional_parameterization)
+#     lift_rotor_parameterization_b_splines.append(lift_rotor_sectional_stretch_b_spline)                 
 
-    parameterization_solver.add_parameter(parameter=rotor_stretch_coefficient)
+#     parameterization_solver.add_parameter(parameter=rotor_stretch_coefficient)
 
-for i, component_set in enumerate(total_HL_motor_components):
-    rotor_ffd_block = lift_rotor_ffd_blocks[i]
-    rotor_ffd_block_sectional_parameterization = lift_rotor_sectional_parameterizations[i]
-    rotor_stretch_b_spline = lift_rotor_parameterization_b_splines[i]
+# for i, component_set in enumerate(total_HL_motor_components):
+#     rotor_ffd_block = lift_rotor_ffd_blocks[i]
+#     rotor_ffd_block_sectional_parameterization = lift_rotor_sectional_parameterizations[i]
+#     rotor_stretch_b_spline = lift_rotor_parameterization_b_splines[i]
 
-    section_parametric_coordinates = np.linspace(0., 1., rotor_ffd_block_sectional_parameterization.num_sections).reshape((-1,1))
-    sectional_stretch = rotor_stretch_b_spline.evaluate(section_parametric_coordinates)
-    sectional_twist = rotor_twist_b_spline.evaluate(section_parametric_coordinates)
-    sectional_translation_x = rotor_translation_x_b_spline.evaluate(section_parametric_coordinates)
-    sectional_translation_z = rotor_translation_z_b_spline.evaluate(section_parametric_coordinates)
+#     section_parametric_coordinates = np.linspace(0., 1., rotor_ffd_block_sectional_parameterization.num_sections).reshape((-1,1))
+#     sectional_stretch = rotor_stretch_b_spline.evaluate(section_parametric_coordinates)
+#     sectional_twist = rotor_twist_b_spline.evaluate(section_parametric_coordinates)
+#     sectional_translation_x = rotor_translation_x_b_spline.evaluate(section_parametric_coordinates)
+#     sectional_translation_z = rotor_translation_z_b_spline.evaluate(section_parametric_coordinates)
 
-    sectional_parameters = lg.VolumeSectionalParameterizationInputs(
-        stretches={0: sectional_stretch, 1:sectional_stretch},
-        rotations={1: sectional_twist},
-    )
+#     sectional_parameters = lg.VolumeSectionalParameterizationInputs(
+#         stretches={0: sectional_stretch, 1:sectional_stretch},
+#         rotations={1: sectional_twist},
+#     )
 
-    rotor_ffd_block_coefficients = rotor_ffd_block_sectional_parameterization.evaluate(sectional_parameters, plot=False)
-    rotor_coefficients = rotor_ffd_block.evaluate(rotor_ffd_block_coefficients, plot=False)
-    for i, component in enumerate(component_set):
-        component.set_coefficients(rotor_coefficients[i])
+#     rotor_ffd_block_coefficients = rotor_ffd_block_sectional_parameterization.evaluate(sectional_parameters, plot=False)
+#     rotor_coefficients = rotor_ffd_block.evaluate(rotor_ffd_block_coefficients, plot=False)
+#     for i, component in enumerate(component_set):
+#         component.set_coefficients(rotor_coefficients[i])
     
     
 # geometry.plot()
@@ -869,7 +692,7 @@ for i, component_set in enumerate(total_HL_motor_components):
 
 ## HT FFD Setup
 h_tail_ffd_block_sectional_parameterization = lg.VolumeSectionalParameterization(name='h_tail_sectional_param',
-                                                                            parameterized_points=h_tail_ffd_block.coefficients,
+                                                                            parameterized_points=h_tail.ffd_block.coefficients,
                                                                             principal_parametric_dimension=1)
 
 h_tail_chord_stretch_coefficients = csdl.Variable(name='h_tail_chord_stretch_coefficients', value=np.array([0., 0., 0.]))
@@ -896,11 +719,11 @@ h_tail_translation_z_coefficients = csdl.Variable(name='h_tail_translation_z_coe
 h_tail_translation_z_b_spline = lfs.Function(name='h_tail_translation_z_b_spline', space=constant_b_spline_curve_1_dof_space,
                                           coefficients=h_tail_translation_z_coefficients)
 
-# parameterization_solver.add_parameter(parameter=h_tail_chord_stretch_coefficients)
-# parameterization_solver.add_parameter(parameter=h_tail_span_stretch_coefficients)
-# parameterization_solver.add_parameter(parameter=h_tail_twist_coefficients)
-# parameterization_solver.add_parameter(parameter=h_tail_translation_x_coefficients)
-# parameterization_solver.add_parameter(parameter=h_tail_translation_z_coefficients)
+parameterization_solver.add_parameter(parameter=h_tail_chord_stretch_coefficients)
+parameterization_solver.add_parameter(parameter=h_tail_span_stretch_coefficients)
+parameterization_solver.add_parameter(parameter=h_tail_twist_coefficients)
+parameterization_solver.add_parameter(parameter=h_tail_translation_x_coefficients)
+parameterization_solver.add_parameter(parameter=h_tail_translation_z_coefficients)
 
 ## Horizontal Stabilizer Parameterization Evaluation for Parameterization Solver
 
@@ -919,14 +742,14 @@ sectional_parameters = lg.VolumeSectionalParameterizationInputs(
 )
 
 h_tail_ffd_block_coefficients = h_tail_ffd_block_sectional_parameterization.evaluate(sectional_parameters, plot=False)
-h_tail_coefficients = h_tail_ffd_block.evaluate(h_tail_ffd_block_coefficients, plot=False)
+h_tail_coefficients = h_tail.ffd_block.evaluate(h_tail_ffd_block_coefficients, plot=False)
 h_tail.set_coefficients(coefficients=h_tail_coefficients)
 # geometry.plot()
 
 ## VT FFD Setup
 
 v_tail_ffd_block_sectional_parameterization = lg.VolumeSectionalParameterization(name='v_tail_sectional_param',
-                                                                            parameterized_points=v_tail_ffd_block.coefficients,
+                                                                            parameterized_points=vertTail.ffd_block.coefficients,
                                                                             principal_parametric_dimension=1)
 
 v_tail_chord_stretch_coefficients = csdl.Variable(name='v_tail_chord_stretch_coefficients', value=np.array([0., 0.]))
@@ -949,11 +772,11 @@ v_tail_translation_z_coefficients = csdl.Variable(name='v_tail_translation_z_coe
 v_tail_translation_z_b_spline = lfs.Function(name='v_tail_translation_z_b_spline', space=constant_b_spline_curve_1_dof_space,
                                           coefficients=v_tail_translation_z_coefficients)
 
-# parameterization_solver.add_parameter(parameter=v_tail_chord_stretch_coefficients)
-# parameterization_solver.add_parameter(parameter=v_tail_span_stretch_coefficients)
-# parameterization_solver.add_parameter(parameter=v_tail_twist_coefficients)
-# parameterization_solver.add_parameter(parameter=v_tail_translation_x_coefficients)
-# parameterization_solver.add_parameter(parameter=v_tail_translation_z_coefficients)
+parameterization_solver.add_parameter(parameter=v_tail_chord_stretch_coefficients)
+parameterization_solver.add_parameter(parameter=v_tail_span_stretch_coefficients)
+parameterization_solver.add_parameter(parameter=v_tail_twist_coefficients)
+parameterization_solver.add_parameter(parameter=v_tail_translation_x_coefficients)
+parameterization_solver.add_parameter(parameter=v_tail_translation_z_coefficients)
 
 section_parametric_coordinates = np.linspace(0., 1., v_tail_ffd_block_sectional_parameterization.num_sections).reshape((-1,1))
 sectional_v_tail_chord_stretch = v_tail_chord_stretch_b_spline.evaluate(section_parametric_coordinates)
@@ -969,7 +792,7 @@ sectional_parameters = lg.VolumeSectionalParameterizationInputs(
 )
 
 v_tail_ffd_block_coefficients = v_tail_ffd_block_sectional_parameterization.evaluate(sectional_parameters, plot=False)
-v_tail_coefficients = v_tail_ffd_block.evaluate(v_tail_ffd_block_coefficients, plot=False)
+v_tail_coefficients = vertTail.ffd_block.evaluate(v_tail_ffd_block_coefficients, plot=False)
 vertTail.set_coefficients(coefficients=v_tail_coefficients)
 # geometry.plot()
 
@@ -980,7 +803,7 @@ vertTail.set_coefficients(coefficients=v_tail_coefficients)
 ## Fuselage FFD Setup
 
 fuselage_ffd_block_sectional_parameterization = lg.VolumeSectionalParameterization(name='fuselage_sectional_param',
-                                                                            parameterized_points=fuselage_ffd_block.coefficients,
+                                                                            parameterized_points=fuselage.ffd_block.coefficients,
                                                                             principal_parametric_dimension=0)
 
 fuselage_stretch_coefficients = csdl.Variable(name='fuselage_stretch_coefficients', shape=(2,), value=np.array([0., -0.]))
@@ -999,9 +822,210 @@ sectional_parameters = lg.VolumeSectionalParameterizationInputs(
 )
 
 fuselage_ffd_block_coefficients = fuselage_ffd_block_sectional_parameterization.evaluate(sectional_parameters, plot=False)
-fuselage_coefficients = fuselage_ffd_block.evaluate(fuselage_ffd_block_coefficients, plot=False)
+fuselage_coefficients = fuselage.ffd_block.evaluate(fuselage_ffd_block_coefficients, plot=False)
 fuselage.set_coefficients(coefficients=fuselage_coefficients)
 # geometry.plot() 
+
+
+
+
+def heirarchy():
+    Complete_Aircraft = Component(name='Complete Aircraft')
+
+
+    aircraft = Component(name='Aircraft', geometry=geometry)
+    base_config = Configuration(system=aircraft)    
+
+    
+    Complete_Wing = Component(name='Complete Wing')
+    Total_Wing = Component(name='Main Wing', geometry=wing)
+    LeftAil = Component(name='Left Aileron', geometry=aileronL)
+    RightAil = Component(name='Right Aileron', geometry=aileronR)
+    Flap = Component(name='Flap', geometry=flap)
+    Total_Wing.add_subcomponent(Component(name='Right Aileron', geometry=aileronR))
+    Total_Wing.add_subcomponent(Component(name='Left Aileron', geometry=aileronL))    
+    Total_Wing.add_subcomponent(Component(name='Flap', geometry=flap))
+    Complete_Wing.add_subcomponent(Total_Wing)
+    Complete_Aircraft.add_subcomponent(Complete_Wing)
+    
+    
+    base_config.connect_component_geometries(Total_Wing, LeftAil, connection_point=np.array(wing_te_center_parametric))
+    base_config.connect_component_geometries(Total_Wing, RightAil,connection_point=np.array(wing_te_center_parametric))
+    base_config.connect_component_geometries(Total_Wing, Flap, connection_point=np.array(wing_te_center_parametric))
+
+
+    Total_Tail = Component(name='Complete Tail')
+    HT_comp = Component(name="Horizontal Tail", geometry=h_tail)
+    TrimTab = Component(name='Trim Tab', geometry=trimTab)
+    HT_comp.add_subcomponent(Component(name='Trim Tab',geometry=trimTab))
+    base_config.connect_component_geometries(HT_comp, TrimTab, connection_point=ht_te_center.value)
+    VT_comp = Component(name="Vertical Tail", geometry=vertTail)
+    VT_comp.add_subcomponent(Component(name='Rudder',geometry=rudder))
+    Rudder = Component(name='Rudder', geometry=rudder)
+    base_config.connect_component_geometries(VT_comp, Rudder, connection_point=vt_le_mid.value)
+
+    Total_Tail.add_subcomponent(HT_comp)
+    Total_Tail.add_subcomponent(VT_comp)
+    base_config.connect_component_geometries(HT_comp, VT_comp)
+    Complete_Aircraft.add_subcomponent(Total_Tail)
+
+    fuselage_comp = Component(name="Fuselage", geometry=fuselage)
+    fuselage_comp.add_subcomponent(Component(name="Gear Pod", geometry=gear_pod))
+    Complete_Aircraft.add_subcomponent(fuselage_comp)
+
+    Total_Prop_Sys = Component(name='Complete Propulsion System')
+    Motor1 = Component(name='Propulsor 1')
+    Motor1.add_subcomponent(Component(name='Pylon 1', geometry=pylon7))
+    Motor1.add_subcomponent(Component(name='Nacelle 1',geometry=nacelle7))
+    Motor1.add_subcomponent(Component(name='Spinner 1',geometry=spinner))
+    Motor1.add_subcomponent(Component(name='Prop 1',geometry=prop))
+    Motor1.add_subcomponent(Component(name='Motor 1',geometry=motor))
+    Motor1.add_subcomponent(Component(name='Motor Interface 1',geometry=motor_interface))
+
+    Motor2 = Component(name='Propulsor 2')
+    Motor2.add_subcomponent(Component(name='Pylon 2', geometry=pylon8))
+    Motor2.add_subcomponent(Component(name='Nacelle 2',geometry=nacelle8))
+    Motor2.add_subcomponent(Component(name='Spinner 2',geometry=spinner))
+    Motor2.add_subcomponent(Component(name='Prop 2',geometry=prop))
+    Motor2.add_subcomponent(Component(name='Motor 2',geometry=motor))
+    Motor2.add_subcomponent(Component(name='Motor Interface 2',geometry=motor_interface))
+
+    Motor3 = Component(name='Propulsor 3')
+    Motor3.add_subcomponent(Component(name='Pylon 3', geometry=pylon9))
+    Motor3.add_subcomponent(Component(name='Nacelle 3',geometry=nacelle9))
+    Motor3.add_subcomponent(Component(name='Spinner 3',geometry=spinner))
+    Motor3.add_subcomponent(Component(name='Prop 3',geometry=prop))
+    Motor3.add_subcomponent(Component(name='Motor 3',geometry=motor))
+    Motor3.add_subcomponent(Component(name='Motor Interface 3',geometry=motor_interface))
+
+    Motor4 = Component(name='Propulsor 4')
+    Motor4.add_subcomponent(Component(name='Pylon 4', geometry=pylon10))
+    Motor4.add_subcomponent(Component(name='Nacelle 4',geometry=nacelle10))
+    Motor4.add_subcomponent(Component(name='Spinner 4',geometry=spinner))
+    Motor4.add_subcomponent(Component(name='Prop 4',geometry=prop))
+    Motor4.add_subcomponent(Component(name='Motor 4',geometry=motor))
+    Motor4.add_subcomponent(Component(name='Motor Interface 4',geometry=motor_interface))
+
+    Motor5 = Component(name='Propulsor 5')
+    Motor5.add_subcomponent(Component(name='Pylon 5', geometry=pylon11))
+    Motor5.add_subcomponent(Component(name='Nacelle 5',geometry=nacelle11))
+    Motor5.add_subcomponent(Component(name='Spinner 5',geometry=spinner))
+    Motor5.add_subcomponent(Component(name='Prop 5',geometry=prop))
+    Motor5.add_subcomponent(Component(name='Motor 5',geometry=motor))
+    Motor5.add_subcomponent(Component(name='Motor Interface 5',geometry=motor_interface))
+
+    Motor6 = Component(name='Propulsor 6')
+    Motor6.add_subcomponent(Component(name='Pylon 6', geometry=pylon12))
+    Motor6.add_subcomponent(Component(name='Nacelle 6',geometry=nacelle12))
+    Motor6.add_subcomponent(Component(name='Spinner 6',geometry=spinner))
+    Motor6.add_subcomponent(Component(name='Prop 6',geometry=prop))
+    Motor6.add_subcomponent(Component(name='Motor 6',geometry=motor))
+    Motor6.add_subcomponent(Component(name='Motor Interface 6',geometry=motor_interface))
+
+    Motor7 = Component(name='Propulsor 7')
+    Motor7.add_subcomponent(Component(name='Pylon 7', geometry=pylon7))
+    Motor7.add_subcomponent(Component(name='Nacelle 7',geometry=nacelle7))
+    Motor7.add_subcomponent(Component(name='Spinner 7',geometry=spinner))
+    Motor7.add_subcomponent(Component(name='Prop 7',geometry=prop))
+    Motor7.add_subcomponent(Component(name='Motor 7',geometry=motor))
+    Motor7.add_subcomponent(Component(name='Motor Interface 7',geometry=motor_interface))
+
+    Motor8 = Component(name='Propulsor 8')
+    Motor8.add_subcomponent(Component(name='Pylon 8', geometry=pylon8))
+    Motor8.add_subcomponent(Component(name='Nacelle 8',geometry=nacelle8))
+    Motor8.add_subcomponent(Component(name='Spinner 8',geometry=spinner))
+    Motor8.add_subcomponent(Component(name='Prop 8',geometry=prop))
+    Motor8.add_subcomponent(Component(name='Motor 8',geometry=motor))
+    Motor8.add_subcomponent(Component(name='Motor Interface 8',geometry=motor_interface))
+
+    Motor9 = Component(name='Propulsor 9')
+    Motor9.add_subcomponent(Component(name='Pylon 9', geometry=pylon9))
+    Motor9.add_subcomponent(Component(name='Nacelle 9',geometry=nacelle9))
+    Motor9.add_subcomponent(Component(name='Spinner 9',geometry=spinner))
+    Motor9.add_subcomponent(Component(name='Prop 9',geometry=prop))
+    Motor9.add_subcomponent(Component(name='Motor 9',geometry=motor))
+    Motor9.add_subcomponent(Component(name='Motor Interface 9',geometry=motor_interface))
+
+    Motor10 = Component(name='Propulsor 10')
+    Motor10.add_subcomponent(Component(name='Pylon 10', geometry=pylon10))
+    Motor10.add_subcomponent(Component(name='Nacelle 10',geometry=nacelle10))
+    Motor10.add_subcomponent(Component(name='Spinner 10',geometry=spinner))
+    Motor10.add_subcomponent(Component(name='Prop 10',geometry=prop))
+    Motor10.add_subcomponent(Component(name='Motor 10',geometry=motor))
+    Motor10.add_subcomponent(Component(name='Motor Interface 10',geometry=motor_interface))
+
+    Motor11 = Component(name='Propulsor 11')
+    Motor11.add_subcomponent(Component(name='Pylon 11', geometry=pylon11))
+    Motor11.add_subcomponent(Component(name='Nacelle 11',geometry=nacelle11))
+    Motor11.add_subcomponent(Component(name='Spinner 11',geometry=spinner))
+    Motor11.add_subcomponent(Component(name='Prop 11',geometry=prop))
+    Motor11.add_subcomponent(Component(name='Motor 11',geometry=motor))
+    Motor11.add_subcomponent(Component(name='Motor Interface 11',geometry=motor_interface))
+
+    Motor12 = Component(name='Propulsor 12')
+    Motor12.add_subcomponent(Component(name='Pylon 12', geometry=pylon12))
+    Motor12.add_subcomponent(Component(name='Nacelle 12',geometry=nacelle12))
+    Motor12.add_subcomponent(Component(name='Spinner 12',geometry=spinner))
+    Motor12.add_subcomponent(Component(name='Prop 12',geometry=prop))
+    Motor12.add_subcomponent(Component(name='Motor 12',geometry=motor))
+    Motor12.add_subcomponent(Component(name='Motor Interface 12',geometry=motor_interface))
+    
+    CruiseMotor1 = Component(name='Cruise Propulsor 1')
+    CruiseMotor1.add_subcomponent(Component(name='Cruise Nacelle 1',geometry=cruise_nacelle))
+    CruiseMotor1.add_subcomponent(Component(name='Cruise Spinner 1',geometry=cruise_spinner))
+    CruiseMotor1.add_subcomponent(Component(name='Cruise Prop 1',geometry=cruise_prop))
+    CruiseMotor1.add_subcomponent(Component(name='Cruise Motor 1',geometry=cruise_motor))
+
+    CruiseMotor2 = Component(name='Cruise Propulsor 2')
+    CruiseMotor2.add_subcomponent(Component(name='Cruise Nacelle 2',geometry=cruise_nacelle))
+    CruiseMotor2.add_subcomponent(Component(name='Cruise Spinner 2',geometry=cruise_spinner))
+    CruiseMotor2.add_subcomponent(Component(name='Cruise Prop 2',geometry=cruise_prop))
+    CruiseMotor2.add_subcomponent(Component(name='Cruise Motor 2',geometry=cruise_motor))
+
+    Total_Prop_Sys.add_subcomponent(Motor1)
+    Total_Prop_Sys.add_subcomponent(Motor2)
+    Total_Prop_Sys.add_subcomponent(Motor3)
+    Total_Prop_Sys.add_subcomponent(Motor4)
+    Total_Prop_Sys.add_subcomponent(Motor5)
+    Total_Prop_Sys.add_subcomponent(Motor6)
+    Total_Prop_Sys.add_subcomponent(Motor7)
+    Total_Prop_Sys.add_subcomponent(Motor8)
+    Total_Prop_Sys.add_subcomponent(Motor9)
+    Total_Prop_Sys.add_subcomponent(Motor10)
+    Total_Prop_Sys.add_subcomponent(Motor11)
+    Total_Prop_Sys.add_subcomponent(Motor12)
+    Total_Prop_Sys.add_subcomponent(CruiseMotor1)
+    Total_Prop_Sys.add_subcomponent(CruiseMotor2)
+    Complete_Aircraft.add_subcomponent(Total_Prop_Sys)
+
+    # Now setup the geometry
+    base_config.setup_geometry(plot=True)
+
+    return Complete_Aircraft, base_config
+X57Heirarchy, base_config = heirarchy()
+# X57Heirarchy.visualize_component_hierarchy(show=True)
+
+
+base_configuration = base_config
+
+
+def define_conditions():
+    conditions = Condition()
+    base_config = base_configuration
+    pitch_angle = csdl.ImplicitVariable(shape=(1, ), value=np.deg2rad(2.))
+    cruise = Condition.CruiseCondition(
+        altitude = 1e3,
+        range=60e3,
+        speed=50.,
+        pitch_angle=pitch_angle,
+    )
+    cruise.configuration = base_config
+    conditions["cruise"] = cruise
+    return pitch_angle
+    
+
+
+
 
 
 
