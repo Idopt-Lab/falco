@@ -2,6 +2,7 @@ from pathlib import Path
 
 from flight_simulator.core.loads.mass_properties import MassProperties
 from lsdo_geo.core.parameterization.parameterization_solver import ParameterizationSolver, GeometricVariables
+from lsdo_geo.core.parameterization.free_form_deformation_functions import construct_ffd_block_around_entities
 import numpy as np
 from lsdo_geo import Geometry
 from lsdo_function_spaces import FunctionSet
@@ -117,8 +118,13 @@ class Component:
         for key, value in kwargs.items():
             setattr(self.parameters, key, value)
 
-        if geometry and compute_surface_area_flag:
-            self.quantities.surface_area = self._compute_surface_area(geometry)
+        if geometry is not None and isinstance(geometry, FunctionSet):
+            if geometry and compute_surface_area_flag:
+                self.quantities.surface_area = self._compute_surface_area(geometry)
+            # if "do_not_remake_ffd_block" in kwargs.keys():
+            #     pass
+            # else:
+            #     self._ffd_block = self._make_ffd_block(self.geometry)
 
     def add_subcomponent(self, subcomponent):
         """
@@ -195,6 +201,31 @@ class Component:
         graph.render("component_hierarchy",
                      directory=filepath,
                      format=file_format, view=show)
+        
+    # def _make_ffd_block(self, entities, 
+    #                     num_coefficients : tuple=(2, 2, 2), 
+    #                     order: tuple=(1, 1, 1), 
+    #                     num_physical_dimensions : int=3):
+    #     """
+    #     Call 'construct_ffd_block_around_entities' function.
+
+    #     This method constructs a Cartesian FFD block with linear B-splines
+    #     and 2 degrees of freedom in all dimensions.
+    #     """
+    #     ffd_block = construct_ffd_block_around_entities(name=self._name, entities=entities, 
+    #                                                num_coefficients=num_coefficients, degree=order)
+    #     ffd_block.coefficients.name = f'{self._name}_coefficients'
+
+    #     return ffd_block 
+    
+    # def _setup_ffd_block(self):
+    #     raise NotImplementedError(f"'_setup_ffd_block' has not been implemented for {type(self)}")
+    
+    # def _extract_geometric_quantities_from_ffd_block(self):
+    #     raise NotImplementedError(f"'_extract_geometric_quantities_from_ffd_block' has not been implemented for {type(self)}")
+    
+    # def _setup_ffd_parameterization(self):
+    #     raise NotImplementedError(f"'_setup_ffd_parameterization' has not been implemented for {type(self)}")
         
     
     
@@ -274,8 +305,6 @@ class Configuration:
             if not isinstance(system.geometry, FunctionSet ):
                 raise TypeError(f"If system geometry is not None, it must be of type '{FunctionSet}', received object of type '{type(system.geometry)}'")
         self.system = system
-        self._is_copy : bool = False
-        self._geometry_setup_has_been_called = False
         self._geometric_connections = []
         self._config_copies: List[self] = []
 
@@ -284,8 +313,43 @@ class Configuration:
             self,
             comp_1: Component,
             comp_2: Component,
+            comp1_ffd_block : Union[csdl.Variable, None]=None,
+            comp2_ffd_block : Union[csdl.Variable, None]=None,
             connection_point: Union[csdl.Variable, np.ndarray, None]=None,
+            desired_value: Union[csdl.Variable, None]=None
     ):
+            """
+            Connect the geometries of two components.
+
+            Function to ensure a component geometries can rigidly 
+            translate if the component it is connected to moves.
+
+            Parameters
+            ----------
+            comp_1 : Component
+                the first component to be connected
+            comp_2 : Component
+                the second component to be connected
+            connection_point : Union[csdl.Variable, np.ndarray, None], optional
+                the point with respect to which the connection is defined. E.g., 
+                if the wing and fuselage geometries are connected, this point 
+                could be the quarter chord of the wing. This means that the distance
+                between the point and the two component will remain constant, 
+                by default None
+            desired_value : Union[csdl.Variable, np.ndarray, None], optional
+                The value to be enforced by the inner optimization, if None,
+                the connection point's initial value will be chosen
+
+            Raises
+            ------
+            Exception
+                If 'comp_1' is not an instances of Compone
+            Exception
+                If 'comp_2' is not an instances of Compone
+            Exception
+                If 'connection_point' is not of shape (3, )
+            
+            """
             csdl.check_parameter(comp_1, "comp_1", types=Component)
             csdl.check_parameter(comp_2, "comp_2", types=Component)
             csdl.check_parameter(connection_point, "connection_point" ,
@@ -304,7 +368,7 @@ class Configuration:
                 projection_1 = comp_1.geometry.project(connection_point)
                 projection_2 = comp_2.geometry.project(connection_point)
 
-                self._geometric_connections.append((projection_1, projection_2, comp_1, comp_2))
+                self._geometric_connections.append((projection_1, projection_2, comp_1, comp_2,comp1_ffd_block,comp2_ffd_block, desired_value))
 
             # else:
             #     point_1 = comp_1._ffd_block.evaluate(parametric_coordinates=np.array([0.5, 0.5, 0.5]))
@@ -313,13 +377,12 @@ class Configuration:
             #     projection_1 = comp_1.geometry.project(point_1)
             #     projection_2 = comp_2.geometry.project(point_2)
 
-            #     self._geometric_connections.append((projection_1, projection_2, comp_1, comp_2))
+            #     self._geometric_connections.append((projection_1, projection_2, comp_1, comp_2, comp1_ffd_block,comp2_ffd_block, desired_value))
             
-            return
+            # return
     
     
-    def setup_geometry(self, run_ffd : bool = True, plot : bool = False):
-        self.geometry_setup_has_been_run = True
+    def setup_geometry(self, additional_constraints: List[tuple]=None, plot : bool = False, recorder: csdl.Recorder =None):
 
         parameterization_solver = ParameterizationSolver()
         ffd_geometric_variables = GeometricVariables()
@@ -354,17 +417,37 @@ class Configuration:
             projection_2 = connection[1]
             comp_1 : Component = connection[2]
             comp_2 : Component = connection[3]
+            comp1_ffd_block = connection[4]
+            comp2_ffd_block = connection[5]
+            desired_value : csdl.Variable = connection[6]
             if isinstance(projection_1, list):
                 connection = comp_1.geometry.evaluate(parametric_coordinates=projection_1) - comp_2.geometry.evaluate(parametric_coordinates=projection_2)
-            elif isinstance(projection_1, np.ndarray):
-                connection = comp_1._ffd_block.evaluate(parametric_coordinates=projection_1) - comp_2._ffd_block.evaluate(parametric_coordinates=projection_2)
+            # elif isinstance(projection_1, np.ndarray):
+            #     connection = comp_1._ffd_block.evaluate(parametric_coordinates=projection_1) - comp_2._ffd_block.evaluate(parametric_coordinates=projection_2)
             else:
                 print(f"wrong type {type(projection_1)} for projection")
                 raise NotImplementedError
-            
-            ffd_geometric_variables.add_variable(connection, connection.value)
+
+            if desired_value is None:        
+                ffd_geometric_variables.add_variable(connection, connection.value)
+            else:
+                if connection.shape != desired_value.shape:
+                    if desired_value.shape == (1, ):
+                        ffd_geometric_variables.add_variable(csdl.norm(connection), desired_value)
+                    else:
+                        raise ValueError(f"geometric connection has shape {connection.shape}, and desired value has shape {desired_value.shape}. If the shape of the deired value is (1, ), the norm of the connection will be enforced.")
+                else:
+                    ffd_geometric_variables.add_variable(connection, desired_value)
+                        
+        if additional_constraints:
+            for constr in additional_constraints:
+                connection = csdl.norm(self.system.geometry.evaluate(parametric_coordinates=constr[0]) - self.system.geometry.evaluate(parametric_coordinates=constr[1]))
+                ffd_geometric_variables.add_variable(connection, constr[2])
 
         t1 = time.time()
+        if recorder is not None:
+            print("Setting 'inline' to false for inner optimization")
+            recorder.inline = False
         parameterization_solver.evaluate(ffd_geometric_variables)
         t2 = time.time()
         print("time for inner optimization", t2 - t1)
