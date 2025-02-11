@@ -15,7 +15,6 @@ import copy
 from typing import Union,List
  
 
-
 class ComponentQuantities:
     def __init__(
             self,
@@ -75,6 +74,7 @@ class Component:
     compute_surface_area : bool
         Indicates whether to compute the surface area of the geometry upon initialization.
     """
+    _skip_ffd = False
 
     def __init__(self,
                  name: str,
@@ -112,7 +112,6 @@ class Component:
         # Essential quantities and user-defined parameters
         self.quantities: ComponentQuantities = ComponentQuantities()
         self.parameters: ComponentParameters = ComponentParameters()
-
 
         # Store user-defined parameters
         for key, value in kwargs.items():
@@ -231,12 +230,12 @@ class Component:
     
     def _setup_geometry(self, parameterization_solver, ffd_geometric_variables, plot=False):
         # rigid body translation without FFD
-        rigid_body_translation = csdl.ImplicitVariable(shape=(3, ), value=0.)
+        rigid_body_translation = csdl.ImplicitVariable(shape=(3, ), value=0., name=f'{self._name}_rigid_body_translation')
         for function in self.geometry.functions.values():
             if function.name == "rigid_body_translation":
                 shape = function.coefficients.shape
                 function.coefficients = function.coefficients +  csdl.expand(rigid_body_translation, shape, action="k->ijk")
-        parameterization_solver.add_parameter(rigid_body_translation)
+        parameterization_solver.add_parameter(rigid_body_translation, cost = 0.1)
                 
 
 
@@ -299,7 +298,7 @@ class Configuration:
     def __init__(self, system : Component) -> None:
         # Check whether system if a component
         if not isinstance(system, Component):
-            raise TypeError(f"system must by of type {Component}")
+            raise TypeError(f"system must by of type {Component}. Received {type(system)}")
         # Check that if system geometry is not None, it is of the correct type
         if system.geometry is not None:
             if not isinstance(system.geometry, FunctionSet):
@@ -352,7 +351,13 @@ class Configuration:
             """
             csdl.check_parameter(comp_1, "comp_1", types=Component)
             csdl.check_parameter(comp_2, "comp_2", types=Component)
+            csdl.check_parameter(comp1_ffd_block, "comp1_ffd_block", 
+                                 types=(csdl.Variable, np.ndarray), allow_none=True)
+            csdl.check_parameter(comp2_ffd_block, "comp2_ffd_block", 
+                                 types=(csdl.Variable, np.ndarray), allow_none=True)
             csdl.check_parameter(connection_point, "connection_point" ,
+                                 types=(csdl.Variable, np.ndarray), allow_none=True)
+            csdl.check_parameter(desired_value, "desired_value", 
                                  types=(csdl.Variable, np.ndarray), allow_none=True)
             if comp_1.geometry is None:
                 raise Exception(f"Comp {comp_1.name} does not have a geometry.")
@@ -370,7 +375,8 @@ class Configuration:
 
                 self._geometric_connections.append((projection_1, projection_2, comp_1, comp_2,comp1_ffd_block,comp2_ffd_block, desired_value))
             
-            # Else choose the center points of the FFD block
+            # Else choose the center points of the FFD blocks
+
             else:
                 point_1 = comp_1._ffd_block.evaluate(parametric_coordinates=np.array([0.5, 0.5, 0.5]))
                 point_2 = comp_2._ffd_block.evaluate(parametric_coordinates=np.array([0.5, 0.5, 0.5]))
@@ -398,7 +404,6 @@ class Configuration:
         
         def setup_geometries(component: Component):
             if component.geometry is not None:
-                component._skip_ffd = False
                 if component._skip_ffd is True:
                     pass
                 else:
@@ -423,8 +428,8 @@ class Configuration:
             desired_value : csdl.Variable = connection[6]
             if isinstance(projection_1, list):
                 connection = comp_1.geometry.evaluate(parametric_coordinates=projection_1) - comp_2.geometry.evaluate(parametric_coordinates=projection_2)
-            # elif isinstance(projection_1, np.ndarray):
-            #     connection = comp_1._ffd_block.evaluate(parametric_coordinates=projection_1) - comp_2._ffd_block.evaluate(parametric_coordinates=projection_2)
+            elif isinstance(projection_1, np.ndarray):
+                connection = comp_1._ffd_block.evaluate(parametric_coordinates=projection_1) - comp_2._ffd_block.evaluate(parametric_coordinates=projection_2)
             else:
                 print(f"wrong type {type(projection_1)} for projection")
                 raise NotImplementedError
