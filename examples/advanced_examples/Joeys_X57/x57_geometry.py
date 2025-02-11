@@ -834,7 +834,7 @@ fuselage.set_coefficients(coefficients=fuselage_coefficients)
 # geometry.plot() 
 
 
-def heirarchy():
+def hierarchy():
     Complete_Aircraft = Component(name='Complete Aircraft')
 
     aircraft = Component(name='Aircraft', geometry=geometry)
@@ -852,10 +852,9 @@ def heirarchy():
     Complete_Aircraft.add_subcomponent(Complete_Wing)
 
 
-    wing_te_center_guess_var = csdl.Variable(name='wing_te_center_guess', value=wing_te_center_guess)
-    base_config.connect_component_geometries(Total_Wing, LeftAil, connection_point=wing_te_center_guess_var)
-    base_config.connect_component_geometries(Total_Wing, RightAil, connection_point=wing_te_center_guess_var)
-    base_config.connect_component_geometries(Total_Wing, Flap, connection_point=wing_te_center_guess_var)
+    base_config.connect_component_geometries(Total_Wing, LeftAil, connection_point=csdl.Variable(name='wing_te_center_guess', value=wing_te_center_guess))
+    base_config.connect_component_geometries(Total_Wing, RightAil, connection_point=csdl.Variable(name='wing_te_center_guess', value=wing_te_center_guess))
+    base_config.connect_component_geometries(Total_Wing, Flap, connection_point=csdl.Variable(name='wing_te_center_guess', value=wing_te_center_guess))
 
     Total_Tail = Component(name='Complete Tail')
     HT_comp = Component(name="Horizontal Tail", geometry=h_tail)
@@ -903,7 +902,7 @@ def heirarchy():
 
     return Complete_Aircraft, base_config
 
-X57Heirarchy, base_config = heirarchy()
+X57Heirarchy, base_config = hierarchy()
 X57Heirarchy.visualize_component_hierarchy(show=True)
 
 
