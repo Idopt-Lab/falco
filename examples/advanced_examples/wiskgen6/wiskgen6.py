@@ -227,8 +227,8 @@ def define_axes():
         reference=openvsp_axis,
         origin=ValidOrigins.OpenVSP.value
     )
-    # print('Wing Axis Translation (m): ', wing_axis.translation.value)
-    # print('Wing Axis Rotation (deg): ', np.rad2deg(wing_axis.euler_angles_vector.value))
+    print('Wing Axis Translation (m): ', wing_axis.translation.value)
+    print('Wing Axis Rotation (deg): ', np.rad2deg(wing_axis.euler_angles_vector.value))
 
     vtail_deflection = csdl.Variable(shape=(1, ), value=np.deg2rad(0), name='Vtail Deflection')
     v_tail.rotate(vtail_root_le, np.array([0., 0., 1.]), angles=vtail_deflection)
@@ -415,7 +415,7 @@ def define_axes():
     )
 
     # Non dependent on Aircraft FD axes
-    # Choosing Inertial aaxis as OpenVSP [0,0,0]
+    # Choosing Inertial axis as OpenVSP [0,0,0]
     inertial_axis = Axis(
         name='Inertial Axis',
         x=np.array([0, ])*ureg.meter,
@@ -424,14 +424,11 @@ def define_axes():
         origin = ValidOrigins.Inertial.value
     )
 
-
-    from flight_simulator.core.dynamics.aircraft_states import AircaftStates
-
     fd_axis = Axis(
         name='Flight Dynamics Body Fixed Axis',
         x=np.array([0, ])*ureg.meter,
         y=np.array([0, ])*ureg.meter,
-        z=np.array([5000, ])*ureg.meter,
+        z=np.array([0, ])*ureg.meter,
         phi=csdl.Variable(shape=(1, ), value=np.array([np.deg2rad(0.), ]), name='phi'),
         theta=csdl.Variable(shape=(1, ), value=np.array([np.deg2rad(0.), ]), name='theta'),
         psi=csdl.Variable(shape=(1, ), value=np.array([np.deg2rad(0.), ]), name='psi'),
@@ -439,7 +436,8 @@ def define_axes():
         reference=inertial_axis,
         origin=ValidOrigins.Inertial.value
     )
-    # print('Body-Fixed Angles (deg)', np.rad2deg(fd_axis.euler_angles_vector.value))
+    print('Body-Fixed Translation (m)', fd_axis.translation.value)
+    print('Body-Fixed Angles (deg)', np.rad2deg(fd_axis.euler_angles_vector.value))
 
     @dataclass
     class WindAxisRotations(csdl.VariableGroup):
@@ -503,38 +501,39 @@ wind_vector_in_wing =  Vector(csdl.matvec(csdl.transpose(R_wing_to_openvsp), win
 alpha = csdl.arctan(wind_vector_in_wing.vector[2]/wind_vector_in_wing.vector.value[0])
 # print('Effective angle of attack (deg): ', np.rad2deg(alpha.value))
 
-CL = 2*np.pi*alpha
-CD = 0.001 + 1/(np.pi*0.87*12) * CL**2
+# Calculate lift and drag coefficients
+CL = 2 * np.pi * alpha
+CD = 0.001 + 1 / (np.pi * 0.87 * 12) * CL**2
+
+# Define constants
 rho = 1.225
-S = 203*ft2m
+S = 203 * ft2m
 V = 35
-L = 0.5*rho*V**2*CL*S
-D = 0.5*rho*V**2*CD*S
+
+# Calculate lift and drag forces
+L = 0.5 * rho * V**2 * CL * S
+D = 0.5 * rho * V**2 * CD * S
 
 aero_force = csdl.Variable(shape=(3, ), value=0.)
 aero_force = aero_force.set(csdl.slice[0], -D)
 aero_force = aero_force.set(csdl.slice[2], -L)
+aero_force_vector_in_wing = Vector(vector=aero_force, axis=wing_axis)
 
-aero_force_vector_in_wind = Vector(vector=aero_force, axis=wind_axis)
-# print('Aero force vector in wind-axis: ', aero_force_vector_in_wind.vector.value)
-aero_force_vector_in_inertial =  Vector(csdl.matvec(R_wind_to_inertial, aero_force_vector_in_wind.vector), axis=inertial_axis)
-# print('Aero force vector in inertial-axis: ', aero_force_vector_in_inertial.vector.value)
-aero_force_vector_in_body =  Vector(csdl.matvec(csdl.transpose(R_body_to_inertial), aero_force_vector_in_inertial.vector), axis=fd_axis)
-# print('Aero force vector in body-axis: ', aero_force_vector_in_body.vector.value)
-aero_force_vector_in_wing =  Vector(csdl.matvec(csdl.transpose(R_wing_to_openvsp), aero_force_vector_in_body.vector), axis=fd_axis)
-# print('Aero force vector in wing-axis: ', aero_force_vector_in_wing.vector.value)
+aero_moment = csdl.Variable(shape=(3, ), value=0.)
+aero_moment_vector_in_wing = Vector(vector=aero_moment, axis=wing_axis)
 
+aero_force_moment_in_wing = ForcesMoments(force=aero_force_vector_in_wing, moment=aero_moment_vector_in_wing)
 
-# thrust_axis = geometry.evaluate(pt_axis_ob_left_fwd)
+print(aero_force_vector_in_wing.vector.value)
+print(aero_moment_vector_in_wing.vector.value)
 
-
-
+aero_force_moment_in_body = aero_force_moment_in_wing.rotate_to_axis(fd_axis)
+aero_force_in_body = aero_force_moment_in_body.F
+aero_moment_in_body = aero_force_moment_in_body.M
 
 
-
-
-
-
+print(aero_force_in_body.vector.value)
+print(aero_moment_in_body.vector.value)
 
 ## FFD
 
@@ -580,7 +579,7 @@ wing_translation_x_coefficients = csdl.Variable(name='wing_translation_x_coeffic
 wing_translation_x_b_spline = lfs.Function(name='wing_translation_x_b_spline', space=constant_b_spline_curve_1_dof_space,
                                           coefficients=wing_translation_x_coefficients)
 
-wing_translation_z_coefficients = csdl.Variable(name='wing_translation_z_coefficients', value=np.array([0.]))
+wing_translation_z_coefficients = csdl.Variable(name='wing_translation_z_coefficients', value=np.array([10.]))
 wing_translation_z_b_spline = lfs.Function(name='wing_translation_z_b_spline', space=constant_b_spline_curve_1_dof_space,
                                           coefficients=wing_translation_z_coefficients)
 
@@ -592,6 +591,7 @@ sectional_wing_twist = wing_twist_b_spline.evaluate(wing_section_parametric_coor
 sectional_wing_sweep = wing_sweep_b_spline.evaluate(wing_section_parametric_coordinates)
 sectional_wing_translation_x = wing_translation_x_b_spline.evaluate(wing_section_parametric_coordinates)
 sectional_wing_translation_z = wing_translation_z_b_spline.evaluate(wing_section_parametric_coordinates)
+
 
 wing_sectional_parameters = lg.VolumeSectionalParameterizationInputs(
     stretches={0: sectional_wing_chord_stretch},
@@ -817,6 +817,25 @@ for i, comp in enumerate(pylons):
 # fuselage_coefficients = fuselage_ffd_block.evaluate(fuselage_ffd_block_coefficients, plot=False)
 # fuselage.set_coefficients(coefficients=fuselage_coefficients)
 
+print('After ffd:')
+
+print('Wing Axis Translation (m): ', wing_axis.translation.value)
+print('Wing Axis Rotation (deg): ', np.rad2deg(wing_axis.euler_angles_vector.value))
+
+aero_force_vector_in_wing = Vector(vector=aero_force, axis=wing_axis)
+aero_moment_vector_in_wing = Vector(vector=aero_moment, axis=wing_axis)
+aero_force_moment_in_wing = ForcesMoments(force=aero_force_vector_in_wing, moment=aero_moment_vector_in_wing)
+aero_force_moment_in_body = aero_force_moment_in_wing.rotate_to_axis(fd_axis)
+aero_force_in_body = aero_force_moment_in_body.F
+aero_moment_in_body = aero_force_moment_in_body.M
+
+print(aero_force_vector_in_wing.vector.value)
+print(aero_moment_vector_in_wing.vector.value)
+print(aero_force_in_body.vector.value)
+print(aero_moment_in_body.vector.value)
+
+
+geometry.plot()
 
 
 
@@ -912,7 +931,11 @@ Aircraft, config = define_heirarchy()
 
 # print(rotor_hub_ib_left_aft.evaluate(pt_ib_left_aft_bot_parametric))
 
-config.setup_geometry(plot=True)
+
+# ERRORS OUT
+# config.setup_geometry(plot=True)
+
+
 
 
 recorder.stop()
