@@ -58,56 +58,7 @@ class VectorizedAttributes:
             for comp in self.attribute_list:
                 setattr(comp, name, value)
 
-class VectorizedComponent:
-    def __init__(self, component, num_nodes, comp_list=None) -> None:
-        from CADDEE_alpha.utils.copy_comps import copy_comps
-        self.num_nodes = num_nodes
-        self.comps = {}
-        
-        if comp_list is None:
-            self.comp_list = []
-            for i in range(num_nodes):
-                self.comp_list.append(copy_comps(component))
-        else:
-            self.comp_list = comp_list
- 
-        for comp_name, comp in component.comps.items():
-            child_comp_list = [child_comp.comps[comp_name] for child_comp in self.comp_list]
-            self.comps[comp_name] = VectorizedComponent(comp, num_nodes, child_comp_list)
 
-    def __getattr__(self, name):
-        attr_list = []
-        if hasattr(self.comp_list[0], name):
-            if callable(getattr(self.comp_list[0], name)):
-                def method(*args, **kwargs):
-                    if 'vectorized' in kwargs:
-                        if not kwargs['vectorized']:
-                            kwargs.pop('vectorized')
-                            return getattr(self.comp_list[0], name)(*args, **kwargs)
-                    return_list = []
-                    for i, comp in enumerate(self.comp_list):
-                        args_i = [arg[i] for arg in args]
-                        kwargs_i = {key: arg[i] for key, arg in kwargs.items()}
-                        output = getattr(comp, name)(*args_i, **kwargs_i)
-                        if output:
-                            return_list.append(output)
-                    return return_list
-                return method
-            else:
-                for i in range(self.num_nodes):
-                    attr = getattr(self.comp_list[i], name)
-                    attr_list.append(attr)
-                
-                if isinstance(attr_list[0], (list, dict, set)) or hasattr(attr_list[0], '__dict__'):
-                    vectorized_attributes = VectorizedAttributes(attr_list, self.num_nodes)
-                    return vectorized_attributes
-                else:
-                    return attr_list
-        else:
-            existing_attrs = [attr for attr in dir(self.comp_list[0]) if not attr.startswith("__")]
-            raise AttributeError(f"Attribute {name} does not exist. Existing attributes are {existing_attrs}")
-                
-        
 
 class ComponentQuantities:
     def __init__(
@@ -301,14 +252,19 @@ class Component:
     def _setup_ffd_parameterization(self):
         raise NotImplementedError(f"'_setup_ffd_parameterization' has not been implemented for {type(self)}")
 
-    def _setup_geometry(self, parameterization_solver, ffd_geometric_variables, plot=False):
+    def _setup_geometry(self, parameterization_solver, ffd_geometric_variables, plot=False, parent_translation=None):
         # Add rigid body translation (without FFD)
-        rigid_body_translation = csdl.ImplicitVariable(shape=(3, ), value=0.,name=f'{self._name}_rigid_body_translation')
+        if parent_translation is None:
+            rigid_body_translation = csdl.ImplicitVariable(shape=(3, ), value=0., name=f'{self._name}_rigid_body_translation')
+        else:
+            rigid_body_translation = parent_translation + csdl.ImplicitVariable(shape=(3, ), value=0., name=f'{self._name}_rigid_body_translation')
+
         for function in self.geometry.functions.values():
             shape = function.coefficients.shape
-            function.coefficients = function.coefficients +  csdl.expand(rigid_body_translation, shape, action="k->ijk")
+            function.coefficients = function.coefficients + csdl.expand(rigid_body_translation, shape, action="k->ijk")
         
         parameterization_solver.add_parameter(rigid_body_translation, cost=0.1)
+        return rigid_body_translation
 
     def _find_system_component(self, parent) -> FunctionSet:
         """Find the top-level system component by traversing the component hiearchy"""
@@ -426,411 +382,6 @@ if __name__ == "__main__":
         return attributes
 
 
-class VectorizedConfig:
-    def __init__(self, config : Configuration, num_nodes : int) -> None:
-        from CADDEE_alpha.core.mesh.mesh import VectorizedDiscretization
-
-        self.system : VectorizedComponent = VectorizedComponent(config.system, num_nodes=num_nodes)
-
-
-    def assemble_system_mass_properties(
-            self, 
-            point : np.ndarray = np.array([0., 0., 0.]),
-            update_copies: bool = False
-        ):
-        """Compute the mass properties of the configuration.
-        """
-        csdl.check_parameter(update_copies, "update_copies", types=bool)
-
-        system = self.system
-        system_comps = system.comps
-
-        # TODO: allow for parallel axis theorem
-        if not np.array_equal(point, np.array([0. ,0., 0.])):
-            raise NotImplementedError("Mass properties taken w.r.t. a specific point not yet implemented.")
-        
-        def _sum_component_masses(
-            comps,
-            system_mass=0.,
-        ):
-            """Sum all component mass to compute system mass.
-
-            Parameters
-            ----------
-            comps : _type_
-                dictionary of children components
-            system_mass : _type_, optional
-                Initial system mass, by default 0.
-            """
-            for comp_name, comp in comps.items():
-                mass_props = comp.quantities.mass_properties
-                
-                # Check if mass_properties have been set/computed
-                if mass_props is None:
-                    warnings.warn(f"Component {comp} has no mass properties")
-                    system_mass = system_mass * 1
-
-                # Add component mass to system mass
-                else:
-                    m = mass_props.mass
-                    if isinstance(m, list):
-                        raise NotImplementedError("vectorized mps not implemented yet")
-                    
-                    if m is not None:
-                        system_mass = system_mass + m
-
-                # Check if the component has children
-                if not comp.comps:
-                    pass
-
-                # If comp has children, add their mass recursively 
-                else:
-                    system_mass = \
-                        _sum_component_masses(comp.comps, system_mass)
-
-            return system_mass
- 
-        def _sum_component_cgs(
-            comps,
-            system_mass,
-            system_cg=np.zeros((3, ))
-        ):
-            # second, compute total cg 
-            for comp_name, comp in comps.items():
-                mass_props = comp.quantities.mass_properties
-                if mass_props is None:
-                    system_cg = system_cg * 1
-
-                # otherwise add component cg contribution
-                else:
-                    cg = mass_props.cg_vector
-                    m = mass_props.mass
-                    if isinstance(cg, list):
-                        raise NotImplementedError("vectorized mps not implemented yet")
-
-                    if cg is not None:
-                        system_cg = system_cg + m * cg / system_mass
-
-                # Check if the component has children
-                if not comp.comps:
-                    pass
-
-                # If comp has children, add their mass recursively 
-                else:
-                    system_cg = \
-                        _sum_component_cgs(comp.comps, system_mass, system_cg)
-
-            return system_cg
-
-        def _sum_component_inertias(
-            comps,
-            system_cg,
-            system_inertia_tensor=np.zeros((3, 3)),
-        ):
-            x = system_cg[0]
-            y = system_cg[1]
-            z = system_cg[2]
-
-            # Third, compute total cg and inertia tensor
-            for comp_name, comp in comps.items():
-                mass_props = comp.quantities.mass_properties
-                if mass_props is None:
-                    system_inertia_tensor = system_inertia_tensor * 1
-
-                else:
-                    it = mass_props.inertia_tensor
-                    m = mass_props.mass
-
-                    if isinstance(it, list):
-                        raise NotImplementedError("vectorized mps not implemented yet")
-
-                    # use given inertia if provided
-                    if it is not None:
-                        if m is None:
-                            raise Exception(f"Component {comp_name}, has an inertia tensor but no mass. Cannot apply parallel axis theorem.")
-                        # Apply parallel axis theorem to get inertias w.r.t to global cg
-                        ixx = it[0, 0] + m * (y**2 + z**2)
-                        ixy = it[0, 1] - m * (x * y)
-                        ixz = it[0, 2] - m * (x * z)
-                        iyx = ixy 
-                        iyy = it[1, 1] + m * (x**2 + z**2)
-                        iyz = it[1, 2] - m * (y * z)
-                        izx = ixz 
-                        izy = iyz 
-                        izz = it[2, 2] + m * (x**2  + y**2)
-
-                        it = csdl.Variable(shape=(3, 3), value=0.)
-                        it = it.set(csdl.slice[0, 0], ixx)
-                        it = it.set(csdl.slice[0, 1], ixy)
-                        it = it.set(csdl.slice[0, 2], ixz)
-                        it = it.set(csdl.slice[1, 0], iyx)
-                        it = it.set(csdl.slice[1, 1], iyy)
-                        it = it.set(csdl.slice[1, 2], iyz)
-                        it = it.set(csdl.slice[2, 0], izx)
-                        it = it.set(csdl.slice[2, 1], izy)
-                        it = it.set(csdl.slice[2, 2], izz)
-
-                        system_inertia_tensor = system_inertia_tensor + it
-                    
-                    # point mass assumption
-                    elif m is not None: 
-                        # Apply parallel axis theorem to get inertias w.r.t to global cg
-                        ixx = m * (y**2 + z**2)
-                        ixy = -m * (x * y)
-                        ixz = -m * (x * z)
-                        iyx = ixy 
-                        iyy = m * (x**2 + z**2)
-                        iyz = -m * (y * z)
-                        izx = ixz 
-                        izy = iyz 
-                        izz = m * (x**2  + y**2)
-                        
-                        it = csdl.Variable(shape=(3, 3), value=0.)
-                        it = it.set(csdl.slice[0, 0], ixx)
-                        it = it.set(csdl.slice[0, 1], ixy)
-                        it = it.set(csdl.slice[0, 2], ixz)
-                        it = it.set(csdl.slice[1, 0], iyx)
-                        it = it.set(csdl.slice[1, 1], iyy)
-                        it = it.set(csdl.slice[1, 2], iyz)
-                        it = it.set(csdl.slice[2, 0], izx)
-                        it = it.set(csdl.slice[2, 1], izy)
-                        it = it.set(csdl.slice[2, 2], izz)
-                        
-                        system_inertia_tensor = system_inertia_tensor + it
-
-                # Check if the component has children
-                if not comp.comps:
-                    pass
-
-                # If comp has children, add their mass recursively 
-                else:
-                    system_inertia_tensor = \
-                        _sum_component_inertias(comp.comps, system_cg, system_inertia_tensor)
-
-            return system_inertia_tensor
-
-        def _add_component_mps_to_system_mps(
-                comps, 
-                system_mass=0., 
-                system_cg=np.zeros((3, )), 
-                system_inertia_tensor=np.zeros((3, 3))
-            ):
-            """Add component-level mass properties to the system-level mass properties. 
-            Only called internally by 'assemble_system_mass_properties'"""
-            # first, compute total mass
-            for comp_name, comp in comps.items():
-                print("mass", comp.quantities.mass_properties.mass)
-                print("cg_vector", comp.quantities.mass_properties.cg_vector)
-                print("\n")
-                mass_props = comp.quantities.mass_properties
-                # Check if mass_properties have been set/computed
-                if mass_props is None:
-                    warnings.warn(f"Component {comp} has no mass properties")
-                    system_mass = system_mass * 1
-
-                # otherwise add the mass properties
-                else:
-                    m = mass_props.mass
-                    if isinstance(m, list):
-                        raise NotImplementedError("vectorized mps not implemented yet")
-                        if all(mass is None for mass in m):
-                            m = None
-                        else:
-                            exit()
-                    
-                    if m is not None:
-                        system_mass = system_mass + m
-                    
-            # second, compute total cg
-            for comp_name, comp in comps.items():
-                mass_props = comp.quantities.mass_properties
-                if mass_props is None:
-                    system_cg = system_cg * 1
-
-                # Otherwise add component cg contribution
-                else:
-                    cg = mass_props.cg_vector
-                    m = mass_props.mass
-                    if isinstance(cg, list):
-                        raise NotImplementedError("vectorized mps not implemented yet")
-                        if all(cg_vec is None for cg_vec in cg):
-                            cg = None
-                        else:
-                            exit()
-                    if cg is not None:
-                        system_cg = system_cg + m * cg / system_mass
-
-            # Third, compute total cg and inertia tensor 
-            for comp_name, comp in comps.items():
-                mass_props = comp.quantities.mass_properties
-                if mass_props is None:
-                    system_inertia_tensor = system_inertia_tensor * 1
-                
-                else:
-                    it = mass_props.inertia_tensor
-                    if isinstance(it, list):
-                        raise NotImplementedError("vectorized mps not implemented yet")
-                        if all(it_tens is None for it_tens in it):
-                            it = None
-                        else:
-                            exit()
-                    
-                    m = mass_props.mass
-                    x = system_cg[0]
-                    y = system_cg[1]
-                    z = system_cg[2]
-
-                    if it is not None:
-                        if m is None:
-                            raise Exception(f"Component {comp_name}, has an inertia tensor but no mass. Cannot apply parallel axis theorem.")
-                        
-                        # Apply parallel axis theorem to get inertias w.r.t to global cg
-                        ixx = it[0, 0] + m * (y**2 + z**2)
-                        ixy = it[0, 1] - m * (x * y)
-                        ixz = it[0, 2] - m * (x * z)
-                        iyx = ixy 
-                        iyy = it[1, 1] + m * (x**2 + z**2)
-                        iyz = it[1, 2] - m * (y * z)
-                        izx = ixz 
-                        izy = iyz 
-                        izz = it[2, 2] + m * (x**2  + y**2)
-
-                        it = csdl.Variable(shape=(3, 3), value=0.)
-                        it = it.set(csdl.slice[0, 0], ixx)
-                        it = it.set(csdl.slice[0, 1], ixy)
-                        it = it.set(csdl.slice[0, 2], ixz)
-                        it = it.set(csdl.slice[1, 0], iyx)
-                        it = it.set(csdl.slice[1, 1], iyy)
-                        it = it.set(csdl.slice[1, 2], iyz)
-                        it = it.set(csdl.slice[2, 0], izx)
-                        it = it.set(csdl.slice[2, 1], izy)
-                        it = it.set(csdl.slice[2, 2], izz)
-                        
-                        
-                        system_inertia_tensor = system_inertia_tensor + it
-
-                    elif m is not None:
-                        # Apply parallel axis theorem to get inertias w.r.t to global cg
-                        ixx = m * (y**2 + z**2)
-                        ixy = -m * (x * y)
-                        ixz = -m * (x * z)
-                        iyx = ixy 
-                        iyy = m * (x**2 + z**2)
-                        iyz = -m * (y * z)
-                        izx = ixz 
-                        izy = iyz 
-                        izz = m * (x**2  + y**2)
-                        
-                        it = csdl.Variable(shape=(3, 3), value=0.)
-                        it = it.set(csdl.slice[0, 0], ixx)
-                        it = it.set(csdl.slice[0, 1], ixy)
-                        it = it.set(csdl.slice[0, 2], ixz)
-                        it = it.set(csdl.slice[1, 0], iyx)
-                        it = it.set(csdl.slice[1, 1], iyy)
-                        it = it.set(csdl.slice[1, 2], iyz)
-                        it = it.set(csdl.slice[2, 0], izx)
-                        it = it.set(csdl.slice[2, 1], izy)
-                        it = it.set(csdl.slice[2, 2], izz)
-                        
-                        system_inertia_tensor = system_inertia_tensor + it
-                    
-                    else:
-                        pass
-
-
-                # Check if the component has children
-                if not comp.comps:
-                    pass
-
-                # If their children, add their mass properties via a private method
-                else:
-                    system_mass, system_cg, system_inertia_tensor = \
-                        _add_component_mps_to_system_mps(comp.comps, system_mass, system_cg, system_inertia_tensor)
-
-            return system_mass, system_cg, system_inertia_tensor
-
-        # Check if mass properties of system has already been set/computed
-        # 1) masss, cg, and inertia tensor have all been defined
-        system_mps = system.quantities.mass_properties
-        if all(getattr(system_mps, mp) is not None for mp in system_mps.__dict__):
-            # Check if the system is a copy
-            if system._is_copy:
-                system_mass = _sum_component_masses(system_comps)
-                system_cg = _sum_component_cgs(system_comps, system_mass=system_mass)
-                system_inertia_tensor = _sum_component_inertias(system_comps, system_cg=system_cg)
-                
-                # system_mass, system_cg, system_inertia_tensor = \
-                # _add_component_mps_to_system_mps(system_comps)
-
-                system.quantities.mass_properties.mass = system_mass
-                system.quantities.mass_properties.cg_vector = system_cg
-                system.quantities.mass_properties.inertia_tensor = system_inertia_tensor
-
-            else:
-                warnings.warn(f"System already has defined mass properties: {system_mps}")
-                return
-
-        # 2) mass and cg have been defined and inertia tensor is None
-        elif system_mps.mass is not None and system_mps.cg_vector is not None and system_mps.inertia_tensor is None:
-            system_inertia_tensor = np.zeros((3, 3))
-            warnings.warn(f"System already has defined mass and cg vector; will compute inertia tensor based on point mass assumption")
-            x = system_mps.cg_vector[0]
-            y = system_mps.cg_vector[1]
-            z = system_mps.cg_vector[2]
-            m = system_mps.mass
-            ixx = m * (y**2 + z**2)
-            ixy = -m * (x * y)
-            ixz = -m * (x * z)
-            iyx = ixy 
-            iyy = m * (x**2 + z**2)
-            iyz = -m * (y * z)
-            izx = ixz 
-            izy = iyz 
-            izz = m * (x**2  + y**2)
-            system_mps.inertia_tensor = np.array([
-                [ixx, ixy, ixz],
-                [iyx, iyy, iyz],
-                [izx, izy, izz],
-            ])
-            return 
-        
-        # 3) only mass has been defined
-        elif system_mps.mass is not None and system_mps.cg_vector is None and system_mps.inertia_tensor is None:
-            raise Exception("Partially defined system mass properties; only system mass has been set. Need at least mass and the cg vector.")
-        
-        # 4) only cg vector has been defined
-        elif system_mps.mass is None and system_mps.cg_vector is not None and system_mps.inertia_tensor is None:
-            raise Exception("Partially defined system mass properties; only system cg_vector has been set. Need at least mass and the cg vector.")
-
-        # 5) only inertia tensor vector has been defined
-        elif system_mps.mass is None and system_mps.cg_vector is None and system_mps.inertia_tensor is not None:
-            raise Exception("Partially defined system mass properties; only system inertia_tensor has been set. Need to also specify mass and cg vector.")
-
-        # 6) Inertia tensor is not None and cg vector is not None
-        elif system_mps.mass is None and system_mps.cg_vector is not None and system_mps.inertia_tensor is not None:
-            raise Exception("Partially defined system mass properties; only system cg_vector and inertia_tensor has been set. Mass has not been set.")
-
-        else:
-            # check if system has any components
-            if not system_comps:
-                raise Exception("System does not have any subcomponents and does not have any mass properties. Cannot assemble mass properties.")
-            
-            # loop over all components and sum the mass properties
-            system_mass = 0
-            system_cg = np.array([0., 0., 0.])
-            system_inertia_tensor = np.zeros((3, 3))
-
-            system_mass = _sum_component_masses(system_comps,system_mass=system_mass)
-            system_cg = _sum_component_cgs(system_comps, system_mass=system_mass, system_cg=system_cg)
-            system_inertia_tensor = _sum_component_inertias(system_comps, system_cg=system_cg, system_inertia_tensor=system_inertia_tensor)
-    
-            # system_mass, system_cg, system_inertia_tensor = \
-            #     _add_component_mps_to_system_mps(system_comps, system_mass, system_cg, system_inertia_tensor)
-
-            system.quantities.mass_properties.mass = system_mass
-            system.quantities.mass_properties.cg_vector = system_cg
-            system.quantities.mass_properties.inertia_tensor = system_inertia_tensor
-
 
 class Configuration:
     """The configurations class"""
@@ -888,17 +439,7 @@ class Configuration:
         for comp_name, comp in self.system.comps.items():
             add_mesh_to_container(comp)
 
-    def vectorized_copy(self, num_nodes : int) -> VectorizedConfig:
-        csdl.check_parameter(num_nodes, "num_nodes", types=int)
 
-        if num_nodes <= 1:
-            raise ValueError("'num_nodes' must be an integer greater than 1")
-
-        vectorized_config = VectorizedConfig(config=self, num_nodes=num_nodes)
-
-        self._config_copies.append(vectorized_config)
-        
-        return vectorized_config
 
     
     def remove_component(self, comp : Component):
@@ -1322,7 +863,6 @@ class Configuration:
             system.quantities.mass_properties.cg_vector = system_cg
             system.quantities.mass_properties.inertia_tensor = system_inertia_tensor
 
-        from CADDEE_alpha.core.component import VectorizedAttributes, VectorizedComponent
         # Update mass properties for any copied configurations
         if update_copies:
 
@@ -1443,14 +983,14 @@ class Configuration:
         if not isinstance(system_geometry, FunctionSet):
             raise TypeError(f"The geometry of the system must be of type {FunctionSet}. Received {type(system_geometry)}")
 
-        def setup_geometries(component: Component):
+        def setup_geometries(component: Component, parent_translation=None):
             # If component has a geometry, set up its geometry
             if component.geometry is not None:
                 if component._skip_ffd is True:
                     pass
                 else:
                     try: # NOTE: might cause some issues because try/except might hide some errors that shouldn't be hidden
-                        component._setup_geometry(parameterization_solver, ffd_geometric_variables, plot=plot)
+                        component._setup_geometry(parameterization_solver, ffd_geometric_variables, plot=plot, parent_translation=parent_translation)
 
                     except NotImplementedError:
                         warnings.warn(f"'_setup_geometry' has not been implemented for component {component._name} of {type(component)}")
@@ -1458,7 +998,7 @@ class Configuration:
             # If component has children, set up their geometries
             if component.comps:
                 for comp_name, comp in component.comps.items():
-                    setup_geometries(comp)
+                    setup_geometries(comp, parent_translation)
 
             return
     

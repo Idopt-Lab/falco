@@ -263,7 +263,7 @@ class Wing(Component):
             self._TE_center = self.geometry.evaluate(self._TE_mid_point)
         return self._TE_center
 
-    def actuate(self, angle : Union[float, int, csdl.Variable], axis_location : float):
+    def actuate(self, angle : Union[float, int, csdl.Variable], axis_location : float = 0.25):
         """Actuate (i.e., rotate) the wing about an axis location at or behind the leading edge.
         
         Parameters
