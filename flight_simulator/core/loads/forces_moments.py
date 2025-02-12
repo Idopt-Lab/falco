@@ -37,7 +37,20 @@ class ForcesMoments:
             newMoment = InterMoment + csdl.cross(displacement, InterForce)
             newMoment.add_tag(orig_moment.tags[0])
         else:
-            raise NotImplementedError
+            print(f"Converting Forces/Moments from in child axis '{self.axis.name}' to parent axis '{parent_or_child_axis.name}'")
+            euler_child_to_parent = parent_or_child_axis.euler_angles_vector - self.axis.euler_angles_vector
+            seq = parent_or_child_axis.sequence
+            translation_child_to_parent = self.axis.translation - parent_or_child_axis.translation
+            R_child_to_parent = build_rotation_matrix(euler_child_to_parent, seq)
+            InterForce = csdl.matvec(R_child_to_parent, orig_force)
+            InterMoment = csdl.matvec(R_child_to_parent, orig_moment)
+            newForce = InterForce
+            newMoment = InterMoment + csdl.cross(translation_child_to_parent, InterForce)
+            if orig_force.tags:
+                newForce.add_tag(orig_force.tags[0])
+                newMoment.add_tag(orig_moment.tags[0])
+
+            # raise NotImplementedError
 
         new_load = ForcesMoments(force=Vector(vector=newForce, axis=parent_or_child_axis),
                                  moment=Vector(vector=newMoment, axis=parent_or_child_axis))
