@@ -42,8 +42,10 @@ class AxisLsdoGeo(Axis):
         self.geometry = geometry
         self.parametric_coords = parametric_coords
         translation = geometry.evaluate(parametric_coords)
-
-        super().__init__(name=name, x=translation[0], y=translation[1], z=translation[2],
+        x = translation[0]
+        y = translation[1]
+        z = translation[2]
+        super().__init__(name=name, x=x, y=y, z=z,
                          phi=phi, theta=theta, psi=psi,
                          origin=origin, sequence=sequence, reference=reference)
 

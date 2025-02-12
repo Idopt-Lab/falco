@@ -109,6 +109,7 @@ class Axis:
                 (self.translation_from_origin.x, self.translation_from_origin.y, self.translation_from_origin.z),
                 axis=0
             )
+            self.translation = self.translation_from_origin_vector
         else:
             self.translation_from_origin = None
             self.translation_from_origin_vector = None
