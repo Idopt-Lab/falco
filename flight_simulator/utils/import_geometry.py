@@ -49,7 +49,6 @@ def import_geometry(
     Exception
         If the file path is unknown or the file does not exist.
     """
-
     # Check the operating system and set num_workers to 1 if not Linux
     if platform.system() != "Linux":
         lfs.num_workers = 1
