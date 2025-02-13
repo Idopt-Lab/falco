@@ -23,7 +23,7 @@ recorder.start()
 
 def define_base_geometry():
     geometry=import_geometry(
-        "Wisk_V6.stp",
+        "Wisk_V6_2.stp",
         file_path= REPO_ROOT_FOLDER / 'examples' / 'advanced_examples' / 'wiskgen6',
         refit=False,
         scale=ft2m,
@@ -34,6 +34,13 @@ def define_base_geometry():
     # Define Aircraft Components
     ## Wing
     wing = geometry.declare_component(function_search_names=['Wing'], name='wing')
+    ## Aileron and flaps
+    ob_left_aileron = geometry.declare_component(function_search_names=['OB_AILERON, 0'], name='ob_left_aileron')
+    mid_left_flap = geometry.declare_component(function_search_names=['MID_FLAP, 0'], name='mid_left_flap')
+    ib_left_flap = geometry.declare_component(function_search_names=['IB_FLAP, 0'], name='ib_left_flap')
+    ob_right_aileron = geometry.declare_component(function_search_names=['OB_AILERON, 1'], name='ob_right_aileron')
+    mid_right_flap = geometry.declare_component(function_search_names=['MID_FLAP, 1'], name='mid_right_flap')
+    ib_right_flap = geometry.declare_component(function_search_names=['IB_FLAP, 1'], name='ib_right_flap')
     ## Tail(s)
     h_tail = geometry.declare_component(function_search_names=['HTail'], name='h_tail')
     v_tail = geometry.declare_component(function_search_names=['VTail'], name='v_tail')
@@ -68,15 +75,16 @@ def define_base_geometry():
     return geometry, wing, h_tail, v_tail, fuselage, fwd_landing_gear_pylon, aft_landing_gear_pylon, base_landing_gear, \
            pylon_ob_left, pylon_mid_left, pylon_ib_left, pylon_ob_right, pylon_mid_right, pylon_ib_right, \
            rotor_hub_ob_left_fwd, rotor_hub_mid_left_fwd, rotor_hub_ib_left_fwd, rotor_hub_ob_right_fwd, rotor_hub_mid_right_fwd, rotor_hub_ib_right_fwd, \
-           rotor_hub_ob_left_aft, rotor_hub_mid_left_aft, rotor_hub_ib_left_aft, rotor_hub_ob_right_aft, rotor_hub_mid_right_aft, rotor_hub_ib_right_aft
+           rotor_hub_ob_left_aft, rotor_hub_mid_left_aft, rotor_hub_ib_left_aft, rotor_hub_ob_right_aft, rotor_hub_mid_right_aft, rotor_hub_ib_right_aft, \
+           ob_left_aileron, mid_left_flap, ib_left_flap, ob_right_aileron, mid_right_flap, ib_right_flap
 
 geometry, wing, h_tail, v_tail, fuselage, fwd_landing_gear_pylon, aft_landing_gear_pylon, base_landing_gear, \
 pylon_ob_left, pylon_mid_left, pylon_ib_left, pylon_ob_right, pylon_mid_right, pylon_ib_right, \
 rotor_hub_ob_left_fwd, rotor_hub_mid_left_fwd, rotor_hub_ib_left_fwd, rotor_hub_ob_right_fwd, rotor_hub_mid_right_fwd, rotor_hub_ib_right_fwd, \
-rotor_hub_ob_left_aft, rotor_hub_mid_left_aft, rotor_hub_ib_left_aft, rotor_hub_ob_right_aft, rotor_hub_mid_right_aft, rotor_hub_ib_right_aft = define_base_geometry()
+rotor_hub_ob_left_aft, rotor_hub_mid_left_aft, rotor_hub_ib_left_aft, rotor_hub_ob_right_aft, rotor_hub_mid_right_aft, rotor_hub_ib_right_aft, \
+ob_left_aileron, mid_left_flap, ib_left_flap, ob_right_aileron, mid_right_flap, ib_right_flap = define_base_geometry()
 
-
-
+geometry.plot()
 # Wing info
 wing_root_le_guess = np.array([-8, 0, -5.41])*ft2m
 wing_root_le_parametric = wing.project(wing_root_le_guess, plot=plot_flag)
@@ -145,7 +153,10 @@ pt_ob_left_fwd_top_guess = np.array([-4.262,-22.672,-6])*ft2m
 pt_ob_left_fwd_top_parametric = rotor_hub_ob_left_fwd.project(pt_ob_left_fwd_top_guess, plot=plot_flag)
 pt_ob_left_fwd_bot_guess = np.array([-4.262,-22.672,-4.9])*ft2m
 pt_ob_left_fwd_bot_parametric = rotor_hub_ob_left_fwd.project(pt_ob_left_fwd_bot_guess, plot=plot_flag)
-pt_ob_left_fwd_mid_guess=1/2*(rotor_hub_ob_left_fwd.evaluate(pt_ob_left_fwd_top_parametric)+rotor_hub_ob_left_fwd.evaluate(pt_ob_left_fwd_bot_parametric))
+
+
+# pt_ob_left_fwd_mid_guess = 1/2*(rotor_hub_ob_left_fwd.evaluate(pt_ob_left_fwd_top_parametric) + rotor_hub_ob_left_fwd.evaluate(pt_ob_left_fwd_bot_parametric))
+# print("pt_ob_left_fwd_mid_guess:", pt_ob_left_fwd_mid_guess)
 
 pt_mid_left_fwd_top_guess = np.array([-4.262,-15.4,-6])*ft2m
 pt_mid_left_fwd_bot_guess = np.array([-4.262,-15.4,-4.9])*ft2m
@@ -208,6 +219,21 @@ pt_mid_right_aft_bot_parametric = rotor_hub_mid_right_aft.project(pt_mid_right_a
 
 # # Region Axis Creation
 def define_axes():
+    """
+    Define and return a list of various axes used in the aircraft flight simulator.
+    This function creates and configures multiple axes, including:
+    - OpenVSP Axis
+    - Wing Axis
+    - Vtail Axis
+    - Htail Axis
+    - PT (Propeller Thrust) Axes for different positions (Outboard, Middle, Inboard) and orientations (Left FWD, Right FWD, Left AFT, Right AFT)
+    - Inertial Axis
+    - Flight Dynamics Body Fixed Axis
+    - Wind Axis
+    Each axis is defined with specific parameters such as geometry, parametric coordinates, rotation angles (phi, theta, psi), and reference axes.
+    Returns:
+        list: A list of Axis and AxisLsdoGeo objects representing the defined axes.
+    """
     openvsp_axis = Axis(
         name='OpenVSP Axis',
         x = np.array([0, ])*ureg.meter,
@@ -230,8 +256,8 @@ def define_axes():
     print('Wing Axis Translation (m): ', wing_axis.translation.value)
     print('Wing Axis Rotation (deg): ', np.rad2deg(wing_axis.euler_angles_vector.value))
 
-    vtail_deflection = csdl.Variable(shape=(1, ), value=np.deg2rad(0), name='Vtail Deflection')
-    v_tail.rotate(vtail_root_le, np.array([0., 0., 1.]), angles=vtail_deflection)
+    # vtail_deflection = csdl.Variable(shape=(1, ), value=np.deg2rad(0), name='Vtail Deflection')
+    # v_tail.rotate(vtail_root_le, np.array([0., 0., 1.]), angles=vtail_deflection)
 
     vtail_axis = AxisLsdoGeo(
         name='Vtail Axis',
@@ -249,8 +275,8 @@ def define_axes():
     # print('Vtail Axis Translation (m): ', vtail_axis.translation.value)
     # print('Vtail Axis Rotation (deg): ', np.rad2deg(vtail_axis.euler_angles_vector.value))
 
-    htail_deflection = csdl.Variable(shape=(1, ), value=np.deg2rad(0), name='Htail Deflection')
-    h_tail.rotate(htail_root_le, np.array([0., 1., 0.]), angles=htail_deflection)
+    # htail_deflection = csdl.Variable(shape=(1, ), value=np.deg2rad(0), name='Htail Deflection')
+    # h_tail.rotate(htail_root_le, np.array([0., 1., 0.]), angles=htail_deflection)
 
     htail_axis = AxisLsdoGeo(
         name='Htail Axis',
@@ -484,30 +510,31 @@ inertial_axis, fd_axis, wind_axis = define_axes()
 
 # region Aero forces
 
-velocity_vector_in_wind = Vector(vector=csdl.Variable(shape=(3,), value=np.array([-1, 0, 0]), name='wind_vector'), axis=wind_axis)
-# print('Unit wind vector in wind axis: ', velocity_vector_in_wind.vector.value)
+# velocity_vector_in_wind = Vector(vector=csdl.Variable(shape=(3,), value=np.array([-1, 0, 0]), name='wind_vector'), axis=wind_axis)
+# # print('Unit wind vector in wind axis: ', velocity_vector_in_wind.vector.value)
 
-R_wind_to_inertial = build_rotation_matrix(wind_axis.euler_angles_vector, np.array([3, 2, 1]))
-wind_vector_in_inertial =  Vector(csdl.matvec(R_wind_to_inertial, velocity_vector_in_wind.vector), axis=inertial_axis)
-# print('Unit wind vector in inertial axis: ', wind_vector_in_inertial.vector.value)
+# R_wind_to_inertial = build_rotation_matrix(wind_axis.euler_angles_vector, np.array([3, 2, 1]))
+# wind_vector_in_inertial =  Vector(csdl.matvec(R_wind_to_inertial, velocity_vector_in_wind.vector), axis=inertial_axis)
+# # print('Unit wind vector in inertial axis: ', wind_vector_in_inertial.vector.value)
 
-R_body_to_inertial = build_rotation_matrix(fd_axis.euler_angles_vector, np.array([3, 2, 1]))
-wind_vector_in_body =  Vector(csdl.matvec(csdl.transpose(R_body_to_inertial), wind_vector_in_inertial.vector), axis=fd_axis)
-# print('Unit wind vector in body axis: ', wind_vector_in_body.vector.value)
+# R_body_to_inertial = build_rotation_matrix(fd_axis.euler_angles_vector, np.array([3, 2, 1]))
+# wind_vector_in_body =  Vector(csdl.matvec(csdl.transpose(R_body_to_inertial), wind_vector_in_inertial.vector), axis=fd_axis)
+# # print('Unit wind vector in body axis: ', wind_vector_in_body.vector.value)
 
-R_wing_to_openvsp = build_rotation_matrix(wing_axis.euler_angles_vector, np.array([3, 2, 1]))
-wind_vector_in_wing =  Vector(csdl.matvec(csdl.transpose(R_wing_to_openvsp), wind_vector_in_body.vector), axis=wing_axis)
-# print('Unit wind vector in wing axis: ', wind_vector_in_wing.vector.value)
-alpha = csdl.arctan(wind_vector_in_wing.vector[2]/wind_vector_in_wing.vector.value[0])
+# R_wing_to_openvsp = build_rotation_matrix(wing_axis.euler_angles_vector, np.array([3, 2, 1]))
+# wind_vector_in_wing =  Vector(csdl.matvec(csdl.transpose(R_wing_to_openvsp), wind_vector_in_body.vector), axis=wing_axis)
+# # print('Unit wind vector in wing axis: ', wind_vector_in_wing.vector.value)
+# alpha = csdl.arctan(wind_vector_in_wing.vector[2]/wind_vector_in_wing.vector.value[0])
 # print('Effective angle of attack (deg): ', np.rad2deg(alpha.value))
 
+alpha = csdl.Variable(shape=(1, ), value=np.deg2rad(2), name='Angle of Attack')
 # Calculate lift and drag coefficients
 CL = 2 * np.pi * alpha
 CD = 0.001 + 1 / (np.pi * 0.87 * 12) * CL**2
 
 # Define constants
 rho = 1.225
-S = 203 * ft2m
+S = 50
 V = 35
 
 # Calculate lift and drag forces
@@ -579,7 +606,7 @@ wing_translation_x_coefficients = csdl.Variable(name='wing_translation_x_coeffic
 wing_translation_x_b_spline = lfs.Function(name='wing_translation_x_b_spline', space=constant_b_spline_curve_1_dof_space,
                                           coefficients=wing_translation_x_coefficients)
 
-wing_translation_z_coefficients = csdl.Variable(name='wing_translation_z_coefficients', value=np.array([10.]))
+wing_translation_z_coefficients = csdl.Variable(name='wing_translation_z_coefficients', value=np.array([0.]))
 wing_translation_z_b_spline = lfs.Function(name='wing_translation_z_b_spline', space=constant_b_spline_curve_1_dof_space,
                                           coefficients=wing_translation_z_coefficients)
 
@@ -842,6 +869,13 @@ geometry.plot()
 
 
 def define_heirarchy():
+    """
+    Defines the hierarchical structure of an aircraft and its components.
+    The function creates an aircraft component and adds various subcomponents to it, including wings, tails, fuselage,
+    landing gears, propulsion systems, and pylons. It also connects certain components geometrically.
+    Returns:
+        tuple: A tuple containing the Aircraft component and its configuration.
+    """
     Aircraft = Component(name='Aircraft', geometry=geometry)
     config = Configuration(system=Aircraft)
     # Wing, Tails, Fuselage
