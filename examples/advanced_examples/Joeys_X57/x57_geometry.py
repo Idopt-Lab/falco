@@ -675,23 +675,55 @@ L = 0.5*rho*V**2*CL*S
 D = 0.5*rho*V**2*CD*S
 
 aero_force = csdl.Variable(shape=(3, ), value=0.)
+aero_moment = csdl.Variable(shape=(3, ), value=0.)
 aero_force = aero_force.set(csdl.slice[0], -D)
 aero_force = aero_force.set(csdl.slice[2], -L)
 
-aero_force_vector_in_wind = Vector(vector=aero_force, axis=wind_axis)
-# print('Aero force vector in wind-axis: ', aero_force_vector_in_wind.vector.value)
-aero_force_vector_in_inertial =  Vector(csdl.matvec(R_wind_to_inertial, aero_force_vector_in_wind.vector), axis=inertial_axis)
-# print('Aero force vector in inertial-axis: ', aero_force_vector_in_inertial.vector.value)
-aero_force_vector_in_body =  Vector(csdl.matvec(csdl.transpose(R_body_to_inertial), aero_force_vector_in_inertial.vector), axis=fd_axis)
-# print('Aero force vector in body-axis: ', aero_force_vector_in_body.vector.value)
-aero_force_vector_in_wing =  Vector(csdl.matvec(csdl.transpose(R_wing_to_openvsp), aero_force_vector_in_body.vector), axis=fd_axis)
-# print('Aero force vector in wing-axis: ', aero_force_vector_in_wing.vector.value)
+
+aero_force_vector_in_wing = Vector(vector=aero_force, axis=wing_axis)
+aero_moment_vector_in_wing = Vector(vector=aero_moment, axis=wing_axis)
+print('Aero Force in Wing Axis: ', aero_force_vector_in_wing.vector.value)
+print('Aero Moment in Wing Axis: ', aero_moment_vector_in_wing.vector.value)
+
+
+aero_force_moment_in_wing = ForcesMoments(force=aero_force_vector_in_wing, moment=aero_moment_vector_in_wing)
+aero_force_moment_in_body = aero_force_moment_in_wing.rotate_to_axis(fd_axis)
+aero_force_in_body = aero_force_moment_in_body.F
+aero_moment_in_body = aero_force_moment_in_body.M
+print('Aero Force in Body Axis: ', aero_force_in_body.vector.value)
+print('Aero Moment in Body Axis: ', aero_moment_in_body.vector.value)
+
+
+
+
+
+
+
+
+
 
 
 # Rotor Forces
-cruise_motor_force = Vector(vector=np.array([0, 0, 0])*ureg.lbf, axis=cruise_motor_axis)
-cruise_motor_moment = Vector(vector=np.array([0, 0, 0])*ureg.lbf*ureg.inch, axis=cruise_motor_axis)
-cruise_motor_loads = ForcesMoments(force=cruise_motor_force, moment=cruise_motor_moment)
+cruise_motor_thrust=400
+cruise_motor_force = csdl.Variable(shape=(3, ), value=0.)
+cruise_motor_moment = csdl.Variable(shape=(3, ), value=0.)
+cruise_motor_force = aero_force.set(csdl.slice[0], cruise_motor_thrust)
+
+prop_force_vector_in_cruise_motor = Vector(vector=cruise_motor_force, axis=cruise_motor_axis)
+prop_moment_vector_in_cruise_motor = Vector(vector=cruise_motor_moment, axis=cruise_motor_axis)
+print('Prop Force in Cruise Motor Axis: ', prop_force_vector_in_cruise_motor.vector.value)
+print('Prop Moment in Cruise Motor Axis: ', prop_moment_vector_in_cruise_motor.vector.value)
+
+
+prop_force_moment_in_cruise_motor = ForcesMoments(force=prop_force_vector_in_cruise_motor, moment=prop_moment_vector_in_cruise_motor)
+cruise_motor_prop_force_moment_in_body = prop_force_moment_in_cruise_motor.rotate_to_axis(fd_axis)
+cruise_motor_prop_force_in_body = cruise_motor_prop_force_moment_in_body.F
+cruise_motor_prop_moment_in_body = cruise_motor_prop_force_moment_in_body.M
+print('Cruise Motor Prop Force in Body Axis: ', cruise_motor_prop_force_in_body.vector.value)
+print('Cruise Motor Prop Moment in Body Axis: ', cruise_motor_prop_moment_in_body.vector.value)
+
+
+
 
 
 
@@ -700,60 +732,60 @@ thrust_axis = cruise_motor_tip - cruise_motor_base
 
 
 
-import flight_simulator.core.vehicle.components.wing as WingComp
-import flight_simulator.core.vehicle.components.fuselage as FuselageComp
+# import flight_simulator.core.vehicle.components.wing as WingComp
+# import flight_simulator.core.vehicle.components.fuselage as FuselageComp
 
 
 
 
-fuselage_length = csdl.Variable(name="fuselage_length", shape=(1, ), value=csdl.norm(fuselage_rear_guess[0] - fuselage_nose_guess[0]).value)
-Fuselage_comp = FuselageComp.Fuselage(
-    length=fuselage_length, geometry=fuselage, skip_ffd=False)
+# fuselage_length = csdl.Variable(name="fuselage_length", shape=(1, ), value=csdl.norm(fuselage_rear_guess[0] - fuselage_nose_guess[0]).value)
+# Fuselage_comp = FuselageComp.Fuselage(
+#     length=fuselage_length, geometry=fuselage, skip_ffd=False)
 
-wing_AR = csdl.Variable(name="wing_AR", shape=(1, ), value=12.12)
-wing_S_ref = csdl.Variable(name="wing_S_ref", shape=(1, ), value=19.6)
-wing_span = csdl.Variable(name="wingspan", shape=(1, ), value=60)
-Wing_comp = WingComp.Wing(AR=wing_AR,S_ref=wing_S_ref,
-                                    geometry=wing,
-                                    tight_fit_ffd=False, name='WingComp',orientation='horizontal')
+# wing_AR = csdl.Variable(name="wing_AR", shape=(1, ), value=12.12)
+# wing_S_ref = csdl.Variable(name="wing_S_ref", shape=(1, ), value=19.6)
+# wing_span = csdl.Variable(name="wingspan", shape=(1, ), value=60)
+# Wing_comp = WingComp.Wing(AR=wing_AR,S_ref=wing_S_ref,
+#                                     geometry=wing,
+#                                     tight_fit_ffd=False, name='WingComp',orientation='horizontal')
 
-flap_AR = csdl.Variable(name="flap_AR", shape=(1, ), value=12.12)
-flap_S_ref = csdl.Variable(name="flap_S_ref", shape=(1, ), value=4)
-Flaps_comp = WingComp.Wing(AR=flap_AR, S_ref=flap_S_ref,
-                                    geometry=flap,tight_fit_ffd=False, name='FlapComp', orientation='horizontal')
+# flap_AR = csdl.Variable(name="flap_AR", shape=(1, ), value=12.12)
+# flap_S_ref = csdl.Variable(name="flap_S_ref", shape=(1, ), value=4)
+# Flaps_comp = WingComp.Wing(AR=flap_AR, S_ref=flap_S_ref,
+#                                     geometry=flap,tight_fit_ffd=False, name='FlapComp', orientation='horizontal')
 
-aileron_AR = csdl.Variable(name="aileron_AR", shape=(1, ), value=12.12)
-aileron_S_ref = csdl.Variable(name="aileron_S_ref", shape=(1, ), value=4)
-Left_Aileron_comp = WingComp.Wing(AR=aileron_AR, S_ref=aileron_S_ref,
-                                    geometry=aileronL,tight_fit_ffd=False, name='LeftAileronComp',orientation='horizontal')
-Right_Aileron_comp = WingComp.Wing(AR=aileron_AR, S_ref=aileron_S_ref,
-                                    geometry=aileronR,tight_fit_ffd=False, name='RightAileronComp',orientation='horizontal')
-
-
-
-Aircraft = Component(name='Aircraft', geometry=geometry)
-
-base_config = Configuration(system=Aircraft)
-
-base_config.connect_component_geometries(Wing_comp, Flaps_comp, connection_point=wing_te_center_flaps_guess)
-base_config.connect_component_geometries(Wing_comp, Left_Aileron_comp, connection_point=wing_te_center_ailerons_guess)
-base_config.connect_component_geometries(Wing_comp, Right_Aileron_comp, connection_point=wing_te_center_ailerons_guess)
-base_config.connect_component_geometries(Wing_comp, Fuselage_comp, connection_point=0.75*wing_le_center_guess + 0.25*wing_te_center_guess)
+# aileron_AR = csdl.Variable(name="aileron_AR", shape=(1, ), value=12.12)
+# aileron_S_ref = csdl.Variable(name="aileron_S_ref", shape=(1, ), value=4)
+# Left_Aileron_comp = WingComp.Wing(AR=aileron_AR, S_ref=aileron_S_ref,
+#                                     geometry=aileronL,tight_fit_ffd=False, name='LeftAileronComp',orientation='horizontal')
+# Right_Aileron_comp = WingComp.Wing(AR=aileron_AR, S_ref=aileron_S_ref,
+#                                     geometry=aileronR,tight_fit_ffd=False, name='RightAileronComp',orientation='horizontal')
 
 
-if run_ffd:
-    if debug:
-        base_config.setup_geometry(plot=True)
-    else:
-        base_config.setup_geometry(plot=True, recorder=recorder)
-else:
-    # pass
-    if debug:
-        pass
-    else:
-        recorder.inline = False
 
-base_configuration = base_config
+# Aircraft = Component(name='Aircraft', geometry=geometry)
+
+# base_config = Configuration(system=Aircraft)
+
+# base_config.connect_component_geometries(Wing_comp, Flaps_comp, connection_point=wing_te_center_flaps_guess)
+# base_config.connect_component_geometries(Wing_comp, Left_Aileron_comp, connection_point=wing_te_center_ailerons_guess)
+# base_config.connect_component_geometries(Wing_comp, Right_Aileron_comp, connection_point=wing_te_center_ailerons_guess)
+# base_config.connect_component_geometries(Wing_comp, Fuselage_comp, connection_point=0.75*wing_le_center_guess + 0.25*wing_te_center_guess)
+
+
+# if run_ffd:
+#     if debug:
+#         base_config.setup_geometry(plot=True)
+#     else:
+#         base_config.setup_geometry(plot=True, recorder=recorder)
+# else:
+#     # pass
+#     if debug:
+#         pass
+#     else:
+#         recorder.inline = False
+
+# base_configuration = base_config
 
 
 

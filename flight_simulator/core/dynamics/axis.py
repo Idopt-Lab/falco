@@ -121,6 +121,7 @@ class Axis:
             self.euler_angles = None
             self.euler_angles_vector = None
 
+        self.translation = self.translation_from_origin_vector
         self.sequence = sequence
         self.reference = reference
         self.origin = origin
