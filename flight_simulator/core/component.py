@@ -252,13 +252,9 @@ class Component:
     def _setup_ffd_parameterization(self):
         raise NotImplementedError(f"'_setup_ffd_parameterization' has not been implemented for {type(self)}")
 
-    def _setup_geometry(self, parameterization_solver, ffd_geometric_variables, plot=False, parent_translation=None):
+    def _setup_geometry(self, parameterization_solver, ffd_geometric_variables, plot=False):
         # Add rigid body translation (without FFD)
-        if parent_translation is None:
-            rigid_body_translation = csdl.ImplicitVariable(shape=(3, ), value=0., name=f'{self._name}_rigid_body_translation')
-        else:
-            rigid_body_translation = parent_translation + csdl.ImplicitVariable(shape=(3, ), value=0., name=f'{self._name}_rigid_body_translation')
-
+        rigid_body_translation = csdl.ImplicitVariable(shape=(3, ), value=0., name=f'{self._name}_rigid_body_translation')
         for function in self.geometry.functions.values():
             shape = function.coefficients.shape
             function.coefficients = function.coefficients + csdl.expand(rigid_body_translation, shape, action="k->ijk")
@@ -983,14 +979,14 @@ class Configuration:
         if not isinstance(system_geometry, FunctionSet):
             raise TypeError(f"The geometry of the system must be of type {FunctionSet}. Received {type(system_geometry)}")
 
-        def setup_geometries(component: Component, parent_translation=None):
+        def setup_geometries(component: Component):
             # If component has a geometry, set up its geometry
             if component.geometry is not None:
                 if component._skip_ffd is True:
                     pass
                 else:
                     try: # NOTE: might cause some issues because try/except might hide some errors that shouldn't be hidden
-                        component._setup_geometry(parameterization_solver, ffd_geometric_variables, plot=plot, parent_translation=parent_translation)
+                        component._setup_geometry(parameterization_solver, ffd_geometric_variables, plot=plot)
 
                     except NotImplementedError:
                         warnings.warn(f"'_setup_geometry' has not been implemented for component {component._name} of {type(component)}")
@@ -998,7 +994,7 @@ class Configuration:
             # If component has children, set up their geometries
             if component.comps:
                 for comp_name, comp in component.comps.items():
-                    setup_geometries(comp, parent_translation)
+                    setup_geometries(comp)
 
             return
     
