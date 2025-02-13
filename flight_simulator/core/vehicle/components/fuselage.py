@@ -175,6 +175,7 @@ class Fuselage(Component):
         rigid_body_translation = csdl.ImplicitVariable(shape=(3, ), value=0.)
         for function in self.geometry.functions.values():
             shape = function.coefficients.shape
+            print(shape)
             function.coefficients = function.coefficients + csdl.expand(rigid_body_translation, shape, action='j->ij')
 
         # Add (B-spline) coefficients to parameterization solver
