@@ -35,12 +35,12 @@ def define_base_geometry():
     ## Wing
     wing = geometry.declare_component(function_search_names=['Wing'], name='wing')
     ## Aileron and flaps
-    ob_left_aileron = geometry.declare_component(function_search_names=['OB_AILERON, 0'], name='ob_left_aileron')
-    mid_left_flap = geometry.declare_component(function_search_names=['MID_FLAP, 0'], name='mid_left_flap')
-    ib_left_flap = geometry.declare_component(function_search_names=['IB_FLAP, 0'], name='ib_left_flap')
-    ob_right_aileron = geometry.declare_component(function_search_names=['OB_AILERON, 1'], name='ob_right_aileron')
-    mid_right_flap = geometry.declare_component(function_search_names=['MID_FLAP, 1'], name='mid_right_flap')
-    ib_right_flap = geometry.declare_component(function_search_names=['IB_FLAP, 1'], name='ib_right_flap')
+    ob_left_aileron = geometry.declare_component(function_search_names=['OB_AILERON, 1'], name='ob_left_aileron')
+    mid_left_flap = geometry.declare_component(function_search_names=['MID_FLAP, 1'], name='mid_left_flap')
+    ib_left_flap = geometry.declare_component(function_search_names=['IB_FLAP, 1'], name='ib_left_flap')
+    ob_right_aileron = geometry.declare_component(function_search_names=['OB_AILERON, 0'], name='ob_right_aileron')
+    mid_right_flap = geometry.declare_component(function_search_names=['MID_FLAP, 0'], name='mid_right_flap')
+    ib_right_flap = geometry.declare_component(function_search_names=['IB_FLAP, 0'], name='ib_right_flap')
     ## Tail(s)
     h_tail = geometry.declare_component(function_search_names=['HTail'], name='h_tail')
     v_tail = geometry.declare_component(function_search_names=['VTail'], name='v_tail')
@@ -84,7 +84,6 @@ rotor_hub_ob_left_fwd, rotor_hub_mid_left_fwd, rotor_hub_ib_left_fwd, rotor_hub_
 rotor_hub_ob_left_aft, rotor_hub_mid_left_aft, rotor_hub_ib_left_aft, rotor_hub_ob_right_aft, rotor_hub_mid_right_aft, rotor_hub_ib_right_aft, \
 ob_left_aileron, mid_left_flap, ib_left_flap, ob_right_aileron, mid_right_flap, ib_right_flap = define_base_geometry()
 
-geometry.plot()
 # Wing info
 wing_root_le_guess = np.array([-8, 0, -5.41])*ft2m
 wing_root_le_parametric = wing.project(wing_root_le_guess, plot=plot_flag)
@@ -104,6 +103,86 @@ wingspan = csdl.norm(
     geometry.evaluate(wing_tip_left_le_parametric) - geometry.evaluate(wing_tip_right_le_parametric)
 )
 # print('Wingspan: ',wingspan.value)
+geometry.plot()
+# Aileron and Flap Info
+ob_left_aileron_root_le_guess = np.array([-12, -15, -5.5])*ft2m
+ob_left_aileron_root_le_parametric = ob_left_aileron.project(ob_left_aileron_root_le_guess, plot=plot_flag)
+ob_left_aileron_root_le = geometry.evaluate(ob_left_aileron_root_le_parametric)
+ob_left_aileron_root_te_guess = np.array([-15, -15, -5.5])*ft2m
+ob_left_aileron_root_te_parametric = ob_left_aileron.project(ob_left_aileron_root_te_guess, plot=plot_flag)
+ob_left_aileron_root_te = geometry.evaluate(ob_left_aileron_root_te_parametric)
+ob_left_aileron_tip_le_guess = np.array([-8, -26, -5.5])*ft2m
+ob_left_aileron_tip_le_parametric = ob_left_aileron.project(ob_left_aileron_tip_le_guess, plot=plot_flag)   
+ob_left_aileron_tip_le = geometry.evaluate(ob_left_aileron_tip_le_parametric)
+ob_left_aileron_tip_te_guess = np.array([-15, -26, -5.5])*ft2m
+ob_left_aileron_tip_te_parametric = ob_left_aileron.project(ob_left_aileron_tip_te_guess, plot=plot_flag)
+ob_left_aileron_tip_te = geometry.evaluate(ob_left_aileron_tip_te_parametric)
+
+ob_right_aileron_root_le_guess = np.array([-12, 15, -5.5])*ft2m
+ob_right_aileron_root_le_parametric = ob_right_aileron.project(ob_right_aileron_root_le_guess, plot=plot_flag)
+ob_right_aileron_root_le = geometry.evaluate(ob_right_aileron_root_le_parametric)
+ob_right_aileron_root_te_guess = np.array([-15, 15, -5.5])*ft2m
+ob_right_aileron_root_te_parametric = ob_right_aileron.project(ob_right_aileron_root_te_guess, plot=plot_flag)
+ob_right_aileron_root_te = geometry.evaluate(ob_right_aileron_root_te_parametric)
+ob_right_aileron_tip_le_guess = np.array([-8, 26, -5.5])*ft2m
+ob_right_aileron_tip_le_parametric = ob_right_aileron.project(ob_right_aileron_tip_le_guess, plot=plot_flag)
+ob_right_aileron_tip_le = geometry.evaluate(ob_right_aileron_tip_le_parametric)
+ob_right_aileron_tip_te_guess = np.array([-15, 26, -5.5])*ft2m
+ob_right_aileron_tip_te_parametric = ob_right_aileron.project(ob_right_aileron_tip_te_guess, plot=plot_flag)
+ob_right_aileron_tip_te = geometry.evaluate(ob_right_aileron_tip_te_parametric)
+
+mid_left_flap_root_le_guess = np.array([-10, -6, -5.5])*ft2m
+mid_left_flap_root_le_parametric = mid_left_flap.project(mid_left_flap_root_le_guess, plot=plot_flag)
+mid_left_flap_root_le = geometry.evaluate(mid_left_flap_root_le_parametric)
+mid_left_flap_root_te_guess = np.array([-15, -6, -5.5])*ft2m
+mid_left_flap_root_te_parametric = mid_left_flap.project(mid_left_flap_root_te_guess, plot=plot_flag)
+mid_left_flap_root_te = geometry.evaluate(mid_left_flap_root_te_parametric)
+mid_left_flap_tip_le_guess = np.array([-10, -15, -5.5])*ft2m
+mid_left_flap_tip_le_parametric = mid_left_flap.project(mid_left_flap_tip_le_guess, plot=plot_flag)
+mid_left_flap_tip_le = geometry.evaluate(mid_left_flap_tip_le_parametric)
+mid_left_flap_tip_te_guess = np.array([-15, -15, -5.5])*ft2m
+mid_left_flap_tip_te_parametric = mid_left_flap.project(mid_left_flap_tip_te_guess, plot=plot_flag)
+mid_left_flap_tip_te = geometry.evaluate(mid_left_flap_tip_te_parametric)
+
+mid_right_flap_root_le_guess = np.array([-10, 6, -5.5])*ft2m
+mid_right_flap_root_le_parametric = mid_right_flap.project(mid_right_flap_root_le_guess, plot=plot_flag)
+mid_right_flap_root_le = geometry.evaluate(mid_right_flap_root_le_parametric)
+mid_right_flap_root_te_guess = np.array([-15, 6, -5.5])*ft2m
+mid_right_flap_root_te_parametric = mid_right_flap.project(mid_right_flap_root_te_guess, plot=plot_flag)
+mid_right_flap_root_te = geometry.evaluate(mid_right_flap_root_te_parametric)
+mid_right_flap_tip_le_guess = np.array([-10, 15, -5.5])*ft2m
+mid_right_flap_tip_le_parametric = mid_right_flap.project(mid_right_flap_tip_le_guess, plot=plot_flag)
+mid_right_flap_tip_le = geometry.evaluate(mid_right_flap_tip_le_parametric)
+mid_right_flap_tip_te_guess = np.array([-15, 15, -5.5])*ft2m
+mid_right_flap_tip_te_parametric = mid_right_flap.project(mid_right_flap_tip_te_guess, plot=plot_flag)
+mid_right_flap_tip_te = geometry.evaluate(mid_right_flap_tip_te_parametric)
+
+ib_left_flap_root_le_guess = np.array([-10, -2, -5.5])*ft2m
+ib_left_flap_root_le_parametric = ib_left_flap.project(ib_left_flap_root_le_guess, plot=plot_flag)
+ib_left_flap_root_le = geometry.evaluate(ib_left_flap_root_le_parametric)
+ib_left_flap_root_te_guess = np.array([-15, -2, -5.5])*ft2m
+ib_left_flap_root_te_parametric = ib_left_flap.project(ib_left_flap_root_te_guess, plot=plot_flag)
+ib_left_flap_root_te = geometry.evaluate(ib_left_flap_root_te_parametric)
+ib_left_flap_tip_le_guess = np.array([-10, -6, -5.5])*ft2m
+ib_left_flap_tip_le_parametric = ib_left_flap.project(ib_left_flap_tip_le_guess, plot=plot_flag)
+ib_left_flap_tip_le = geometry.evaluate(ib_left_flap_tip_le_parametric)
+ib_left_flap_tip_te_guess = np.array([-15, -6, -5.5])*ft2m
+ib_left_flap_tip_te_parametric = ib_left_flap.project(ib_left_flap_tip_te_guess, plot=plot_flag)
+ib_left_flap_tip_te = geometry.evaluate(ib_left_flap_tip_te_parametric)
+
+ib_right_flap_root_le_guess = np.array([-10, 2, -5.5])*ft2m
+ib_right_flap_root_le_parametric = ib_right_flap.project(ib_right_flap_root_le_guess, plot=plot_flag)
+ib_right_flap_root_le = geometry.evaluate(ib_right_flap_root_le_parametric)
+ib_right_flap_root_te_guess = np.array([-15, 2, -5.5])*ft2m
+ib_right_flap_root_te_parametric = ib_right_flap.project(ib_right_flap_root_te_guess, plot=plot_flag)
+ib_right_flap_root_te = geometry.evaluate(ib_right_flap_root_te_parametric)
+ib_right_flap_tip_le_guess = np.array([-10, 6, -5.5])*ft2m
+ib_right_flap_tip_le_parametric = ib_right_flap.project(ib_right_flap_tip_le_guess, plot=plot_flag)
+ib_right_flap_tip_le = geometry.evaluate(ib_right_flap_tip_le_parametric)
+ib_right_flap_tip_te_guess = np.array([-15, 6, -5.5])*ft2m
+ib_right_flap_tip_te_parametric = ib_right_flap.project(ib_right_flap_tip_te_guess, plot=plot_flag)
+ib_right_flap_tip_te = geometry.evaluate(ib_right_flap_tip_te_parametric)
+
 
 # Horizontal Tail Info
 htail_root_le_guess = np.array([-23, 0, -3.7])*ft2m
@@ -256,7 +335,7 @@ def define_axes():
     print('Wing Axis Translation (m): ', wing_axis.translation.value)
     print('Wing Axis Rotation (deg): ', np.rad2deg(wing_axis.euler_angles_vector.value))
 
-    # vtail_deflection = csdl.Variable(shape=(1, ), value=np.deg2rad(0), name='Vtail Deflection')
+    vtail_deflection = csdl.Variable(shape=(1, ), value=np.deg2rad(0), name='Vtail Deflection')
     # v_tail.rotate(vtail_root_le, np.array([0., 0., 1.]), angles=vtail_deflection)
 
     vtail_axis = AxisLsdoGeo(
@@ -270,12 +349,11 @@ def define_axes():
         reference=openvsp_axis,
         origin=ValidOrigins.OpenVSP.value
     )
-    # geometry.plot()
 
     # print('Vtail Axis Translation (m): ', vtail_axis.translation.value)
     # print('Vtail Axis Rotation (deg): ', np.rad2deg(vtail_axis.euler_angles_vector.value))
 
-    # htail_deflection = csdl.Variable(shape=(1, ), value=np.deg2rad(0), name='Htail Deflection')
+    htail_deflection = csdl.Variable(shape=(1, ), value=np.deg2rad(0), name='Htail Deflection')
     # h_tail.rotate(htail_root_le, np.array([0., 1., 0.]), angles=htail_deflection)
 
     htail_axis = AxisLsdoGeo(
@@ -291,7 +369,6 @@ def define_axes():
     )
     # print('Htail Axis Translation (m): ', htail_axis.translation.value)
     # print('Htail Axis Rotation (deg): ', np.rad2deg(htail_axis.euler_angles_vector.value))
-    # geometry.plot()
 
     pt_axis_ob_left_fwd = AxisLsdoGeo(
         name='PT Axis Outboard Left FWD',
@@ -551,16 +628,15 @@ aero_moment_vector_in_wing = Vector(vector=aero_moment, axis=wing_axis)
 
 aero_force_moment_in_wing = ForcesMoments(force=aero_force_vector_in_wing, moment=aero_moment_vector_in_wing)
 
-print(aero_force_vector_in_wing.vector.value)
-print(aero_moment_vector_in_wing.vector.value)
+print("Aero force vector in wing axis:", aero_force_vector_in_wing.vector.value)
+print("Aero moment vector in wing axis:", aero_moment_vector_in_wing.vector.value)
 
 aero_force_moment_in_body = aero_force_moment_in_wing.rotate_to_axis(fd_axis)
 aero_force_in_body = aero_force_moment_in_body.F
 aero_moment_in_body = aero_force_moment_in_body.M
 
-
-print(aero_force_in_body.vector.value)
-print(aero_moment_in_body.vector.value)
+print("Aero force vector in body axis:", aero_force_in_body.vector.value)
+print("Aero moment vector in body axis:", aero_moment_in_body.vector.value)
 
 ## FFD
 
@@ -574,8 +650,8 @@ linear_b_spline_curve_3_dof_space = lfs.BSplineSpace(num_parametric_dimensions=1
 cubic_b_spline_curve_5_dof_space = lfs.BSplineSpace(num_parametric_dimensions=1, degree=3, coefficients_shape=(5,))
 
 # # region Parameterization Setup
-# parameterization_solver = lg.ParameterizationSolver()
-# parameterization_design_parameters = lg.GeometricVariables()
+parameterization_solver = lg.ParameterizationSolver()
+parameterization_design_parameters = lg.GeometricVariables()
 
 # # region Wing Parameterization setup
 wing_ffd_block = lg.construct_ffd_block_around_entities(name='wing_ffd_block', entities=[wing], num_coefficients=(2,11,2), degree=(1,3,1))
@@ -606,7 +682,7 @@ wing_translation_x_coefficients = csdl.Variable(name='wing_translation_x_coeffic
 wing_translation_x_b_spline = lfs.Function(name='wing_translation_x_b_spline', space=constant_b_spline_curve_1_dof_space,
                                           coefficients=wing_translation_x_coefficients)
 
-wing_translation_z_coefficients = csdl.Variable(name='wing_translation_z_coefficients', value=np.array([0.]))
+wing_translation_z_coefficients = csdl.Variable(name='wing_translation_z_coefficients', value=np.array([10.]))
 wing_translation_z_b_spline = lfs.Function(name='wing_translation_z_b_spline', space=constant_b_spline_curve_1_dof_space,
                                           coefficients=wing_translation_z_coefficients)
 
@@ -632,9 +708,12 @@ wing_sectional_parameters = lg.VolumeSectionalParameterizationInputs(
 # sectional_parameters.add_sectional_translation(axis=0, translation=sweep_translation_sectional_parameters)
 # sectional_parameters.add_sectional_rotation(axis=1, rotation=twist_sectional_parameters)
 
-
-
-
+parameterization_solver.add_parameter(parameter=wing_chord_stretch_coefficients)
+parameterization_solver.add_parameter(parameter=wing_wingspan_stretch_coefficients, cost=1.e3)
+parameterization_solver.add_parameter(parameter=wing_translation_x_coefficients)
+parameterization_solver.add_parameter(parameter=wing_translation_z_coefficients)
+parameterization_solver.add_parameter(parameter=wing_twist_coefficients)
+parameterization_solver.add_parameter(parameter=wing_sweep_coefficients)
 
 
 # # region Horizontal Stabilizer setup
@@ -675,6 +754,11 @@ htail_sectional_parameters = lg.VolumeSectionalParameterizationInputs(
     translations={1: sectional_h_tail_span_stretch, 0: sectional_h_tail_translation_x, 2: sectional_h_tail_translation_z}
 )
 
+parameterization_solver.add_parameter(parameter=h_tail_chord_stretch_coefficients)
+parameterization_solver.add_parameter(parameter=h_tail_span_stretch_coefficients, cost=1.e3)
+parameterization_solver.add_parameter(parameter=h_tail_translation_x_coefficients)
+parameterization_solver.add_parameter(parameter=h_tail_translation_z_coefficients)
+parameterization_solver.add_parameter(parameter=h_tail_twist_coefficients)
 
 
 
@@ -690,7 +774,7 @@ vtailchordstretch=np.array([-0., 0.])
 v_tail_chord_stretch_coefficients = csdl.Variable(name='v_tail_chord_stretch_coefficients', value=vtailchordstretch)
 v_tail_chord_stretch_b_spline = lfs.Function(name='v_tail_chord_stretch_b_spline', space=linear_b_spline_curve_2_dof_space,
                                             coefficients=v_tail_chord_stretch_coefficients)
-# geometry.plot(color='red')
+
 vtailspanstrech=np.array([0.])
 v_tail_span_stretch_coefficients = csdl.Variable(name='v_tail_span_stretch_coefficients', value=vtailspanstrech)
 v_tail_span_stretch_b_spline = lfs.Function(name='v_tail_span_stretch_b_spline', space=constant_b_spline_curve_1_dof_space, 
@@ -814,58 +898,20 @@ sectional_parameters = lg.VolumeSectionalParameterizationInputs(
     translations={0: sectional_fuselage_stretch}
 )
 
+parameterization_solver.add_parameter(parameter=fuselage_stretch_coefficients)
 
 
-# fuselage_tailing_point=fuselage.project(fuselage_ffd_block.evaluate(parametric_coordinates=np.array([0., 0.5, 0.5])))
-# fuselage_leading_point=fuselage.project(fuselage_ffd_block.evaluate(parametric_coordinates=np.array([1., 0.5, 0.5])))
+fuselage_tailing_point=fuselage.project(fuselage_ffd_block.evaluate(parametric_coordinates=np.array([0., 0.5, 0.5])))
+fuselage_leading_point=fuselage.project(fuselage_ffd_block.evaluate(parametric_coordinates=np.array([1., 0.5, 0.5])))
 
 
+# wing_fuselage_connection = wing_root_te - geometry.evaluate(fuselage_tailing_point)
+# h_tail_fuselage_connection = htail_root_te - geometry.evaluate(fuselage_tailing_point)
+# parameterization_design_parameters.add_variable(computed_value=wing_fuselage_connection, desired_value=wing_fuselage_connection.value)
+# parameterization_design_parameters.add_variable(computed_value=h_tail_fuselage_connection, desired_value=h_tail_fuselage_connection.value)
 
-
-# This keeps the pylons in place (not desired)
-# for i, PylonComp in enumerate(pylonGroups):
-#     config.connect_component_geometries(comp_1=Wing,comp_2=PylonComp,comp_1_ffd_block=wing_ffd_block,comp_2_ffd_block=pylon_ffd_blocks[i])
- 
-
-wing_ffd_block_coefficients = wing_ffd_block_sectional_parameterization.evaluate(wing_sectional_parameters, plot=False)
-wing_coefficients = wing_ffd_block.evaluate(wing_ffd_block_coefficients, plot=False)
-wing.set_coefficients(wing_coefficients)
-h_tail_ffd_block_coefficients = h_tail_ffd_block_sectional_parameterization.evaluate(htail_sectional_parameters, plot=False)
-h_tail_coefficients = h_tail_ffd_block.evaluate(h_tail_ffd_block_coefficients, plot=False)
-h_tail.set_coefficients(coefficients=h_tail_coefficients)
-v_tail_ffd_block_coefficients = v_tail_ffd_block_sectional_parameterization.evaluate(vtail_sectional_parameters, plot=False)
-v_tail_coefficients = v_tail_ffd_block.evaluate(v_tail_ffd_block_coefficients, plot=False)
-v_tail.set_coefficients(coefficients=v_tail_coefficients)
-for i, comp in enumerate(pylons):
-    pylon_ffd_block_coefficients = pylon_sectional_parameterizations[i].evaluate(pylon_sectional_parameters, plot=False)
-    pylon_coefficients = pylon_ffd_blocks[i].evaluate(pylon_ffd_block_coefficients, plot=False)
-    pylons[i].set_coefficients(pylon_coefficients)
-# fuselage_ffd_block_coefficients = fuselage_ffd_block_sectional_parameterization.evaluate(sectional_parameters, plot=False)
-# fuselage_coefficients = fuselage_ffd_block.evaluate(fuselage_ffd_block_coefficients, plot=False)
-# fuselage.set_coefficients(coefficients=fuselage_coefficients)
-
-print('After ffd:')
-
-print('Wing Axis Translation (m): ', wing_axis.translation.value)
-print('Wing Axis Rotation (deg): ', np.rad2deg(wing_axis.euler_angles_vector.value))
-
-aero_force_vector_in_wing = Vector(vector=aero_force, axis=wing_axis)
-aero_moment_vector_in_wing = Vector(vector=aero_moment, axis=wing_axis)
-aero_force_moment_in_wing = ForcesMoments(force=aero_force_vector_in_wing, moment=aero_moment_vector_in_wing)
-aero_force_moment_in_body = aero_force_moment_in_wing.rotate_to_axis(fd_axis)
-aero_force_in_body = aero_force_moment_in_body.F
-aero_moment_in_body = aero_force_moment_in_body.M
-
-print(aero_force_vector_in_wing.vector.value)
-print(aero_moment_vector_in_wing.vector.value)
-print(aero_force_in_body.vector.value)
-print(aero_moment_in_body.vector.value)
-
-
-geometry.plot()
-
-
-
+# print("Wing-Fuselage Connection Shape:", wing_fuselage_connection.shape)
+# print("Wing-Fuselage Connection Value Shape:", wing_fuselage_connection.value.shape)
 
 
 def define_heirarchy():
@@ -877,7 +923,7 @@ def define_heirarchy():
         tuple: A tuple containing the Aircraft component and its configuration.
     """
     Aircraft = Component(name='Aircraft', geometry=geometry)
-    config = Configuration(system=Aircraft)
+    
     # Wing, Tails, Fuselage
     Wing = Component(name='Wing',geometry=wing)
     HorizTail = Component(name='Horizontal Tail',geometry=h_tail)
@@ -943,7 +989,7 @@ def define_heirarchy():
     Propulsion.add_subcomponent(Supports)
     Aircraft.add_subcomponent(Propulsion)
 
-
+    config = Configuration(system=Aircraft)
     config.connect_component_geometries(Fuselage,HorizTail,connection_point=htail_root_te_guess)
     config.connect_component_geometries(Fuselage,VertTail,connection_point=vtail_root_te_guess)
     # config.connect_component_geometries(Motor_ib_left_aft,Pylon_Inboard_Left,connection_point=rotor_hub_ib_left_aft.evaluate(pt_ib_left_aft_bot_parametric))
@@ -963,13 +1009,50 @@ def define_heirarchy():
 
 Aircraft, config = define_heirarchy()
 
-# print(rotor_hub_ib_left_aft.evaluate(pt_ib_left_aft_bot_parametric))
+
+# parameterization_solver.evaluate(parameterization_design_parameters)
 
 
 # ERRORS OUT
-# config.setup_geometry(plot=True)
+config.setup_geometry(plot=True)
+
+wing_ffd_block_coefficients = wing_ffd_block_sectional_parameterization.evaluate(wing_sectional_parameters, plot=False)
+wing_coefficients = wing_ffd_block.evaluate(wing_ffd_block_coefficients, plot=False)
+wing.set_coefficients(wing_coefficients)
+h_tail_ffd_block_coefficients = h_tail_ffd_block_sectional_parameterization.evaluate(htail_sectional_parameters, plot=False)
+h_tail_coefficients = h_tail_ffd_block.evaluate(h_tail_ffd_block_coefficients, plot=False)
+h_tail.set_coefficients(coefficients=h_tail_coefficients)
+v_tail_ffd_block_coefficients = v_tail_ffd_block_sectional_parameterization.evaluate(vtail_sectional_parameters, plot=False)
+v_tail_coefficients = v_tail_ffd_block.evaluate(v_tail_ffd_block_coefficients, plot=False)
+v_tail.set_coefficients(coefficients=v_tail_coefficients)
+for i, comp in enumerate(pylons):
+    pylon_ffd_block_coefficients = pylon_sectional_parameterizations[i].evaluate(pylon_sectional_parameters, plot=False)
+    pylon_coefficients = pylon_ffd_blocks[i].evaluate(pylon_ffd_block_coefficients, plot=False)
+    pylons[i].set_coefficients(pylon_coefficients)
+# fuselage_ffd_block_coefficients = fuselage_ffd_block_sectional_parameterization.evaluate(sectional_parameters, plot=False)
+# fuselage_coefficients = fuselage_ffd_block.evaluate(fuselage_ffd_block_coefficients, plot=False)
+# fuselage.set_coefficients(coefficients=fuselage_coefficients)
 
 
+print('After ffd: Wing Axis Translation (m): ', wing_axis.translation.value)
+print('After ffd: Wing Axis Rotation (deg): ', np.rad2deg(wing_axis.euler_angles_vector.value))
+
+aero_force_vector_in_wing = Vector(vector=aero_force, axis=wing_axis)
+aero_moment_vector_in_wing = Vector(vector=aero_moment, axis=wing_axis)
+aero_force_moment_in_wing = ForcesMoments(force=aero_force_vector_in_wing, moment=aero_moment_vector_in_wing)
+aero_force_moment_in_body = aero_force_moment_in_wing.rotate_to_axis(fd_axis)
+aero_force_in_body = aero_force_moment_in_body.F
+aero_moment_in_body = aero_force_moment_in_body.M
+
+print("After ffd: Aero force vector in wing axis:", aero_force_vector_in_wing.vector.value)
+print("After ffd: Aero moment vector in wing axis:", aero_moment_vector_in_wing.vector.value)
+print("After ffd: Aero force vector in body axis:", aero_force_in_body.vector.value)
+print("After ffd: Aero moment vector in body axis:", aero_moment_in_body.vector.value)
+
+
+# geometry.plot()
+# # parameterization_solver.evaluate(parameterization_design_parameters)
+# geometry.plot(color='Red')
 
 
 recorder.stop()
