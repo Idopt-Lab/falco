@@ -357,6 +357,7 @@ class Configuration:
         self._geometry_setup_has_been_called = True
 
         from lsdo_geo.core.parameterization.parameterization_solver import ParameterizationSolver, GeometricVariables
+
         parameterization_solver = ParameterizationSolver()
         ffd_geometric_variables = GeometricVariables()
         system_geometry = self.system.geometry
@@ -407,13 +408,13 @@ class Configuration:
                 ffd_geometric_variables.add_variable(connection, connection.value)
                 print(f"Added connection variable with value: {connection.value}")
             else:
-                # if connection.shape != desired_value.shape:
-                #     if desired_value.shape == (1, ):
-                #         ffd_geometric_variables.add_variable(csdl.norm(connection), desired_value)
-                #     else:
-                #         raise ValueError(f"geometric connection has shape {connection.shape}, and desired value has shape {desired_value.shape}. If the shape of the deired value is (1, ), the norm of the connection will be enforced.")
+                if connection.shape != desired_value.shape:
+                    if desired_value.shape == (1, ):
+                        ffd_geometric_variables.add_variable(csdl.norm(connection), desired_value)
+                    else:
+                        raise ValueError(f"geometric connection has shape {connection.shape}, and desired value has shape {desired_value.shape}. If the shape of the deired value is (1, ), the norm of the connection will be enforced.")
 
-                # else:
+                else:
                     ffd_geometric_variables.add_variable(connection, desired_value)
                     print(f"Added connection variable with desired value: {desired_value}")
 
