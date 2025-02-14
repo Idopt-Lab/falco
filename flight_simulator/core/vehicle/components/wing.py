@@ -469,7 +469,9 @@ class Wing(Component):
             if len(function.coefficients.shape) != 2:
                 function.coefficients = function.coefficients.reshape((-1, 3))
             shape = function.coefficients.shape
-            function.coefficients = function.coefficients + csdl.expand(rigid_body_translation, shape, action='j->ij')
+            # print('Wing Shape: ', shape)
+            function.coefficients = function.coefficients + csdl.expand(rigid_body_translation, shape, action='k->ijk')
+
 
         # Add the coefficients of all B-splines to the parameterization solver
         if self.skip_ffd:

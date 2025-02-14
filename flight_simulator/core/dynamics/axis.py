@@ -109,6 +109,7 @@ class Axis:
                 (self.translation_from_origin.x, self.translation_from_origin.y, self.translation_from_origin.z),
                 axis=0
             )
+            self.translation = self.translation_from_origin_vector
         else:
             self.translation_from_origin = None
             self.translation_from_origin_vector = None
@@ -121,7 +122,6 @@ class Axis:
             self.euler_angles = None
             self.euler_angles_vector = None
 
-        self.translation = self.translation_from_origin_vector
         self.sequence = sequence
         self.reference = reference
         self.origin = origin

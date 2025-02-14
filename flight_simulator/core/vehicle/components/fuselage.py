@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from lsdo_function_spaces import FunctionSet
 
 
+
 @dataclass
 class FuselageParameters:
     length : Union[float, int, csdl.Variable]
@@ -59,8 +60,9 @@ class Fuselage(Component):
         csdl.check_parameter(length, "length", types=(int, float, csdl.Variable))
         csdl.check_parameter(max_width, "max_width", types=(int, float, csdl.Variable), allow_none=True)
         csdl.check_parameter(max_height, "max_height", types=(int, float, csdl.Variable), allow_none=True)
-        
-        self._name = f"fuselage_{self._name}"
+
+        self._instance_count = 0
+        self._name = f"fuselage_{self._instance_count}"
 
         # Assign parameters
         self.parameters : FuselageParameters = FuselageParameters(
@@ -175,8 +177,9 @@ class Fuselage(Component):
         rigid_body_translation = csdl.ImplicitVariable(shape=(3, ), value=0.)
         for function in self.geometry.functions.values():
             shape = function.coefficients.shape
-            print(shape)
-            function.coefficients = function.coefficients + csdl.expand(rigid_body_translation, shape, action='j->ij')
+            # print('Fuselage Shape: ', shape)
+            function.coefficients = function.coefficients + csdl.expand(rigid_body_translation, shape, action='k->ijk')            
+
 
         # Add (B-spline) coefficients to parameterization solver
         if self.skip_ffd:
