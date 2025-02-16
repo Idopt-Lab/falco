@@ -330,6 +330,8 @@ class Wing(Component):
         
         ffd_block.coefficients.name = f'{self._name}_coefficients'
 
+        # ffd_block.plot()
+
         return ffd_block 
     
     def _setup_ffd_block(self, ffd_block, parameterization_solver, plot : bool=False):
@@ -466,11 +468,11 @@ class Wing(Component):
         # Add rigid body translation (without FFD)
         rigid_body_translation = csdl.ImplicitVariable(shape=(3, ), value=0.)
         for function in self.geometry.functions.values():
-            if len(function.coefficients.shape) != 2:
-                function.coefficients = function.coefficients.reshape((-1, 3))
-            shape = function.coefficients.shape
+            # if len(function.coefficients.shape) != 2:
+            #     function.coefficients = function.coefficients.reshape((-1, 3))
+            # shape = function.coefficients.shape
             # print('Wing Shape: ', shape)
-            function.coefficients = function.coefficients + csdl.expand(rigid_body_translation, shape, action='k->ijk')
+            function.coefficients = function.coefficients + csdl.expand(rigid_body_translation, function.coefficients.shape, action='k->ijk')
 
 
         # Add the coefficients of all B-splines to the parameterization solver

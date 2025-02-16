@@ -97,6 +97,11 @@ class Component:
         **kwargs : dict
             User-defined parameters to be stored in the `parameters` attribute.
         """
+        self._constant_b_spline_1_dof_space = lfs.BSplineSpace(num_parametric_dimensions=1, degree=0, coefficients_shape=(1,))
+        self._linear_b_spline_2_dof_space = lfs.BSplineSpace(num_parametric_dimensions=1, degree=1, coefficients_shape=(2,))
+        self._linear_b_spline_3_dof_space = lfs.BSplineSpace(num_parametric_dimensions=1, degree=1, coefficients_shape=(3,))
+        self._cubic_b_spline_5_dof_space = lfs.BSplineSpace(num_parametric_dimensions=1, degree=3, coefficients_shape=(5,))
+
         # Increment instance count and set the name
         self._name = name
 
@@ -192,6 +197,22 @@ class Component:
                      directory=filepath,
                      format=file_format, view=show)
 
+    def _make_ffd_block(self, entities, 
+                            num_coefficients : tuple=(2, 2, 2), 
+                            order: tuple=(1, 1, 1), 
+                            num_physical_dimensions : int=3):
+            """
+            Call 'construct_ffd_block_around_entities' function.
+
+            This method constructs a Cartesian FFD block with linear B-splines
+            and 2 degrees of freedom in all dimensions.
+            """
+            ffd_block = construct_ffd_block_around_entities(name=self._name, entities=entities, 
+                                                    num_coefficients=num_coefficients, degree=order)
+            ffd_block.coefficients.name = f'{self._name}_coefficients'
+
+            return ffd_block 
+    
     def _setup_geometry(self, parameterization_solver, ffd_geometric_variables, plot : bool = False):
         """Set up the geometry of the system with no FFD"""
         rigid_body_translation = csdl.ImplicitVariable(shape=(3, ), value=0., name=f'{self._name}_rigid_body_translation')
@@ -419,11 +440,11 @@ class Configuration:
                     print(f"Added connection variable with desired value: {desired_value}")
 
         
-        if additional_constraints:
-            for constr in additional_constraints:
-                connection = csdl.norm(self.system.geometry.evaluate(parametric_coordinates=constr[0]) - self.system.geometry.evaluate(parametric_coordinates=constr[1]))
-                ffd_geometric_variables.add_variable(connection, constr[2])
-                print(f"Added additional constraint with value: {constr[2]}")
+        # if additional_constraints:
+        #     for constr in additional_constraints:
+        #         connection = csdl.norm(self.system.geometry.evaluate(parametric_coordinates=constr[0]) - self.system.geometry.evaluate(parametric_coordinates=constr[1]))
+        #         ffd_geometric_variables.add_variable(connection, constr[2])
+        #         print(f"Added additional constraint with value: {constr[2]}")
 
 
         # Evalauate the parameterization solver

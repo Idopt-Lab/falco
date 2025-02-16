@@ -63,6 +63,12 @@ class Fuselage(Component):
 
         self._instance_count = 0
         self._name = f"fuselage_{self._instance_count}"
+        self.geometry = geometry
+        
+        self._constant_b_spline_1_dof_space = lfs.BSplineSpace(num_parametric_dimensions=1, degree=0, coefficients_shape=(1,))
+        self._linear_b_spline_2_dof_space = lfs.BSplineSpace(num_parametric_dimensions=1, degree=1, coefficients_shape=(2,))
+        self._linear_b_spline_3_dof_space = lfs.BSplineSpace(num_parametric_dimensions=1, degree=1, coefficients_shape=(3,))
+        self._cubic_b_spline_5_dof_space = lfs.BSplineSpace(num_parametric_dimensions=1, degree=3, coefficients_shape=(5,))
 
         # Assign parameters
         self.parameters : FuselageParameters = FuselageParameters(
@@ -89,6 +95,7 @@ class Fuselage(Component):
             else:
                 # Set the wetted area
                 self.parameters.S_wet = self.quantities.surface_area
+
                 
                 # Automatically make the FFD block upon instantiation 
                 self._ffd_block = self._make_ffd_block(self.geometry)
@@ -182,6 +189,7 @@ class Fuselage(Component):
 
 
         # Add (B-spline) coefficients to parameterization solver
+        self.skip_ffd = False
         if self.skip_ffd:
             parameterization_solver.add_parameter(rigid_body_translation, cost=1000)
         else:
