@@ -84,6 +84,7 @@ rotor_hub_ob_left_fwd, rotor_hub_mid_left_fwd, rotor_hub_ib_left_fwd, rotor_hub_
 rotor_hub_ob_left_aft, rotor_hub_mid_left_aft, rotor_hub_ib_left_aft, rotor_hub_ob_right_aft, rotor_hub_mid_right_aft, rotor_hub_ib_right_aft, \
 ob_left_aileron, mid_left_flap, ib_left_flap, ob_right_aileron, mid_right_flap, ib_right_flap = define_base_geometry()
 
+
 # Wing info
 wing_root_le_guess = np.array([-8, 0, -5.41])*ft2m
 wing_root_le_parametric = wing.project(wing_root_le_guess, plot=plot_flag)
@@ -332,8 +333,8 @@ def define_axes():
         reference=openvsp_axis,
         origin=ValidOrigins.OpenVSP.value
     )
-    print('Wing Axis Translation (m): ', wing_axis.translation.value)
-    print('Wing Axis Rotation (deg): ', np.rad2deg(wing_axis.euler_angles_vector.value))
+    # print('Wing Axis Translation (m): ', wing_axis.translation.value)
+    # print('Wing Axis Rotation (deg): ', np.rad2deg(wing_axis.euler_angles_vector.value))
 
     vtail_deflection = csdl.Variable(shape=(1, ), value=np.deg2rad(0), name='Vtail Deflection')
     # v_tail.rotate(vtail_root_le, np.array([0., 0., 1.]), angles=vtail_deflection)
@@ -539,8 +540,8 @@ def define_axes():
         reference=inertial_axis,
         origin=ValidOrigins.Inertial.value
     )
-    print('Body-Fixed Translation (m)', fd_axis.translation.value)
-    print('Body-Fixed Angles (deg)', np.rad2deg(fd_axis.euler_angles_vector.value))
+    # print('Body-Fixed Translation (m)', fd_axis.translation.value)
+    # print('Body-Fixed Angles (deg)', np.rad2deg(fd_axis.euler_angles_vector.value))
 
     @dataclass
     class WindAxisRotations(csdl.VariableGroup):
@@ -628,15 +629,15 @@ aero_moment_vector_in_wing = Vector(vector=aero_moment, axis=wing_axis)
 
 aero_force_moment_in_wing = ForcesMoments(force=aero_force_vector_in_wing, moment=aero_moment_vector_in_wing)
 
-print("Aero force vector in wing axis:", aero_force_vector_in_wing.vector.value)
-print("Aero moment vector in wing axis:", aero_moment_vector_in_wing.vector.value)
+# print("Aero force vector in wing axis:", aero_force_vector_in_wing.vector.value)
+# print("Aero moment vector in wing axis:", aero_moment_vector_in_wing.vector.value)
 
 aero_force_moment_in_body = aero_force_moment_in_wing.rotate_to_axis(fd_axis)
 aero_force_in_body = aero_force_moment_in_body.F
 aero_moment_in_body = aero_force_moment_in_body.M
 
-print("Aero force vector in body axis:", aero_force_in_body.vector.value)
-print("Aero moment vector in body axis:", aero_moment_in_body.vector.value)
+# print("Aero force vector in body axis:", aero_force_in_body.vector.value)
+# print("Aero moment vector in body axis:", aero_moment_in_body.vector.value)
 
 ## FFD
 
@@ -666,7 +667,7 @@ wing_chord_stretch_b_spline = lfs.Function(name='wing_chord_stretch_b_spline', s
                                           coefficients=wing_chord_stretch_coefficients)
 
 wing_wingspan_stretch_amount = csdl.Variable(name='wing_span_stretch_amount', value=np.array([0.]))
-wing_wingspan_stretch_coefficients = csdl.Variable(name='wing_wingspan_stretch_coefficients', value=np.array([-wing_wingspan_stretch_amount.value/2, wing_wingspan_stretch_amount.value/2]))
+wing_wingspan_stretch_coefficients = csdl.Variable(name='wing_wingspan_stretch_coefficients', value=np.array([-wing_wingspan_stretch_amount.value[0]/2, wing_wingspan_stretch_amount.value[0]/2]))
 wing_wingspan_stretch_b_spline = lfs.Function(name='wing_wingspan_stretch_b_spline', space=linear_b_spline_curve_2_dof_space, 
                                           coefficients=wing_wingspan_stretch_coefficients)
 
@@ -887,7 +888,7 @@ fuselage_ffd_block_sectional_parameterization = lg.VolumeSectionalParameterizati
                                                                             parameterized_points=fuselage_ffd_block.coefficients,
                                                                             principal_parametric_dimension=0)
 
-fuselage_stretch_coefficients = csdl.Variable(name='fuselage_stretch_coefficients', shape=(2,), value=np.array([0., -0.]))
+fuselage_stretch_coefficients = csdl.Variable(name='fuselage_stretch_coefficients', shape=(2,), value=np.array([0., -100.]))
 fuselage_stretch_b_spline = lfs.Function(name='fuselage_stretch_b_spline', space=linear_b_spline_curve_2_dof_space, 
                                           coefficients=fuselage_stretch_coefficients)
 
@@ -912,6 +913,43 @@ fuselage_leading_point=fuselage.project(fuselage_ffd_block.evaluate(parametric_c
 
 # print("Wing-Fuselage Connection Shape:", wing_fuselage_connection.shape)
 # print("Wing-Fuselage Connection Value Shape:", wing_fuselage_connection.value.shape)
+
+# ERRORS OUT
+# config2.setup_geometry(plot=True)
+
+
+wing_ffd_block_coefficients = wing_ffd_block_sectional_parameterization.evaluate(wing_sectional_parameters, plot=False)
+wing_coefficients = wing_ffd_block.evaluate(wing_ffd_block_coefficients, plot=False)
+wing.set_coefficients(wing_coefficients)
+h_tail_ffd_block_coefficients = h_tail_ffd_block_sectional_parameterization.evaluate(htail_sectional_parameters, plot=False)
+h_tail_coefficients = h_tail_ffd_block.evaluate(h_tail_ffd_block_coefficients, plot=False)
+h_tail.set_coefficients(coefficients=h_tail_coefficients)
+v_tail_ffd_block_coefficients = v_tail_ffd_block_sectional_parameterization.evaluate(vtail_sectional_parameters, plot=False)
+v_tail_coefficients = v_tail_ffd_block.evaluate(v_tail_ffd_block_coefficients, plot=False)
+v_tail.set_coefficients(coefficients=v_tail_coefficients)
+for i, comp in enumerate(pylons):
+    pylon_ffd_block_coefficients = pylon_sectional_parameterizations[i].evaluate(pylon_sectional_parameters, plot=False)
+    pylon_coefficients = pylon_ffd_blocks[i].evaluate(pylon_ffd_block_coefficients, plot=False)
+    pylons[i].set_coefficients(pylon_coefficients)
+fuselage_ffd_block_coefficients = fuselage_ffd_block_sectional_parameterization.evaluate(sectional_parameters, plot=False)
+fuselage_coefficients = fuselage_ffd_block.evaluate(fuselage_ffd_block_coefficients, plot=False)
+fuselage.set_coefficients(coefficients=fuselage_coefficients)
+
+
+# print('After ffd: Wing Axis Translation (m): ', wing_axis.translation.value)
+# print('After ffd: Wing Axis Rotation (deg): ', np.rad2deg(wing_axis.euler_angles_vector.value))
+
+aero_force_vector_in_wing = Vector(vector=aero_force, axis=wing_axis)
+aero_moment_vector_in_wing = Vector(vector=aero_moment, axis=wing_axis)
+aero_force_moment_in_wing = ForcesMoments(force=aero_force_vector_in_wing, moment=aero_moment_vector_in_wing)
+aero_force_moment_in_body = aero_force_moment_in_wing.rotate_to_axis(fd_axis)
+aero_force_in_body = aero_force_moment_in_body.F
+aero_moment_in_body = aero_force_moment_in_body.M
+
+# print("After ffd: Aero force vector in wing axis:", aero_force_vector_in_wing.vector.value)
+# print("After ffd: Aero moment vector in wing axis:", aero_moment_vector_in_wing.vector.value)
+# print("After ffd: Aero force vector in body axis:", aero_force_in_body.vector.value)
+# print("After ffd: Aero moment vector in body axis:", aero_moment_in_body.vector.value)
 
 
 def define_heirarchy():
@@ -990,8 +1028,10 @@ def define_heirarchy():
     Aircraft.add_subcomponent(Propulsion)
 
     config = Configuration(system=Aircraft)
-    config.connect_component_geometries(Fuselage,HorizTail,connection_point=htail_root_te_guess)
-    config.connect_component_geometries(Fuselage,VertTail,connection_point=vtail_root_te_guess)
+    airplane = Component(name='Airplane', geometry=geometry)
+    config2=Configuration(system=airplane)
+    config2.connect_component_geometries(Fuselage,HorizTail,connection_point=htail_root_te_guess)
+    # config.connect_component_geometries(Fuselage,VertTail,connection_point=vtail_root_te_guess)
     # config.connect_component_geometries(Motor_ib_left_aft,Pylon_Inboard_Left,connection_point=rotor_hub_ib_left_aft.evaluate(pt_ib_left_aft_bot_parametric))
     # config.connect_component_geometries(Motor_mid_left_aft,Pylon_Middle_Left,connection_point=rotor_hub_mid_left_aft.evaluate(pt_mid_left_aft_bot_parametric))
     # config.connect_component_geometries(Motor_ob_left_aft,Pylon_Outboard_Left,connection_point=rotor_hub_ob_left_aft.evaluate(pt_ob_left_aft_bot_parametric))
@@ -1005,54 +1045,13 @@ def define_heirarchy():
     # config.connect_component_geometries(Motor_mid_right_fwd,Pylon_Middle_Right,connection_point=rotor_hub_mid_right_fwd.evaluate(pt_mid_right_fwd_bot_parametric))
     # config.connect_component_geometries(Motor_ob_right_fwd,Pylon_Outboard_Right,connection_point=rotor_hub_ob_right_fwd.evaluate(pt_ob_right_fwd_bot_parametric))
 
-    return Aircraft, config
+    return Aircraft, config, config2
 
-Aircraft, config = define_heirarchy()
+Aircraft, config, config2 = define_heirarchy()
 
-
-# parameterization_solver.evaluate(parameterization_design_parameters)
-
-
-# ERRORS OUT
-config.setup_geometry(plot=True)
-
-wing_ffd_block_coefficients = wing_ffd_block_sectional_parameterization.evaluate(wing_sectional_parameters, plot=False)
-wing_coefficients = wing_ffd_block.evaluate(wing_ffd_block_coefficients, plot=False)
-wing.set_coefficients(wing_coefficients)
-h_tail_ffd_block_coefficients = h_tail_ffd_block_sectional_parameterization.evaluate(htail_sectional_parameters, plot=False)
-h_tail_coefficients = h_tail_ffd_block.evaluate(h_tail_ffd_block_coefficients, plot=False)
-h_tail.set_coefficients(coefficients=h_tail_coefficients)
-v_tail_ffd_block_coefficients = v_tail_ffd_block_sectional_parameterization.evaluate(vtail_sectional_parameters, plot=False)
-v_tail_coefficients = v_tail_ffd_block.evaluate(v_tail_ffd_block_coefficients, plot=False)
-v_tail.set_coefficients(coefficients=v_tail_coefficients)
-for i, comp in enumerate(pylons):
-    pylon_ffd_block_coefficients = pylon_sectional_parameterizations[i].evaluate(pylon_sectional_parameters, plot=False)
-    pylon_coefficients = pylon_ffd_blocks[i].evaluate(pylon_ffd_block_coefficients, plot=False)
-    pylons[i].set_coefficients(pylon_coefficients)
-# fuselage_ffd_block_coefficients = fuselage_ffd_block_sectional_parameterization.evaluate(sectional_parameters, plot=False)
-# fuselage_coefficients = fuselage_ffd_block.evaluate(fuselage_ffd_block_coefficients, plot=False)
-# fuselage.set_coefficients(coefficients=fuselage_coefficients)
-
-
-print('After ffd: Wing Axis Translation (m): ', wing_axis.translation.value)
-print('After ffd: Wing Axis Rotation (deg): ', np.rad2deg(wing_axis.euler_angles_vector.value))
-
-aero_force_vector_in_wing = Vector(vector=aero_force, axis=wing_axis)
-aero_moment_vector_in_wing = Vector(vector=aero_moment, axis=wing_axis)
-aero_force_moment_in_wing = ForcesMoments(force=aero_force_vector_in_wing, moment=aero_moment_vector_in_wing)
-aero_force_moment_in_body = aero_force_moment_in_wing.rotate_to_axis(fd_axis)
-aero_force_in_body = aero_force_moment_in_body.F
-aero_moment_in_body = aero_force_moment_in_body.M
-
-print("After ffd: Aero force vector in wing axis:", aero_force_vector_in_wing.vector.value)
-print("After ffd: Aero moment vector in wing axis:", aero_moment_vector_in_wing.vector.value)
-print("After ffd: Aero force vector in body axis:", aero_force_in_body.vector.value)
-print("After ffd: Aero moment vector in body axis:", aero_moment_in_body.vector.value)
-
-
-# geometry.plot()
-# # parameterization_solver.evaluate(parameterization_design_parameters)
-# geometry.plot(color='Red')
+geometry.plot()
+parameterization_solver.evaluate(parameterization_design_parameters)
+geometry.plot(color='Red')
 
 
 recorder.stop()

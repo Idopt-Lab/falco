@@ -247,7 +247,7 @@ class Component:
     
     def _setup_geometry(self, parameterization_solver, ffd_geometric_variables, plot : bool = False):
         """Set up the geometry of the system with no FFD"""
-        rigid_body_translation = csdl.ImplicitVariable(shape=(3, ), value=0., name="rigid_body_translation")
+        rigid_body_translation = csdl.ImplicitVariable(shape=(3, ), value=0., name=f"{self._name}_rigid_body_translation")
         for function in self.geometry.functions.values():
             if function.name == "rigid_body_translation":
                 shape = function.coefficients.shape
