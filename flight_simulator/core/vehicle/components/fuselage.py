@@ -62,7 +62,7 @@ class Fuselage(Component):
         csdl.check_parameter(max_height, "max_height", types=(int, float, csdl.Variable), allow_none=True)
 
         self._instance_count = 0
-        self._name = f"fuselage_{self._instance_count}"
+        self._name = f"Fuselage"
         self.geometry = geometry
         
         self._constant_b_spline_1_dof_space = lfs.BSplineSpace(num_parametric_dimensions=1, degree=0, coefficients_shape=(1,))

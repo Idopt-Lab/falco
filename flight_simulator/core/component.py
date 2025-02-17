@@ -427,7 +427,7 @@ class Configuration:
             
             if desired_value is None:
                 ffd_geometric_variables.add_variable(connection, connection.value)
-                print(f"Added connection variable with value: {connection.value}")
+                print(f"Added connection variable between {comp_1._name} and {comp_2._name} with value: {connection.value}")
             else:
                 if connection.shape != desired_value.shape:
                     if desired_value.shape == (1, ):
@@ -437,7 +437,7 @@ class Configuration:
 
                 else:
                     ffd_geometric_variables.add_variable(connection, desired_value)
-                    print(f"Added connection variable with desired value: {desired_value}")
+                    print(f"Added connection variable between {comp_1._name} and {comp_2._name} with desired value: {desired_value}")
 
         
         # if additional_constraints:

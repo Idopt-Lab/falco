@@ -142,13 +142,7 @@ wing_te_center = geometry.evaluate(wing_te_center_parametric)
 
 wing_qc = geometry.evaluate(wing.project(np.array([-12.356+(0.25*(-14.25+12.356)), 0., -5.5])*ft2m, plot=False))
 
-wing_te_center_flaps_guess = np.array([-14, 0., -7.3])*ft2m
-wing_te_center_flaps = geometry.evaluate(wing.project(wing_te_center_flaps_guess, plot=False))
-
-wing_te_center_ailerons_guess = np.array([-13.5, 0., -7.3])*ft2m
-wing_te_center_ailerons = geometry.evaluate(wing.project(wing_te_center_ailerons_guess, plot=False))
-
-WingRegionGeoGuess = [wing_le_left_guess,wing_le_right_guess,wing_le_center_guess,wing_te_left_guess,wing_te_right_guess,wing_te_center_guess,wing_te_center_flaps_guess,wing_te_center_ailerons_guess]
+WingRegionGeoGuess = [wing_le_left_guess,wing_le_right_guess,wing_le_center_guess,wing_te_left_guess,wing_te_right_guess,wing_te_center_guess]
 
 ## ADD CONTROL SURFACE INFO PROJECTIONS HERE
 
@@ -708,15 +702,15 @@ alpha = csdl.arctan(wind_vector_in_wing.vector[2]/wind_vector_in_wing.vector.val
 print('Effective angle of attack (deg): ', np.rad2deg(alpha.value))
 
 
-## Aerodynamic Forces
+## Aerodynamic Forces - from Modification IV
 
 
 CL = 2*np.pi*alpha
 e = 0.87
-AR = 12
+AR = 15
 CD = 0.001 + 1/(np.pi*e*AR) * CL**2
 rho = 1.225
-S = 50
+S = 6.22
 V = 35
 L = 0.5*rho*V**2*CL*S
 D = 0.5*rho*V**2*CD*S
@@ -778,12 +772,20 @@ from flight_simulator.core.vehicle.components.fuselage import Fuselage as FuseCo
 from flight_simulator.core.vehicle.components.aircraft import Aircraft as AircraftComp
 
 
+# Most of the values below come from the OpenVSP model
 
 def hierarchy():
     Aircraft = AircraftComp(geometry=geometry, compute_surface_area_flag=False)
     Aircraft.geometry=geometry
 
     base_config = Configuration(system=Aircraft)
+
+    fuselage_length = csdl.Variable(name="fuselage_length", shape=(1, ), value=csdl.norm(fuselage_rear_guess[0] - fuselage_nose_guess[0]).value)
+    Fuselage = FuseComp(
+        length=fuselage_length, geometry=fuselage, skip_ffd=False)
+    Fuselage.geometry = fuselage
+    Aircraft.add_subcomponent(Fuselage)
+
 
     Complete_Wing = Component(name='Complete Wing')
 
@@ -796,48 +798,43 @@ def hierarchy():
                                         geometry=wing,
                                         tight_fit_ffd=False, orientation='horizontal', name='Wing')
     
-    flap_AR = csdl.Variable(name="flap_AR", shape=(1, ), value=12)
-    flap_S_ref = csdl.Variable(name="flap_S_ref", shape=(1, ), value=1)
+    flap_AR = csdl.Variable(name="flap_AR", shape=(1, ), value=4.32915)
+    flap_S_ref = csdl.Variable(name="flap_S_ref", shape=(1, ), value=2922.04384*in2m)
     FlapsLeft = WingComp(AR=flap_AR, S_ref=flap_S_ref,
                                         geometry=flapL,tight_fit_ffd=False, orientation='horizontal', name='Left Flap')
     FlapsRight = WingComp(AR=flap_AR, S_ref=flap_S_ref,
                                         geometry=flapR,tight_fit_ffd=False, orientation='horizontal', name='Right Flap')
     
-    aileron_AR = csdl.Variable(name="aileron_AR", shape=(1, ), value=6)
-    aileron_S_ref = csdl.Variable(name="aileron_S_ref", shape=(1, ), value=1)
+    aileron_AR = csdl.Variable(name="aileron_AR", shape=(1, ), value=2.03724)
+    aileron_S_ref = csdl.Variable(name="aileron_S_ref", shape=(1, ), value=1010.04774*in2m)
     Left_Aileron = WingComp(AR=aileron_AR, S_ref=aileron_S_ref,
                                         geometry=aileronL,tight_fit_ffd=False, name='Left Aileron',orientation='horizontal')
     Right_Aileron = WingComp(AR=aileron_AR, S_ref=aileron_S_ref,
                                         geometry=aileronR,tight_fit_ffd=False, name='Right Aileron',orientation='horizontal')
     
-    Wing.add_subcomponent(FlapsLeft)
-    Wing.add_subcomponent(FlapsRight)
-    Wing.add_subcomponent(Left_Aileron)
-    Wing.add_subcomponent(Right_Aileron)
-    Complete_Wing.add_subcomponent(Wing)
-    Aircraft.add_subcomponent(Complete_Wing)
+    Aircraft.add_subcomponent(Wing)
+    # Aircraft.add_subcomponent(FlapsLeft)
+    # Aircraft.add_subcomponent(FlapsRight)
+    # Aircraft.add_subcomponent(Left_Aileron)
+    # Aircraft.add_subcomponent(Right_Aileron)
+    # Complete_Wing.add_subcomponent(Wing)
 
     Empennage = Component(name='Empennage')
 
-    HorTail = WingComp(AR=12, S_ref=5, geometry=h_tail, tight_fit_ffd=False, name='Horizontal Tail', orientation='horizontal')
-    TrimTab = WingComp(AR=12, S_ref=1, geometry=trimTab, tight_fit_ffd=False, name='Trim Tab', orientation='horizontal')
-    HorTail.add_subcomponent(TrimTab)
-    Empennage.add_subcomponent(HorTail)
+    HorTail = WingComp(AR=4.04066, S_ref=3793.72629*in2m, geometry=h_tail, tight_fit_ffd=False, name='Horizontal Tail', orientation='horizontal')
+    TrimTab = WingComp(AR=2.51295, S_ref=2359.37611*in2m, geometry=trimTab, tight_fit_ffd=False, name='Trim Tab', orientation='horizontal')
+    Aircraft.add_subcomponent(HorTail)
+    Aircraft.add_subcomponent(TrimTab)
+    # Empennage.add_subcomponent(HorTail)
  
 
-    VertTail = WingComp(AR=12, S_ref=5, geometry=vertTail, tight_fit_ffd=False, name='Vertical Tail', orientation='vertical')
-    Rudder = WingComp(AR=12, S_ref=1, geometry=rudder, tight_fit_ffd=False, name='Rudder', orientation='vertical')
-    VertTail.add_subcomponent(Rudder)
-    Empennage.add_subcomponent(VertTail)
-    Aircraft.add_subcomponent(Empennage)
+    VertTail = WingComp(AR=2.69391, S_ref=6047.79504*in2m, geometry=vertTail, tight_fit_ffd=False, name='Vertical Tail', orientation='vertical')
+    Rudder = WingComp(AR=2.61887, S_ref=5312.26552*in2m, geometry=rudder, tight_fit_ffd=False, name='Rudder', orientation='vertical')
+    # Aircraft.add_subcomponent(VertTail)
+    # Aircraft.add_subcomponent(Rudder)
+    # Empennage.add_subcomponent(VertTail)
+    # Aircraft.add_subcomponent(Empennage)
 
-
-
-    fuselage_length = csdl.Variable(name="fuselage_length", shape=(1, ), value=csdl.norm(fuselage_rear_guess[0] - fuselage_nose_guess[0]).value)
-    Fuselage = FuseComp(
-        length=fuselage_length, geometry=fuselage, skip_ffd=False)
-    Fuselage.geometry = fuselage
-    Aircraft.add_subcomponent(Fuselage)
 
     # Total_Prop_Sys = Component(name='Complete Propulsion System')
     # for i in range(1, 13):
@@ -862,21 +859,23 @@ def hierarchy():
     # Aircraft.add_subcomponent(Total_Prop_Sys)
 
     base_config.connect_component_geometries(Fuselage, Wing, connection_point=0.75*wing_le_center.value + 0.25*wing_te_center.value)
+
+    # base_config.connect_component_geometries(Wing, FlapsLeft, connection_point=left_flap_le_center.value)
+    # base_config.connect_component_geometries(Wing, FlapsRight, connection_point=right_flap_le_center.value)
+    # base_config.connect_component_geometries(Wing, Left_Aileron, connection_point=left_aileron_le_center.value)
+    # base_config.connect_component_geometries(Wing, Right_Aileron, connection_point=right_aileron_le_center.value)
+
     base_config.connect_component_geometries(Fuselage, HorTail, connection_point=ht_te_center.value)
-    base_config.connect_component_geometries(Fuselage, VertTail, connection_point=vt_le_base.value)
-
-    base_config.connect_component_geometries(Wing, Left_Aileron, connection_point=wing_te_center_ailerons.value)
-    base_config.connect_component_geometries(Wing, Right_Aileron, connection_point=wing_te_center_ailerons.value)
-    base_config.connect_component_geometries(Wing, FlapsLeft, connection_point=wing_te_center_flaps.value)
-    base_config.connect_component_geometries(Wing, FlapsRight, connection_point=wing_te_center_flaps.value)
-
+    # base_config.connect_component_geometries(Fuselage, VertTail, connection_point=vt_le_base.value)
     base_config.connect_component_geometries(HorTail, TrimTab, connection_point=ht_te_center.value)
-    base_config.connect_component_geometries(VertTail, Rudder, connection_point=vt_te_mid.value)
+    # base_config.connect_component_geometries(VertTail, Rudder, connection_point=vt_te_mid.value)
 
 
 
     return Aircraft, base_config
-Aircraft, BaseConfig = hierarchy()
+X57Hierarchy, BaseConfig = hierarchy()
+
+# X57Hierarchy.visualize_component_hierarchy(show=True)
 
 BaseConfig.setup_geometry(plot=True)
 
