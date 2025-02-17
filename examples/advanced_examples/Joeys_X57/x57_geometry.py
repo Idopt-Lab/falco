@@ -152,6 +152,54 @@ WingRegionGeoGuess = [wing_le_left_guess,wing_le_right_guess,wing_le_center_gues
 
 ## ADD CONTROL SURFACE INFO PROJECTIONS HERE
 
+left_aileron_le_left_guess = np.array([-12.356, -16, -5.5])*ft2m
+left_aileron_le_left_parametric = aileronL.project(left_aileron_le_left_guess, plot=False)
+left_aileron_le_left = geometry.evaluate(left_aileron_le_left_parametric)
+
+left_aileron_le_right_guess = np.array([-12.356, 16, -5.5])*ft2m
+left_aileron_le_right_parametric = aileronL.project(left_aileron_le_right_guess, plot=False)
+left_aileron_le_right = geometry.evaluate(left_aileron_le_right_parametric)
+
+left_aileron_le_center_guess = np.array([-12.356, 0., -5.5])*ft2m
+left_aileron_le_center_parametric = aileronL.project(left_aileron_le_center_guess, plot=False)
+left_aileron_le_center = geometry.evaluate(left_aileron_le_center_parametric)
+
+right_aileron_le_left_guess = np.array([-12.356, -16, -5.5])*ft2m
+right_aileron_le_left_parametric = aileronR.project(right_aileron_le_left_guess, plot=False)
+right_aileron_le_left = geometry.evaluate(right_aileron_le_left_parametric)
+
+right_aileron_le_right_guess = np.array([-12.356, 16, -5.5])*ft2m
+right_aileron_le_right_parametric = aileronR.project(right_aileron_le_right_guess, plot=False)
+right_aileron_le_right = geometry.evaluate(right_aileron_le_right_parametric)
+
+right_aileron_le_center_guess = np.array([-12.356, 0., -5.5])*ft2m
+right_aileron_le_center_parametric = aileronR.project(right_aileron_le_center_guess, plot=False)
+right_aileron_le_center = geometry.evaluate(right_aileron_le_center_parametric)
+
+left_flap_le_left_guess = np.array([-12.356, -16, -5.5])*ft2m
+left_flap_le_left_parametric = flapL.project(left_flap_le_left_guess, plot=False)
+left_flap_le_left = geometry.evaluate(left_flap_le_left_parametric)
+
+left_flap_le_right_guess = np.array([-12.356, 16, -5.5])*ft2m
+left_flap_le_right_parametric = flapL.project(left_flap_le_right_guess, plot=False)
+left_flap_le_right = geometry.evaluate(left_flap_le_right_parametric)
+
+left_flap_le_center_guess = np.array([-12.356, 0., -5.5])*ft2m
+left_flap_le_center_parametric = flapL.project(left_flap_le_center_guess, plot=False)
+left_flap_le_center = geometry.evaluate(left_flap_le_center_parametric)
+
+right_flap_le_left_guess = np.array([-12.356, -16, -5.5])*ft2m
+right_flap_le_left_parametric = flapR.project(right_flap_le_left_guess, plot=False)
+right_flap_le_left = geometry.evaluate(right_flap_le_left_parametric)
+
+right_flap_le_right_guess = np.array([-12.356, 16, -5.5])*ft2m
+right_flap_le_right_parametric = flapR.project(right_flap_le_right_guess, plot=False)
+right_flap_le_right = geometry.evaluate(right_flap_le_right_parametric)
+
+right_flap_le_center_guess = np.array([-12.356, 0., -5.5])*ft2m
+right_flap_le_center_parametric = flapR.project(right_flap_le_center_guess, plot=False)
+right_flap_le_center = geometry.evaluate(right_flap_le_center_parametric)
+
 # HT Region Info
 ht_le_left = geometry.evaluate(h_tail.project(np.array([-26.5, -5.25, -5.5])*ft2m, plot=False))
 ht_le_center_parametric = h_tail.project(np.array([-27, 0., -5.5])*ft2m, plot=False)
@@ -300,6 +348,54 @@ def axes_create():
     # print('Wing axis translation (ft): ', wing_axis.translation.value)
     # print('Wing axis rotation (deg): ', np.rad2deg(wing_axis.euler_angles_vector.value))
     # geometry.plot()
+
+    left_flap_axis = AxisLsdoGeo(
+    name='Left Flap Axis',
+    geometry=flapL,
+    parametric_coords=left_flap_le_left_parametric,
+    sequence=np.array([3, 2, 1]),
+    phi=np.array([0, ]) * ureg.degree,
+    theta=np.array([0, ]) * ureg.degree,
+    psi=np.array([0, ]) * ureg.degree,
+    reference=openvsp_axis,
+    origin=ValidOrigins.OpenVSP.value
+    )
+
+    right_flap_axis = AxisLsdoGeo(
+    name='Right Flap Axis',
+    geometry=flapR,
+    parametric_coords=right_flap_le_left_parametric,
+    sequence=np.array([3, 2, 1]),
+    phi=np.array([0, ]) * ureg.degree,
+    theta=np.array([0, ]) * ureg.degree,
+    psi=np.array([0, ]) * ureg.degree,
+    reference=openvsp_axis,
+    origin=ValidOrigins.OpenVSP.value
+    )
+
+    left_aileron_axis = AxisLsdoGeo(
+    name='Left Aileron Axis',
+    geometry=aileronL,
+    parametric_coords=left_aileron_le_left_parametric,
+    sequence=np.array([3, 2, 1]),
+    phi=np.array([0, ]) * ureg.degree,
+    theta=np.array([0, ]) * ureg.degree,
+    psi=np.array([0, ]) * ureg.degree,
+    reference=openvsp_axis,
+    origin=ValidOrigins.OpenVSP.value
+    )
+
+    right_aileron_axis = AxisLsdoGeo(
+    name='Right Aileron Axis',
+    geometry=aileronR,
+    parametric_coords=right_aileron_le_left_parametric,
+    sequence=np.array([3, 2, 1]),
+    phi=np.array([0, ]) * ureg.degree,
+    theta=np.array([0, ]) * ureg.degree,
+    psi=np.array([0, ]) * ureg.degree,
+    reference=openvsp_axis,
+    origin=ValidOrigins.OpenVSP.value
+    )
 
     ## Tail Region Axis
 
@@ -587,9 +683,9 @@ def axes_create():
     )
     # print('Wind axis angles (deg)', np.rad2deg(wind_axis.euler_angles_vector.value))
 
-    return openvsp_axis, wing_axis, ht_tail_axis, trimTab_axis, vt_tail_axis, M1_axis, M2_axis, M3_axis, M4_axis, M5_axis, M6_axis, M7_axis, M8_axis, M9_axis, M10_axis, M11_axis, M12_axis, cruise_motor_axis, inertial_axis, fd_axis, wind_axis, geometry
+    return openvsp_axis, wing_axis, ht_tail_axis, trimTab_axis, vt_tail_axis, M1_axis, M2_axis, M3_axis, M4_axis, M5_axis, M6_axis, M7_axis, M8_axis, M9_axis, M10_axis, M11_axis, M12_axis, cruise_motor_axis, inertial_axis, fd_axis, wind_axis, geometry, left_flap_axis, right_flap_axis, left_aileron_axis, right_aileron_axis
 
-openvsp_axis, wing_axis, ht_tail_axis, trimTab_axis, vt_tail_axis, M1_axis, M2_axis, M3_axis, M4_axis, M5_axis, M6_axis, M7_axis, M8_axis, M9_axis, M10_axis, M11_axis, M12_axis, cruise_motor_axis, inertial_axis, fd_axis, wind_axis,geometry = axes_create()
+openvsp_axis, wing_axis, ht_tail_axis, trimTab_axis, vt_tail_axis, M1_axis, M2_axis, M3_axis, M4_axis, M5_axis, M6_axis, M7_axis, M8_axis, M9_axis, M10_axis, M11_axis, M12_axis, cruise_motor_axis, inertial_axis, fd_axis, wind_axis,geometry,left_flap_axis, right_flap_axis, left_aileron_axis, right_aileron_axis = axes_create()
 
 
 
@@ -668,8 +764,13 @@ print('Cruise Motor Prop Force in Body Axis: ', cruise_motor_prop_force_in_body.
 print('Cruise Motor Prop Moment in Body Axis: ', cruise_motor_prop_moment_in_body.vector.value)
 
 
+
+
+
+
 thrust_axis = cruise_motor_tip - cruise_motor_base
 # print('Thrust Axis: ', thrust_axis.value)
+
 
 
 from flight_simulator.core.vehicle.components.wing import Wing as WingComp
@@ -679,66 +780,63 @@ from flight_simulator.core.vehicle.components.aircraft import Aircraft as Aircra
 
 
 def hierarchy():
-
     Aircraft = AircraftComp(geometry=geometry, compute_surface_area_flag=False)
     Aircraft.geometry=geometry
 
     base_config = Configuration(system=Aircraft)
 
     Complete_Wing = Component(name='Complete Wing')
-    Wing = Component(name='Main Wing', geometry=wing)
-
 
     wing_AR = csdl.Variable(name="wing_AR", shape=(1, ), value=AR)
     wing_S_ref = csdl.Variable(name="wing_S_ref", shape=(1, ), value=S)
     wing_span = csdl.Variable(name="wingspan", shape=(1, ), value=csdl.norm(
         geometry.evaluate(wing_le_left_parametric) - geometry.evaluate(wing_le_right_parametric)
     ).value)
-
     Wing = WingComp(AR=wing_AR,S_ref=wing_S_ref,
                                         geometry=wing,
-                                        tight_fit_ffd=False, orientation='horizontal', name='WingComp')
+                                        tight_fit_ffd=False, orientation='horizontal', name='Wing')
     
-    Aircraft.add_subcomponent(Wing)
-
-    flap_AR = csdl.Variable(name="flap_AR", shape=(1, ), value=12.12)
-    flap_S_ref = csdl.Variable(name="flap_S_ref", shape=(1, ), value=4)
+    flap_AR = csdl.Variable(name="flap_AR", shape=(1, ), value=12)
+    flap_S_ref = csdl.Variable(name="flap_S_ref", shape=(1, ), value=1)
     FlapsLeft = WingComp(AR=flap_AR, S_ref=flap_S_ref,
-                                        geometry=flapL,tight_fit_ffd=False, orientation='horizontal', name='Left Flaps')
+                                        geometry=flapL,tight_fit_ffd=False, orientation='horizontal', name='Left Flap')
     FlapsRight = WingComp(AR=flap_AR, S_ref=flap_S_ref,
-                                        geometry=flapR,tight_fit_ffd=False, orientation='horizontal', name='Right Flaps')
-
+                                        geometry=flapR,tight_fit_ffd=False, orientation='horizontal', name='Right Flap')
+    
+    aileron_AR = csdl.Variable(name="aileron_AR", shape=(1, ), value=6)
+    aileron_S_ref = csdl.Variable(name="aileron_S_ref", shape=(1, ), value=1)
+    Left_Aileron = WingComp(AR=aileron_AR, S_ref=aileron_S_ref,
+                                        geometry=aileronL,tight_fit_ffd=False, name='Left Aileron',orientation='horizontal')
+    Right_Aileron = WingComp(AR=aileron_AR, S_ref=aileron_S_ref,
+                                        geometry=aileronR,tight_fit_ffd=False, name='Right Aileron',orientation='horizontal')
+    
     Wing.add_subcomponent(FlapsLeft)
     Wing.add_subcomponent(FlapsRight)
-
-    aileron_AR = csdl.Variable(name="aileron_AR", shape=(1, ), value=12.12)
-    aileron_S_ref = csdl.Variable(name="aileron_S_ref", shape=(1, ), value=4)
-    Left_Aileron = WingComp(AR=aileron_AR, S_ref=aileron_S_ref,
-                                        geometry=aileronL,tight_fit_ffd=False, name='LeftAileronComp',orientation='horizontal')
-    Right_Aileron = WingComp(AR=aileron_AR, S_ref=aileron_S_ref,
-                                        geometry=aileronR,tight_fit_ffd=False, name='RightAileronComp',orientation='horizontal')
-
     Wing.add_subcomponent(Left_Aileron)
     Wing.add_subcomponent(Right_Aileron)
     Complete_Wing.add_subcomponent(Wing)
     Aircraft.add_subcomponent(Complete_Wing)
 
     Empennage = Component(name='Empennage')
-    HorTail = WingComp(AR=12, S_ref=50, geometry=h_tail, tight_fit_ffd=False, name='Horizontal Tail', orientation='horizontal')
-    TrimTab = WingComp(AR=12, S_ref=4, geometry=trimTab, tight_fit_ffd=False, name='Trim Tab', orientation='horizontal')
+
+    HorTail = WingComp(AR=12, S_ref=5, geometry=h_tail, tight_fit_ffd=False, name='Horizontal Tail', orientation='horizontal')
+    TrimTab = WingComp(AR=12, S_ref=1, geometry=trimTab, tight_fit_ffd=False, name='Trim Tab', orientation='horizontal')
     HorTail.add_subcomponent(TrimTab)
-    Aircraft.add_subcomponent(HorTail)
-    VertTail = WingComp(AR=12, S_ref=50, geometry=vertTail, tight_fit_ffd=False, name='VertTail', orientation='vertical')
-    Rudder = WingComp(AR=12, S_ref=4, geometry=rudder, tight_fit_ffd=False, name='Rudder', orientation='vertical')
-    VertTail.add_subcomponent(Rudder)
-    Aircraft.add_subcomponent(VertTail)
     Empennage.add_subcomponent(HorTail)
+ 
+
+    VertTail = WingComp(AR=12, S_ref=5, geometry=vertTail, tight_fit_ffd=False, name='Vertical Tail', orientation='vertical')
+    Rudder = WingComp(AR=12, S_ref=1, geometry=rudder, tight_fit_ffd=False, name='Rudder', orientation='vertical')
+    VertTail.add_subcomponent(Rudder)
     Empennage.add_subcomponent(VertTail)
     Aircraft.add_subcomponent(Empennage)
 
+
+
     fuselage_length = csdl.Variable(name="fuselage_length", shape=(1, ), value=csdl.norm(fuselage_rear_guess[0] - fuselage_nose_guess[0]).value)
-    Fuselage = FuseComp(length=fuselage_length, geometry=fuselage, skip_ffd=False)
-    Fuselage.geometry = fuselage    
+    Fuselage = FuseComp(
+        length=fuselage_length, geometry=fuselage, skip_ffd=False)
+    Fuselage.geometry = fuselage
     Aircraft.add_subcomponent(Fuselage)
 
     # Total_Prop_Sys = Component(name='Complete Propulsion System')
@@ -763,6 +861,10 @@ def hierarchy():
 
     # Aircraft.add_subcomponent(Total_Prop_Sys)
 
+    base_config.connect_component_geometries(Fuselage, Wing, connection_point=0.75*wing_le_center.value + 0.25*wing_te_center.value)
+    base_config.connect_component_geometries(Fuselage, HorTail, connection_point=ht_te_center.value)
+    base_config.connect_component_geometries(Fuselage, VertTail, connection_point=vt_le_base.value)
+
     base_config.connect_component_geometries(Wing, Left_Aileron, connection_point=wing_te_center_ailerons.value)
     base_config.connect_component_geometries(Wing, Right_Aileron, connection_point=wing_te_center_ailerons.value)
     base_config.connect_component_geometries(Wing, FlapsLeft, connection_point=wing_te_center_flaps.value)
@@ -770,16 +872,14 @@ def hierarchy():
 
     base_config.connect_component_geometries(HorTail, TrimTab, connection_point=ht_te_center.value)
     base_config.connect_component_geometries(VertTail, Rudder, connection_point=vt_te_mid.value)
-    
-    base_config.connect_component_geometries(Fuselage, Wing, connection_point=0.75*wing_le_center.value + 0.25*wing_te_center.value)
-    base_config.connect_component_geometries(Fuselage, HorTail, connection_point=ht_te_center.value)
-    base_config.connect_component_geometries(Fuselage, VertTail, connection_point=vt_le_base.value)
+
 
 
     return Aircraft, base_config
 Aircraft, BaseConfig = hierarchy()
 
 BaseConfig.setup_geometry(plot=True)
+
 
 
 recorder.stop()
