@@ -6,6 +6,7 @@ from lsdo_function_spaces import FunctionSet
 from typing import Union, List
 import numpy as np
 from lsdo_geo.core.parameterization.free_form_deformation_functions import construct_ffd_block_around_entities
+from lsdo_geo.core.parameterization.parameterization_solver import ParameterizationSolver, GeometricVariables
 import lsdo_function_spaces as lfs
 import csdl_alpha as csdl
 from dataclasses import dataclass
@@ -120,6 +121,9 @@ class Component:
         # Store user-defined parameters
         for key, value in kwargs.items():
             setattr(self.parameters, key, value)
+        
+        if geometry and compute_surface_area_flag:
+            self.quantities.surface_area=self._compute_surface_area(geometry)
 
     def add_subcomponent(self, subcomponent):
         """
@@ -377,7 +381,6 @@ class Configuration:
         """
         self._geometry_setup_has_been_called = True
 
-        from lsdo_geo.core.parameterization.parameterization_solver import ParameterizationSolver, GeometricVariables
 
         parameterization_solver = ParameterizationSolver()
         ffd_geometric_variables = GeometricVariables()

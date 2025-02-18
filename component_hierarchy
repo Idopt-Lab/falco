@@ -1,0 +1,26 @@
+// Component Hierarchy
+graph {
+	Airframe [label=Airframe]
+	Fuselage [label=Fuselage]
+	Airframe -- Fuselage
+	Wing [label=Wing]
+	Airframe -- Wing
+	"Left Flap" [label="Left Flap"]
+	Wing -- "Left Flap"
+	"Right Flap" [label="Right Flap"]
+	Wing -- "Right Flap"
+	"Left Aileron" [label="Left Aileron"]
+	Wing -- "Left Aileron"
+	"Right Aileron" [label="Right Aileron"]
+	Wing -- "Right Aileron"
+	Empennage [label=Empennage]
+	Airframe -- Empennage
+	HorTail [label=HorTail]
+	Empennage -- HorTail
+	"Trim Tab" [label="Trim Tab"]
+	HorTail -- "Trim Tab"
+	VertTail [label=VertTail]
+	Empennage -- VertTail
+	Rudder [label=Rudder]
+	VertTail -- Rudder
+}
