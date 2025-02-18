@@ -23,62 +23,60 @@ graph {
 	Empennage -- VertTail
 	Rudder [label=Rudder]
 	VertTail -- Rudder
-	"High Lift Rotors" [label="High Lift Rotors"]
-	Airframe -- "High Lift Rotors"
-	"Rotor 1" [label="Rotor 1"]
-	"High Lift Rotors" -- "Rotor 1"
-	"Rotor 2" [label="Rotor 2"]
-	"High Lift Rotors" -- "Rotor 2"
-	"Rotor 3" [label="Rotor 3"]
-	"High Lift Rotors" -- "Rotor 3"
-	"Rotor 4" [label="Rotor 4"]
-	"High Lift Rotors" -- "Rotor 4"
-	"Rotor 5" [label="Rotor 5"]
-	"High Lift Rotors" -- "Rotor 5"
-	"Rotor 6" [label="Rotor 6"]
-	"High Lift Rotors" -- "Rotor 6"
-	"Rotor 7" [label="Rotor 7"]
-	"High Lift Rotors" -- "Rotor 7"
-	"Rotor 8" [label="Rotor 8"]
-	"High Lift Rotors" -- "Rotor 8"
-	"Rotor 9" [label="Rotor 9"]
-	"High Lift Rotors" -- "Rotor 9"
-	"Rotor 10" [label="Rotor 10"]
-	"High Lift Rotors" -- "Rotor 10"
-	"Rotor 11" [label="Rotor 11"]
-	"High Lift Rotors" -- "Rotor 11"
-	"Rotor 12" [label="Rotor 12"]
-	"High Lift Rotors" -- "Rotor 12"
-	"High Lift Pylons" [label="High Lift Pylons"]
-	Airframe -- "High Lift Pylons"
-	"Pylon 1" [label="Pylon 1"]
-	"High Lift Pylons" -- "Pylon 1"
-	"Pylon 2" [label="Pylon 2"]
-	"High Lift Pylons" -- "Pylon 2"
-	"Pylon 3" [label="Pylon 3"]
-	"High Lift Pylons" -- "Pylon 3"
-	"Pylon 4" [label="Pylon 4"]
-	"High Lift Pylons" -- "Pylon 4"
-	"Pylon 5" [label="Pylon 5"]
-	"High Lift Pylons" -- "Pylon 5"
-	"Pylon 6" [label="Pylon 6"]
-	"High Lift Pylons" -- "Pylon 6"
-	"Pylon 7" [label="Pylon 7"]
-	"High Lift Pylons" -- "Pylon 7"
-	"Pylon 8" [label="Pylon 8"]
-	"High Lift Pylons" -- "Pylon 8"
-	"Pylon 9" [label="Pylon 9"]
-	"High Lift Pylons" -- "Pylon 9"
-	"Pylon 10" [label="Pylon 10"]
-	"High Lift Pylons" -- "Pylon 10"
-	"Pylon 11" [label="Pylon 11"]
-	"High Lift Pylons" -- "Pylon 11"
-	"Pylon 12" [label="Pylon 12"]
-	"High Lift Pylons" -- "Pylon 12"
-	"Cruise Rotors" [label="Cruise Rotors"]
-	Airframe -- "Cruise Rotors"
-	"CruiseRotor 1" [label="CruiseRotor 1"]
-	"Cruise Rotors" -- "CruiseRotor 1"
-	"CruiseRotor 2" [label="CruiseRotor 2"]
-	"Cruise Rotors" -- "CruiseRotor 2"
+	"All Rotors" [label="All Rotors"]
+	Airframe -- "All Rotors"
+	"High Lift Rotor 1" [label="High Lift Rotor 1"]
+	"All Rotors" -- "High Lift Rotor 1"
+	"High Lift Rotor 2" [label="High Lift Rotor 2"]
+	"All Rotors" -- "High Lift Rotor 2"
+	"High Lift Rotor 3" [label="High Lift Rotor 3"]
+	"All Rotors" -- "High Lift Rotor 3"
+	"High Lift Rotor 4" [label="High Lift Rotor 4"]
+	"All Rotors" -- "High Lift Rotor 4"
+	"High Lift Rotor 5" [label="High Lift Rotor 5"]
+	"All Rotors" -- "High Lift Rotor 5"
+	"High Lift Rotor 6" [label="High Lift Rotor 6"]
+	"All Rotors" -- "High Lift Rotor 6"
+	"High Lift Rotor 7" [label="High Lift Rotor 7"]
+	"All Rotors" -- "High Lift Rotor 7"
+	"High Lift Rotor 8" [label="High Lift Rotor 8"]
+	"All Rotors" -- "High Lift Rotor 8"
+	"High Lift Rotor 9" [label="High Lift Rotor 9"]
+	"All Rotors" -- "High Lift Rotor 9"
+	"High Lift Rotor 10" [label="High Lift Rotor 10"]
+	"All Rotors" -- "High Lift Rotor 10"
+	"High Lift Rotor 11" [label="High Lift Rotor 11"]
+	"All Rotors" -- "High Lift Rotor 11"
+	"High Lift Rotor 12" [label="High Lift Rotor 12"]
+	"All Rotors" -- "High Lift Rotor 12"
+	"Cruise Rotor 1" [label="Cruise Rotor 1"]
+	"All Rotors" -- "Cruise Rotor 1"
+	"Cruise Rotor 2" [label="Cruise Rotor 2"]
+	"All Rotors" -- "Cruise Rotor 2"
+	"All Pylons" [label="All Pylons"]
+	Airframe -- "All Pylons"
+	"High Lift Pylon 1" [label="High Lift Pylon 1"]
+	"All Pylons" -- "High Lift Pylon 1"
+	"High Lift Pylon 2" [label="High Lift Pylon 2"]
+	"All Pylons" -- "High Lift Pylon 2"
+	"High Lift Pylon 3" [label="High Lift Pylon 3"]
+	"All Pylons" -- "High Lift Pylon 3"
+	"High Lift Pylon 4" [label="High Lift Pylon 4"]
+	"All Pylons" -- "High Lift Pylon 4"
+	"High Lift Pylon 5" [label="High Lift Pylon 5"]
+	"All Pylons" -- "High Lift Pylon 5"
+	"High Lift Pylon 6" [label="High Lift Pylon 6"]
+	"All Pylons" -- "High Lift Pylon 6"
+	"High Lift Pylon 7" [label="High Lift Pylon 7"]
+	"All Pylons" -- "High Lift Pylon 7"
+	"High Lift Pylon 8" [label="High Lift Pylon 8"]
+	"All Pylons" -- "High Lift Pylon 8"
+	"High Lift Pylon 9" [label="High Lift Pylon 9"]
+	"All Pylons" -- "High Lift Pylon 9"
+	"High Lift Pylon 10" [label="High Lift Pylon 10"]
+	"All Pylons" -- "High Lift Pylon 10"
+	"High Lift Pylon 11" [label="High Lift Pylon 11"]
+	"All Pylons" -- "High Lift Pylon 11"
+	"High Lift Pylon 12" [label="High Lift Pylon 12"]
+	"All Pylons" -- "High Lift Pylon 12"
 }
