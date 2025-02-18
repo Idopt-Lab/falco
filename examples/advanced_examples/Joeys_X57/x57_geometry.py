@@ -144,6 +144,9 @@ wing_qc = geometry.evaluate(wing.project(np.array([-12.356+(0.25*(-14.25+12.356)
 
 WingRegionGeoGuess = [wing_le_left_guess,wing_le_right_guess,wing_le_center_guess,wing_te_left_guess,wing_te_right_guess,wing_te_center_guess]
 
+wingspan = np.linalg.norm(wing_le_left.value - wing_le_right.value)
+print('Wingspan: ', wingspan)
+
 ## ADD CONTROL SURFACE INFO PROJECTIONS HERE
 
 left_aileron_le_left_guess = np.array([-12.356, -16, -5.5])*ft2m
@@ -157,6 +160,13 @@ left_aileron_le_right = geometry.evaluate(left_aileron_le_right_parametric)
 left_aileron_le_center_guess = np.array([-12.356, 0., -5.5])*ft2m
 left_aileron_le_center_parametric = aileronL.project(left_aileron_le_center_guess, plot=False)
 left_aileron_le_center = geometry.evaluate(left_aileron_le_center_parametric)
+left_aileron_te_center = geometry.evaluate(aileronL.project(np.array([-14.25, 0., -5.5])*ft2m, plot=False))
+
+left_aileron_span = np.linalg.norm(left_aileron_le_left.value - left_aileron_le_right.value)
+print('Left Aileron Span: ', left_aileron_span)
+
+left_aileron_chord = np.linalg.norm(left_aileron_le_center[0].value - left_aileron_te_center[0].value)
+print('Left Aileron Chord: ', left_aileron_chord)
 
 right_aileron_le_left_guess = np.array([-12.356, -16, -5.5])*ft2m
 right_aileron_le_left_parametric = aileronR.project(right_aileron_le_left_guess, plot=False)
@@ -169,6 +179,13 @@ right_aileron_le_right = geometry.evaluate(right_aileron_le_right_parametric)
 right_aileron_le_center_guess = np.array([-12.356, 0., -5.5])*ft2m
 right_aileron_le_center_parametric = aileronR.project(right_aileron_le_center_guess, plot=False)
 right_aileron_le_center = geometry.evaluate(right_aileron_le_center_parametric)
+right_aileron_te_center = geometry.evaluate(aileronR.project(np.array([-14.25, 0., -5.5])*ft2m, plot=False))
+
+right_aileron_span = np.linalg.norm(right_aileron_le_left.value - right_aileron_le_right.value)
+print('Right Aileron Span: ', right_aileron_span)
+
+right_aileron_chord = np.linalg.norm(right_aileron_le_center[0].value - right_aileron_te_center[0].value)
+print('Right Aileron Chord: ', right_aileron_chord)
 
 left_flap_le_left_guess = np.array([-12.356, -16, -5.5])*ft2m
 left_flap_le_left_parametric = flapL.project(left_flap_le_left_guess, plot=False)
@@ -181,6 +198,13 @@ left_flap_le_right = geometry.evaluate(left_flap_le_right_parametric)
 left_flap_le_center_guess = np.array([-12.356, 0., -5.5])*ft2m
 left_flap_le_center_parametric = flapL.project(left_flap_le_center_guess, plot=False)
 left_flap_le_center = geometry.evaluate(left_flap_le_center_parametric)
+left_flap_te_center = geometry.evaluate(flapL.project(np.array([-14.25, 0., -5.5])*ft2m, plot=False))
+
+left_flap_span = np.linalg.norm(left_flap_le_left.value - left_flap_le_right.value)
+print('Left Flap Span: ', left_flap_span)
+left_flap_chord = np.linalg.norm(left_flap_le_center[0].value - left_flap_te_center[0].value)
+print('Left Flap Chord: ', left_flap_chord)
+
 
 right_flap_le_left_guess = np.array([-12.356, -16, -5.5])*ft2m
 right_flap_le_left_parametric = flapR.project(right_flap_le_left_guess, plot=False)
@@ -193,6 +217,12 @@ right_flap_le_right = geometry.evaluate(right_flap_le_right_parametric)
 right_flap_le_center_guess = np.array([-12.356, 0., -5.5])*ft2m
 right_flap_le_center_parametric = flapR.project(right_flap_le_center_guess, plot=False)
 right_flap_le_center = geometry.evaluate(right_flap_le_center_parametric)
+right_flap_te_center = geometry.evaluate(flapR.project(np.array([-14.25, 0., -5.5])*ft2m, plot=False))
+
+right_flap_span = np.linalg.norm(right_flap_le_left.value - right_flap_le_right.value)
+print('Right Flap Span: ', right_flap_span)
+right_flap_chord = np.linalg.norm(right_flap_le_center[0].value - right_flap_te_center[0].value)
+print('Right Flap Chord: ', right_flap_chord)
 
 # HT Region Info
 ht_le_left = geometry.evaluate(h_tail.project(np.array([-26.5, -5.25, -5.5])*ft2m, plot=False))
@@ -206,8 +236,22 @@ ht_te_center = geometry.evaluate(h_tail.project(ht_te_center_guess, plot=False))
 ht_te_right = geometry.evaluate(h_tail.project(np.array([-30, 5.25, -5.5])*ft2m, plot=False))
 ht_qc = geometry.evaluate(h_tail.project(np.array([-27 + (0.25*(-30+27)), 0., -5.5])*ft2m, plot=False))
 
+ht_span = np.linalg.norm(ht_le_left.value - ht_le_right.value)
+print('Horizontal Tail Span: ', ht_span)
+ht_chord = np.linalg.norm(ht_le_center[0].value - ht_te_center[0].value)
+print('Horizontal Tail Chord: ', ht_chord)
+
+trimTab_le_left = geometry.evaluate(trimTab.project(np.array([-29.4, -5.5, -5.5])*ft2m, plot=False))
 trimTab_le_center_parametric = trimTab.project(np.array([-29.4, 0, -5.5])*ft2m, plot=False)
 trimTab_le_center = geometry.evaluate(trimTab_le_center_parametric)
+trimTab_le_right = geometry.evaluate(trimTab.project(np.array([-29.4, 5.5, -5.5])*ft2m, plot=False))
+trimTab_te_center = geometry.evaluate(trimTab.project(np.array([-30, 0, -5.5])*ft2m, plot=False))
+
+trim_tab_span = np.linalg.norm(trimTab_le_left.value - trimTab_le_right.value)
+print('Trim Tab Span: ', trim_tab_span)
+
+trimTab_chord = np.linalg.norm(trimTab_le_center[0].value - trimTab_te_center[0].value)
+print('Trim Tab Chord: ', trimTab_chord)
 
 # VT Region Info
 vt_le_base = geometry.evaluate(vertTail.project(np.array([-23, 0, -5.5])*ft2m, plot=False))
@@ -220,9 +264,22 @@ vt_te_mid_guess = np.array([-28.7, 0., -8])*ft2m
 vt_te_mid= geometry.evaluate(vertTail.project(vt_te_mid_guess, plot=False))
 vt_te_tip = geometry.evaluate(vertTail.project(np.array([-29.75, 0, -10.6])*ft2m, plot=False))
 vt_qc = geometry.evaluate(vertTail.project(np.array([-23 + (0.25*(-28.7+23)), 0., -5.5])*ft2m, plot=False))
+vt_span = np.linalg.norm(vt_le_base.value - vt_te_tip.value)
+print('Vertical Tail Span: ', vt_span)
 
+vt_chord = np.linalg.norm(vt_le_mid.value - vt_te_mid.value)
+print('Vertical Tail Chord: ', vt_chord)
+
+rudder_le_base = geometry.evaluate(rudder.project(np.array([-23, 0, -5.5])*ft2m, plot=False))
 rudder_le_mid_parametric = rudder.project(np.array([-28.7, 0., -8.])*ft2m, plot=False)
 rudder_le_mid = geometry.evaluate(rudder_le_mid_parametric)
+rudder_le_tip = geometry.evaluate(rudder.project(np.array([-29.75, 0, -10.6])*ft2m, plot=False))
+rudder_span = np.linalg.norm(rudder_le_base.value - rudder_le_tip.value)
+print('Rudder Span: ', rudder_span)
+rudder_chord = np.linalg.norm(rudder_le_mid.value - rudder_le_tip.value)
+print('Rudder Chord: ', rudder_chord)
+
+
 
 # Fuselage Region Info
 fuselage_wing_qc = geometry.evaluate(fuselage.project(np.array([-12.356+(0.25*(-14.25+12.356))*ft2m, 0., -5.5]), plot=False))
@@ -797,41 +854,64 @@ def hierarchy():
     Wing = WingComp(AR=wing_AR,S_ref=wing_S_ref,
                                         geometry=wing,
                                         tight_fit_ffd=False, orientation='horizontal', name='Wing')
+
+    flapArea=left_flap_span*left_flap_chord
+    flapAR = left_flap_span**2/flapArea
+
     
-    flap_AR = csdl.Variable(name="flap_AR", shape=(1, ), value=4.32915)
-    flap_S_ref = csdl.Variable(name="flap_S_ref", shape=(1, ), value=2922.04384*in2m)
+    flap_AR = csdl.Variable(name="flap_AR", shape=(1, ), value=flapAR)
+    flap_S_ref = csdl.Variable(name="flap_S_ref", shape=(1, ), value=flapArea)
     FlapsLeft = WingComp(AR=flap_AR, S_ref=flap_S_ref,
                                         geometry=flapL,tight_fit_ffd=False, orientation='horizontal', name='Left Flap')
+    # Wing.add_subcomponent(FlapsLeft)
+
     FlapsRight = WingComp(AR=flap_AR, S_ref=flap_S_ref,
                                         geometry=flapR,tight_fit_ffd=False, orientation='horizontal', name='Right Flap')
+    # Wing.add_subcomponent(FlapsRight)
+
+
+    aileronArea = left_aileron_span*left_aileron_chord
+    aileronAR = left_aileron_span**2/aileronArea
     
-    aileron_AR = csdl.Variable(name="aileron_AR", shape=(1, ), value=2.03724)
-    aileron_S_ref = csdl.Variable(name="aileron_S_ref", shape=(1, ), value=1010.04774*in2m)
+    aileron_AR = csdl.Variable(name="aileron_AR", shape=(1, ), value=aileronAR)
+    aileron_S_ref = csdl.Variable(name="aileron_S_ref", shape=(1, ), value=aileronArea)
     Left_Aileron = WingComp(AR=aileron_AR, S_ref=aileron_S_ref,
                                         geometry=aileronL,tight_fit_ffd=False, name='Left Aileron',orientation='horizontal')
+
     Right_Aileron = WingComp(AR=aileron_AR, S_ref=aileron_S_ref,
                                         geometry=aileronR,tight_fit_ffd=False, name='Right Aileron',orientation='horizontal')
     
+   
+    # Wing.add_subcomponent(Left_Aileron)
+    # Wing.add_subcomponent(Right_Aileron)
     Aircraft.add_subcomponent(Wing)
-    # Aircraft.add_subcomponent(FlapsLeft)
-    # Aircraft.add_subcomponent(FlapsRight)
-    # Aircraft.add_subcomponent(Left_Aileron)
-    # Aircraft.add_subcomponent(Right_Aileron)
     # Complete_Wing.add_subcomponent(Wing)
 
     Empennage = Component(name='Empennage')
 
-    HorTail = WingComp(AR=4.04066, S_ref=3793.72629*in2m, geometry=h_tail, tight_fit_ffd=False, name='Horizontal Tail', orientation='horizontal')
-    TrimTab = WingComp(AR=2.51295, S_ref=2359.37611*in2m, geometry=trimTab, tight_fit_ffd=False, name='Trim Tab', orientation='horizontal')
+    HorTailArea = ht_span*ht_chord
+    htAR = ht_span**2/HorTailArea
+    TrimTabArea = trim_tab_span*trimTab_chord
+    trimTabAR = trim_tab_span**2/TrimTabArea
+
+
+    HorTail = WingComp(AR=htAR, S_ref=HorTailArea, geometry=h_tail, tight_fit_ffd=False, name='Horizontal Tail', orientation='horizontal')
+    TrimTab = WingComp(AR=trimTabAR, S_ref=TrimTabArea, geometry=trimTab, tight_fit_ffd=False, name='Trim Tab', orientation='horizontal')
+    HorTail.add_subcomponent(TrimTab)
     Aircraft.add_subcomponent(HorTail)
-    Aircraft.add_subcomponent(TrimTab)
     # Empennage.add_subcomponent(HorTail)
  
+    VertTailArea = vt_span*vt_chord
+    vtAR = vt_span**2/VertTailArea
 
-    VertTail = WingComp(AR=2.69391, S_ref=6047.79504*in2m, geometry=vertTail, tight_fit_ffd=False, name='Vertical Tail', orientation='vertical')
-    Rudder = WingComp(AR=2.61887, S_ref=5312.26552*in2m, geometry=rudder, tight_fit_ffd=False, name='Rudder', orientation='vertical')
+    RudderArea = rudder_span*rudder_chord
+    rudderAR = rudder_span**2/RudderArea
+    
+    VertTail = WingComp(AR=vtAR, S_ref=VertTailArea, geometry=vertTail, tight_fit_ffd=False, name='Vertical Tail', orientation='vertical')
+    Rudder = WingComp(AR=rudderAR, S_ref=RudderArea, geometry=rudder, tight_fit_ffd=False, name='Rudder', orientation='vertical')
+    # VertTail.add_subcomponent(Rudder)
     # Aircraft.add_subcomponent(VertTail)
-    # Aircraft.add_subcomponent(Rudder)
+
     # Empennage.add_subcomponent(VertTail)
     # Aircraft.add_subcomponent(Empennage)
 
@@ -857,17 +937,19 @@ def hierarchy():
     #     Total_Prop_Sys.add_subcomponent(CruiseMotor)
 
     # Aircraft.add_subcomponent(Total_Prop_Sys)
+    
+    
 
     base_config.connect_component_geometries(Fuselage, Wing, connection_point=0.75*wing_le_center.value + 0.25*wing_te_center.value)
-
     # base_config.connect_component_geometries(Wing, FlapsLeft, connection_point=left_flap_le_center.value)
     # base_config.connect_component_geometries(Wing, FlapsRight, connection_point=right_flap_le_center.value)
     # base_config.connect_component_geometries(Wing, Left_Aileron, connection_point=left_aileron_le_center.value)
     # base_config.connect_component_geometries(Wing, Right_Aileron, connection_point=right_aileron_le_center.value)
 
     base_config.connect_component_geometries(Fuselage, HorTail, connection_point=ht_te_center.value)
-    # base_config.connect_component_geometries(Fuselage, VertTail, connection_point=vt_le_base.value)
-    base_config.connect_component_geometries(HorTail, TrimTab, connection_point=ht_te_center.value)
+    base_config.connect_component_geometries(Fuselage, VertTail, connection_point=vt_le_base.value)
+    
+    # base_config.connect_component_geometries(HorTail, TrimTab, connection_point=ht_te_center.value)
     # base_config.connect_component_geometries(VertTail, Rudder, connection_point=vt_te_mid.value)
 
 
