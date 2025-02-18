@@ -895,6 +895,7 @@ def hierarchy():
     trimTabAR = trim_tab_span**2/TrimTabArea
 
 
+
     HorTail = WingComp(AR=htAR, S_ref=HorTailArea, geometry=h_tail, tight_fit_ffd=False, name='Horizontal Tail', orientation='horizontal')
     TrimTab = WingComp(AR=trimTabAR, S_ref=TrimTabArea, geometry=trimTab, tight_fit_ffd=False, name='Trim Tab', orientation='horizontal')
     HorTail.add_subcomponent(TrimTab)
@@ -906,6 +907,8 @@ def hierarchy():
 
     RudderArea = rudder_span*rudder_chord
     rudderAR = rudder_span**2/RudderArea
+
+
     
     VertTail = WingComp(AR=vtAR, S_ref=VertTailArea, geometry=vertTail, tight_fit_ffd=False, name='Vertical Tail', orientation='vertical')
     Rudder = WingComp(AR=rudderAR, S_ref=RudderArea, geometry=rudder, tight_fit_ffd=False, name='Rudder', orientation='vertical')
@@ -947,19 +950,32 @@ def hierarchy():
     # base_config.connect_component_geometries(Wing, Right_Aileron, connection_point=right_aileron_le_center.value)
 
     base_config.connect_component_geometries(Fuselage, HorTail, connection_point=ht_te_center.value)
-    base_config.connect_component_geometries(Fuselage, VertTail, connection_point=vt_le_base.value)
+    # base_config.connect_component_geometries(Fuselage, VertTail, connection_point=vt_te_base.value)
     
-    # base_config.connect_component_geometries(HorTail, TrimTab, connection_point=ht_te_center.value)
+    base_config.connect_component_geometries(HorTail, TrimTab, connection_point=ht_te_center.value)
     # base_config.connect_component_geometries(VertTail, Rudder, connection_point=vt_te_mid.value)
 
+    if run_ffd:
+        if debug:
+            base_config.setup_geometry(plot=True)
+        else:
+            base_config.setup_geometry(plot=True,recorder=recorder)
+    else:
+        if debug:
+            pass
+        else:
+            recorder.inline=False
+    
+    BaseConfig = base_config
 
-
-    return Aircraft, base_config
+    return Aircraft, BaseConfig
 X57Hierarchy, BaseConfig = hierarchy()
 
 # X57Hierarchy.visualize_component_hierarchy(show=True)
 
-BaseConfig.setup_geometry(plot=True)
+
+
+
 
 
 
