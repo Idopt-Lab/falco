@@ -1,6 +1,6 @@
 import lsdo_function_spaces as lfs
 from lsdo_function_spaces import FunctionSet
-from flight_simulator.core.vehicle.component import Component
+from flight_simulator.core.component import Component
 from lsdo_geo.core.parameterization.volume_sectional_parameterization import (
     VolumeSectionalParameterization, VolumeSectionalParameterizationInputs
 )
@@ -25,8 +25,10 @@ class Rotor(Component):
         super().__init__(geometry, **kwargs)
 
         self._skip_ffd = False
+        self.geometry = geometry
 
-        self._name = f"rotor_{self._instance_count}"
+
+        self._name = f"rotor"
         self.parameters : RotorParameters = RotorParameters(
             radius=radius,
         )
@@ -37,6 +39,7 @@ class Rotor(Component):
                 raise TypeError(f"wing geometry must be of type {FunctionSet}, received {type(self.geometry)}")
 
             else:
+                self._ffd_block = self._make_ffd_block(self.geometry)
                 # Do projections for corner points
                 # Find principal axis/dim
                 # u-direction
@@ -211,10 +214,11 @@ class Rotor(Component):
         rigid_body_translation = csdl.ImplicitVariable(shape=(3, ), value=0.)
         for function in self.geometry.functions.values():
             shape = function.coefficients.shape
-            function.coefficients = function.coefficients + csdl.expand(rigid_body_translation, shape, action='j->ij')
+            function.coefficients = function.coefficients + csdl.expand(rigid_body_translation, shape, action='k->ijk')
 
 
         # Add (B-spline) coefficients to parameterization solver
+        self.skip_ffd=False
         if self.skip_ffd:
             parameterization_solver.add_parameter(rigid_body_translation)
         else:

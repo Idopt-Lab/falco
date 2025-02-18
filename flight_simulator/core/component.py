@@ -75,7 +75,6 @@ class Component:
     compute_surface_area : bool
         Indicates whether to compute the surface area of the geometry upon initialization.
     """
-
     def __init__(self,
                  name: str,
                  geometry: Union[FunctionSet, None] = None,
@@ -102,6 +101,7 @@ class Component:
         self._linear_b_spline_2_dof_space = lfs.BSplineSpace(num_parametric_dimensions=1, degree=1, coefficients_shape=(2,))
         self._linear_b_spline_3_dof_space = lfs.BSplineSpace(num_parametric_dimensions=1, degree=1, coefficients_shape=(3,))
         self._cubic_b_spline_5_dof_space = lfs.BSplineSpace(num_parametric_dimensions=1, degree=3, coefficients_shape=(5,))
+
 
         # Increment instance count and set the name
         self._name = name
