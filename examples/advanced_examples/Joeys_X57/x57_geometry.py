@@ -815,15 +815,15 @@ aero_force_vector_in_wing = Vector(vector=aero_force, axis=wing_axis)
 aero_moment_vector_in_wing = Vector(vector=aero_moment, axis=wing_axis)
 aero_force_moment_in_wing = ForcesMoments(force=aero_force_vector_in_wing, moment=aero_moment_vector_in_wing)
 
-# print('Aero Force in Wing Axis: ', aero_force_vector_in_wing.vector.value)
-# print('Aero Moment in Wing Axis: ', aero_moment_vector_in_wing.vector.value)
+print('Aero Force in Wing Axis: ', aero_force_vector_in_wing.vector.value)
+print('Aero Moment in Wing Axis: ', aero_moment_vector_in_wing.vector.value)
 
 
 aero_force_moment_in_body = aero_force_moment_in_wing.rotate_to_axis(fd_axis)
 aero_force_in_body = aero_force_moment_in_body.F
 aero_moment_in_body = aero_force_moment_in_body.M
-# print('Aero Force in Body Axis: ', aero_force_in_body.vector.value)
-# print('Aero Moment in Body Axis: ', aero_moment_in_body.vector.value)
+print('Aero Force in Body Axis: ', aero_force_in_body.vector.value)
+print('Aero Moment in Body Axis: ', aero_moment_in_body.vector.value)
 
 
 # Rotor Forces
@@ -1006,5 +1006,7 @@ from flight_simulator.core.aircraft_control_system import AircraftControlSystem
 ControlSystem = AircraftControlSystem(symmetrical=False, airframe=Airframe)       
 
 
+# BaseConfig.system.geometry.plot()
+# BaseConfig.system.comps['Wing'].geometry.plot()
 
 recorder.stop()

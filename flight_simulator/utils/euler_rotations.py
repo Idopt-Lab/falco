@@ -19,9 +19,9 @@ def build_rotation_matrix(angles: csdl.Variable, seq:np.ndarray):
         elif dimen == 2:
             D = csdl.Variable(shape=(3, 3), value=0.)
             D = D.set(csdl.slice[0, 0], csdl.cos(ang))
-            D = D.set(csdl.slice[0, 2], -csdl.sin(ang))
+            D = D.set(csdl.slice[0, 2], csdl.sin(ang))
             D = D.set(csdl.slice[1, 1], 1.)
-            D = D.set(csdl.slice[2, 0], csdl.sin(ang))
+            D = D.set(csdl.slice[2, 0], -csdl.sin(ang))
             D = D.set(csdl.slice[2, 2], csdl.cos(ang))
         elif dimen == 3:
             D = csdl.Variable(shape=(3, 3), value=0.)
@@ -35,5 +35,5 @@ def build_rotation_matrix(angles: csdl.Variable, seq:np.ndarray):
         # print(D)
         R = csdl.matmat(D, R)
         # print(R)
-    R = csdl.transpose(R)
+    # R = csdl.transpose(R)
     return R

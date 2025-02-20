@@ -16,7 +16,9 @@ class TestVector(TestCase):
         # Setup a mock axis for testing
         self.axis = Axis(
             name='Inertial Axis',
-            translation=np.array([0, 0, 0]) * ureg.meter,
+            x=np.array([0, ]) * ureg.meter,
+            y=np.array([0, ]) * ureg.meter,
+            z=np.array([0, ]) * ureg.meter,
             phi=np.array([0, ]) * ureg.degree,
             theta=np.array([0, ]) * ureg.degree,
             psi=np.array([0, ]) * ureg.degree,
@@ -74,45 +76,53 @@ class ForcesMomentsWithoutGeometryTests(TestCase):
 
         self.inertial_axis = Axis(
             name='Inertial Axis',
-            translation=np.array([0, 0, 0]) * ureg.meter,
+            x=np.array([0, ]) * ureg.meter,
+            y=np.array([0, ]) * ureg.meter,
+            z=np.array([0, ]) * ureg.meter,            
             phi=np.array([0, ]) * ureg.degree,
             theta=np.array([0, ]) * ureg.degree,
             psi=np.array([0, ]) * ureg.degree,
             origin=ValidOrigins.Inertial.value
         )
 
-        # self.fd_axis = Axis(
-        #     name='Flight Dynamics Body Fixed Axis',
-        #     translation=np.array([0, 0, 5000]) * ureg.ft,
-        #     phi=np.array([0, ]) * ureg.degree,
-        #     theta=np.array([0, ]) * ureg.degree,
-        #     psi=np.array([0, ]) * ureg.degree,
-        #     sequence=np.array([3, 2, 1]),
-        #     reference=self.inertial_axis,
-        #     origin=ValidOrigins.Inertial.value,
-        # )
-        #
-        # self.axis1 = Axis(
-        #     name='Axis 1',
-        #     translation=np.array([5, 0, 0]) * ureg.meter,
-        #     phi=np.array([0, ]) * ureg.degree,
-        #     theta=np.array([0, ]) * ureg.degree,
-        #     psi=np.array([0, ]) * ureg.degree,
-        #     sequence=np.array([3, 2, 1]),
-        #     reference=self.fd_axis,
-        #     origin=ValidOrigins.Inertial.value,
-        # )
-        #
-        # self.axis2 = Axis(
-        #     name='Axis 1',
-        #     translation=np.array([0, 5, -2]) * ureg.meter,
-        #     phi=np.array([0, ]) * ureg.degree,
-        #     theta=np.array([0, ]) * ureg.degree,
-        #     psi=np.array([0, ]) * ureg.degree,
-        #     sequence=np.array([3, 2, 1]),
-        #     reference=self.fd_axis,
-        #     origin=ValidOrigins.Inertial.value,
-        # )
+        self.fd_axis = Axis(
+            name='Flight Dynamics Body Fixed Axis',
+            x=np.array([0, ]) * ureg.meter,
+            y=np.array([0, ]) * ureg.meter,
+            z=np.array([5000, ]) * ureg.meter,            
+            phi=np.array([0, ]) * ureg.degree,
+            theta=np.array([0, ]) * ureg.degree,
+            psi=np.array([0, ]) * ureg.degree,
+            sequence=np.array([3, 2, 1]),
+            reference=self.inertial_axis,
+            origin=ValidOrigins.Inertial.value,
+        )
+        
+        self.axis1 = Axis(
+            name='Axis 1',
+            x=np.array([5, ]) * ureg.meter,
+            y=np.array([0, ]) * ureg.meter,
+            z=np.array([0, ]) * ureg.meter,
+            phi=np.array([0, ]) * ureg.degree,
+            theta=np.array([0, ]) * ureg.degree,
+            psi=np.array([0, ]) * ureg.degree,
+            sequence=np.array([3, 2, 1]),
+            reference=self.fd_axis,
+            origin=ValidOrigins.Inertial.value,
+        )
+        
+        self.axis2 = Axis(
+            name='Axis 2',
+            x=np.array([0, ]) * ureg.meter,
+            y=np.array([5, ]) * ureg.meter,
+            z=np.array([-2, ]) * ureg.meter,
+            phi=np.array([0, ]) * ureg.degree,
+            theta=np.array([0, ]) * ureg.degree,
+            psi=np.array([0, ]) * ureg.degree,
+            sequence=np.array([3, 2, 1]),
+            reference=self.fd_axis,
+            origin=ValidOrigins.Inertial.value,
+        )
 
     def test_forces_moments_initialization(self):
         # Initialize Force and Moment Vectors
@@ -126,44 +136,51 @@ class ForcesMomentsWithoutGeometryTests(TestCase):
         self.assertEqual(forces_moments.M.vector.value.tolist(), [1, 2, 3])
         self.assertEqual(forces_moments.axis.name, "Inertial Axis")
 
-    # def test_rotating_a_vector_1(self):
-    #     # Setup another axis
-    #     new_axis = Axis(
-    #         name='New Axis',
-    #         translation=np.array([0, 0, 0]) * ureg.meter,
-    #         phi=np.array([0, ]) * ureg.degree,
-    #         theta=np.array([0, ]) * ureg.degree,
-    #         psi=np.array([90, ]) * ureg.degree,
-    #         reference=self.inertial_axis,
-    #         origin=ValidOrigins.Inertial.value,
-    #     )
-    #
-    #     # Initialize Force and Moment Vectors
-    #     force = Vector(Q_([5, 10, 15], 'newton'), new_axis)
-    #     moment = Vector(Q_([1, 2, 3], 'newton * meter'), new_axis)
-    #     # Create ForcesMoments object
-    #     forces_moments = ForcesMoments(force=force, moment=moment)
-    #
-    #     # Perform rotation
-    #     new_load = forces_moments.rotate_to_axis(self.inertial_axis)
-    #
-    #     # Expected values after 90-degree rotation about Z-axis
-    #     expected_force = np.array([-10, 5, 15])
-    #     expected_moment = np.array([-2, 1, 3])
-    #
-    #     np.testing.assert_array_almost_equal(new_load.F.vector.value, expected_force, decimal=5)
-    #     np.testing.assert_array_almost_equal(new_load.M.vector.value, expected_moment, decimal=5)
+    def test_rotating_a_vector_1(self):
+         # Setup another axis
+        new_axis = Axis(
+            name='New Axis 1',
+            x=np.array([0, ]) * ureg.meter,
+            y=np.array([0, ]) * ureg.meter,
+            z=np.array([0, ]) * ureg.meter,
+            phi=np.array([0, ]) * ureg.degree,
+            theta=np.array([0, ]) * ureg.degree,
+            psi=np.array([90, ]) * ureg.degree,
+            reference=self.inertial_axis,
+            sequence=np.array([3, 2, 1]),
+            origin=ValidOrigins.Inertial.value,
+        )
+    
+        # Initialize Force and Moment Vectors
+        force = Vector(Q_([5, 10, 15], 'newton'), new_axis)
+        moment = Vector(Q_([1, 2, 3], 'newton * meter'), new_axis)
+        # Create ForcesMoments object
+        forces_moments = ForcesMoments(force=force, moment=moment)
+
+    
+        # Perform rotation
+        new_load = forces_moments.rotate_to_axis(self.inertial_axis)
+    
+        # Expected values after 90-degree rotation about Z-axis
+        expected_force = np.array([-10, 5, 15]) * ureg.newton
+        expected_moment = np.array([-2, 1, 3]) * ureg.newton * ureg.meter
+    
+        np.testing.assert_array_almost_equal(new_load.F.vector.value, expected_force, decimal=5)
+        np.testing.assert_array_almost_equal(new_load.M.vector.value, expected_moment, decimal=5)
 
 
     def test_rotating_a_vector_2(self):
         # Setup another axis
         new_axis = Axis(
-            name='New Axis',
-            translation=np.array([0, 0, 0]) * ureg.meter,
+            name='New Axis 2',
+            x=np.array([0, ]) * ureg.meter,
+            y=np.array([0, ]) * ureg.meter,
+            z=np.array([0, ]) * ureg.meter,            
             phi=np.array([0, ]) * ureg.degree,
             theta=np.array([90, ]) * ureg.degree,
             psi=np.array([0, ]) * ureg.degree,
             reference=self.inertial_axis,
+            sequence=np.array([3, 2, 1]),
             origin=ValidOrigins.Inertial.value,
         )
 
@@ -185,11 +202,11 @@ class ForcesMomentsWithoutGeometryTests(TestCase):
         np.testing.assert_array_almost_equal(new_load.F.vector.value, expected_force, decimal=5)
         np.testing.assert_array_almost_equal(new_load.M.vector.value, expected_moment, decimal=5)
 
-    # def test_loads_transfer_1(self):
-    #     force_vector_1 = Vector(vector=np.array([0, 0, 10]) * ureg.newton, axis=self.axis1)
-    #     moment_vector_1 = Vector(vector=np.array([0, 0, 0]) * ureg.newton*ureg.meter, axis=self.axis1)
-    #     load1 = ForcesMoments(force=force_vector_1, moment=moment_vector_1)
-    #
-    #     new_load = load1.rotate_to_axis(parent_or_child_axis=self.fd_axis)
-    #     print(new_load.F.vector.value)
-    #     print(new_load.M.vector.value)
+    def test_loads_transfer_1(self):
+        force_vector_1 = Vector(vector=np.array([0, 0, 10]) * ureg.newton, axis=self.axis1)
+        moment_vector_1 = Vector(vector=np.array([0, 0, 0]) * ureg.newton*ureg.meter, axis=self.axis1)
+        load1 = ForcesMoments(force=force_vector_1, moment=moment_vector_1)
+    
+        new_load = load1.rotate_to_axis(parent_or_child_axis=self.fd_axis)
+        print(new_load.F.vector.value)
+        print(new_load.M.vector.value)

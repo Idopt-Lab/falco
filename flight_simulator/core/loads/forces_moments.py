@@ -24,7 +24,7 @@ class ForcesMoments:
 
         # The loads are in the child axis and we want to transform into the parent axis
         if self.axis.reference.name == parent_or_child_axis.name:
-            euler = self.axis.euler_angles
+            euler = self.axis.euler_angles_vector
             seq = self.axis.sequence
             displacement = self.axis.translation
             R = build_rotation_matrix(euler, seq)
