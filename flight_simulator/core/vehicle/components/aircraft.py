@@ -12,3 +12,4 @@ class Aircraft(Component):
         kwargs["do_not_remake_ffd_block"] = True
         super().__init__(geometry, **kwargs)
         self._skip_ffd = True
+        self.geometry = geometry

@@ -134,6 +134,7 @@ class Wing(Component):
             thickness_to_chord_loc=thickness_to_chord_loc,
         )
 
+
         # Compute MAC (i.e., characteristic length)
         if taper_ratio is None:
             taper_ratio = 1
@@ -263,6 +264,7 @@ class Wing(Component):
             self._TE_center = self.geometry.evaluate(self._TE_mid_point)
         return self._TE_center
 
+    
     def actuate(self, angle : Union[float, int, csdl.Variable], axis_location : float = 0.25):
         """Actuate (i.e., rotate) the wing about an axis location at or behind the leading edge.
         
@@ -300,6 +302,7 @@ class Wing(Component):
 
         # Rotate the component about the axis
         wing_geometry.rotate(axis_origin=axis_origin, axis_vector=axis_vector / csdl.norm(axis_vector), angles=angle)
+
 
     def _make_ffd_block(self, 
             entities : List[lfs.Function], 

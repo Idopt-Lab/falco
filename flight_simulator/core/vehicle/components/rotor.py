@@ -20,6 +20,7 @@ class Rotor(Component):
     def __init__(self, 
                  radius: Union[int, float, csdl.Variable],
                  geometry: Union[FunctionSet, None] = None,
+                 name: str = None,
                  **kwargs) -> None:
         csdl.check_parameter(radius, "radius", types=(float, int, csdl.Variable))
         super().__init__(geometry, **kwargs)
@@ -27,8 +28,10 @@ class Rotor(Component):
         self._skip_ffd = False
         self.geometry = geometry
 
-
-        self._name = f"rotor"
+        if name is None:
+            self._name = f"rotor"
+        else:
+            self._name = name
         self.parameters : RotorParameters = RotorParameters(
             radius=radius,
         )

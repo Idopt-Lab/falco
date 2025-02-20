@@ -201,6 +201,7 @@ class Component:
                      directory=filepath,
                      format=file_format, view=show)
 
+
     def _make_ffd_block(self, entities, 
                             num_coefficients : tuple=(2, 2, 2), 
                             order: tuple=(1, 1, 1), 
@@ -363,14 +364,20 @@ class Configuration:
             self._geometric_connections.append((projection_1, projection_2, comp_1, comp_2, desired_value))
         
         # Else choose the center points of the FFD block
-        # else:
-            # point_1 = comp_1._ffd_block.evaluate(parametric_coordinates=np.array([0.5, 0.5, 0.5]))
-            # point_2 = comp_2._ffd_block.evaluate(parametric_coordinates=np.array([0.5, 0.5, 0.5]))
+        else:
 
-            # projection_1 = comp_1.geometry.project(point_1)
-            # projection_2 = comp_2.geometry.project(point_2)
+            if not hasattr(comp_1, '_ffd_block') or comp_1._ffd_block is None:
+                comp_1._ffd_block = comp_1._make_ffd_block(entities=comp_1.geometry, num_coefficients=(2, 2, 2), order=(1, 1, 1))
+            if not hasattr(comp_2, '_ffd_block') or comp_2._ffd_block is None:
+                comp_2._ffd_block = comp_2._make_ffd_block(entities=comp_2.geometry, num_coefficients=(2, 2, 2), order=(1, 1, 1))
 
-            # self._geometric_connections.append((projection_1, projection_2, comp_1, comp_2, desired_value))
+            point_1 = comp_1._ffd_block.evaluate(parametric_coordinates=np.array([0.5, 0.5, 0.5]))
+            point_2 = comp_2._ffd_block.evaluate(parametric_coordinates=np.array([0.5, 0.5, 0.5]))
+
+            projection_1 = comp_1.geometry.project(point_1)
+            projection_2 = comp_2.geometry.project(point_2)
+
+            self._geometric_connections.append((projection_1, projection_2, comp_1, comp_2, desired_value))
         
         return
 

@@ -5,11 +5,11 @@ import csdl_alpha as csdl
 
 class VehicleControlSystem(ABC):
 
-    def __init__(self, pitch: list, roll: list, yaw: list, throttle: list):
-        self.pitch = pitch
-        self.roll = roll
-        self.yaw = yaw
-        self.throttle = throttle    
+    def __init__(self, pitch_control: list, roll_control: list, yaw_control: list, throttle_control: list):
+        self.pitch_control = pitch_control
+        self.roll_control = roll_control
+        self.yaw_control = yaw_control
+        self.throttle_control = throttle_control    
         pass
 
     @abstractmethod
@@ -18,7 +18,6 @@ class VehicleControlSystem(ABC):
     
 class ControlSurface:
     def __init__(self, name, min_value: float, max_value: float):
-        self.name = name
         self._min_value = min_value
         self._max_value = max_value
         self.deflection = csdl.Variable(name=name + "_deflection", shape=(1, ), value=0.)
@@ -33,7 +32,6 @@ class ControlSurface:
     
 class PropulsiveControl:
     def __init__(self, name, min_value: float=0., max_value: float=1.):
-        self.name = name
         self._min_value = min_value
         self._max_value = max_value
         self.throttle = csdl.Variable(name=name + "_throttle", shape=(1, ), value=0.)
