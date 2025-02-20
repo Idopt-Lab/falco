@@ -169,6 +169,52 @@ class Component:
                 subcomponent.parent = None
                 return
         raise KeyError(f"Subcomponent {subcomponent._name} not found.")
+    
+    def actuate(self, angle: Union[float, int, csdl.Variable], axis_location: float = 0.25):
+            """Actuate (i.e., rotate) the component about an axis location at or behind the leading edge.
+            
+            Parameters
+            ----------
+            angle : float, int, or csdl.Variable
+                rotation angle (deg)
+
+            axis_location : float (default is 0.25)
+                location of actuation axis with respect to the leading edge;
+                0.0 corresponds the leading and 1.0 corresponds to the trailing edge
+            """
+            print(f"Actuating component with angle: {angle}, axis_location: {axis_location}")
+
+            component_geometry = self.geometry
+            # check if component_geometry is not None
+            if component_geometry is None:
+                raise ValueError("component cannot be actuated since it does not have a geometry (i.e., geometry=None)")
+
+            # Check if actuation axis is between 0 and 1
+            if axis_location < 0.0 or axis_location > 1.0:
+                raise ValueError("axis_location should be between 0 and 1")
+            
+            LE_center = component_geometry.evaluate(self._LE_mid_point)
+            TE_center = component_geometry.evaluate(self._TE_mid_point)
+            print(f"LE_center: {LE_center}, TE_center: {TE_center}")
+
+            # Add the user_specified axis location
+            actuation_center = csdl.linear_combination(
+                LE_center, TE_center, 1, np.array([1 - axis_location]), np.array([axis_location])
+            ).flatten()
+
+            print(f"Actuation center: {actuation_center}")
+
+            var = csdl.Variable(shape=(3,), value=np.array([0., 1., 0.]))
+
+            # Compute the actuation axis vector
+            axis_origin = actuation_center - var
+            axis_vector = actuation_center + var - axis_origin
+
+            print(f"Axis origin: {axis_origin}, Axis vector: {axis_vector}")
+
+            # Rotate the component about the axis
+            component_geometry.rotate(axis_origin=axis_origin, axis_vector=axis_vector / csdl.norm(axis_vector), angles=angle)
+            print("Actuation completed.")
 
     def visualize_component_hierarchy(
             self,
@@ -344,6 +390,12 @@ class Configuration:
         csdl.check_parameter(comp_2, "comp_2", types=Component)
         csdl.check_parameter(connection_point, "connection_point" ,
                              types=(csdl.Variable, np.ndarray), allow_none=True)
+
+        # Apply actuation if parameters are provided
+        if hasattr(comp_1.parameters, 'actuation_angle') and comp_1.parameters.actuation_angle is not None:
+            comp_1.actuate(comp_1.parameters.actuation_angle, axis_location=comp_1.parameters.actuation_axis_location)
+        if hasattr(comp_2.parameters, 'actuation_angle') and comp_2.parameters.actuation_angle is not None:
+            comp_2.actuate(comp_2.parameters.actuation_angle, axis_location=comp_2.parameters.actuation_axis_location)
 
         # Check that comp_1 and comp_2 have geometries
         if comp_1.geometry is None:

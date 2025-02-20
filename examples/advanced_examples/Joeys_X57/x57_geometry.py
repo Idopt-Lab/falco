@@ -848,10 +848,6 @@ cruise_motor_prop_moment_in_body = cruise_motor_prop_force_moment_in_body.M
 # print('Cruise Motor Prop Moment in Body Axis: ', cruise_motor_prop_moment_in_body.vector.value)
 
 
-
-
-
-
 thrust_axis = cruise_motor1_tip - cruise_motor1_base
 # print('Thrust Axis: ', thrust_axis.value)
 
@@ -893,15 +889,19 @@ def hierarchy():
     
     flap_AR = csdl.Variable(name="flap_AR", shape=(1, ), value=flapAR)
     flap_S_ref = csdl.Variable(name="flap_S_ref", shape=(1, ), value=flapArea)
+    flap_actuation_angle = 50
+    
 
     FlapsLeft = WingComp(AR=flap_AR, S_ref=flap_S_ref,
-                                        geometry=flapL,tight_fit_ffd=False, orientation='horizontal', name='Left Flap')
+                                        geometry=flapL,tight_fit_ffd=False, orientation='horizontal', name='Left Flap',
+                                        actuation_angle=flap_actuation_angle, actuation_location=0.25)
 
     Wing.add_subcomponent(FlapsLeft)
     base_config.connect_component_geometries(Wing, FlapsLeft, connection_point=left_flap_le_center.value)
 
     FlapsRight = WingComp(AR=flap_AR, S_ref=flap_S_ref,
-                                        geometry=flapR,tight_fit_ffd=False, orientation='horizontal', name='Right Flap')
+                                        geometry=flapR,tight_fit_ffd=False, orientation='horizontal', name='Right Flap',
+                                        actuation_angle=flap_actuation_angle, actuation_location=0.25)
     Wing.add_subcomponent(FlapsRight)
     base_config.connect_component_geometries(Wing, FlapsRight, connection_point=right_flap_le_center.value)
 
@@ -1004,6 +1004,10 @@ Airframe.visualize_component_hierarchy(show=False)
 
 from flight_simulator.core.aircraft_control_system import AircraftControlSystem
 ControlSystem = AircraftControlSystem(symmetrical=False, airframe=Airframe)       
+
+
+
+
 
 
 # BaseConfig.system.geometry.plot()

@@ -28,6 +28,8 @@ class WingParameters:
     thickness_to_chord_loc : float = 0.3
     MAC: Union[float, None] = None
     S_wet : Union[float, int, csdl.Variable, None]=None
+    actuate_angle: Union[float, int, csdl.Variable, None] = None
+    actuate_axis_location: Union[float, int, csdl.Variable, None] = 0.25
 
 @dataclass
 class WingGeometricQuantities:
@@ -78,7 +80,8 @@ class Wing(Component):
         tip_twist_delta : Union[int, float, csdl.Variable] = 0,
         thickness_to_chord: float = 0.15,
         thickness_to_chord_loc: float = 0.3,
-
+        actuate_angle: Union[int, float, csdl.Variable, None] = None,
+        actuate_axis_location: Union[int, float, csdl.Variable, None] = 0.25,
         geometry : Union[lfs.FunctionSet, None]=None,
         tight_fit_ffd: bool = False,
         skip_ffd: bool = False,
@@ -109,10 +112,15 @@ class Wing(Component):
         
         if orientation == "vertical" and dihedral is not None:
             raise ValueError("Cannot specify dihedral for vertical wing.")
-        
+           
         if incidence is not None:
             if incidence != 0.:
-                raise NotImplementedError("incidence has not yet been implemented")
+                self._incidence = self.apply_incidence(incidence)
+            else:
+                self._incidence = 0
+        
+        if actuate_angle is not None:
+            self.actuate(actuate_angle, actuate_axis_location)
 
         self._name = f"{self._name}"
         self._tight_fit_ffd = tight_fit_ffd
@@ -132,6 +140,8 @@ class Wing(Component):
             tip_twist_delta=tip_twist_delta,
             thickness_to_chord=thickness_to_chord,
             thickness_to_chord_loc=thickness_to_chord_loc,
+            actuate_angle=actuate_angle,
+            actuate_axis_location=actuate_axis_location,
         )
 
 
@@ -288,17 +298,20 @@ class Wing(Component):
         
         LE_center = wing_geometry.evaluate(self._LE_mid_point)
         TE_center = wing_geometry.evaluate(self._TE_mid_point)
+        print(LE_center.value)
 
         # Add the user_specified axis location
         actuation_center = csdl.linear_combination(
             LE_center, TE_center, 1, np.array([1 -axis_location]), np.array([axis_location])
         ).flatten()
 
+
         var = csdl.Variable(shape=(3, ), value=np.array([0., 1., 0.]))
 
         # Compute the actuation axis vector
         axis_origin = actuation_center - var
         axis_vector = actuation_center + var - axis_origin
+
 
         # Rotate the component about the axis
         wing_geometry.rotate(axis_origin=axis_origin, axis_vector=axis_vector / csdl.norm(axis_vector), angles=angle)
@@ -408,6 +421,16 @@ class Wing(Component):
             name=f"{self._name}_twist_b_sp_coeffs"
         )
 
+        if self.parameters.actuate_angle is not None:
+            actuate_b_spline = lfs.Function(
+                space=self._linear_b_spline_3_dof_space,
+                coefficients=csdl.ImplicitVariable(
+                    shape=(3,),
+                    value=np.array([0, 0, 0]),
+                ),
+                name=f"{self._name}_actuate_b_sp_coeffs"
+            )
+
         # evaluate b-splines 
         num_ffd_sections = ffd_block_sectional_parameterization.num_sections
         parametric_b_spline_inputs = np.linspace(0.0, 1.0, num_ffd_sections).reshape((-1, 1))
@@ -429,6 +452,10 @@ class Wing(Component):
         twist_sectional_parameters = twist_b_spline.evaluate(
             parametric_b_spline_inputs
         )
+        if self.parameters.actuate_angle is not None:
+            actuate_sectional_parameters = actuate_b_spline.evaluate(
+                parametric_b_spline_inputs
+            )
 
         sectional_parameters = VolumeSectionalParameterizationInputs()
         if self._orientation == "horizontal":
@@ -439,11 +466,15 @@ class Wing(Component):
             if self.parameters.dihedral is not None:
                 sectional_parameters.add_sectional_translation(axis=2, translation=dihedral_translation_sectional_parameters)
             sectional_parameters.add_sectional_rotation(axis=1, rotation=twist_sectional_parameters)
+            if self.parameters.actuate_angle is not None:
+                sectional_parameters.add_sectional_rotation(axis=2, rotation=actuate_sectional_parameters)
         else:
             sectional_parameters.add_sectional_stretch(axis=0, stretch=chord_stretch_sectional_parameters)
             sectional_parameters.add_sectional_translation(axis=2, translation=span_stretch_sectional_parameters)
             if self.parameters.sweep is not None:
                 sectional_parameters.add_sectional_translation(axis=0, translation=sweep_translation_sectional_parameters)
+            if self.parameters.actuate_angle is not None:
+                sectional_parameters.add_sectional_rotation(axis=1, rotation=actuate_sectional_parameters)
 
         ffd_coefficients = ffd_block_sectional_parameterization.evaluate(sectional_parameters, plot=False) 
 
@@ -476,8 +507,7 @@ class Wing(Component):
             # shape = function.coefficients.shape
             # print('Wing Shape: ', shape)
             function.coefficients = function.coefficients + csdl.expand(rigid_body_translation, function.coefficients.shape, action='k->ijk')
-
-
+        
         # Add the coefficients of all B-splines to the parameterization solver
         if self.skip_ffd:
             parameterization_solver.add_parameter(rigid_body_translation, cost=10)
@@ -489,6 +519,8 @@ class Wing(Component):
                 parameterization_solver.add_parameter(sweep_translation_b_spline.coefficients)
             if self.parameters.dihedral is not None:
                 parameterization_solver.add_parameter(dihedral_translation_b_spline.coefficients)
+            if self.parameters.actuate_angle is not None:
+                parameterization_solver.add_parameter(actuate_b_spline.coefficients)    
             parameterization_solver.add_parameter(rigid_body_translation, cost=10)
 
         return 
@@ -503,6 +535,9 @@ class Wing(Component):
         Note that this helper function will not work well in all cases (e.g.,
         in cases with high sweep or taper)
         """
+        if self.parameters.actuate_angle is not None:
+            self.actuate(self.parameters.actuate_angle, self.parameters.actuate_axis_location)
+
         if self._orientation == "horizontal":
             # Re-evaluate the corner points of the FFD block (plus center)
             # Root
@@ -667,11 +702,37 @@ class Wing(Component):
             ffd_geometric_variables.add_variable(wing_geom_qts.dihedral_angle_left, dihedral_input)
             ffd_geometric_variables.add_variable(wing_geom_qts.dihedral_angle_right, dihedral_input)
 
+        if self.parameters.actuate_angle is not None:
+            actuate_angle_input = self.parameters.actuate_angle
+            actuate_axis_location_input = self.parameters.actuate_axis_location
+            self.actuate(actuate_angle_input, actuate_axis_location_input)
+
         # print(wing_geom_qts.center_chord.value, root_chord_input.value)
         # print(wing_geom_qts.left_tip_chord.value, tip_chord_left_input.value)
         # print(wing_geom_qts.right_tip_chord.value, tip_chord_right_input.value)
 
         return
+
+    def apply_incidence(self, incidence: Union[float, int, csdl.Variable]):
+        """Apply the incidence angle to the wing geometry.
+        
+        Parameters
+        ----------
+        incidence : float, int, or csdl.Variable
+            The incidence angle (degrees) to be applied to the wing.
+        """
+        wing_geometry = self.geometry
+        if wing_geometry is None:
+            raise ValueError("wing component cannot apply incidence since it does not have a geometry (i.e., geometry=None)")
+
+        # Convert incidence angle to radians
+        incidence_rad = np.radians(incidence)
+
+        # Define the rotation axis (y-axis)
+        rotation_axis = np.array([0., 1., 0.])
+
+        # Rotate the wing geometry about the y-axis by the incidence angle
+        wing_geometry.rotate(axis_origin=np.array([0., 0., 0.]), axis_vector=rotation_axis, angles=incidence_rad)
 
     def _setup_geometry(self, parameterization_solver, ffd_geometric_variables, plot=False):
         """Set up the wing geometry (mainly the FFD)"""
