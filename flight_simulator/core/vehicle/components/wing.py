@@ -296,8 +296,8 @@ class Wing(Component):
         if axis_location < 0.0 or axis_location > 1.0:
             raise ValueError("axis_loaction should be between 0 and 1")
         
-        LE_center = wing_geometry.evaluate(self._LE_mid_point)
-        TE_center = wing_geometry.evaluate(self._TE_mid_point)
+        LE_center = wing_geometry.evaluate(self.LE_center)
+        TE_center = wing_geometry.evaluate(self.TE_center)
         print(LE_center.value)
 
         # Add the user_specified axis location

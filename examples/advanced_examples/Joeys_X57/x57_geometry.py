@@ -893,15 +893,15 @@ def hierarchy():
     
 
     FlapsLeft = WingComp(AR=flap_AR, S_ref=flap_S_ref,
-                                        geometry=flapL,tight_fit_ffd=False, orientation='horizontal', name='Left Flap',
-                                        actuation_angle=flap_actuation_angle, actuation_location=0.25)
+                                        geometry=flapL,tight_fit_ffd=False, orientation="horizontal", name='Left Flap',
+                                        actuate_angle=flap_actuation_angle, actuate_axis_location=0.)
 
     Wing.add_subcomponent(FlapsLeft)
     base_config.connect_component_geometries(Wing, FlapsLeft, connection_point=left_flap_le_center.value)
 
     FlapsRight = WingComp(AR=flap_AR, S_ref=flap_S_ref,
-                                        geometry=flapR,tight_fit_ffd=False, orientation='horizontal', name='Right Flap',
-                                        actuation_angle=flap_actuation_angle, actuation_location=0.25)
+                                        geometry=flapR,tight_fit_ffd=False, orientation="horizontal", name='Right Flap',
+                                        actuate_angle=flap_actuation_angle, actuate_axis_location=0.)
     Wing.add_subcomponent(FlapsRight)
     base_config.connect_component_geometries(Wing, FlapsRight, connection_point=right_flap_le_center.value)
 
