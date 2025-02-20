@@ -3,36 +3,33 @@ import numpy as np
 from flight_simulator import ureg
 import lsdo_geo
 from flight_simulator.core.dynamics.axis_lsdogeo import AxisLsdoGeo
+import csdl_alpha as csdl
 
 class TestAxisLsdoGeo(unittest.TestCase):
     def setUp(self):
+        recorder = csdl.Recorder(inline=True)
+        recorder.start()
         # Create a mock geometry object with an evaluate method
         class MockGeometry:
             def evaluate(self, parametric_coords):
-                return np.array([1.0, 2.0, 3.0])
+                return np.array([1.0, 2.0, 3.0]) * ureg.meter
         
         self.geometry = MockGeometry()
         self.parametric_coords = [0.5, 0.5, 0.5]
-        self.origin = 'test_origin'
+        self.origin = 'inertial'
         self.axis = AxisLsdoGeo(
             name="test_axis",
             parametric_coords=self.parametric_coords,
             geometry=self.geometry,
-            origin="origin",
-            phi=np.array([0.1]) * ureg.radian,
-            theta=np.array([0.2]) * ureg.radian,
-            psi=np.array([0.3]) * ureg.radian
+            origin=self.origin,
         )
 
     def test_initialization(self):
         self.assertEqual(self.axis.name, "test_axis")
-        self.assertEqual(self.axis.x, 1.0)
-        self.assertEqual(self.axis.y, 2.0)
-        self.assertEqual(self.axis.z, 3.0)
-        self.assertEqual(self.axis.phi.magnitude, 0.1)
-        self.assertEqual(self.axis.theta.magnitude, 0.2)
-        self.assertEqual(self.axis.psi.magnitude, 0.3)
-        self.assertEqual(self.axis.origin, "origin")
+        self.assertEqual(self.axis.translation[0].magnitude, 1.0)
+        self.assertEqual(self.axis.translation[1].magnitude, 2.0)
+        self.assertEqual(self.axis.translation[2].magnitude, 3.0)
+        self.assertEqual(self.axis.origin, self.origin)
 
     def test_translation_property(self):
         translation = self.axis.translation
