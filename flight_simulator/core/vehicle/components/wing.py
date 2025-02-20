@@ -119,8 +119,6 @@ class Wing(Component):
             else:
                 self._incidence = 0
         
-        if actuate_angle is not None:
-            self.actuate(actuate_angle, actuate_axis_location)
 
         self._name = f"{self._name}"
         self._tight_fit_ffd = tight_fit_ffd
@@ -185,6 +183,7 @@ class Wing(Component):
         FF = (1 + 0.6 / x_c_m + 100 * (t_o_c) ** 4) * csdl.cos(sweep) ** 0.28
         # self.quantities.drag_parameters.form_factor = FF
 
+
         if self.geometry is not None:
             # Check for appropriate geometry type
             if not isinstance(self.geometry, (lfs.FunctionSet)):
@@ -229,6 +228,9 @@ class Wing(Component):
             # internal geometry projection info
             self._dependent_geometry_points = [] # {'parametric_points', 'function_space', 'fitting_coords', 'mirror'}
             self._base_geometry = self.geometry.copy()
+            
+        if actuate_angle is not None:
+            self.actuate(actuate_angle, actuate_axis_location)
 
         self._LE_left_tip = None
         self._LE_right_tip = None
@@ -236,6 +238,7 @@ class Wing(Component):
         self._TE_right_tip = None
         self._LE_center = None
         self._TE_center = None
+        
         
     @property
     def LE_left_tip(self):
@@ -296,9 +299,8 @@ class Wing(Component):
         if axis_location < 0.0 or axis_location > 1.0:
             raise ValueError("axis_loaction should be between 0 and 1")
         
-        LE_center = wing_geometry.evaluate(self.LE_center)
-        TE_center = wing_geometry.evaluate(self.TE_center)
-        print(LE_center.value)
+        LE_center = wing_geometry.evaluate(self._LE_mid_point)
+        TE_center = wing_geometry.evaluate(self._TE_mid_point)
 
         # Add the user_specified axis location
         actuation_center = csdl.linear_combination(
