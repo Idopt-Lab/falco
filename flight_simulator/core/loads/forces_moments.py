@@ -37,7 +37,6 @@ class ForcesMoments:
             newMoment = InterMoment + csdl.cross(displacement, InterForce)
             newMoment.add_tag(orig_moment.tags[0])
         else:
-            print(f"Converting Forces/Moments from in child axis '{self.axis.name}' to parent axis '{parent_or_child_axis.name}'")
             euler_child_to_parent = parent_or_child_axis.euler_angles_vector - self.axis.euler_angles_vector
             seq = parent_or_child_axis.sequence
             translation_child_to_parent = parent_or_child_axis.translation - self.axis.translation
