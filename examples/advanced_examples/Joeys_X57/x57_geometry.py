@@ -908,16 +908,17 @@ def hierarchy():
 
     aileronArea = left_aileron_span*left_aileron_chord
     aileronAR = left_aileron_span**2/aileronArea
-    
     aileron_AR = csdl.Variable(name="aileron_AR", shape=(1, ), value=aileronAR)
     aileron_S_ref = csdl.Variable(name="aileron_S_ref", shape=(1, ), value=aileronArea)
+    aileron_actuation_angle = -50
+
     Left_Aileron = WingComp(AR=aileron_AR, S_ref=aileron_S_ref,
-                                        geometry=aileronL,tight_fit_ffd=False, name='Left Aileron',orientation='horizontal')
+                                        geometry=aileronL,tight_fit_ffd=False, name='Left Aileron',orientation='horizontal', actuate_angle=aileron_actuation_angle, actuate_axis_location=0.)
     Wing.add_subcomponent(Left_Aileron)
     base_config.connect_component_geometries(Wing, Left_Aileron, connection_point=left_aileron_le_center.value)
 
     Right_Aileron = WingComp(AR=aileron_AR, S_ref=aileron_S_ref,
-                                        geometry=aileronR,tight_fit_ffd=False, name='Right Aileron',orientation='horizontal')
+                                        geometry=aileronR,tight_fit_ffd=False, name='Right Aileron',orientation='horizontal', actuate_angle=aileron_actuation_angle, actuate_axis_location=0.)
     Wing.add_subcomponent(Right_Aileron)
     base_config.connect_component_geometries(Wing, Right_Aileron, connection_point=right_aileron_le_center.value)
     Airframe.add_subcomponent(Wing)
@@ -931,11 +932,12 @@ def hierarchy():
     htAR = ht_span**2/HorTailArea
     TrimTabArea = trim_tab_span*trimTab_chord
     trimTabAR = trim_tab_span**2/TrimTabArea
+    HT_actuation_angle = -50
 
-    HorTail = WingComp(AR=htAR, S_ref=HorTailArea, geometry=h_tail, tight_fit_ffd=False, name='Horizontal Tail', orientation='horizontal')
+    HorTail = WingComp(AR=htAR, S_ref=HorTailArea, geometry=h_tail, tight_fit_ffd=False, name='Horizontal Tail', orientation='horizontal', actuate_angle=HT_actuation_angle, actuate_axis_location=0.)
     TrimTab = WingComp(AR=trimTabAR, S_ref=TrimTabArea, geometry=trimTab, tight_fit_ffd=False, name='Trim Tab', orientation='horizontal')
     HorTail.add_subcomponent(TrimTab)
-    base_config.connect_component_geometries(HorTail, TrimTab, connection_point=ht_te_center.value)
+    base_config.connect_component_geometries(TrimTab, HorTail, connection_point=ht_te_center.value)
     Empennage.add_subcomponent(HorTail)
     base_config.connect_component_geometries(Fuselage, HorTail, connection_point=ht_te_center.value)
  
