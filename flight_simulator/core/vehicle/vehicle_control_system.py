@@ -22,10 +22,14 @@ class VehicleControlSystem(ABC):
 
 
 class ControlSurface:
-    def __init__(self, name, lb: float, ub: float):
+    def __init__(self, name, lb: float, ub: float, component=None):
         self._lb = lb
         self._ub = ub
-        self.deflection = csdl.Variable(name=name+'_deflection', shape=(1, ), value=0.)
+        if component is None:
+            self.deflection = csdl.Variable(name=name+'_deflection', shape=(1, ), value=0.)
+        else:
+            assert isinstance(component.parameters.actuate_angle, csdl.Variable)
+            self.deflection = component.parameters.actuate_angle
 
     @property
     def lower_bound(self):
