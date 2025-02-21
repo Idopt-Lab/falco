@@ -80,7 +80,7 @@ class Wing(Component):
         tip_twist_delta : Union[int, float, csdl.Variable] = 0,
         thickness_to_chord: float = 0.15,
         thickness_to_chord_loc: float = 0.3,
-        actuate_angle: csdl.Variable = None,
+        actuate_angle: Union[float, int, csdl.Variable, None] = None,
         actuate_axis_location: Union[int, float, csdl.Variable, None] = 0.25,
         geometry : Union[lfs.FunctionSet, None]=None,
         tight_fit_ffd: bool = False,
