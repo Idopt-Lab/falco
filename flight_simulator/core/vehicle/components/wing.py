@@ -69,8 +69,8 @@ class Wing(Component):
     """
     def __init__(
         self,
-        AR : Union[int, float, csdl.Variable, None], 
-        S_ref : Union[int, float, csdl.Variable, None],
+        AR : Union[int, float, csdl.Variable, None]= None, 
+        S_ref : Union[int, float, csdl.Variable, None]= None,
         span : Union[int, float, csdl.Variable, None] = None, 
         dihedral : Union[int, float, csdl.Variable, None] = None, 
         sweep : Union[int, float, csdl.Variable, None] = None, 
