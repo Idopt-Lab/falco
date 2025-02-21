@@ -394,8 +394,14 @@ class Configuration:
         # Apply actuation if parameters are provided
         if hasattr(comp_1.parameters, 'actuation_angle') and comp_1.parameters.actuation_angle is not None:
             comp_1.actuate(comp_1.parameters.actuation_angle, axis_location=comp_1.parameters.actuation_axis_location)
-        if hasattr(comp_2.parameters, 'actuation_angle') and comp_2.parameters.actuation_angle is not None:
+            comp_2.parameters.actuation_angle = comp_1.parameters.actuation_angle
+            comp_2.parameters.actuation_axis_location = comp_1.parameters.actuation_axis_location
             comp_2.actuate(comp_2.parameters.actuation_angle, axis_location=comp_2.parameters.actuation_axis_location)
+        elif hasattr(comp_2.parameters, 'actuation_angle') and comp_2.parameters.actuation_angle is not None:
+            comp_2.actuate(comp_2.parameters.actuation_angle, axis_location=comp_2.parameters.actuation_axis_location)
+            comp_1.parameters.actuation_angle = comp_2.parameters.actuation_angle
+            comp_1.parameters.actuation_axis_location = comp_2.parameters.actuation_axis_location
+            comp_1.actuate(comp_1.parameters.actuation_angle, axis_location=comp_1.parameters.actuation_axis_location)
 
         # Check that comp_1 and comp_2 have geometries
         if comp_1.geometry is None:

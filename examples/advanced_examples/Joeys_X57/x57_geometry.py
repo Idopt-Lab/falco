@@ -934,10 +934,10 @@ def hierarchy():
     trimTabAR = trim_tab_span**2/TrimTabArea
     HT_actuation_angle = -50
 
-    HorTail = WingComp(AR=htAR, S_ref=HorTailArea, geometry=h_tail, tight_fit_ffd=False, name='Horizontal Tail', orientation='horizontal', actuate_angle=HT_actuation_angle, actuate_axis_location=0.)  
+    HorTail = WingComp(AR=htAR, S_ref=HorTailArea, geometry=h_tail, tight_fit_ffd=False, name='Horizontal Tail', orientation='horizontal', actuate_angle=HT_actuation_angle, actuate_axis_location=0.)
     TrimTab = WingComp(AR=trimTabAR, S_ref=TrimTabArea, geometry=trimTab, tight_fit_ffd=False, name='Trim Tab', orientation='horizontal')
     HorTail.add_subcomponent(TrimTab)
-    base_config.connect_component_geometries(HorTail, TrimTab, connection_point=ht_te_center.value)
+    base_config.connect_component_geometries(TrimTab, HorTail, connection_point=ht_te_center.value)
     Empennage.add_subcomponent(HorTail)
     base_config.connect_component_geometries(Fuselage, HorTail, connection_point=ht_te_center.value)
  
