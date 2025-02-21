@@ -1067,7 +1067,7 @@ ib_right_aft_moment_in_body = ib_right_aft_force_moment_in_body.M
 # # # region Fuselage setup
 
 
-# fuselage_ffd_block = lg.construct_ffd_block_around_entities(name='fuselage_ffd_block', entities=fuselage, num_coefficients=(2,2,2), degree=(1,1,1))
+fuselage_ffd_block = lg.construct_ffd_block_around_entities(name='fuselage_ffd_block', entities=fuselage, num_coefficients=(2,2,2), degree=(1,1,1))
 # fuselage_ffd_block_sectional_parameterization = lg.VolumeSectionalParameterization(name='fuselage_sectional_parameterization',
 #                                                                             parameterized_points=fuselage_ffd_block.coefficients,
 #                                                                             principal_parametric_dimension=0)
@@ -1085,8 +1085,8 @@ ib_right_aft_moment_in_body = ib_right_aft_force_moment_in_body.M
 
 # parameterization_solver.add_parameter(parameter=fuselage_stretch_coefficients)
 
-# fuselage_tailing_point=fuselage.project(fuselage_ffd_block.evaluate(parametric_coordinates=np.array([0., 0.5, 0.5])))
-# fuselage_leading_point=fuselage.project(fuselage_ffd_block.evaluate(parametric_coordinates=np.array([1., 0.5, 0.5])))
+fuselage_tailing_point=fuselage.project(fuselage_ffd_block.evaluate(parametric_coordinates=np.array([0., 0.5, 0.5])))
+fuselage_leading_point=fuselage.project(fuselage_ffd_block.evaluate(parametric_coordinates=np.array([1., 0.5, 0.5])))
 
 # fuselage_length = np.linalg.norm(fuselage.evaluate(fuselage_tailing_point).value - fuselage.evaluate(fuselage_leading_point).value)
 
@@ -1186,16 +1186,12 @@ def define_heirarchy():
     Airframe = Component(name='Airframe')
     Aircraft.add_subcomponent(Airframe)
 
-
     fuselagelength = csdl.Variable(name="fuselage_length", shape=(1, ), value=csdl.norm(fuselage.evaluate(fuselage_tailing_point).value - fuselage.evaluate(fuselage_leading_point).value).value)
     Fuselage = FuseComp(
         length=fuselagelength, geometry=fuselage, skip_ffd=False)
     Airframe.add_subcomponent(Fuselage)
 
-
-
     wingAR = wingspan.value**2/S
-
     wing_AR = csdl.Variable(name="wing_AR", shape=(1, ), value=wingAR)
     wing_S_ref = csdl.Variable(name="wing_S_ref", shape=(1, ), value=S)
     wing_span = csdl.Variable(name="wingspan", shape=(1, ), value=csdl.norm(
@@ -1279,6 +1275,7 @@ def define_heirarchy():
     Airframe.add_subcomponent(Wing)
     config.connect_component_geometries(Fuselage, Wing, connection_point=wing_root_qc)
 
+
     htail_span = csdl.norm(
         geometry.evaluate(htail_tip_left_le_parametric) - geometry.evaluate(htail_tip_right_le_parametric)
     ).value
@@ -1289,15 +1286,11 @@ def define_heirarchy():
     htail_AR = htail_span**2 / htail_area
     htail_AR_var = csdl.Variable(name="htail_AR", shape=(1, ), value=htail_AR)
     htail_S_ref = csdl.Variable(name="htail_S_ref", shape=(1, ), value=htail_area)
-
     Htail = WingComp(AR=htail_AR_var, S_ref=htail_S_ref,
                      geometry=h_tail, tight_fit_ffd=False, orientation='horizontal', name='Horizontal Tail')
-
     Airframe.add_subcomponent(Htail)
     config.connect_component_geometries(Fuselage, Htail, connection_point=htail_root_le.value)
     
-
-
     vtail_span = csdl.norm(
         geometry.evaluate(vtail_tip_le_parametric) - geometry.evaluate(vtail_root_le_parametric)
     ).value
@@ -1315,123 +1308,23 @@ def define_heirarchy():
     Airframe.add_subcomponent(Vtail)
     config.connect_component_geometries(Fuselage, Vtail, connection_point=vtail_root_le.value)
 
-
-
-
-    
-    # # Wing, Tails, Fuselage
-    # Wing = Component(name='Wing',geometry=wing)
-    # HorizTail = Component(name='Horizontal Tail',geometry=h_tail)
-    # VertTail = Component(name='Vertical Tail',geometry=v_tail)
-    # Fuselage = Component(name='Fuselage',geometry=fuselage)
-    # Aircraft.add_subcomponent(Wing)
-    # Aircraft.add_subcomponent(HorizTail)
-    # Aircraft.add_subcomponent(VertTail)
-    # Aircraft.add_subcomponent(Fuselage)
-    # # Control Surfaces
-    # OB_Left_Aileron = Component(name='OB Left Aileron', geometry=ob_left_aileron)
-    # Mid_Left_Flap = Component(name='Mid Left Flap', geometry=mid_left_flap)
-    # IB_Left_Flap = Component(name='IB Left Flap', geometry=ib_left_flap)
-    # OB_Right_Aileron = Component(name='OB Right Aileron', geometry=ob_right_aileron)
-    # Mid_Right_Flap = Component(name='Mid Right Flap', geometry=mid_right_flap)
-    # IB_Right_Flap = Component(name='IB Right Flap', geometry=ib_right_flap)
-
-    # Wing.add_subcomponent(OB_Left_Aileron)
-    # Wing.add_subcomponent(Mid_Left_Flap)
-    # Wing.add_subcomponent(IB_Left_Flap)
-    # Wing.add_subcomponent(OB_Right_Aileron)
-    # Wing.add_subcomponent(Mid_Right_Flap)
-    # Wing.add_subcomponent(IB_Right_Flap)
-
-    # Landing Gears
-    # Landing Gear Components
-    # Landing_Gear = Component(name='Landing Gear')
-    # Fwd_Landing_Gear_Pylon = Component(name='Forward Landing Gear Pylon', geometry=fwd_landing_gear_pylon)
-    # Aft_Landing_Gear_Pylon = Component(name='Aft Landing Gear Pylon', geometry=aft_landing_gear_pylon)
-    # Base_Landing_Gear = Component(name='Base Landing Gear', geometry=base_landing_gear)
-    # Landing_Gear.add_subcomponent(Fwd_Landing_Gear_Pylon)
-    # Landing_Gear.add_subcomponent(Aft_Landing_Gear_Pylon)
-    # Landing_Gear.add_subcomponent(Base_Landing_Gear)
-    # Airframe.add_subcomponent(Landing_Gear)
-    # # Propulsion and Pylons
-    # Propulsion = Component(name='Propulsion')
-    # LPC_Propulsion = Component(name='Lift+Cruise Propulsion (FWD)')
-    # Propulsion.add_subcomponent(LPC_Propulsion)
-    # Motor_ob_left_fwd = Component(name='Motor Outboard Left FWD', geometry=rotor_hub_ob_left_fwd)
-    # Motor_mid_left_fwd = Component(name='Motor Middle Left FWD', geometry=rotor_hub_mid_left_fwd)
-    # Motor_ib_left_fwd = Component(name='Motor Inboard Left FWD', geometry=rotor_hub_ib_left_fwd)
-    # Motor_ob_right_fwd = Component(name='Motor Outboard Right FWD', geometry=rotor_hub_ob_right_fwd)
-    # Motor_mid_right_fwd = Component(name='Motor Middle Right FWD', geometry=rotor_hub_mid_right_fwd)
-    # Motor_ib_right_fwd = Component(name='Motor Inboard Right FWD', geometry=rotor_hub_ib_right_fwd)
-    # LPC_Propulsion.add_subcomponent(Motor_ob_left_fwd)
-    # LPC_Propulsion.add_subcomponent(Motor_mid_left_fwd)
-    # LPC_Propulsion.add_subcomponent(Motor_ib_left_fwd)
-    # LPC_Propulsion.add_subcomponent(Motor_ob_right_fwd)
-    # LPC_Propulsion.add_subcomponent(Motor_mid_right_fwd)
-    # LPC_Propulsion.add_subcomponent(Motor_ib_right_fwd)
-    # LIFT_Propulsion = Component(name='Lift Only Propulsion (AFT)')
-    # Propulsion.add_subcomponent(LIFT_Propulsion)
-    # Motor_ob_left_aft = Component(name='Motor Outboard Left AFT', geometry=rotor_hub_ob_left_aft)
-    # Motor_mid_left_aft = Component(name='Motor Middle Left AFT', geometry=rotor_hub_mid_left_aft)
-    # Motor_ib_left_aft = Component(name='Motor Inboard Left AFT', geometry=rotor_hub_ib_left_aft)
-    # Motor_ob_right_aft = Component(name='Motor Outboard Right AFT', geometry=rotor_hub_ob_right_aft)
-    # Motor_mid_right_aft = Component(name='Motor Middle Right AFT', geometry=rotor_hub_mid_right_aft)
-    # Motor_ib_right_aft = Component(name='Motor Inboard Right AFT', geometry=rotor_hub_ib_right_aft)
-    # LIFT_Propulsion.add_subcomponent(Motor_ob_left_aft)
-    # LIFT_Propulsion.add_subcomponent(Motor_mid_left_aft)
-    # LIFT_Propulsion.add_subcomponent(Motor_ib_left_aft)
-    # LIFT_Propulsion.add_subcomponent(Motor_ob_right_aft)
-    # LIFT_Propulsion.add_subcomponent(Motor_mid_right_aft)
-    # LIFT_Propulsion.add_subcomponent(Motor_ib_right_aft)
-    # Supports = Component(name='Prop Pylons')
-    # Pylon_Outboard_Left = Component(name='Pylon Outboard Left', geometry=pylon_ob_left)
-    # Pylon_Outboard_Right = Component(name='Pylon Outboard Right', geometry=pylon_ob_right)
-    # Pylon_Middle_Left = Component(name='Pylon Middle Left', geometry=pylon_mid_left)
-    # Pylon_Middle_Right = Component(name='Pylon Middle Right', geometry=pylon_mid_right)
-    # Pylon_Inboard_Left = Component(name='Pylon Inboard Left', geometry=pylon_ib_left)
-    # Pylon_Inboard_Right = Component(name='Pylon Inboard Right', geometry=pylon_ib_right)
-    # Supports.add_subcomponent(Pylon_Outboard_Left)
-    # Supports.add_subcomponent(Pylon_Outboard_Right)
-    # Supports.add_subcomponent(Pylon_Middle_Left)
-    # Supports.add_subcomponent(Pylon_Middle_Right)
-    # Supports.add_subcomponent(Pylon_Inboard_Left)
-    # Supports.add_subcomponent(Pylon_Inboard_Right)
-    # Propulsion.add_subcomponent(Supports)
-    # Airframe.add_subcomponent(Propulsion)
-
-    # config = Configuration(system=Aircraft)
-    # airplane = Component(name='Airplane', geometry=geometry)
-    # config2=Configuration(system=airplane)
-    # config.connect_component_geometries(Fuselage,Wing,connection_point=wing_root_qc)
-    # config.connect_component_geometries(Fuselage,Htail,connection_point=htail_root_te_guess)
-    # config.connect_component_geometries(Fuselage,Vtail,connection_point=vtail_root_te_guess)
-    # config.connect_component_geometries(Wing, OBAileronLeft, connection_point=ob_left_aileron_root_le)
-    # config.connect_component_geometries(Wing, MidFlapsLeft, connection_point=mid_left_flap_root_le)
-    # config.connect_component_geometries(Wing, IBFlapsLeft, connection_point=ib_left_flap_root_le)
-    # config.connect_component_geometries(Wing, OBAileronRight, connection_point=ob_right_aileron_root_le)
-    # config.connect_component_geometries(Wing, MidFlapsRight, connection_point=mid_right_flap_root_le)
-    # config.connect_component_geometries(Wing, IBFlapsRight, connection_point=ib_right_flap_root_le)
-    
-    # config2.connect_component_geometries(Wing,Pylon_Inboard_Left,connection_point=geometry.evaluate(wing.project()))
-    # config.connect_component_geometries(Motor_ib_left_aft,Pylon_Inboard_Left,connection_point=rotor_hub_ib_left_aft.evaluate(pt_ib_left_aft_bot_parametric))
-    # config.connect_component_geometries(Motor_mid_left_aft,Pylon_Middle_Left,connection_point=rotor_hub_mid_left_aft.evaluate(pt_mid_left_aft_bot_parametric))
-    # config.connect_component_geometries(Motor_ob_left_aft,Pylon_Outboard_Left,connection_point=rotor_hub_ob_left_aft.evaluate(pt_ob_left_aft_bot_parametric))
-    # config.connect_component_geometries(Motor_ib_right_aft,Pylon_Inboard_Right,connection_point=rotor_hub_ib_right_aft.evaluate(pt_ib_right_aft_bot_parametric))
-    # config.connect_component_geometries(Motor_mid_right_aft,Pylon_Middle_Right,connection_point=rotor_hub_mid_right_aft.evaluate(pt_mid_right_aft_bot_parametric))
-    # config.connect_component_geometries(Motor_ob_right_aft,Pylon_Outboard_Right,connection_point=rotor_hub_ob_right_aft.evaluate(pt_ob_right_aft_bot_parametric))
-    # config.connect_component_geometries(Motor_ib_left_fwd,Pylon_Inboard_Left,connection_point=rotor_hub_ib_left_fwd.evaluate(pt_ib_left_fwd_bot_parametric))
-    # config.connect_component_geometries(Motor_mid_left_fwd,Pylon_Middle_Left,connection_point=rotor_hub_mid_left_fwd.evaluate(pt_mid_left_fwd_bot_parametric))
-    # config.connect_component_geometries(Motor_ob_left_fwd,Pylon_Outboard_Left,connection_point=rotor_hub_ob_left_fwd.evaluate(pt_ob_left_fwd_bot_parametric))
-    # config.connect_component_geometries(Motor_ib_right_fwd,Pylon_Inboard_Right,connection_point=rotor_hub_ib_right_fwd.evaluate(pt_ib_right_fwd_bot_parametric))
-    # config.connect_component_geometries(Motor_mid_right_fwd,Pylon_Middle_Right,connection_point=rotor_hub_mid_right_fwd.evaluate(pt_mid_right_fwd_bot_parametric))
-    # config.connect_component_geometries(Motor_ob_right_fwd,Pylon_Outboard_Right,connection_point=rotor_hub_ob_right_fwd.evaluate(pt_ob_right_fwd_bot_parametric))
     run_ffd = True
     debug = False
+    plot_parameters = {
+    'camera': {
+        'pos': (15, wingspan.value[0] * 1.25, -12),
+        'focal_point': (-fuselagelength.value[0] / 2, 0, 0),
+        'distance': 0,
+        'viewup': (0, 0, -1)
+    },
+    'screenshot': f'_wiskgen.png',
+    'title': f'wiskgen6PLOT'}
+    
     if run_ffd:
         if debug:
-            config.setup_geometry(plot=True)
+            config.setup_geometry(plot=True,plot_parameters=plot_parameters)
         else:
-            config.setup_geometry(plot=True,recorder=recorder)
+            config.setup_geometry(plot=True,recorder=recorder,plot_parameters=plot_parameters)
     else:
         if debug:
             pass
@@ -1445,23 +1338,6 @@ def define_heirarchy():
 
 Aircraft, BaseConfig = define_heirarchy()
 
-
-
-# config2.system.geometry.plot(camera={'pos':(15,wingspan.value[0]*1.25,-12), 'focal_point':(-fuselage_length/2,0,0), 'distance':0,'viewup':(0,0,-1)},screenshot='wiskgen6.png')
-
-# config.system.geometry.plot(camera={'pos':(15,wingspan.value[0]*1.25,-12), 'focal_point':(-fuselage_length/2,0,0), 'distance':0,'viewup':(0,0,-1)})
-# parameterization_solver.evaluate(parameterization_design_parameters)
-# config.system.geometry.plot(color='red',camera={'pos':(15,wingspan.value[0]*1.25,-12), 'focal_point':(-fuselage_length/2,0,0), 'distance':0,'viewup':(0,0,-1)})
-
-# config2.system.geometry.plot.show()
-# parameterization_solver.evaluate(parameterization_design_parameters)
-# geometry.plot(color='Red')
-
-# Initialize the WiskControl class
-# from typing import List, Union
-# from flight_simulator.core.vehicle.wisk_control_system import WiskControl
-
-# WiskControlSystem = WiskControl(symmetrical=False)
 
 
 recorder.stop()

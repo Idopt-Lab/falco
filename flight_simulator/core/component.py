@@ -439,7 +439,7 @@ class Configuration:
         
         return
 
-    def setup_geometry(self, additional_constraints: List[tuple]=None, run_ffd : bool=True, plot : bool=False, recorder: csdl.Recorder =None):
+    def setup_geometry(self, additional_constraints: List[tuple]=None, run_ffd : bool=True, plot : bool=False, plot_parameters : dict=None, recorder: csdl.Recorder = None):
         """Run the geometry parameterization solver. 
         
         Note: This is only allowed on the based configuration.
@@ -526,4 +526,4 @@ class Configuration:
 
         
         if plot:
-            system_geometry.plot(show=True)
+            system_geometry.plot(show=True, **plot_parameters)
