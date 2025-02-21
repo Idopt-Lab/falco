@@ -1171,6 +1171,8 @@ from flight_simulator.core.vehicle.components.fuselage import Fuselage as FuseCo
 from flight_simulator.core.vehicle.components.aircraft import Aircraft as AircraftComp
 from flight_simulator.core.vehicle.components.rotor import Rotor as RotorComp
 
+wingspan.value[0]=12
+
 def define_heirarchy():
     """
     Defines the hierarchical structure of an aircraft and its components.
@@ -1183,21 +1185,26 @@ def define_heirarchy():
     Aircraft = AircraftComp(geometry=geometry, compute_surface_area_flag=False)
 
     config = Configuration(system=Aircraft)
+    config_base_span = csdl.Variable(name="wingspan", shape=(1, ), value=csdl.norm(geometry.evaluate(wing_tip_left_le_parametric) - geometry.evaluate(wing_tip_right_le_parametric)).value)
     Airframe = Component(name='Airframe')
     Aircraft.add_subcomponent(Airframe)
 
     fuselagelength = csdl.Variable(name="fuselage_length", shape=(1, ), value=csdl.norm(fuselage.evaluate(fuselage_tailing_point).value - fuselage.evaluate(fuselage_leading_point).value).value)
+
     Fuselage = FuseComp(
         length=fuselagelength, geometry=fuselage, skip_ffd=False)
     Airframe.add_subcomponent(Fuselage)
 
-    wingAR = wingspan.value**2/S
+
+   
+    wingAR = wingspan.value[0]**2/S
     wing_AR = csdl.Variable(name="wing_AR", shape=(1, ), value=wingAR)
     wing_S_ref = csdl.Variable(name="wing_S_ref", shape=(1, ), value=S)
-    wing_span = csdl.Variable(name="wingspan", shape=(1, ), value=csdl.norm(
-        geometry.evaluate(wing_tip_left_le_parametric) - geometry.evaluate(wing_tip_left_le_parametric)
-    ).value)
-    Wing = WingComp(AR=wing_AR,S_ref=wing_S_ref,
+    # wing_span = csdl.Variable(name="wingspan", shape=(1, ), value=csdl.norm(
+    #     geometry.evaluate(wing_tip_left_le_parametric) - geometry.evaluate(wing_tip_right_le_parametric)
+    # ).value)
+    wing_span = wingspan
+    Wing = WingComp(span=wing_span,S_ref=wing_S_ref,
                                         geometry=wing,
                                         tight_fit_ffd=False, orientation='horizontal', name='Wing')
     
@@ -1287,7 +1294,7 @@ def define_heirarchy():
     htail_AR_var = csdl.Variable(name="htail_AR", shape=(1, ), value=htail_AR)
     htail_S_ref = csdl.Variable(name="htail_S_ref", shape=(1, ), value=htail_area)
     Htail = WingComp(AR=htail_AR_var, S_ref=htail_S_ref,
-                     geometry=h_tail, tight_fit_ffd=False, orientation='horizontal', name='Horizontal Tail')
+                    geometry=h_tail, tight_fit_ffd=False, orientation='horizontal', name='Horizontal Tail')
     Airframe.add_subcomponent(Htail)
     config.connect_component_geometries(Fuselage, Htail, connection_point=htail_root_le.value)
     
@@ -1303,10 +1310,11 @@ def define_heirarchy():
     vtail_S_ref = csdl.Variable(name="vtail_S_ref", shape=(1, ), value=vtail_area)
 
     Vtail = WingComp(AR=vtail_AR_var, S_ref=vtail_S_ref,
-                     geometry=v_tail, tight_fit_ffd=False, orientation='vertical', name='Vertical Tail')
+                    geometry=v_tail, tight_fit_ffd=False, orientation='vertical', name='Vertical Tail')
 
     Airframe.add_subcomponent(Vtail)
     config.connect_component_geometries(Fuselage, Vtail, connection_point=vtail_root_le.value)
+
 
     run_ffd = True
     debug = False
@@ -1317,8 +1325,9 @@ def define_heirarchy():
         'distance': 0,
         'viewup': (0, 0, -1)
     },
-    'screenshot': f'_wiskgen.png',
-    'title': f'wiskgen6PLOT'}
+    'screenshot': f'wiskgenspan_{wingspan.value[0]}_AR_{wingAR}.png',
+    'title': f'Wisk Gen 6\nSpan: {wing_span.value[0]:.2f} m\nAR: {wing_AR.value[0]:.2f}\nWing Area S: {wing_S_ref.value[0]:.2f} m^2'
+}
     
     if run_ffd:
         if debug:
@@ -1330,11 +1339,17 @@ def define_heirarchy():
             pass
         else:
             recorder.inline=False
+        
     
+
     BaseConfig = config
-
-
     return Aircraft, BaseConfig
+
+
+# variances = np.linspace(-0.1, 0.1, 5)
+
+# for i, variance in enumerate(variances):
+#     Aircraft, BaseConfig = define_heirarchy(i, variance)
 
 Aircraft, BaseConfig = define_heirarchy()
 
