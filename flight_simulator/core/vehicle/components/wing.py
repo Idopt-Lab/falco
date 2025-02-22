@@ -69,8 +69,8 @@ class Wing(Component):
     """
     def __init__(
         self,
-        AR : Union[int, float, csdl.Variable, None]= None, 
-        S_ref : Union[int, float, csdl.Variable, None]= None,
+        AR : Union[int, float, csdl.Variable, None], 
+        S_ref : Union[int, float, csdl.Variable, None],
         span : Union[int, float, csdl.Variable, None] = None, 
         dihedral : Union[int, float, csdl.Variable, None] = None, 
         sweep : Union[int, float, csdl.Variable, None] = None, 
@@ -339,7 +339,8 @@ class Wing(Component):
                                                     num_coefficients=num_coefficients, degree=degree)
         else:
             if self._orientation == "horizontal":
-                num_coefficients = (2, 3, 2) # NOTE: hard coding here might be limiting
+                num_coefficients = (2, 11, 2) # NOTE: hard coding here might be limiting
+                degree = (1, 3, 1)
             else:
                 degree = (1, 1, 1)
                 num_coefficients = (2, 2, 2)
@@ -349,12 +350,22 @@ class Wing(Component):
         ffd_block.coefficients.name = f'{self._name}_coefficients'
 
         # ffd_block.plot()
+        # print(f"Creating FFD block for wing:")
+        # print(f"  num_coefficients: {num_coefficients}")
+        # print(f"  order: {degree}")
+        # ffd_block = construct_ffd_block_around_entities(
+        #     name=self._name, 
+        #     entities=entities,
+        #     num_coefficients=num_coefficients,
+        #     degree=degree
+        # )
 
         return ffd_block 
     
     def _setup_ffd_block(self, ffd_block, parameterization_solver, plot : bool=False):
         """Set up the wing ffd block."""
-
+        self._linear_b_spline_2_dof_space = lfs.BSplineSpace(num_parametric_dimensions=1, degree=1, coefficients_shape=(2,))
+        self._linear_b_spline_3_dof_space = lfs.BSplineSpace(num_parametric_dimensions=1, degree=1, coefficients_shape=(3,))
         if self._orientation == "horizontal":
             principal_parametric_dimension = 1
         else:
@@ -423,25 +434,25 @@ class Wing(Component):
             name=f"{self._name}_twist_b_sp_coeffs"
         )
 
-        if self.parameters.actuate_angle is not None:
-            actuate_b_spline = lfs.Function(
-                space=self._linear_b_spline_3_dof_space,
-                coefficients=csdl.ImplicitVariable(
-                    shape=(3,),
-                    value=np.array([0, 0, 0]),
-                ),
-                name=f"{self._name}_actuate_b_sp_coeffs"
-            )
+        # if self.parameters.actuate_angle is not None:
+        #     actuate_b_spline = lfs.Function(
+        #         space=self._linear_b_spline_3_dof_space,
+        #         coefficients=csdl.ImplicitVariable(
+        #             shape=(3,),
+        #             value=np.array([0, 0, 0]),
+        #         ),
+        #         name=f"{self._name}_actuate_b_sp_coeffs"
+        #     )
 
         # evaluate b-splines 
         num_ffd_sections = ffd_block_sectional_parameterization.num_sections
         parametric_b_spline_inputs = np.linspace(0.0, 1.0, num_ffd_sections).reshape((-1, 1))
         
         chord_stretch_sectional_parameters = chord_stretch_b_spline.evaluate(
-            parametric_b_spline_inputs
+            parametric_b_spline_inputs,
         )
         span_stretch_sectional_parameters = span_stretch_b_spline.evaluate(
-            parametric_b_spline_inputs
+            parametric_b_spline_inputs,
         )
         if self.parameters.sweep is not None:
             sweep_translation_sectional_parameters = sweep_translation_b_spline.evaluate(
@@ -454,10 +465,10 @@ class Wing(Component):
         twist_sectional_parameters = twist_b_spline.evaluate(
             parametric_b_spline_inputs
         )
-        if self.parameters.actuate_angle is not None:
-            actuate_sectional_parameters = actuate_b_spline.evaluate(
-                parametric_b_spline_inputs
-            )
+        # if self.parameters.actuate_angle is not None:
+        #     actuate_sectional_parameters = actuate_b_spline.evaluate(
+        #         parametric_b_spline_inputs
+        #     )
 
         sectional_parameters = VolumeSectionalParameterizationInputs()
         if self._orientation == "horizontal":
@@ -468,15 +479,15 @@ class Wing(Component):
             if self.parameters.dihedral is not None:
                 sectional_parameters.add_sectional_translation(axis=2, translation=dihedral_translation_sectional_parameters)
             sectional_parameters.add_sectional_rotation(axis=1, rotation=twist_sectional_parameters)
-            if self.parameters.actuate_angle is not None:
-                sectional_parameters.add_sectional_rotation(axis=2, rotation=actuate_sectional_parameters)
+            # if self.parameters.actuate_angle is not None:
+            #     sectional_parameters.add_sectional_rotation(axis=2, rotation=actuate_sectional_parameters)
         else:
             sectional_parameters.add_sectional_stretch(axis=0, stretch=chord_stretch_sectional_parameters)
             sectional_parameters.add_sectional_translation(axis=2, translation=span_stretch_sectional_parameters)
             if self.parameters.sweep is not None:
                 sectional_parameters.add_sectional_translation(axis=0, translation=sweep_translation_sectional_parameters)
-            if self.parameters.actuate_angle is not None:
-                sectional_parameters.add_sectional_rotation(axis=1, rotation=actuate_sectional_parameters)
+            # if self.parameters.actuate_angle is not None:
+            #     sectional_parameters.add_sectional_rotation(axis=1, rotation=actuate_sectional_parameters)
 
         ffd_coefficients = ffd_block_sectional_parameterization.evaluate(sectional_parameters, plot=False) 
 
@@ -521,8 +532,8 @@ class Wing(Component):
                 parameterization_solver.add_parameter(sweep_translation_b_spline.coefficients)
             if self.parameters.dihedral is not None:
                 parameterization_solver.add_parameter(dihedral_translation_b_spline.coefficients)
-            if self.parameters.actuate_angle is not None:
-                parameterization_solver.add_parameter(actuate_b_spline.coefficients)    
+            # if self.parameters.actuate_angle is not None:
+            #     parameterization_solver.add_parameter(actuate_b_spline.coefficients)    
             parameterization_solver.add_parameter(rigid_body_translation, cost=10)
 
         return 
@@ -537,8 +548,8 @@ class Wing(Component):
         Note that this helper function will not work well in all cases (e.g.,
         in cases with high sweep or taper)
         """
-        if self.parameters.actuate_angle is not None:
-            self.actuate(self.parameters.actuate_angle, self.parameters.actuate_axis_location)
+        # if self.parameters.actuate_angle is not None:
+        #     self.actuate(self.parameters.actuate_angle, self.parameters.actuate_axis_location)
 
         if self._orientation == "horizontal":
             # Re-evaluate the corner points of the FFD block (plus center)
@@ -704,15 +715,37 @@ class Wing(Component):
             ffd_geometric_variables.add_variable(wing_geom_qts.dihedral_angle_left, dihedral_input)
             ffd_geometric_variables.add_variable(wing_geom_qts.dihedral_angle_right, dihedral_input)
 
-        if self.parameters.actuate_angle is not None:
-            actuate_angle_input = self.parameters.actuate_angle
-            actuate_axis_location_input = self.parameters.actuate_axis_location
-            self.actuate(actuate_angle_input, actuate_axis_location_input)
+        # if self.parameters.actuate_angle is not None:
+        #     actuate_angle_input = self.parameters.actuate_angle
+        #     actuate_axis_location_input = self.parameters.actuate_axis_location
+        #     self.actuate(actuate_angle_input, actuate_axis_location_input)
+
+        # print(wing_geom_qts.span.value, span_input.value)
 
         # print(wing_geom_qts.center_chord.value, root_chord_input.value)
         # print(wing_geom_qts.left_tip_chord.value, tip_chord_left_input.value)
         # print(wing_geom_qts.right_tip_chord.value, tip_chord_right_input.value)
+        print(f"Name: {self._name}")
+        print(f"Target AR: {self.parameters.AR.value}")
+        print(f"Target S_ref: {self.parameters.S_ref.value}")
+        print(f"Computed span: {span_input.value}")
+        print(f"Computed root chord: {root_chord_input.value}")
 
+
+
+
+
+        # print(f"\nWing Geometry Parameters:")
+        # print(f"Desired:")
+        # print(f"  AR: {self.parameters.AR.value[0]}")
+        # print(f"  S_ref: {self.parameters.S_ref.value[0]} m^2") 
+        # print(f"  Span: {span_input.value[0]} m")
+        # print(f"  Root chord: {root_chord_input.value[0]} m")
+        # print(f"\nCurrent:")
+        # print(f"  Span: {wing_geom_qts.span.value[0]} m")
+        # print(f"  Root chord: {wing_geom_qts.center_chord.value[0]} m")
+        # print(f"  Tip chord left: {wing_geom_qts.left_tip_chord.value[0]} m")
+        # print(f"  Tip chord right: {wing_geom_qts.right_tip_chord.value[0]} m")
         return
 
     def apply_incidence(self, incidence: Union[float, int, csdl.Variable]):

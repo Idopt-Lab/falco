@@ -106,6 +106,8 @@ class Component:
         # Increment instance count and set the name
         self._name = name
 
+        # print(f"Creating component with name: {self._name}")
+
         # Hierarchical attributes
         self.parent = None
         self.comps = {}  # Dictionary to hold subcomponents
@@ -263,7 +265,29 @@ class Component:
             ffd_block.coefficients.name = f'{self._name}_coefficients'
 
             return ffd_block 
-    
+
+    # def _setup_ffd_block(self, ffd_block, parameterization_solver, plot: bool = False):
+    #     """Set up the FFD block for the component."""
+    #     if hasattr(self, '_setup_ffd_block'):
+    #         return self._setup_ffd_block(ffd_block, parameterization_solver, plot)
+    #     else:
+    #         raise NotImplementedError(f"'_setup_ffd_block' has not been implemented for {type(self)}")
+
+    # def _extract_geometric_quantities_from_ffd_block(self):
+    #     """Extract geometric quantities from the FFD block."""
+    #     if hasattr(self, '_extract_geometric_quantities_from_ffd_block'):
+    #         return self._extract_geometric_quantities_from_ffd_block()
+    #     else:
+    #         raise NotImplementedError(f"'_extract_geometric_quantities_from_ffd_block' has not been implemented for {type(self)}")
+
+    # def _setup_ffd_parameterization(self, geometric_quantities, ffd_geometric_variables):
+    #     """Set up the FFD parameterization."""
+    #     if hasattr(self, '_setup_ffd_parameterization'):
+    #         return self._setup_ffd_parameterization(geometric_quantities, ffd_geometric_variables)
+    #     else:
+    #         raise NotImplementedError(f"'_setup_ffd_parameterization' has not been implemented for {type(self)}")
+
+
     def _setup_geometry(self, parameterization_solver, ffd_geometric_variables, plot : bool = False):
         """Set up the geometry of the system with no FFD"""
         rigid_body_translation = csdl.ImplicitVariable(shape=(3, ), value=0., name=f'{self._name}_rigid_body_translation')
@@ -392,18 +416,6 @@ class Configuration:
         csdl.check_parameter(connection_point, "connection_point" ,
                              types=(csdl.Variable, np.ndarray), allow_none=True)
 
-        # # Apply actuation if parameters are provided
-        # if hasattr(comp_1.parameters, 'actuation_angle') and comp_1.parameters.actuation_angle is not None:
-        #     comp_1.actuate(comp_1.parameters.actuation_angle, axis_location=comp_1.parameters.actuation_axis_location)
-        #     comp_2.parameters.actuation_angle = comp_1.parameters.actuation_angle
-        #     comp_2.parameters.actuation_axis_location = comp_1.parameters.actuation_axis_location
-        #     comp_2.actuate(comp_2.parameters.actuation_angle, axis_location=comp_2.parameters.actuation_axis_location)
-        # elif hasattr(comp_2.parameters, 'actuation_angle') and comp_2.parameters.actuation_angle is not None:
-        #     comp_2.actuate(comp_2.parameters.actuation_angle, axis_location=comp_2.parameters.actuation_axis_location)
-        #     comp_1.parameters.actuation_angle = comp_2.parameters.actuation_angle
-        #     comp_1.parameters.actuation_axis_location = comp_2.parameters.actuation_axis_location
-        #     comp_1.actuate(comp_1.parameters.actuation_angle, axis_location=comp_1.parameters.actuation_axis_location)
-
         # Check that comp_1 and comp_2 have geometries
         if comp_1.geometry is None:
             raise Exception(f"Comp {comp_1._name} does not have a geometry.")
@@ -445,8 +457,6 @@ class Configuration:
         
         Note: This is only allowed on the based configuration.
         """
-        self._geometry_setup_has_been_called = True
-
         parameterization_solver = ParameterizationSolver()
         ffd_geometric_variables = GeometricVariables()
         system_geometry = self.system.geometry
@@ -487,8 +497,8 @@ class Configuration:
             desired_value : csdl.Variable = connection[4]
             if isinstance(projection_1, list):
                 connection = comp_1.geometry.evaluate(parametric_coordinates=projection_1) - comp_2.geometry.evaluate(parametric_coordinates=projection_2)
-            # elif isinstance(projection_1, np.ndarray):
-            #     connection = comp_1._ffd_block.evaluate(parametric_coordinates=projection_1) - comp_2._ffd_block.evaluate(parametric_coordinates=projection_2)
+            elif isinstance(projection_1, np.ndarray):
+                connection = comp_1._ffd_block.evaluate(parametric_coordinates=projection_1) - comp_2._ffd_block.evaluate(parametric_coordinates=projection_2)
             else:
                 print(f"wrong type {type(projection_1)} for projection")
                 raise NotImplementedError
@@ -496,6 +506,7 @@ class Configuration:
             if desired_value is None:
                 ffd_geometric_variables.add_variable(connection, connection.value)
                 print(f"Added connection variable between {comp_1._name} and {comp_2._name} with value: {connection.value}")
+
             else:
                 if connection.shape != desired_value.shape:
                     if desired_value.shape == (1, ):
@@ -508,11 +519,11 @@ class Configuration:
                     print(f"Added connection variable between {comp_1._name} and {comp_2._name} with desired value: {desired_value}")
 
         
-        # if additional_constraints:
-        #     for constr in additional_constraints:
-        #         connection = csdl.norm(self.system.geometry.evaluate(parametric_coordinates=constr[0]) - self.system.geometry.evaluate(parametric_coordinates=constr[1]))
-        #         ffd_geometric_variables.add_variable(connection, constr[2])
-        #         print(f"Added additional constraint with value: {constr[2]}")
+        if additional_constraints:
+            for constr in additional_constraints:
+                connection = csdl.norm(self.system.geometry.evaluate(parametric_coordinates=constr[0]) - self.system.geometry.evaluate(parametric_coordinates=constr[1]))
+                ffd_geometric_variables.add_variable(connection, constr[2])
+                print(f"Added additional constraint with value: {constr[2]}")
 
 
         # Evalauate the parameterization solver
@@ -524,6 +535,8 @@ class Configuration:
         t2 = time.time()
         print("time for inner optimization", t2-t1)
 
-        
+        self.system.geometry = system_geometry
+
+
         if plot:
             system_geometry.plot(show=True, **plot_parameters)
