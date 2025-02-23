@@ -15,7 +15,6 @@ import warnings
 import copy
 
 
-
 class ComponentQuantities:
     def __init__(
             self,
@@ -116,6 +115,9 @@ class Component:
         self.geometry: Union[FunctionSet, Geometry, None] = geometry
         self.compute_surface_area_flag = compute_surface_area_flag
 
+
+
+
         # Essential quantities and user-defined parameters
         self.quantities: ComponentQuantities = ComponentQuantities()
         self.parameters: ComponentParameters = ComponentParameters()
@@ -126,6 +128,14 @@ class Component:
         
         if geometry and compute_surface_area_flag:
             self.quantities.surface_area=self._compute_surface_area(geometry)
+
+        if geometry is not None and isinstance(geometry, FunctionSet):
+            if "do_not_remake_ffd_block" in kwargs.keys():
+                pass
+            else:
+                t1 = time.time()
+                self._ffd_block = self._make_ffd_block(self.geometry)
+                t2 = time.time()
 
     def add_subcomponent(self, subcomponent):
         """
@@ -235,6 +245,7 @@ class Component:
 
         # make graph object
         graph = Graph(comment="Component Hierarchy")
+    
 
         # Go through component hierarchy and components to nodes
         def add_component_to_graph(comp: Component, comp_name: str, parent_name=None):
@@ -265,27 +276,6 @@ class Component:
             ffd_block.coefficients.name = f'{self._name}_coefficients'
 
             return ffd_block 
-
-    # def _setup_ffd_block(self, ffd_block, parameterization_solver, plot: bool = False):
-    #     """Set up the FFD block for the component."""
-    #     if hasattr(self, '_setup_ffd_block'):
-    #         return self._setup_ffd_block(ffd_block, parameterization_solver, plot)
-    #     else:
-    #         raise NotImplementedError(f"'_setup_ffd_block' has not been implemented for {type(self)}")
-
-    # def _extract_geometric_quantities_from_ffd_block(self):
-    #     """Extract geometric quantities from the FFD block."""
-    #     if hasattr(self, '_extract_geometric_quantities_from_ffd_block'):
-    #         return self._extract_geometric_quantities_from_ffd_block()
-    #     else:
-    #         raise NotImplementedError(f"'_extract_geometric_quantities_from_ffd_block' has not been implemented for {type(self)}")
-
-    # def _setup_ffd_parameterization(self, geometric_quantities, ffd_geometric_variables):
-    #     """Set up the FFD parameterization."""
-    #     if hasattr(self, '_setup_ffd_parameterization'):
-    #         return self._setup_ffd_parameterization(geometric_quantities, ffd_geometric_variables)
-    #     else:
-    #         raise NotImplementedError(f"'_setup_ffd_parameterization' has not been implemented for {type(self)}")
 
 
     def _setup_geometry(self, parameterization_solver, ffd_geometric_variables, plot : bool = False):
@@ -357,6 +347,8 @@ class Component:
         surface_area = surface_area + wireframe_area
 
         return surface_area
+    
+
 
 class Configuration:
     """The configurations class"""
@@ -421,7 +413,7 @@ class Configuration:
             raise Exception(f"Comp {comp_1._name} does not have a geometry.")
         if comp_2.geometry is None:
             raise Exception(f"Comp {comp_2._name} does not have a geometry.")
-        
+
         # If connection point provided, check that its shape is (3, )
         if connection_point is not None:
             try:
@@ -437,10 +429,10 @@ class Configuration:
         # Else choose the center points of the FFD block
         else:
 
-            if not hasattr(comp_1, '_ffd_block') or comp_1._ffd_block is None:
-                comp_1._ffd_block = comp_1._make_ffd_block(entities=comp_1.geometry, num_coefficients=(2, 2, 2), order=(1, 1, 1))
-            if not hasattr(comp_2, '_ffd_block') or comp_2._ffd_block is None:
-                comp_2._ffd_block = comp_2._make_ffd_block(entities=comp_2.geometry, num_coefficients=(2, 2, 2), order=(1, 1, 1))
+            # if not hasattr(comp_1, '_ffd_block') or comp_1._ffd_block is None:
+            #     comp_1._ffd_block = comp_1._make_ffd_block(entities=comp_1.geometry, num_coefficients=(2, 2, 2), order=(1, 1, 1))
+            # if not hasattr(comp_2, '_ffd_block') or comp_2._ffd_block is None:
+            #     comp_2._ffd_block = comp_2._make_ffd_block(entities=comp_2.geometry, num_coefficients=(2, 2, 2), order=(1, 1, 1))
 
             point_1 = comp_1._ffd_block.evaluate(parametric_coordinates=np.array([0.5, 0.5, 0.5]))
             point_2 = comp_2._ffd_block.evaluate(parametric_coordinates=np.array([0.5, 0.5, 0.5]))
@@ -462,20 +454,40 @@ class Configuration:
         system_geometry = self.system.geometry
 
         if system_geometry is None:
-            raise TypeError("'setup_geometry' cannot be called because the geometry asssociated with the system component is None")
+        # Aggregate geometries of subcomponents if system geometry is None
+            def collect_geometries(component):
+                geometries = []
+                if component.geometry is not None:
+                    geometries.append(component.geometry)
+                for comp in component.comps.values():
+                    geometries.extend(collect_geometries(comp))
+                return geometries
 
+            subcomponent_geometries = collect_geometries(self.system)
+            if subcomponent_geometries:
+                system_geometry = FunctionSet(subcomponent_geometries)
+                self.system.geometry = system_geometry
+
+            else:
+                raise TypeError("'setup_geometry' cannot be called because the geometry asssociated with the system component is None")
+        
         if not isinstance(system_geometry, FunctionSet):
             raise TypeError(f"The geometry of the system must be of type {FunctionSet}. Received {type(system_geometry)}")
+
 
         def setup_geometries(component: Component):
             # If component has a geometry, set up its geometry
             if component.geometry is not None:
-                component._skip_ffd = False
                 if component._skip_ffd is True:
                     pass
                 else:
                     try: # NOTE: might cause some issues because try/except might hide some errors that shouldn't be hidden
+                        # print(f"Setting up geometry for component: {component._name}")
                         component._setup_geometry(parameterization_solver, ffd_geometric_variables, plot=plot)
+                        # print(f"Set up geometry for component: {component._name}")
+                        if hasattr(component, 'ffd_geometric_variables'):
+                            for computed_value, desired_value in zip(component.ffd_geometric_variables.computed_values, component.ffd_geometric_variables.desired_values):
+                                ffd_geometric_variables.add_variable(computed_value, desired_value)
 
                     except NotImplementedError:
                         warnings.warn(f"'_setup_geometry' has not been implemented for component {component._name} of {type(component)}")
@@ -508,13 +520,13 @@ class Configuration:
                 print(f"Added connection variable between {comp_1._name} and {comp_2._name} with value: {connection.value}")
 
             else:
-                if connection.shape != desired_value.shape:
-                    if desired_value.shape == (1, ):
-                        ffd_geometric_variables.add_variable(csdl.norm(connection), desired_value)
-                    else:
-                        raise ValueError(f"geometric connection has shape {connection.shape}, and desired value has shape {desired_value.shape}. If the shape of the deired value is (1, ), the norm of the connection will be enforced.")
+                # if connection.shape != desired_value.shape:
+                #     if desired_value.shape == (1, ):
+                #         ffd_geometric_variables.add_variable(csdl.norm(connection), desired_value)
+                #     else:
+                #         raise ValueError(f"geometric connection has shape {connection.shape}, and desired value has shape {desired_value.shape}. If the shape of the deired value is (1, ), the norm of the connection will be enforced.")
 
-                else:
+                # else:
                     ffd_geometric_variables.add_variable(connection, desired_value)
                     print(f"Added connection variable between {comp_1._name} and {comp_2._name} with desired value: {desired_value}")
 
@@ -524,6 +536,7 @@ class Configuration:
                 connection = csdl.norm(self.system.geometry.evaluate(parametric_coordinates=constr[0]) - self.system.geometry.evaluate(parametric_coordinates=constr[1]))
                 ffd_geometric_variables.add_variable(connection, constr[2])
                 print(f"Added additional constraint with value: {constr[2]}")
+        
 
 
         # Evalauate the parameterization solver
@@ -535,8 +548,27 @@ class Configuration:
         t2 = time.time()
         print("time for inner optimization", t2-t1)
 
-        self.system.geometry = system_geometry
-
 
         if plot:
-            system_geometry.plot(show=True, **plot_parameters)
+            if plot_parameters:
+                system_geometry.plot(show=True, **plot_parameters)
+            else:
+                system_geometry.plot(show=True)
+
+
+
+    def print_ffd_geometric_variables(self, component_name: str):
+        """Print the FFD geometric variables for a specific component."""
+        component = self.system.comps.get(component_name)
+        if component is None:
+            print(f"No component found with name {component_name}")
+            return
+
+        if hasattr(component, 'ffd_geometric_variables'):
+            print(f"FFD geometric variables for {component._name}:")
+            print(f"Computed values: {component.ffd_geometric_variables.computed_values}")
+            print(f"Desired values: {component.ffd_geometric_variables.desired_values}")
+        else:
+            print(f"No FFD geometric variables found for {component._name}")
+
+

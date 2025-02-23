@@ -867,27 +867,28 @@ from flight_simulator.core.vehicle.components.rotor import Rotor as RotorComp
 
 Aircraft = AircraftComp(geometry=geometry, compute_surface_area_flag=False)
 
-base_config = Configuration(system=Aircraft)
 
 fuselage_length = csdl.Variable(name="fuselage_length", shape=(1, ), value=csdl.norm(fuselage_rear_guess[0] - fuselage_nose_guess[0]).value)
 Fuselage = FuseComp(
-    length=150, geometry=fuselage, skip_ffd=False)
+    length=4, geometry=fuselage, skip_ffd=False)
 Aircraft.add_subcomponent(Fuselage)
 
 
 wing_AR = csdl.Variable(name="wing_AR", shape=(1, ), value=5)
-wing_S_ref = csdl.Variable(name="wing_S_ref", shape=(1, ), value=50)
+# wing_S_ref = csdl.Variable(name="wing_S_ref", shape=(1, ), value=50)
 wing_span = csdl.Variable(name="wingspan", shape=(1, ), value=csdl.norm(
     geometry.evaluate(wing_le_left_parametric) - geometry.evaluate(wing_le_right_parametric)
 ).value)
-Wing = WingComp(AR=wing_AR, S_ref=wing_S_ref,
+Wing = WingComp(AR=wing_AR,
+                span=25,
                 geometry=wing,
-                tight_fit_ffd=False, orientation='horizontal', name='Wing',
+                sweep = 45,
+                tight_fit_ffd=False, 
+                orientation='horizontal', 
+                name='Wing',
                 num_coefficients=(2, 11, 2),  # More FFD control points
                 order=(1, 3, 1),  # Higher order for better control
                 )
-
-
 
 flapArea=left_flap_span*left_flap_chord
 flapAR = left_flap_span**2/flapArea
@@ -935,11 +936,10 @@ TrimTabArea = trim_tab_span*trimTab_chord
 trimTabAR = trim_tab_span**2/TrimTabArea
 HT_actuation_angle = csdl.Variable(name="HT_actuation_angle", shape=(1, ), value=0)
 
-HorTail = WingComp(AR=4.04066, S_ref=3793.72629*in2m, geometry=h_tail, tight_fit_ffd=False, name='Horizontal Tail', orientation='horizontal', actuate_angle=HT_actuation_angle, actuate_axis_location=0.)
-TrimTab = WingComp(AR=2.51295, S_ref=2359.37611*in2m, geometry=trimTab, tight_fit_ffd=False, name='Trim Tab', orientation='horizontal')
+HorTail = WingComp(AR=htAR, S_ref=HorTailArea, geometry=h_tail, tight_fit_ffd=False, name='Horizontal Tail', orientation='horizontal', actuate_angle=HT_actuation_angle, actuate_axis_location=0.)
+TrimTab = WingComp(AR=trimTabAR, S_ref=TrimTabArea, geometry=trimTab, tight_fit_ffd=False, name='Trim Tab', orientation='horizontal')
 HorTail.add_subcomponent(TrimTab)
 Aircraft.add_subcomponent(HorTail)
-# Empennage.add_subcomponent(HorTail)
 
 VertTailArea = vt_span*vt_chord
 vtAR = vt_span**2/VertTailArea
@@ -947,64 +947,67 @@ vtAR = vt_span**2/VertTailArea
 RudderArea = rudder_span*rudder_chord
 rudderAR = rudder_span**2/RudderArea
 
-VertTail = WingComp(AR=2.69391, S_ref=6047.79504*in2m, geometry=vertTail, tight_fit_ffd=False, name='Vertical Tail', orientation='vertical')
-Rudder = WingComp(AR=2.61887, S_ref=5312.26552*in2m, geometry=rudder, tight_fit_ffd=False, name='Rudder', orientation='vertical')
+VertTail = WingComp(AR=vtAR, S_ref=VertTailArea, geometry=vertTail, tight_fit_ffd=False, name='Vertical Tail', orientation='vertical')
+Rudder = WingComp(AR=rudderAR, S_ref=RudderArea, geometry=rudder, tight_fit_ffd=False, name='Rudder', orientation='vertical')
 VertTail.add_subcomponent(Rudder)
 Aircraft.add_subcomponent(VertTail)
-# Empennage.add_subcomponent(VertTail)
 # Aircraft.add_subcomponent(Empennage)
 
 
-rotors = Component(name='Rotors')
+# rotors = Component(name='Rotors')
 
 
-lift_rotors = []
-for i in range(1, 13):
-    HL_rotor = RotorComp(radius=MotorDisks[i-1],geometry=eval(f'spinner{i}'), compute_surface_area_flag=False, skip_ffd=False, name=f'HL Rotor {i}')
-    HL_rotor.geometry = eval(f'spinner{i}')
-    lift_rotors.append(HL_rotor)
-    rotors.add_subcomponent(HL_rotor)
+# lift_rotors = []
+# for i in range(1, 13):
+#     HL_rotor = RotorComp(radius=MotorDisks[i-1],geometry=eval(f'spinner{i}'), compute_surface_area_flag=False, skip_ffd=False, name=f'HL Rotor {i}')
+#     HL_rotor.geometry = eval(f'spinner{i}')
+#     lift_rotors.append(HL_rotor)
+#     rotors.add_subcomponent(HL_rotor)
 
-pylons = Component(name='Pylons')
-Aircraft.add_subcomponent(pylons)
+# pylons = Component(name='Pylons')
+# Aircraft.add_subcomponent(pylons)
 
-for i in range(1, 13):
-    HL_pylon = Component(name=f'Pylon {i}', geometry=eval(f'pylon{i}'))
-    pylons.add_subcomponent(HL_pylon)
-    base_config.connect_component_geometries(HL_rotor, HL_pylon)
-    base_config.connect_component_geometries(HL_pylon, Wing)
+# for i in range(1, 13):
+#     HL_pylon = Component(name=f'Pylon {i}', geometry=eval(f'pylon{i}'))
+#     pylons.add_subcomponent(HL_pylon)
+#     base_config.connect_component_geometries(HL_rotor, HL_pylon)
+#     base_config.connect_component_geometries(HL_pylon, Wing)
 
 
-cruise_rotors = []
-for i in range(1, 3):
-    CruiseRotor = RotorComp(radius=MotorDisks[i-1],geometry=eval(f'cruise_spinner{i}'), compute_surface_area_flag=False, skip_ffd=False, name=f'Cruise Rotor {i}')
-    CruiseRotor.geometry = eval(f'cruise_spinner{i}')
-    cruise_rotors.append(CruiseRotor)
-    rotors.add_subcomponent(CruiseRotor)
-    base_config.connect_component_geometries(CruiseRotor, Wing)
+# cruise_rotors = []
+# for i in range(1, 3):
+#     CruiseRotor = RotorComp(radius=MotorDisks[i-1],geometry=eval(f'cruise_spinner{i}'), compute_surface_area_flag=False, skip_ffd=False, name=f'Cruise Rotor {i}')
+#     CruiseRotor.geometry = eval(f'cruise_spinner{i}')
+#     cruise_rotors.append(CruiseRotor)
+#     rotors.add_subcomponent(CruiseRotor)
+#     base_config.connect_component_geometries(CruiseRotor, Wing)
 
-Aircraft.add_subcomponent(rotors)
+# Aircraft.add_subcomponent(rotors)
 
+base_config = Configuration(system=Aircraft)
 
 base_config.connect_component_geometries(Fuselage, Wing, connection_point=0.75*wing_le_center.value + 0.25*wing_te_center.value)
 base_config.connect_component_geometries(Fuselage, HorTail, connection_point=ht_te_center.value)
-base_config.connect_component_geometries(HorTail, TrimTab, connection_point=ht_te_center.value)
-base_config.connect_component_geometries(VertTail, Rudder, connection_point=vt_te_mid.value)
+# base_config.connect_component_geometries(HorTail, TrimTab, connection_point=ht_te_center.value)
+# base_config.connect_component_geometries(VertTail, Rudder, connection_point=vt_te_mid.value)
 base_config.connect_component_geometries(Fuselage, VertTail, connection_point=vt_te_base.value)
-base_config.connect_component_geometries(Wing, FlapsLeft, connection_point=left_flap_le_center.value)
-base_config.connect_component_geometries(Wing, FlapsRight, connection_point=right_flap_le_center.value)
-base_config.connect_component_geometries(Wing, Left_Aileron, connection_point=left_aileron_le_center.value)
-base_config.connect_component_geometries(Wing, Right_Aileron, connection_point=right_aileron_le_center.value)
+# base_config.connect_component_geometries(Wing, FlapsLeft, connection_point=left_flap_le_center.value)
+# base_config.connect_component_geometries(Wing, FlapsRight, connection_point=right_flap_le_center.value)
+# base_config.connect_component_geometries(Wing, Left_Aileron, connection_point=left_aileron_le_center.value)
+# base_config.connect_component_geometries(Wing, Right_Aileron, connection_point=right_aileron_le_center.value)
+# print(f"Wing span: {Wing.parameters.span}")
+# print(f"Wing AR: {Wing.parameters.AR.value}")
+# print(f"Wing geometry: {Wing.geometry}")
 
 plot_parameters = {
     'camera': {
-        'pos': (15, Wing.parameters.span.value * 1.25, -12),
+        'pos': (15, Wing.parameters.span * 1.25, -12),
         'focal_point': (-fuselage_length.value[0] / 2, 0, 0),
         'distance': 0,
         'viewup': (0, 0, -1)
     },
     'screenshot': f'_x57_{wing_AR.value}.png',
-    'title': f'x57 Plot\nAspect Ratio {Wing.parameters.AR.value}\nArea {Wing.parameters.S_ref.value} m^2\nSpan {Wing.parameters.span.value} m',
+    'title': f'x57 Plot\nAspect Ratio {Wing.parameters.AR}\nArea {Wing.parameters.S_ref} m^2\nSpan {Wing.parameters.span} m',
 }
 
 
@@ -1013,12 +1016,13 @@ if run_ffd:
     if debug:
         base_config.setup_geometry(plot=True)
     else:
-        base_config.setup_geometry(plot=True,recorder=recorder, plot_parameters=plot_parameters)
+        base_config.setup_geometry(plot=True,recorder=recorder)
 else:
     if debug:
         pass
     else:
         recorder.inline=False
+
 
 BaseConfig = base_config
 

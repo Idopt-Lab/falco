@@ -1,4 +1,5 @@
 from flight_simulator.core.component import Component
+
 from lsdo_geo.core.parameterization.volume_sectional_parameterization import (
     VolumeSectionalParameterization, VolumeSectionalParameterizationInputs
 )
@@ -64,6 +65,7 @@ class Fuselage(Component):
         self._instance_count = 0
         self._name = f"Fuselage"
         self.geometry = geometry
+        self._skip_ffd = False
         
         self._constant_b_spline_1_dof_space = lfs.BSplineSpace(num_parametric_dimensions=1, degree=0, coefficients_shape=(1,))
         self._linear_b_spline_2_dof_space = lfs.BSplineSpace(num_parametric_dimensions=1, degree=1, coefficients_shape=(2,))
@@ -270,5 +272,7 @@ class Fuselage(Component):
 
             # Define geometric constraints
             self._setup_ffd_parameterization(fuselage_geom_qts, ffd_geometric_variables)
+    
+    
         
         return
