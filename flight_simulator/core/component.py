@@ -485,9 +485,6 @@ class Configuration:
                         # print(f"Setting up geometry for component: {component._name}")
                         component._setup_geometry(parameterization_solver, ffd_geometric_variables, plot=plot)
                         # print(f"Set up geometry for component: {component._name}")
-                        if hasattr(component, 'ffd_geometric_variables'):
-                            for computed_value, desired_value in zip(component.ffd_geometric_variables.computed_values, component.ffd_geometric_variables.desired_values):
-                                ffd_geometric_variables.add_variable(computed_value, desired_value)
 
                     except NotImplementedError:
                         warnings.warn(f"'_setup_geometry' has not been implemented for component {component._name} of {type(component)}")
@@ -500,6 +497,23 @@ class Configuration:
             return
     
         setup_geometries(self.system)
+        print("Finished setting up geometries.")
+
+        # for component in self.system.comps.values():
+        #     if hasattr(component, 'ffd_geometric_variables'):
+        #         for computed_value, desired_value in zip(component.ffd_geometric_variables.computed_values, component.ffd_geometric_variables.desired_values):
+        #             ffd_geometric_variables.add_variable(computed_value, desired_value)
+        # print("Finished adding FFD geometric variables.")
+        for component in self.system.comps.values():
+            print(f"Processing component: {component._name}")
+            if hasattr(component, 'ffd_geometric_variables'):
+                computed_values = component.ffd_geometric_variables.computed_values
+                desired_values = component.ffd_geometric_variables.desired_values
+                print(f"Number of computed values: {len(computed_values)}")
+                print(f"Number of desired values: {len(desired_values)}")
+                for computed_value, desired_value in zip(computed_values, desired_values):
+                    ffd_geometric_variables.add_variable(computed_value, desired_value)
+        print("Finished adding FFD geometric variables.")
 
         for connection in self._geometric_connections:
             projection_1 = connection[0]
