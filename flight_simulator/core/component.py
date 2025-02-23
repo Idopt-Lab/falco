@@ -499,11 +499,6 @@ class Configuration:
         setup_geometries(self.system)
         print("Finished setting up geometries.")
 
-        # for component in self.system.comps.values():
-        #     if hasattr(component, 'ffd_geometric_variables'):
-        #         for computed_value, desired_value in zip(component.ffd_geometric_variables.computed_values, component.ffd_geometric_variables.desired_values):
-        #             ffd_geometric_variables.add_variable(computed_value, desired_value)
-        # print("Finished adding FFD geometric variables.")
         for component in self.system.comps.values():
             print(f"Processing component: {component._name}")
             if hasattr(component, 'ffd_geometric_variables'):
