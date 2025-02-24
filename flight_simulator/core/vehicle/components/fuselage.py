@@ -116,6 +116,9 @@ class Fuselage(Component):
                 self._bottom_point = geometry.project(self._ffd_block.evaluate(parametric_coordinates=np.array([0.5, 0.5, 0.])))
 
 
+
+
+
     def _setup_ffd_block(self, ffd_block, parameterization_solver, plot : bool=False):
         """Set up the fuselage ffd block."""
         
@@ -200,6 +203,8 @@ class Fuselage(Component):
             parameterization_solver.add_parameter(width_stretch_b_spline.coefficients)
             parameterization_solver.add_parameter(rigid_body_translation, cost=1000)
 
+
+    
         return
 
     def _extract_geometric_quantities_from_ffd_block(self):
@@ -254,7 +259,7 @@ class Fuselage(Component):
             width_input = self.parameters.max_width
             ffd_geometric_variables.add_variable(fuselage_geometric_qts.width, width_input)
 
-
+        # self.ffd_geometric_variables = ffd_geometric_variables
         return 
     
     def _setup_geometry(self, parameterization_solver, ffd_geometric_variables, plot: bool = False):

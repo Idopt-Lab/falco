@@ -728,7 +728,6 @@ class Wing(Component):
             actuate_axis_location_input = self.parameters.actuate_axis_location
             self.actuate(actuate_angle_input, actuate_axis_location_input)
 
-        self.ffd_geometric_variables = ffd_geometric_variables
         
         # print(wing_geom_qts.span.value, span_input.value)
 

@@ -2,7 +2,6 @@ from lsdo_function_spaces import FunctionSet
 from flight_simulator.core.component import Component
 from lsdo_geo import Geometry
 
-
 from typing import Union
 
 
