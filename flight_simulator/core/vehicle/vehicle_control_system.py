@@ -25,7 +25,9 @@ class ControlSurface:
     def __init__(self, name, lb: float, ub: float, component=None):
         self._lb = lb
         self._ub = ub
-        if component is not None and component.parameters.actuate_angle is None:
+        if component is None: # Massless control surface case with no deflection pre-defined
+            self.deflection = csdl.Variable(name=name+'_deflection', shape=(1, ), value=0.)
+        elif component is not None and component.parameters.actuate_angle is None:
             self.deflection = csdl.Variable(name=name+'_deflection', shape=(1, ), value=0.)
         else:
             assert isinstance(component.parameters.actuate_angle, csdl.Variable)
@@ -41,10 +43,10 @@ class ControlSurface:
 
 
 class PropulsiveControl:
-    def __init__(self, name, lb: float=0., ub: float=1.):
+    def __init__(self, name, lb: float=0., ub: float=1., throttle:float=0.):
         self._lb = lb
         self._ub = ub
-        self.throttle = csdl.Variable(name=name+'_throttle', shape=(1, ), value=0.)
+        self.throttle = csdl.Variable(name=name+'_throttle', shape=(1, ), value=throttle)
 
     @property
     def lower_bound(self):
