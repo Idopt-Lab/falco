@@ -77,10 +77,10 @@ class MassMI:
 
 class MassProperties:
     def __init__(self,
-                 cg_vector: Vector, inertia_tensor: MassMI,
+                 cg: Vector, inertia: MassMI,
                  mass: Union[ureg.Quantity, csdl.Variable] = Q_(0, 'kg')):
 
-        assert cg_vector.axis.name == inertia_tensor.axis.name
+        assert cg.axis.name == inertia.axis.name
 
         if isinstance(mass, ureg.Quantity):
             value_si = mass.to_base_units()
@@ -91,8 +91,8 @@ class MassProperties:
         else:
             raise IOError
 
-        self.cg_vector = cg_vector
-        self.inertia_tensor = inertia_tensor
+        self.cg_vector = cg
+        self.inertia_tensor = inertia
 
 
 class GravityLoads(Loads):
@@ -148,4 +148,4 @@ if __name__ == "__main__":
 
     mi = MassMI(axis=inertial_axis)
     cg = Vector(vector=np.array([0, 0, 0])*ureg.meter, axis=inertial_axis)
-    mass_properties = MassProperties(cg_vector=cg, inertia_tensor=mi)
+    mass_properties = MassProperties(cg=cg, inertia=mi)
