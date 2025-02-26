@@ -342,7 +342,7 @@ class Configuration:
             else:
                 
                 ffd_geometric_variables.add_variable(connection, desired_value)
-                print(f"PEEPEEOPOOPOO {connection}")
-                print(f"DEsiredValue: {desired_value}")
+                print(f"Adding geometric variable {connection}")
+                print(f"Desired Value: {desired_value}")
 
 

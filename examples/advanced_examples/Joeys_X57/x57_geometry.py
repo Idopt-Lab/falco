@@ -794,7 +794,12 @@ alpha = csdl.arctan(wind_vector_in_wing.vector[2]/wind_vector_in_wing.vector.val
 
 
 ## Aerodynamic Forces - from Modification IV
-
+def calculate_forces_moments(force, moment, axis1, axis2):
+    force_in_axis1 = Vector(vector=force, axis=axis1)
+    moment_in_axis1 = Vector(vector=moment, axis=axis1)   
+    force_moment_in_axis1 = ForcesMoments(force=force_in_axis1, moment=moment_in_axis1)
+    force_moment_in_axis2 = force_moment_in_axis1.rotate_to_axis(axis2)
+    return force_moment_in_axis1, force_moment_in_axis2
 
 CL = 2*np.pi*alpha
 e = 0.87
@@ -811,20 +816,12 @@ aero_moment = csdl.Variable(shape=(3, ), value=0.)
 aero_force = aero_force.set(csdl.slice[0], -D)
 aero_force = aero_force.set(csdl.slice[2], -L)
 
+aero1, aero2 = calculate_forces_moments(force=aero_force, moment=aero_moment, axis1=wing_axis, axis2=fd_axis)
+print('Aero Force in Wing Axis: ', aero1.F.vector.value)
+print('Aero Moment in Wing Axis: ', aero1.M.vector.value)
+print('Aero Force in Body Axis: ', aero2.F.vector.value)
+print('Aero Moment in Body Axis: ', aero2.M.vector.value)
 
-aero_force_vector_in_wing = Vector(vector=aero_force, axis=wing_axis)
-aero_moment_vector_in_wing = Vector(vector=aero_moment, axis=wing_axis)
-aero_force_moment_in_wing = ForcesMoments(force=aero_force_vector_in_wing, moment=aero_moment_vector_in_wing)
-
-# print('Aero Force in Wing Axis: ', aero_force_vector_in_wing.vector.value)
-# print('Aero Moment in Wing Axis: ', aero_moment_vector_in_wing.vector.value)
-
-
-aero_force_moment_in_body = aero_force_moment_in_wing.rotate_to_axis(fd_axis)
-aero_force_in_body = aero_force_moment_in_body.F
-aero_moment_in_body = aero_force_moment_in_body.M
-# print('Aero Force in Body Axis: ', aero_force_in_body.vector.value)
-# print('Aero Moment in Body Axis: ', aero_moment_in_body.vector.value)
 
 
 # Rotor Forces
@@ -835,22 +832,24 @@ cruise_motor_prop_moment = csdl.Variable(shape=(3, ), value=0.)
 cruise_motor_prop_force = cruise_motor_prop_force.set(csdl.slice[1], cruise_motor_thrust)
 
 
-prop_force_vector_in_cruise_motor = Vector(vector=cruise_motor_prop_force, axis=cruise_motor1_axis)
-prop_moment_vector_in_cruise_motor = Vector(vector=cruise_motor_prop_moment, axis=cruise_motor1_axis)
-prop_force_moment_in_cruise_motor = ForcesMoments(force=prop_force_vector_in_cruise_motor, moment=prop_moment_vector_in_cruise_motor)
-# print('Prop Force in Cruise Motor Axis: ', prop_force_vector_in_cruise_motor.vector.value)
-# print('Prop Moment in Cruise Motor Axis: ', prop_moment_vector_in_cruise_motor.vector.value)
+prop1, prop2 = calculate_forces_moments(force=cruise_motor_prop_force, moment=cruise_motor_prop_moment, axis1=cruise_motor1_axis, axis2=fd_axis)
+print('Prop Force in Cruise Motor Axis: ', prop1.F.vector.value)
+print('Prop Moment in Cruise Motor Axis: ', prop1.M.vector.value)
+print('Prop Force in Body Axis: ', prop2.F.vector.value)
+print('Prop Moment in Body Axis: ', prop2.M.vector.value)
 
 
-cruise_motor_prop_force_moment_in_body = prop_force_moment_in_cruise_motor.rotate_to_axis(fd_axis)
-cruise_motor_prop_force_in_body = cruise_motor_prop_force_moment_in_body.F
-cruise_motor_prop_moment_in_body = cruise_motor_prop_force_moment_in_body.M
-# print('Cruise Motor Prop Force in Body Axis: ', cruise_motor_prop_force_in_body.vector.value)
-# print('Cruise Motor Prop Moment in Body Axis: ', cruise_motor_prop_moment_in_body.vector.value)
+
 
 
 thrust_axis = cruise_motor1_tip - cruise_motor1_base
 # print('Thrust Axis: ', thrust_axis.value)
+
+
+
+
+
+
 
 
 
@@ -1010,7 +1009,6 @@ plot_parameters = {
     'title': f'x57 Plot\nAspect Ratio {5}\nArea {25} m^2\nSpan {15} m',
 }
 
-
 if run_ffd:
     if debug:
         base_config.setup_geometry(plot=True,recorder=recorder)
@@ -1022,7 +1020,6 @@ else:
     else:
         recorder.inline=False
 
-
 BaseConfig = base_config
 
 
@@ -1031,7 +1028,7 @@ BaseConfig = base_config
 
 
 
-# Aircraft.visualize_component_hierarchy(show=False)
+
 
 
 from flight_simulator.core.aircraft_control_system import AircraftControlSystem
