@@ -79,6 +79,8 @@ class Fuselage(Component):
             max_width=max_width,
         )
 
+        # print(f"Initializing Wing with parameters: {self.parameters.length.value}, {self.parameters.max_width.value}, {self.parameters.max_height.value}")
+
         # compute form factor (according to Raymer) if parameters are provided
         if all(arg is not None for arg in [length, max_height, max_width]):
             if not isinstance(max_height, csdl.Variable):
@@ -119,7 +121,7 @@ class Fuselage(Component):
 
 
 
-    def _setup_ffd_block(self, ffd_block, parameterization_solver, plot : bool=False):
+    def _setup_ffd_block(self, ffd_block, parameterization_solver, ffd_geometric_variables, plot : bool=False):
         """Set up the fuselage ffd block."""
         
         # Instantiate a volume sectional parameterization object
@@ -128,48 +130,76 @@ class Fuselage(Component):
             parameterized_points=ffd_block.coefficients,
             principal_parametric_dimension=0
         )
-        if plot:
-            ffd_block_sectional_parameterization.plot()
+        # if plot:
+        #     ffd_block_sectional_parameterization.plot()
+
+
+
+        if isinstance(self.parameters.length, csdl.Variable):
+            length_value = self.parameters.length.value
+        else:
+            length_value = self.parameters.length
+
+        if isinstance(self.parameters.max_height, csdl.Variable):
+            height_value = self.parameters.max_height.value
+        else:
+            height_value = self.parameters.max_height
+
+        if isinstance(self.parameters.max_width, csdl.Variable):
+            width_value = self.parameters.max_width.value
+        else:
+            width_value = self.parameters.max_width
+
+
+        length_stretch = np.array([-0, 0.], dtype=object)
+        height_stretch = np.array([0, 0], dtype=object)
+        width_stretch = np.array([0, 0], dtype=object)
 
         # Make B-spline functions for changing geometric quantities
-        length_stretch_b_spline = lfs.Function(
+        self._length_stretch_b_spline = lfs.Function(
             space=self._linear_b_spline_2_dof_space,
             coefficients=csdl.ImplicitVariable(
                 shape=(2, ),
-                value=np.array([0., 0.]),
+                value=length_stretch,
             ),
             name=f"{self._name}_length_stretch_b_sp_coeffs",
         )
 
-        height_stretch_b_spline = lfs.Function(
+        self._height_stretch_b_spline = lfs.Function(
             space=self._linear_b_spline_2_dof_space,
             coefficients=csdl.ImplicitVariable(
                 shape=(2, ),
-                value=np.array([0., 0.]),
+                value=height_stretch,
             ),
             name=f"{self._name}_height_stretch_b_sp_coeffs",
         )
 
-        width_stretch_b_spline = lfs.Function(
+        self._width_stretch_b_spline = lfs.Function(
             space=self._linear_b_spline_2_dof_space,
             coefficients=csdl.ImplicitVariable(
                 shape=(2, ),
-                value=np.array([0., 0.]),
+                value=width_stretch,
             ),
             name=f"{self._name}_width_stretch_b_sp_coeffs",
         )
+
+        # Extract geometric quantities from the FFD block
+        fuselage_geometric_qts = self._extract_geometric_quantities_from_ffd_block()
+
+        # Set up the FFD parameterization
+        self._setup_ffd_parameterization(fuselage_geometric_qts, ffd_geometric_variables)
 
         # evaluate b-splines 
         num_ffd_sections = ffd_block_sectional_parameterization.num_sections
         parametric_b_spline_inputs = np.linspace(0.0, 1.0, num_ffd_sections).reshape((-1, 1))
 
-        length_stretch_sectional_parameters = length_stretch_b_spline.evaluate(
+        length_stretch_sectional_parameters = self._length_stretch_b_spline.evaluate(
             parametric_b_spline_inputs
         )
-        height_stretch_sectional_parameters = height_stretch_b_spline.evaluate(
+        height_stretch_sectional_parameters = self._height_stretch_b_spline.evaluate(
             parametric_b_spline_inputs
         )
-        width_stretch_sectional_parameters = width_stretch_b_spline.evaluate(
+        width_stretch_sectional_parameters = self._width_stretch_b_spline.evaluate(
             parametric_b_spline_inputs
         )
 
@@ -198,9 +228,9 @@ class Fuselage(Component):
         if self.skip_ffd:
             parameterization_solver.add_parameter(rigid_body_translation, cost=1000)
         else:
-            parameterization_solver.add_parameter(length_stretch_b_spline.coefficients)
-            parameterization_solver.add_parameter(height_stretch_b_spline.coefficients)
-            parameterization_solver.add_parameter(width_stretch_b_spline.coefficients)
+            parameterization_solver.add_parameter(self._length_stretch_b_spline.coefficients)
+            parameterization_solver.add_parameter(self._height_stretch_b_spline.coefficients)
+            parameterization_solver.add_parameter(self._width_stretch_b_spline.coefficients)
             parameterization_solver.add_parameter(rigid_body_translation, cost=1000)
 
 
@@ -237,6 +267,9 @@ class Fuselage(Component):
         return fuselage_geometric_qts
     
     def _setup_ffd_parameterization(self, fuselage_geometric_qts : FuselageGeometricQuantities, ffd_geometric_variables):
+
+        self.ffd_geometric_variables = ffd_geometric_variables
+
         """Set up the fuselage parameterization."""
         # If user doesn't specify length, use initial geometry
         if self.parameters.length is None:
@@ -244,6 +277,7 @@ class Fuselage(Component):
         else:
             length_input = self.parameters.length
             ffd_geometric_variables.add_variable(fuselage_geometric_qts.length, length_input)
+            # print(f"Adding length: {fuselage_geometric_qts.length.value} -> {length_input.value}")
 
         # If user doesn't specify height, use initial geometry
         if self.parameters.max_height is None:
@@ -251,6 +285,7 @@ class Fuselage(Component):
         else:
             height_input = self.parameters.max_height
             ffd_geometric_variables.add_variable(fuselage_geometric_qts.height, height_input)
+            # print(f"Adding height: {fuselage_geometric_qts.height.value} -> {height_input.value}")
 
         # If user doesn't specify width, use initial geometry
         if self.parameters.max_width is None:
@@ -258,9 +293,30 @@ class Fuselage(Component):
         else:
             width_input = self.parameters.max_width
             ffd_geometric_variables.add_variable(fuselage_geometric_qts.width, width_input)
+            # print(f"Adding width: {fuselage_geometric_qts.width.value} -> {width_input.value}")
+
+        if self.parameters.length is not None:
+            if abs(length_input.value - fuselage_geometric_qts.length.value) > 1e-6:
+                    # print(f"NOT UPDATED length_stretch_b_spline.coefficients.value: {self._length_stretch_b_spline.coefficients.value}")
+                    self._length_stretch_b_spline.coefficients.value = length_input.value - fuselage_geometric_qts.length.value
+                    # print(f"Updated length_stretch_b_spline.coefficients.value: {self._length_stretch_b_spline.coefficients.value}")
+
+        if self.parameters.max_height is not None:
+            if abs(height_input.value - fuselage_geometric_qts.height.value) > 1e-6:
+                # print(f"NOT UPDATED height_stretch_b_spline.coefficients.value: {self._height_stretch_b_spline.coefficients.value}")
+                self._height_stretch_b_spline.coefficients.value = height_input.value - fuselage_geometric_qts.height.value
+                # print(f"Updated height_stretch_b_spline.coefficients.value: {self._height_stretch_b_spline.coefficients.value}")
+        
+        if self.parameters.max_width is not None:
+            if abs(width_input.value - fuselage_geometric_qts.width.value) > 1e-6:
+                # print(f"NOT UPDATED width_stretch_b_spline.coefficients.value: {self._width_stretch_b_spline.coefficients.value}")
+                self._width_stretch_b_spline.coefficients.value = width_input.value - fuselage_geometric_qts.width.value
+                # print(f"Updated width_stretch_b_spline.coefficients.value: {self._width_stretch_b_spline.coefficients.value}")
+
+
 
         # self.ffd_geometric_variables = ffd_geometric_variables
-        return 
+        return ffd_geometric_variables
     
     def _setup_geometry(self, parameterization_solver, ffd_geometric_variables, plot: bool = False):
         """Set up the fuselage geometry (mainly for FFD)"""
@@ -269,7 +325,7 @@ class Fuselage(Component):
         fuselage_ffd_block = self._ffd_block
 
         # Set up the ffd block
-        self._setup_ffd_block(fuselage_ffd_block, parameterization_solver)
+        self._setup_ffd_block(fuselage_ffd_block, parameterization_solver, ffd_geometric_variables, plot=plot)
 
         if self.skip_ffd is False:
             # Get fuselage geometric quantities
@@ -278,6 +334,8 @@ class Fuselage(Component):
             # Define geometric constraints
             self._setup_ffd_parameterization(fuselage_geom_qts, ffd_geometric_variables)
     
-    
         
+        # print(f"Fuselage geo qts: {fuselage_geom_qts.length.value}")
+        # print(f"Fuselage parameters: {self.parameters}")
+        # print(f"Fuselage geometric variables: {ffd_geometric_variables}")
         return
