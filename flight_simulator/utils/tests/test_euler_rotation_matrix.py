@@ -3,6 +3,7 @@ import numpy as np
 import csdl_alpha as csdl
 from flight_simulator.utils.euler_rotations import build_rotation_matrix
 
+
 class TestEulerRotations(TestCase):
     def test_build_rotation_matrix_identity(self):
         recorder = csdl.Recorder(inline=True)

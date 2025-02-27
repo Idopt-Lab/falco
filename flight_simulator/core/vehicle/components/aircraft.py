@@ -2,7 +2,6 @@ from lsdo_function_spaces import FunctionSet
 from flight_simulator.core.component import Component
 from lsdo_geo import Geometry
 
-
 from typing import Union
 
 
@@ -11,5 +10,4 @@ class Aircraft(Component):
     def __init__(self, geometry: Union[FunctionSet, None] = None, **kwargs) -> None:
         kwargs["do_not_remake_ffd_block"] = True
         super().__init__(geometry, **kwargs)
-        self._skip_ffd = True
-        self.geometry = geometry
+        self._skip_ffd = False

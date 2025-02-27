@@ -15,20 +15,9 @@ import warnings
 import copy
 
 
-
 class ComponentQuantities:
-    def __init__(
-            self,
-            mass_properties: MassProperties = None
-    ) -> None:
-        """
-        Initialize a ComponentQuantities instance.
-            surface_area : csdl.Variable
-                The computed surface area of the geometry, if applicable.
-        """
-
+    def __init__(self, mass_properties: MassProperties = None) -> None:
         self._mass_properties = mass_properties
-
         self.surface_mesh = []
         self.surface_area = None
 
@@ -49,180 +38,58 @@ class ComponentParameters:
 
 
 class Component:
-    """
-    The base component class.
-
-    Attributes
-    ----------
-    name : str
-        A unique name for the component.
-
-    parent : Component
-        The parent component, if the current component is part of a hierarchy.
-
-    comps : dict
-        A dictionary of subcomponents with their names as keys.
-
-    geometry : FunctionSet or None
-        The geometry associated with the component, enabling geometric operations.
-
-    quantities : ComponentQuantities
-        Essential quantities a component must always have, such as mass properties.
-
-    parameters : ComponentParameters
-        A container for user-defined parameters, initialized using keyword arguments.
-
-    compute_surface_area : bool
-        Indicates whether to compute the surface area of the geometry upon initialization.
-    """
-    def __init__(self,
-                 name: str,
-                 geometry: Union[FunctionSet, None] = None,
-                 compute_surface_area_flag: bool = False,
-                 **kwargs) -> None:
-        """
-        Initialize a Component instance.
-
-        Parameters
-        ----------
-        geometry : FunctionSet or None, optional
-            The geometry associated with the component.
-
-        name : str
-            A custom name for the component. If not provided, a unique name will be generated.
-
-        compute_surface_area : bool, optional
-            Whether to compute the surface area of the geometry upon initialization. Default is True.
-
-        **kwargs : dict
-            User-defined parameters to be stored in the `parameters` attribute.
-        """
-        self._constant_b_spline_1_dof_space = lfs.BSplineSpace(num_parametric_dimensions=1, degree=0, coefficients_shape=(1,))
-        self._linear_b_spline_2_dof_space = lfs.BSplineSpace(num_parametric_dimensions=1, degree=1, coefficients_shape=(2,))
-        self._linear_b_spline_3_dof_space = lfs.BSplineSpace(num_parametric_dimensions=1, degree=1, coefficients_shape=(3,))
-        self._cubic_b_spline_5_dof_space = lfs.BSplineSpace(num_parametric_dimensions=1, degree=3, coefficients_shape=(5,))
-
-
-        # Increment instance count and set the name
+    def __init__(self, name: str, geometry: Union[FunctionSet, None] = None, compute_surface_area_flag: bool = False, **kwargs) -> None:
         self._name = name
-
-        # Hierarchical attributes
         self.parent = None
-        self.comps = {}  # Dictionary to hold subcomponents
-
-        # Geometry-related attributes
+        self.comps: ComponentDict = ComponentDict(parent=self)
         self.geometry: Union[FunctionSet, Geometry, None] = geometry
         self.compute_surface_area_flag = compute_surface_area_flag
-
-        # Essential quantities and user-defined parameters
         self.quantities: ComponentQuantities = ComponentQuantities()
         self.parameters: ComponentParameters = ComponentParameters()
+        self._ffd_block = None  # Initialize FFD block attribute
+        self._skip_ffd = kwargs.pop('skip_ffd', False)  # Initialize skip_ffd flag
 
-        # Store user-defined parameters
         for key, value in kwargs.items():
             setattr(self.parameters, key, value)
-        
+
         if geometry and compute_surface_area_flag:
-            self.quantities.surface_area=self._compute_surface_area(geometry)
+            self.quantities.surface_area = self._compute_surface_area(geometry)
 
-    def add_subcomponent(self, subcomponent):
-        """
-        Add a subcomponent to the current component.
+        if geometry is not None and isinstance(geometry, FunctionSet):
+            if "do_not_remake_ffd_block" not in kwargs:
+                self._ffd_block = self._make_ffd_block(self.geometry)
+    
 
-        Parameters
-        ----------
-        subcomponent : Component
-            The subcomponent to add.
 
-        Raises
-        ------
-        TypeError
-            If the provided subcomponent is not an instance of Component.
-        """
+    def add_subcomponent(self, subcomponent: Component):
         if not isinstance(subcomponent, Component):
             raise TypeError(f"Subcomponent must be of type 'Component'. Received: {type(subcomponent)}")
 
-        # Check if component already exists
         if subcomponent._name in self.comps:
             raise KeyError(f"Subcomponent with name '{subcomponent._name}' already exists.")
+
+        if subcomponent.parent is not None:
+            raise ValueError(f"Subcomponent '{subcomponent._name}' is already a subcomponent of another component.")
 
         self.comps[subcomponent._name] = subcomponent
         subcomponent.parent = self
 
-    def remove_subcomponent(self, subcomponent):
-        """
-        Remove a subcomponent from the current component.
+    def plot(self, show: bool = False, **kwargs):
+        """Plot a component's geometry."""
+        if self.geometry is None:
+            raise ValueError(f"Cannot plot component {self} since its geometry is None.")
+        else:
+            self.geometry.plot(show=show, **kwargs)
 
-        Parameters
-        ----------
-        subcomponent : Component
-            The subcomponent to remove.
-
-        Raises
-        ------
-        KeyError
-            If the subcomponent is not found in the current component's hierarchy.
-        """
+    def remove_subcomponent(self, subcomponent: Component):
         for name, comp in self.comps.items():
             if comp == subcomponent:
                 self.comps.pop(name)
                 subcomponent.parent = None
                 return
-        raise KeyError(f"Subcomponent {subcomponent._name} not found.")
-    
-    def actuate(self, angle: Union[float, int, csdl.Variable], axis_location: float = 0.25):
-            """Actuate (i.e., rotate) the component about an axis location at or behind the leading edge.
-            
-            Parameters
-            ----------
-            angle : float, int, or csdl.Variable
-                rotation angle (deg)
+        raise KeyError(f"Subcomponent '{subcomponent._name}' not found.")
 
-            axis_location : float (default is 0.25)
-                location of actuation axis with respect to the leading edge;
-                0.0 corresponds the leading and 1.0 corresponds to the trailing edge
-            """
-            print(f"Actuating component with angle: {angle}, axis_location: {axis_location}")
-
-            component_geometry = self.geometry
-            # check if component_geometry is not None
-            if component_geometry is None:
-                raise ValueError("component cannot be actuated since it does not have a geometry (i.e., geometry=None)")
-
-            # Check if actuation axis is between 0 and 1
-            if axis_location < 0.0 or axis_location > 1.0:
-                raise ValueError("axis_location should be between 0 and 1")
-            
-            LE_center = component_geometry.evaluate(self._LE_mid_point)
-            TE_center = component_geometry.evaluate(self._TE_mid_point)
-            print(f"LE_center: {LE_center}, TE_center: {TE_center}")
-
-            # Add the user_specified axis location
-            actuation_center = csdl.linear_combination(
-                LE_center, TE_center, 1, np.array([1 - axis_location]), np.array([axis_location])
-            ).flatten()
-
-            print(f"Actuation center: {actuation_center}")
-
-            var = csdl.Variable(shape=(3,), value=np.array([0., 1., 0.]))
-
-            # Compute the actuation axis vector
-            axis_origin = actuation_center - var
-            axis_vector = actuation_center + var - axis_origin
-
-            print(f"Axis origin: {axis_origin}, Axis vector: {axis_vector}")
-
-            # Rotate the component about the axis
-            component_geometry.rotate(axis_origin=axis_origin, axis_vector=axis_vector / csdl.norm(axis_vector), angles=angle)
-            print("Actuation completed.")
-
-    def visualize_component_hierarchy(
-            self,
-            file_name: str = "component_hierarchy",
-            file_format: str = "png",
-            filepath: Path = Path.cwd(),
-            show: bool = False,
-    ):
+    def visualize_component_hierarchy(self, file_name: str = "component_hierarchy", file_format: str = "png", filepath: Path = Path.cwd(), show: bool = False):
         csdl.check_parameter(file_name, "file_name", types=str)
         csdl.check_parameter(file_format, "file_format", values=("png", "pdf"))
         csdl.check_parameter(show, "show", types=bool)
@@ -231,10 +98,8 @@ class Component:
         except ImportError:
             raise ImportError("Must install graphviz. Can do 'pip install graphviz'")
 
-        # make graph object
         graph = Graph(comment="Component Hierarchy")
 
-        # Go through component hierarchy and components to nodes
         def add_component_to_graph(comp: Component, comp_name: str, parent_name=None):
             graph.node(comp_name, comp_name)
             if parent_name is not None:
@@ -243,85 +108,62 @@ class Component:
                 add_component_to_graph(child, child_name, comp_name)
 
         add_component_to_graph(self, self._name)
-        graph.render("component_hierarchy",
-                     directory=filepath,
-                     format=file_format, view=show)
+        graph.render(file_name, directory=filepath, format=file_format, view=show)
 
+    def _make_ffd_block(self, entities, num_coefficients: tuple = (2, 2, 2), order: tuple = (1, 1, 1), num_physical_dimensions: int = 3):
+        ffd_block = construct_ffd_block_around_entities(name=self._name, entities=entities, num_coefficients=num_coefficients, degree=order)
+        ffd_block.coefficients.name = f'{self._name}_coefficients'
+        return ffd_block
 
-    def _make_ffd_block(self, entities, 
-                            num_coefficients : tuple=(2, 2, 2), 
-                            order: tuple=(1, 1, 1), 
-                            num_physical_dimensions : int=3):
-            """
-            Call 'construct_ffd_block_around_entities' function.
-
-            This method constructs a Cartesian FFD block with linear B-splines
-            and 2 degrees of freedom in all dimensions.
-            """
-            ffd_block = construct_ffd_block_around_entities(name=self._name, entities=entities, 
-                                                    num_coefficients=num_coefficients, degree=order)
-            ffd_block.coefficients.name = f'{self._name}_coefficients'
-
-            return ffd_block 
+    def _extract_geometric_quantities_from_ffd_block(self):
+        raise NotImplementedError(f"'_extract_geometric_quantities_from_ffd_block' has not been implemented for {type(self)}")
     
-    def _setup_geometry(self, parameterization_solver, ffd_geometric_variables, plot : bool = False):
-        """Set up the geometry of the system with no FFD"""
-        rigid_body_translation = csdl.ImplicitVariable(shape=(3, ), value=0., name=f'{self._name}_rigid_body_translation')
-        # print(f"Setting up geometry for {self._name} with rigid_body_translation: {rigid_body_translation}")
+    def _setup_ffd_parameterization(self):
+        raise NotImplementedError(f"'_setup_ffd_parameterization' has not been implemented for {type(self)}")
+            
+    def _setup_geometry(self, parameterization_solver, ffd_geometric_variables, plot: bool = False):
+        if not hasattr(self, 'geometry') or self.geometry is None:
+            return
+        rigid_body_translation = csdl.ImplicitVariable(shape=(3,), value=0., name=f'{self._name}_rigid_body_translation')
 
         for function in self.geometry.functions.values():
             if function.name == "rigid_body_translation":
                 shape = function.coefficients.shape
                 function.coefficients = function.coefficients + csdl.expand(rigid_body_translation, shape, action="k->ijk")
-                # print(f"Updated coefficients for function {function.name} with shape {shape}")
 
-        parameterization_solver.add_parameter(rigid_body_translation, cost = 0.1)
-        # print(f"Added parameter {rigid_body_translation} to solver with cost 0.1")
 
-    def _compute_surface_area(self, geometry: Geometry,
-                              plot_flag: bool = False):
-        """Compute the surface area of a component."""
+        parameterization_solver.add_parameter(rigid_body_translation, cost=0.001)
+
+
+
+
+
+    def _compute_surface_area(self, geometry: Geometry, plot_flag: bool = False):
         parametric_mesh_grid_num = 10
-
         surfaces = geometry.functions
         surface_area = csdl.Variable(shape=(1,), value=1)
-
         surface_mesh = self.quantities.surface_mesh
-
         num_surfaces = len(surfaces.keys())
 
-        parametric_mesh = geometry.generate_parametric_grid(
-            grid_resolution=(parametric_mesh_grid_num, parametric_mesh_grid_num))
-        coords_vec = geometry.evaluate(parametric_mesh).reshape(
-            (num_surfaces, parametric_mesh_grid_num, parametric_mesh_grid_num, 3))
+        parametric_mesh = geometry.generate_parametric_grid(grid_resolution=(parametric_mesh_grid_num, parametric_mesh_grid_num))
+        coords_vec = geometry.evaluate(parametric_mesh).reshape((num_surfaces, parametric_mesh_grid_num, parametric_mesh_grid_num, 3))
         surface_mesh.append(coords_vec)
 
         if plot_flag:
             self.geometry.plot_meshes(coords_vec.reshape((-1, 3)).value)
 
-        coords_u_end = coords_vec[:, 1:, :, :].reshape(
-            (num_surfaces, parametric_mesh_grid_num - 1, parametric_mesh_grid_num, 3))
-        coords_u_start = coords_vec[:, :-1, :, :].reshape(
-            (num_surfaces, parametric_mesh_grid_num - 1, parametric_mesh_grid_num, 3))
-
-        coords_v_end = coords_vec[:, :, 1:, :].reshape(
-            (num_surfaces, parametric_mesh_grid_num, parametric_mesh_grid_num - 1, 3))
-        coords_v_start = coords_vec[:, :, :-1, :].reshape(
-            (num_surfaces, parametric_mesh_grid_num, parametric_mesh_grid_num - 1, 3))
+        coords_u_end = coords_vec[:, 1:, :, :].reshape((num_surfaces, parametric_mesh_grid_num - 1, parametric_mesh_grid_num, 3))
+        coords_u_start = coords_vec[:, :-1, :, :].reshape((num_surfaces, parametric_mesh_grid_num - 1, parametric_mesh_grid_num, 3))
+        coords_v_end = coords_vec[:, :, 1:, :].reshape((num_surfaces, parametric_mesh_grid_num, parametric_mesh_grid_num - 1, 3))
+        coords_v_start = coords_vec[:, :, :-1, :].reshape((num_surfaces, parametric_mesh_grid_num, parametric_mesh_grid_num - 1, 3))
 
         u_vectors = coords_u_end - coords_u_start
-        u_vectors_start = u_vectors  # .reshape((-1, ))
-        u_vectors_1 = u_vectors_start[:, :, :-1, :].reshape(
-            (num_surfaces, parametric_mesh_grid_num - 1, parametric_mesh_grid_num - 1, 3))
-        u_vectors_2 = u_vectors_start[:, :, 1:, :].reshape(
-            (num_surfaces, parametric_mesh_grid_num - 1, parametric_mesh_grid_num - 1, 3))
+        u_vectors_1 = u_vectors[:, :, :-1, :].reshape((num_surfaces, parametric_mesh_grid_num - 1, parametric_mesh_grid_num - 1, 3))
+        u_vectors_2 = u_vectors[:, :, 1:, :].reshape((num_surfaces, parametric_mesh_grid_num - 1, parametric_mesh_grid_num - 1, 3))
 
         v_vectors = coords_v_end - coords_v_start
-        v_vectors_start = v_vectors  # .reshape((-1, ))
-        v_vectors_1 = v_vectors_start[:, :-1, :, :].reshape(
-            (num_surfaces, parametric_mesh_grid_num - 1, parametric_mesh_grid_num - 1, 3))
-        v_vectors_2 = v_vectors_start[:, 1:, :, :].reshape(
-            (num_surfaces, parametric_mesh_grid_num - 1, parametric_mesh_grid_num - 1, 3))
+        v_vectors_1 = v_vectors[:, :-1, :, :].reshape((num_surfaces, parametric_mesh_grid_num - 1, parametric_mesh_grid_num - 1, 3))
+        v_vectors_2 = v_vectors[:, 1:, :, :].reshape((num_surfaces, parametric_mesh_grid_num - 1, parametric_mesh_grid_num - 1, 3))
 
         area_vectors_left_lower = csdl.cross(u_vectors_1, v_vectors_2, axis=3)
         area_vectors_right_upper = csdl.cross(v_vectors_1, u_vectors_2, axis=3)
@@ -333,197 +175,198 @@ class Component:
 
         return surface_area
 
+    def _find_system_component(self, parent) -> FunctionSet:
+        if parent is None:
+            return self
+        else:
+            return parent._find_system_component(parent.parent)
+
+
+
+class ComponentDict(dict):
+    def __init__(self, parent: Component, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        csdl.check_parameter(parent, "parent", types=(Component))
+        self.parent = parent
+    
+    def __getitem__(self, key) -> Component:
+        # Check if key exists
+        if key not in self:
+            raise KeyError(f"The component '{key}' does not exist. Existing components: {list(self.keys())}")
+        else:
+            return super().__getitem__(key)
+    
+    def __setitem__(self, key, value : Component, allow_overwrite=False):
+        # Check type
+        if not isinstance(value, Component):
+            raise TypeError(f"Components must be of type(s) {Component}; received {type(value)}")
+        
+        # Check if key is already specified
+        if key in self:
+            if allow_overwrite is False:
+                raise Exception(f"Component {key} has already been set and cannot be re-set.")
+        
+        super().__setitem__(key, value)
+        value.parent = self.parent
+
+
+
+
+
 class Configuration:
-    """The configurations class"""
-    def __init__(self, system : Component) -> None:
-        # Check whether system if a component
+    def __init__(self, system: Component) -> None:
         if not isinstance(system, Component):
             raise TypeError(f"system must by of type {Component}")
-        # Check that if system geometry is not None, it is of the correct type
-        if system.geometry is not None:
-            if not isinstance(system.geometry, FunctionSet ):
-                raise TypeError(f"If system geometry is not None, it must be of type '{FunctionSet}', received object of type '{type(system.geometry)}'")
+        if system.geometry is not None and not isinstance(system.geometry, FunctionSet):
+            raise TypeError(f"If system geometry is not None, it must be of type '{FunctionSet}', received object of type '{type(system.geometry)}'")
         self.system = system
-
         self._geometric_connections = []
-        self._config_copies: List[self] = []
 
-    
-    def connect_component_geometries(
-        self,
-        comp_1: Component,
-        comp_2: Component,
-        connection_point: Union[csdl.Variable, np.ndarray, None]=None,
-        desired_value: Union[csdl.Variable, None]=None
-    ):
-        """Connect the geometries of two components.
-
-        Function to ensure a component geometries can rigidly 
-        translate if the component it is connected to moves.
-
-        Parameters
-        ----------
-        comp_1 : Component
-            the first component to be connected
-        comp_2 : Component
-            the second component to be connected
-        connection_point : Union[csdl.Variable, np.ndarray, None], optional
-            the point with respect to which the connection is defined. E.g., 
-            if the wing and fuselage geometries are connected, this point 
-            could be the quarter chord of the wing. This means that the distance
-            between the point and the two component will remain constant, 
-            by default None
-        desired_value : Union[csdl.Variable, np.ndarray, None], optional
-            The value to be enforced by the inner optimization, if None,
-            the connection point's initial value will be chosen
-
-        Raises
-        ------
-        Exception
-            If 'comp_1' is not an instances of Compone
-        Exception
-            If 'comp_2' is not an instances of Compone
-        Exception
-            If 'connection_point' is not of shape (3, )
-        """
+    def connect_component_geometries(self, comp_1: Component, comp_2: Component, connection_point: Union[csdl.Variable, np.ndarray, None] = None, desired_value: Union[csdl.Variable, None] = None):
         csdl.check_parameter(comp_1, "comp_1", types=Component)
         csdl.check_parameter(comp_2, "comp_2", types=Component)
-        csdl.check_parameter(connection_point, "connection_point" ,
-                             types=(csdl.Variable, np.ndarray), allow_none=True)
+        csdl.check_parameter(connection_point, "connection_point", types=(csdl.Variable, np.ndarray), allow_none=True)
 
-        # Apply actuation if parameters are provided
-        if hasattr(comp_1.parameters, 'actuation_angle') and comp_1.parameters.actuation_angle is not None:
-            comp_1.actuate(comp_1.parameters.actuation_angle, axis_location=comp_1.parameters.actuation_axis_location)
-            comp_2.parameters.actuation_angle = comp_1.parameters.actuation_angle
-            comp_2.parameters.actuation_axis_location = comp_1.parameters.actuation_axis_location
-            comp_2.actuate(comp_2.parameters.actuation_angle, axis_location=comp_2.parameters.actuation_axis_location)
-        elif hasattr(comp_2.parameters, 'actuation_angle') and comp_2.parameters.actuation_angle is not None:
-            comp_2.actuate(comp_2.parameters.actuation_angle, axis_location=comp_2.parameters.actuation_axis_location)
-            comp_1.parameters.actuation_angle = comp_2.parameters.actuation_angle
-            comp_1.parameters.actuation_axis_location = comp_2.parameters.actuation_axis_location
-            comp_1.actuate(comp_1.parameters.actuation_angle, axis_location=comp_1.parameters.actuation_axis_location)
-
-        # Check that comp_1 and comp_2 have geometries
         if comp_1.geometry is None:
             raise Exception(f"Comp {comp_1._name} does not have a geometry.")
         if comp_2.geometry is None:
             raise Exception(f"Comp {comp_2._name} does not have a geometry.")
-        
-        # If connection point provided, check that its shape is (3, )
+
         if connection_point is not None:
             try:
-                connection_point.reshape((3, ))
+                connection_point = connection_point.reshape((3,))
             except:
-                raise Exception(f"'connection_point' must be of shape (3, ) or reshapable to (3, ). Received shape {connection_point.shape}")
+                raise Exception(f"'connection_point' must be of shape (3,) or reshapable to (3,). Received shape {connection_point.shape}")
 
             projection_1 = comp_1.geometry.project(connection_point)
             projection_2 = comp_2.geometry.project(connection_point)
-
             self._geometric_connections.append((projection_1, projection_2, comp_1, comp_2, desired_value))
-        
-        # Else choose the center points of the FFD block
         else:
-
-            if not hasattr(comp_1, '_ffd_block') or comp_1._ffd_block is None:
-                comp_1._ffd_block = comp_1._make_ffd_block(entities=comp_1.geometry, num_coefficients=(2, 2, 2), order=(1, 1, 1))
-            if not hasattr(comp_2, '_ffd_block') or comp_2._ffd_block is None:
-                comp_2._ffd_block = comp_2._make_ffd_block(entities=comp_2.geometry, num_coefficients=(2, 2, 2), order=(1, 1, 1))
-
             point_1 = comp_1._ffd_block.evaluate(parametric_coordinates=np.array([0.5, 0.5, 0.5]))
             point_2 = comp_2._ffd_block.evaluate(parametric_coordinates=np.array([0.5, 0.5, 0.5]))
-
             projection_1 = comp_1.geometry.project(point_1)
             projection_2 = comp_2.geometry.project(point_2)
-
             self._geometric_connections.append((projection_1, projection_2, comp_1, comp_2, desired_value))
-        
-        return
-
-    def setup_geometry(self, additional_constraints: List[tuple]=None, run_ffd : bool=True, plot : bool=False, plot_parameters : dict=None, recorder: csdl.Recorder = None):
-        """Run the geometry parameterization solver. 
-        
-        Note: This is only allowed on the based configuration.
-        """
-        self._geometry_setup_has_been_called = True
 
 
+    
+
+
+    def visualize_component_hierarchy(self, file_name: str = "component_hierarchy", file_format: str = "png", filepath: Path = Path.cwd(), show: bool = False):
+        csdl.check_parameter(file_name, "file_name", types=str)
+        csdl.check_parameter(file_format, "file_format", values=("png", "pdf"))
+        csdl.check_parameter(show, "show", types=bool)
+        try:
+            from graphviz import Graph
+        except ImportError:
+            raise ImportError("Must install graphviz. Can do 'pip install graphviz'")
+
+        graph = Graph(comment="Component Hierarchy")
+
+        def add_component_to_graph(comp: Component, comp_name: str, parent_name=None):
+            graph.node(comp_name, comp_name)
+            if parent_name is not None:
+                graph.edge(parent_name, comp_name)
+            for child_name, child in comp.comps.items():
+                add_component_to_graph(child, child_name, comp_name)
+
+        add_component_to_graph(self, self._name)
+        graph.render(file_name, directory=filepath, format=file_format, view=show)
+
+
+    def setup_geometry(self, additional_constraints: List[tuple] = None, run_ffd: bool = True, plot: bool = False, plot_parameters: dict = None, recorder: csdl.Recorder = None):
         parameterization_solver = ParameterizationSolver()
         ffd_geometric_variables = GeometricVariables()
         system_geometry = self.system.geometry
 
+        
         if system_geometry is None:
-            raise TypeError("'setup_geometry' cannot be called because the geometry asssociated with the system component is None")
+            subcomponent_geometries = self._collect_geometries(self.system)
+            if subcomponent_geometries:
+                system_geometry = FunctionSet(subcomponent_geometries)
+                self.system.geometry = system_geometry
+            else:
+                raise TypeError("'setup_geometry' cannot be called because the geometry associated with the system component is None")
 
         if not isinstance(system_geometry, FunctionSet):
             raise TypeError(f"The geometry of the system must be of type {FunctionSet}. Received {type(system_geometry)}")
-
+    
+        
         def setup_geometries(component: Component):
-            # If component has a geometry, set up its geometry
             if component.geometry is not None:
                 component._skip_ffd = False
                 if component._skip_ffd is True:
                     pass
                 else:
-                    try: # NOTE: might cause some issues because try/except might hide some errors that shouldn't be hidden
+                    try:
                         component._setup_geometry(parameterization_solver, ffd_geometric_variables, plot=plot)
-
                     except NotImplementedError:
                         warnings.warn(f"'_setup_geometry' has not been implemented for component {component._name} of {type(component)}")
             
-            # If component has children, set up their geometries
             if component.comps:
                 for comp_name, comp in component.comps.items():
                     setup_geometries(comp)
-
             return
-    
         setup_geometries(self.system)
 
-        for connection in self._geometric_connections:
-            projection_1 = connection[0]
-            projection_2 = connection[1]
-            comp_1 : Component = connection[2]
-            comp_2 : Component = connection[3]
-            desired_value : csdl.Variable = connection[4]
-            if isinstance(projection_1, list):
-                connection = comp_1.geometry.evaluate(parametric_coordinates=projection_1) - comp_2.geometry.evaluate(parametric_coordinates=projection_2)
-            # elif isinstance(projection_1, np.ndarray):
-            #     connection = comp_1._ffd_block.evaluate(parametric_coordinates=projection_1) - comp_2._ffd_block.evaluate(parametric_coordinates=projection_2)
-            else:
-                print(f"wrong type {type(projection_1)} for projection")
-                raise NotImplementedError
-            
-            if desired_value is None:
-                ffd_geometric_variables.add_variable(connection, connection.value)
-                print(f"Added connection variable between {comp_1._name} and {comp_2._name} with value: {connection.value}")
-            else:
-                if connection.shape != desired_value.shape:
-                    if desired_value.shape == (1, ):
-                        ffd_geometric_variables.add_variable(csdl.norm(connection), desired_value)
-                    else:
-                        raise ValueError(f"geometric connection has shape {connection.shape}, and desired value has shape {desired_value.shape}. If the shape of the deired value is (1, ), the norm of the connection will be enforced.")
+        if additional_constraints:
+            for constr in additional_constraints:
+                connection = csdl.norm(self.system.geometry.evaluate(parametric_coordinates=constr[0]) - self.system.geometry.evaluate(parametric_coordinates=constr[1]))
+                ffd_geometric_variables.add_variable(connection, constr[2])
 
-                else:
-                    ffd_geometric_variables.add_variable(connection, desired_value)
-                    print(f"Added connection variable between {comp_1._name} and {comp_2._name} with desired value: {desired_value}")
-
-        
-        # if additional_constraints:
-        #     for constr in additional_constraints:
-        #         connection = csdl.norm(self.system.geometry.evaluate(parametric_coordinates=constr[0]) - self.system.geometry.evaluate(parametric_coordinates=constr[1]))
-        #         ffd_geometric_variables.add_variable(connection, constr[2])
-        #         print(f"Added additional constraint with value: {constr[2]}")
+        self._process_geometric_connections(ffd_geometric_variables)
 
 
-        # Evalauate the parameterization solver
+        # print("FFD Geometric Variables:")
+        # print(ffd_geometric_variables)
+
         t1 = time.time()
         if recorder is not None:
-            print("Setting 'inline' to false for inner optimization")
             recorder.inline = False
-        parameterization_solver.evaluate(ffd_geometric_variables)
+        print("\nAttempting parameterization solver evaluation...")
+        # parameterization_solver.evaluate(ffd_geometric_variables)
+        print("Parameterization solver evaluation completed successfully")
         t2 = time.time()
-        print("time for inner optimization", t2-t1)
+        print(f"Parameterization Solver Time: {t2 - t1} seconds")
 
         
+
+
         if plot:
-            system_geometry.plot(show=True, **plot_parameters)
+            if plot_parameters:
+                self.system.geometry.plot(show=True, **plot_parameters)
+            else:
+                self.system.geometry.plot(show=True)
+
+
+
+    def _collect_geometries(self, component):
+        geometries = []
+        if component.geometry is not None:
+            geometries.append(component.geometry)
+        for comp in component.comps.values():
+            geometries.extend(self._collect_geometries(comp))
+        return geometries
+
+
+
+    def _process_geometric_connections(self, ffd_geometric_variables):
+        for connection in self._geometric_connections:
+            projection_1, projection_2, comp_1, comp_2, desired_value = connection
+            if isinstance(projection_1, list):
+                connection = comp_1.geometry.evaluate(parametric_coordinates=projection_1) - comp_2.geometry.evaluate(parametric_coordinates=projection_2)
+            elif isinstance(projection_1, np.ndarray):
+                connection = comp_1._ffd_block.evaluate(parametric_coordinates=projection_1) - comp_2._ffd_block.evaluate(parametric_coordinates=projection_2)
+            else:
+                raise NotImplementedError(f"wrong type {type(projection_1)} for projection")
+
+            if desired_value is None:
+                ffd_geometric_variables.add_variable(connection, connection.value)
+                print(f"Adding geometric variable {connection}")
+                print(f"Value: {connection.value}")
+            else:
+                
+                ffd_geometric_variables.add_variable(connection, desired_value)
+                print(f"Adding geometric variable {connection}")
+                print(f"Desired Value: {desired_value}")
+

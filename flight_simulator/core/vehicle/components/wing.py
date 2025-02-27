@@ -28,8 +28,8 @@ class WingParameters:
     thickness_to_chord_loc : float = 0.3
     MAC: Union[float, None] = None
     S_wet : Union[float, int, csdl.Variable, None]=None
-    actuate_angle: Union[float, int, csdl.Variable, None] = None
-    actuate_axis_location: Union[float, int, csdl.Variable, None] = 0.25
+    actuate_angle: csdl.Variable = None
+    actuate_axis_location: Union[float, int, csdl.Variable, None] = 0.
 
 @dataclass
 class WingGeometricQuantities:
@@ -45,7 +45,7 @@ class WingGeometricQuantities:
 
 class Wing(Component):
     """The wing component class.
-    
+
     Parameters
     ----------
     - AR : aspect ratio
@@ -69,8 +69,8 @@ class Wing(Component):
     """
     def __init__(
         self,
-        AR : Union[int, float, csdl.Variable, None]= None, 
-        S_ref : Union[int, float, csdl.Variable, None]= None,
+        AR : Union[int, float, csdl.Variable, None] = None, 
+        S_ref : Union[int, float, csdl.Variable, None] = None,
         span : Union[int, float, csdl.Variable, None] = None, 
         dihedral : Union[int, float, csdl.Variable, None] = None, 
         sweep : Union[int, float, csdl.Variable, None] = None, 
@@ -80,7 +80,7 @@ class Wing(Component):
         tip_twist_delta : Union[int, float, csdl.Variable] = 0,
         thickness_to_chord: float = 0.15,
         thickness_to_chord_loc: float = 0.3,
-        actuate_angle: Union[int, float, csdl.Variable, None] = None,
+        actuate_angle: Union[float, int, csdl.Variable, None] = None,
         actuate_axis_location: Union[int, float, csdl.Variable, None] = 0.25,
         geometry : Union[lfs.FunctionSet, None]=None,
         tight_fit_ffd: bool = False,
@@ -90,6 +90,25 @@ class Wing(Component):
     ) -> None:
         kwargs["do_not_remake_ffd_block"] = True
         super().__init__(geometry=geometry, **kwargs)
+    
+        # Print statements for debugging
+        # print(f"Initializing Wing with parameters:")
+        # print(f"AR: {AR}")
+        # print(f"S_ref: {S_ref}")
+        # print(f"span: {span}")
+        # print(f"sweep: {sweep}")
+        # print(f"dihedral: {dihedral}")
+        # print(f"incidence: {incidence}")
+        # print(f"root_twist_delta: {root_twist_delta}")
+        # print(f"tip_twist_delta: {tip_twist_delta}")
+        # print(f"thickness_to_chord: {thickness_to_chord}")
+        # print(f"thickness_to_chord_loc: {thickness_to_chord_loc}")
+        # print(f"actuate_angle: {actuate_angle}")
+        # print(f"actuate_axis_location: {actuate_axis_location}")
+        # print(f"geometry: {geometry}")
+        # print(f"tight_fit_ffd: {tight_fit_ffd}")
+        # print(f"skip_ffd: {skip_ffd}")
+        # print(f"orientation: {orientation}")
         
         # Do type checking 
         csdl.check_parameter(AR, "AR", types=(int, float, csdl.Variable), allow_none=True)
@@ -124,6 +143,9 @@ class Wing(Component):
         self._tight_fit_ffd = tight_fit_ffd
         self._orientation = orientation
         self.skip_ffd = skip_ffd
+        self._skip_ffd = skip_ffd
+        self.geometry = geometry
+
         
         # Assign parameters
         self.parameters : WingParameters =  WingParameters(
@@ -193,17 +215,25 @@ class Wing(Component):
                 self.parameters.S_wet = self.quantities.surface_area
 
                 # Make the FFD block upon instantiation
-                ffd_block = self._make_ffd_block(self.geometry, tight_fit=tight_fit_ffd, degree=(1, 2, 1), num_coefficients=(2, 2, 2))
+                ffd_block = self._make_ffd_block(self.geometry, tight_fit=tight_fit_ffd, degree=(1, 3, 1), num_coefficients=(2, 11, 2))
 
                 # Compute the corner points of the wing 
                 if self._orientation == "horizontal":
-                    self._LE_left_point = geometry.project(ffd_block.evaluate(parametric_coordinates=np.array([1., 0., 0.5])), plot=False, extrema=True)
+                    self._LE_left_point = geometry.project(ffd_block.evaluate(parametric_coordinates=np.array([0.8, 0., 0.5])), plot=False, extrema=True)
                     self._LE_mid_point = geometry.project(ffd_block.evaluate(parametric_coordinates=np.array([1., 0.5, 0.5])), plot=False, extrema=True)
-                    self._LE_right_point = geometry.project(ffd_block.evaluate(parametric_coordinates=np.array([1., 1., 0.5])), plot=False, extrema=True)
+                    self._LE_right_point = geometry.project(ffd_block.evaluate(parametric_coordinates=np.array([0.8, 1., 0.5])), plot=False, extrema=True)
 
                     self._TE_left_point = geometry.project(ffd_block.evaluate(parametric_coordinates=np.array([0., 0., 0.5])), plot=False, extrema=True)
                     self._TE_mid_point = geometry.project(ffd_block.evaluate(parametric_coordinates=np.array([0., 0.5, 0.5])),  plot=False, extrema=True)
                     self._TE_right_point = geometry.project(ffd_block.evaluate(parametric_coordinates=np.array([0., 1.0, 0.5])), plot=False, extrema=True)
+
+                    # print(f"_LE_left_point: {self._LE_left_point}")
+                    # print(f"_LE_mid_point: {self._LE_mid_point}")
+                    # print(f"_LE_right_point: {self._LE_right_point}")
+                    # print(f"_TE_left_point: {self._TE_left_point}")
+                    # print(f"_TE_mid_point: {self._TE_mid_point}")
+                    # print(f"_TE_right_point: {self._TE_right_point}")
+
 
                 else:
                     self._LE_tip_point = geometry.project(ffd_block.evaluate(parametric_coordinates=np.array([1., 0.5, 0.])), direction=np.array([-1., 0., 0.]), plot=False, extrema=False)
@@ -215,6 +245,12 @@ class Wing(Component):
                     self.LE_root = geometry.evaluate(self._LE_root_point)
                     self.TE_root = geometry.evaluate(self._TE_root_point)
 
+
+                    # print(f"_LE_tip_point: {self._LE_tip_point}")
+                    # print(f"_LE_root_point: {self._LE_root_point}")
+                    # print(f"_TE_tip_point: {self._TE_tip_point}")
+                    # print(f"_TE_root_point: {self._TE_root_point}")
+
                     # print(self.geometry.evaluate(self._LE_tip_point).value)
                     # print(self.geometry.evaluate(self._LE_root_point).value)
                     # print(self.geometry.evaluate(self._TE_tip_point).value)
@@ -223,61 +259,21 @@ class Wing(Component):
 
                 self._ffd_block = self._make_ffd_block(self.geometry, tight_fit=False)
 
+                # Print FFD block details for debugging
+                # print("FFD block created:")
+                # print(f"  num_coefficients: {ffd_block.coefficients.value}")
 
                 # print("time for computing corner points", t6-t5)
             # internal geometry projection info
             self._dependent_geometry_points = [] # {'parametric_points', 'function_space', 'fitting_coords', 'mirror'}
             self._base_geometry = self.geometry.copy()
+        
             
         if actuate_angle is not None:
             self.actuate(actuate_angle, actuate_axis_location)
+  
 
-        self._LE_left_tip = None
-        self._LE_right_tip = None
-        self._TE_left_tip = None
-        self._TE_right_tip = None
-        self._LE_center = None
-        self._TE_center = None
-        
-        
-    @property
-    def LE_left_tip(self):
-        if self.geometry is not None:
-            self._LE_left_tip = self.geometry.evaluate(self._LE_left_point)
-        return self._LE_left_tip
-    
-    @property
-    def LE_right_tip(self):
-        if self.geometry is not None:
-            self._LE_right_tip = self.geometry.evaluate(self._LE_right_point)
-        
-        return self._LE_right_tip
 
-    @property
-    def TE_left_tip(self):
-        if self.geometry is not None:
-            self._TE_left_tip = self.geometry.evaluate(self._TE_left_point)
-        return self._TE_left_tip
-    
-    @property
-    def TE_right_tip(self):
-        if self.geometry is not None:
-            self._TE_right_tip = self.geometry.evaluate(self._TE_right_point)
-        return self._TE_right_tip
-
-    @property
-    def LE_center(self):
-        if self.geometry is not None:
-            self._LE_center = self.geometry.evaluate(self._LE_mid_point)
-        return self._LE_center
-        
-    @property
-    def TE_center(self):
-        if self.geometry is not None:
-            self._TE_center = self.geometry.evaluate(self._TE_mid_point)
-        return self._TE_center
-
-    
     def actuate(self, angle : Union[float, int, csdl.Variable], axis_location : float = 0.25):
         """Actuate (i.e., rotate) the wing about an axis location at or behind the leading edge.
         
@@ -299,16 +295,28 @@ class Wing(Component):
         if axis_location < 0.0 or axis_location > 1.0:
             raise ValueError("axis_loaction should be between 0 and 1")
         
-        LE_center = wing_geometry.evaluate(self._LE_mid_point)
-        TE_center = wing_geometry.evaluate(self._TE_mid_point)
+        if self._orientation == "horizontal":
+        
+            LE_center = wing_geometry.evaluate(self._LE_mid_point)
+            TE_center = wing_geometry.evaluate(self._TE_mid_point)
 
-        # Add the user_specified axis location
-        actuation_center = csdl.linear_combination(
-            LE_center, TE_center, 1, np.array([1 -axis_location]), np.array([axis_location])
-        ).flatten()
+            # Add the user_specified axis location
+            actuation_center = csdl.linear_combination(
+                LE_center, TE_center, 1, np.array([1 -axis_location]), np.array([axis_location])
+            ).flatten()
 
 
-        var = csdl.Variable(shape=(3, ), value=np.array([0., 1., 0.]))
+            var = csdl.Variable(shape=(3, ), value=np.array([0., 1., 0.]))  
+        else:
+            LE_root = wing_geometry.evaluate(self._LE_root_point)
+            TE_root = wing_geometry.evaluate(self._TE_root_point)
+                # Add the user_specified axis location
+            actuation_center = csdl.linear_combination(
+                LE_root, TE_root, 1, np.array([1 -axis_location]), np.array([axis_location])
+            ).flatten()
+
+            var = csdl.Variable(shape=(3, ), value=np.array([0., 0., 1.]))
+        
 
         # Compute the actuation axis vector
         axis_origin = actuation_center - var
@@ -339,7 +347,8 @@ class Wing(Component):
                                                     num_coefficients=num_coefficients, degree=degree)
         else:
             if self._orientation == "horizontal":
-                num_coefficients = (2, 3, 2) # NOTE: hard coding here might be limiting
+                num_coefficients = (2, 11, 2) # NOTE: hard coding here might be limiting
+                degree = (1, 3, 1)
             else:
                 degree = (1, 1, 1)
                 num_coefficients = (2, 2, 2)
@@ -349,18 +358,29 @@ class Wing(Component):
         ffd_block.coefficients.name = f'{self._name}_coefficients'
 
         # ffd_block.plot()
+        # print(f"Creating FFD block for wing:")
+        # print(f"  num_coefficients: {num_coefficients}")
+        # print(f"  order: {degree}")
+        # ffd_block = construct_ffd_block_around_entities(
+        #     name=self._name, 
+        #     entities=entities,
+        #     num_coefficients=num_coefficients,
+        #     degree=degree
+        # )
 
         return ffd_block 
     
-    def _setup_ffd_block(self, ffd_block, parameterization_solver, plot : bool=False):
+    def _setup_ffd_block(self, ffd_block, parameterization_solver, ffd_geometric_variables, plot : bool=False):
         """Set up the wing ffd block."""
-
+        self._linear_b_spline_2_dof_space = lfs.BSplineSpace(num_parametric_dimensions=1, degree=1, coefficients_shape=(2,))
+        self._linear_b_spline_3_dof_space = lfs.BSplineSpace(num_parametric_dimensions=1, degree=1, coefficients_shape=(3,))
         if self._orientation == "horizontal":
             principal_parametric_dimension = 1
         else:
             principal_parametric_dimension = 2
 
-        
+
+
         # Instantiate a volume sectional parameterization object
         ffd_block_sectional_parameterization = VolumeSectionalParameterization(
             name=f'{self._name}_sectional_parameterization',
@@ -370,61 +390,67 @@ class Wing(Component):
        
         # if plot:
         #     ffd_block_sectional_parameterization.plot()
-        
+
+        chord_stretch_amount = np.array([0., 0., 0.])
+        span_stretch_amount = np.array([0, 0], dtype=object).reshape((2,))
+        sweep_translation_amount = np.array([0, 0., 0], dtype=object)
+        dihedral_translation_amount = np.array([0., 0., 0], dtype=object)
+        twist_rotation_amount = np.array([0, 0, 0], dtype=object)
+
         # Make B-spline functions for changing geometric quantities
-        chord_stretch_b_spline = lfs.Function(
+        self._chord_stretch_b_spline = lfs.Function(
             space=self._linear_b_spline_3_dof_space, 
             coefficients=csdl.ImplicitVariable(
                 shape=(3, ), 
-                value=np.array([-0, 0, 0])
+                value=chord_stretch_amount
             ),
             name=f"{self._name}_chord_stretch_b_sp_coeffs"
         )
 
-        span_stretch_b_spline = lfs.Function(
+        self._span_stretch_b_spline = lfs.Function(
             space=self._linear_b_spline_2_dof_space,
             coefficients=csdl.ImplicitVariable(
                 shape=(2, ),
-                value=np.array([0., 0.]),
+                value=span_stretch_amount,
             ),
             name=f"{self._name}_span_stretch_b_sp_coeffs",
         )
 
         if self.parameters.sweep is not None:
-            sweep_translation_b_spline = lfs.Function(
+            self._sweep_translation_b_spline = lfs.Function(
                 space=self._linear_b_spline_3_dof_space,
                 coefficients=csdl.ImplicitVariable(
                     shape=(3, ),
-                    value=np.array([0., 0., 0.,]),
+                    value=sweep_translation_amount,
                 ),
                 name=f"{self._name}_sweep_transl_b_sp_coeffs"
             )
 
         if self.parameters.dihedral is not None:
-            dihedral_translation_b_spline = lfs.Function(
+            self._dihedral_translation_b_spline = lfs.Function(
                 space=self._linear_b_spline_3_dof_space,
                 coefficients=csdl.ImplicitVariable(
                     shape=(3, ),
-                    value=np.array([0., 0., 0.,]),
+                    value=dihedral_translation_amount,
                 ),
                 name=f"{self._name}_dihedral_transl_b_sp_coeffs"
             )
 
         coefficients=csdl.Variable(
                 shape=(3, ),
-                value=np.array([0., 0., 0.,]),
+                value=twist_rotation_amount,
         )
         coefficients = coefficients.set(csdl.slice[0], self.parameters.tip_twist_delta)
         coefficients = coefficients.set(csdl.slice[1], self.parameters.root_twist_delta)
         coefficients = coefficients.set(csdl.slice[2], self.parameters.tip_twist_delta)
-        twist_b_spline = lfs.Function(
+        self._twist_b_spline = lfs.Function(
             space=self._linear_b_spline_3_dof_space,
             coefficients=coefficients,
             name=f"{self._name}_twist_b_sp_coeffs"
         )
 
         if self.parameters.actuate_angle is not None:
-            actuate_b_spline = lfs.Function(
+            self._actuate_b_spline = lfs.Function(
                 space=self._linear_b_spline_3_dof_space,
                 coefficients=csdl.ImplicitVariable(
                     shape=(3,),
@@ -433,29 +459,31 @@ class Wing(Component):
                 name=f"{self._name}_actuate_b_sp_coeffs"
             )
 
+        self._setup_ffd_parameterization(self._extract_geometric_quantities_from_ffd_block(), ffd_geometric_variables)
+
         # evaluate b-splines 
         num_ffd_sections = ffd_block_sectional_parameterization.num_sections
         parametric_b_spline_inputs = np.linspace(0.0, 1.0, num_ffd_sections).reshape((-1, 1))
         
-        chord_stretch_sectional_parameters = chord_stretch_b_spline.evaluate(
-            parametric_b_spline_inputs
+        chord_stretch_sectional_parameters = self._chord_stretch_b_spline.evaluate(
+            parametric_b_spline_inputs,
         )
-        span_stretch_sectional_parameters = span_stretch_b_spline.evaluate(
-            parametric_b_spline_inputs
+        span_stretch_sectional_parameters = self._span_stretch_b_spline.evaluate(
+            parametric_b_spline_inputs,
         )
         if self.parameters.sweep is not None:
-            sweep_translation_sectional_parameters = sweep_translation_b_spline.evaluate(
+            sweep_translation_sectional_parameters = self._sweep_translation_b_spline.evaluate(
                 parametric_b_spline_inputs
             )
         if self.parameters.dihedral is not None:
-            dihedral_translation_sectional_parameters = dihedral_translation_b_spline.evaluate(
+            dihedral_translation_sectional_parameters = self._dihedral_translation_b_spline.evaluate(
                 parametric_b_spline_inputs
             )
-        twist_sectional_parameters = twist_b_spline.evaluate(
+        twist_sectional_parameters = self._twist_b_spline.evaluate(
             parametric_b_spline_inputs
         )
         if self.parameters.actuate_angle is not None:
-            actuate_sectional_parameters = actuate_b_spline.evaluate(
+            actuate_sectional_parameters = self._actuate_b_spline.evaluate(
                 parametric_b_spline_inputs
             )
 
@@ -492,8 +520,8 @@ class Wing(Component):
             coefficients = item['function_space'].fit(fitting_points, item['fitting_coords'])
             geometry_coefficients.append(coefficients)
             if item['mirror']:
-                if len(coefficients.shape) != 2:
-                    coefficients = coefficients.reshape((-1, 3))
+                if not len(coefficients.shape) == 2:
+                    coefficients = coefficients.reshape((-1, coefficients.shape[-1]))
                 geometry_coefficients.append(coefficients @ coeff_flip)
 
 
@@ -515,15 +543,16 @@ class Wing(Component):
             parameterization_solver.add_parameter(rigid_body_translation, cost=10)
         
         else:            
-            parameterization_solver.add_parameter(chord_stretch_b_spline.coefficients)
-            parameterization_solver.add_parameter(span_stretch_b_spline.coefficients)
+            parameterization_solver.add_parameter(self._chord_stretch_b_spline.coefficients)
+            parameterization_solver.add_parameter(self._span_stretch_b_spline.coefficients)
             if self.parameters.sweep is not None:
-                parameterization_solver.add_parameter(sweep_translation_b_spline.coefficients)
+                parameterization_solver.add_parameter(self._sweep_translation_b_spline.coefficients)
             if self.parameters.dihedral is not None:
-                parameterization_solver.add_parameter(dihedral_translation_b_spline.coefficients)
+                parameterization_solver.add_parameter(self._dihedral_translation_b_spline.coefficients)
             if self.parameters.actuate_angle is not None:
-                parameterization_solver.add_parameter(actuate_b_spline.coefficients)    
+                parameterization_solver.add_parameter(self._actuate_b_spline.coefficients)    
             parameterization_solver.add_parameter(rigid_body_translation, cost=10)
+        
 
         return 
 
@@ -545,18 +574,24 @@ class Wing(Component):
             # Root
             LE_center = self.geometry.evaluate(self._LE_mid_point)
             TE_center = self.geometry.evaluate(self._TE_mid_point)
+            # print(f"LE_center: {LE_center.value}")
+            # print(f"TE_center: {TE_center.value}")
 
             qc_center = 0.75 * LE_center + 0.25 * TE_center
 
             # Tip
             LE_left = self.geometry.evaluate(self._LE_left_point)
             TE_left = self.geometry.evaluate(self._TE_left_point)
+            # print(f"LE_left: {LE_left.value}")
+            # print(f"TE_left: {TE_left.value}")
 
             qc_left = 0.75 * LE_left + 0.25 * TE_left
 
             # Right side 
             LE_right = self.geometry.evaluate(self._LE_right_point)
             TE_right = self.geometry.evaluate(self._TE_right_point)
+            # print(f"LE_right: {LE_right.value}")
+            # print(f"TE_right: {TE_right.value}")
 
             qc_right = 0.75 * LE_right + 0.25 * TE_right
 
@@ -613,7 +648,7 @@ class Wing(Component):
                 span=csdl.norm(span),
                 center_chord=csdl.norm(root_chord),
                 left_tip_chord=csdl.norm(tip_chord),
-                right_tip_chord=None,
+                right_tip_chord=csdl.norm(tip_chord),
                 sweep_angle_left=sweep_angle,
                 sweep_angle_right=None,
                 dihedral_angle_left=None,
@@ -635,22 +670,25 @@ class Wing(Component):
             else:
                 taper_ratio = self.parameters.taper_ratio
             
-            if not isinstance(self.parameters.AR , csdl.Variable):
+            if not isinstance(self.parameters.AR, csdl.Variable):
                 self.parameters.AR = csdl.Variable(shape=(1, ), value=self.parameters.AR)
 
-            if not isinstance(self.parameters.S_ref , csdl.Variable):
+            if not isinstance(self.parameters.S_ref, csdl.Variable):
                 self.parameters.S_ref = csdl.Variable(shape=(1, ), value=self.parameters.S_ref)
                 
             span_input = (self.parameters.AR * self.parameters.S_ref)**0.5
             root_chord_input = 2 * self.parameters.S_ref/((1 + taper_ratio) * span_input)
             tip_chord_left_input = root_chord_input * taper_ratio 
-            tip_chord_right_input = tip_chord_left_input * 1
+            tip_chord_right_input = tip_chord_left_input
 
         elif self.parameters.S_ref is not None and self.parameters.span is not None:
             if self.parameters.taper_ratio is None:
                 taper_ratio = 1.
             else:
                 taper_ratio = self.parameters.taper_ratio
+        
+            AR = self.parameters.span**2 / self.parameters.S_ref
+            self.parameters.AR = AR
 
             if not isinstance(self.parameters.span , csdl.Variable):
                 self.parameters.span = csdl.Variable(shape=(1, ), value=self.parameters.span)
@@ -658,10 +696,13 @@ class Wing(Component):
             if not isinstance(self.parameters.S_ref , csdl.Variable):
                 self.parameters.S_ref = csdl.Variable(shape=(1, ), value=self.parameters.S_ref)
 
+            if not isinstance(self.parameters.AR , csdl.Variable):
+                self.parameters.AR = csdl.Variable(shape=(1, ), value=self.parameters.AR)
+
             span_input = self.parameters.span
             root_chord_input = 2 * self.parameters.S_ref/((1 + taper_ratio) * span_input)
             tip_chord_left_input = root_chord_input * taper_ratio 
-            tip_chord_right_input = tip_chord_left_input * 1
+            tip_chord_right_input = tip_chord_left_input
         
         elif self.parameters.span is not None and self.parameters.AR is not None:
             if self.parameters.taper_ratio is None:
@@ -675,10 +716,12 @@ class Wing(Component):
             if not isinstance(self.parameters.span , csdl.Variable):
                 self.parameters.span = csdl.Variable(shape=(1, ), value=self.parameters.span)
 
+            S_ref = self.parameters.span**2 / self.parameters.AR
+            self.parameters.S_ref = S_ref
             span_input = self.parameters.span
             root_chord_input = 2 * self.parameters.S_ref/((1 + taper_ratio) * span_input)
             tip_chord_left_input = root_chord_input * taper_ratio 
-            tip_chord_right_input = tip_chord_left_input * 1
+            tip_chord_right_input = tip_chord_left_input
 
         else:
             raise NotImplementedError
@@ -709,11 +752,98 @@ class Wing(Component):
             actuate_axis_location_input = self.parameters.actuate_axis_location
             self.actuate(actuate_angle_input, actuate_axis_location_input)
 
+        
+        # print(wing_geom_qts.span.value, span_input.value)
+
         # print(wing_geom_qts.center_chord.value, root_chord_input.value)
         # print(wing_geom_qts.left_tip_chord.value, tip_chord_left_input.value)
         # print(wing_geom_qts.right_tip_chord.value, tip_chord_right_input.value)
+        # print(f"Name: {self._name}")
+        # print(f"Target AR: {self.parameters.AR.value}")
+        # print(f"Target S_ref: {self.parameters.S_ref.value}")
+        # print(f"Computed span: {span_input.value}")
+        # print(f"Computed root chord: {root_chord_input.value}")
+
+
+        if span_input.value != wing_geom_qts.span.value:
+            # print(f'Name: {self._name}')
+            # print(f"NOT UPDATED span_stretch_b_spline.coefficients.value: {self._span_stretch_b_spline.coefficients.value}")
+            self._span_stretch_b_spline.coefficients.value = (span_input.value - wing_geom_qts.span.value) * np.array([-0.5, 0.5])
+            # print(f"Updated span_stretch_b_spline.coefficients.value: {self._span_stretch_b_spline.coefficients.value}")
+
+        if root_chord_input.value != wing_geom_qts.center_chord.value:
+            self._chord_stretch_b_spline.coefficients.value[1] = (root_chord_input.value - wing_geom_qts.center_chord.value)
+        if tip_chord_left_input.value != wing_geom_qts.left_tip_chord.value:
+            self._chord_stretch_b_spline.coefficients.value[0] = tip_chord_left_input.value - wing_geom_qts.left_tip_chord.value
+        if tip_chord_right_input.value != wing_geom_qts.right_tip_chord.value:
+            self._chord_stretch_b_spline.coefficients.value[2] = tip_chord_right_input.value - wing_geom_qts.right_tip_chord.value
+
+        if self.parameters.sweep is not None:
+            if self.parameters.sweep.value != wing_geom_qts.sweep_angle_left.value:
+                self._sweep_translation_b_spline.coefficients.value = (self.parameters.sweep.value - wing_geom_qts.sweep_angle_left.value) * np.array([-np.pi/180,np.pi/180,-np.pi/180])
+
+
+        if self.parameters.dihedral is not None:
+            if self.parameters.dihedral.value != wing_geom_qts.dihedral_angle_left.value:
+                self._dihedral_translation_b_spline.coefficients.value = self.parameters.dihedral.value - wing_geom_qts.dihedral_angle_left.value
+            if self.parameters.dihedral.value != wing_geom_qts.dihedral_angle_right.value:
+                self._dihedral_translation_b_spline.coefficients.value = self.parameters.dihedral.value - wing_geom_qts.dihedral_angle_right.value
+
+        # if self.parameters.root_twist_delta is not None:
+        #     if abs(self.parameters.root_twist_delta.value - wing_geom_qts.center_chord.value) > 0:
+        #         self._twist_b_spline.coefficients.value = self.parameters.root_twist_delta.value - wing_geom_qts.center_chord.value
+
+        # if self.parameters.tip_twist_delta is not None:
+        #     if abs(self.parameters.tip_twist_delta.value - wing_geom_qts.left_tip_chord.value) > 0:
+        #         self._twist_b_spline.coefficients.value = self.parameters.tip_twist_delta.value - wing_geom_qts.left_tip_chord.value
+        #     if abs(self.parameters.tip_twist_delta.value - wing_geom_qts.right_tip_chord.value) > 0:
+        #         self._twist_b_spline.coefficients.value = self.parameters.tip_twist_delta.value - wing_geom_qts.right_tip_chord.value
+
+        # if self.parameters.incidence is not None:
+        #     if abs(self.parameters.incidence.value - wing_geom_qts.center_chord.value) > 0:
+        #         self._incidence_b_spline.coefficients.value = self.parameters.incidence.value - wing_geom_qts.center_chord.value
+
+        # if self.parameters.thickness_to_chord is not None:
+        #     if abs(self.parameters.thickness_to_chord.value - wing_geom_qts.center_chord.value) > 0:
+        #         self._thickness_to_chord_b_spline.coefficients.value = self.parameters.thickness_to_chord.value - wing_geom_qts.center_chord.value
+
+        # if self.parameters.thickness_to_chord_loc is not None:
+        #     if abs(self.parameters.thickness_to_chord_loc.value - wing_geom_qts.center_chord.value) > 0:
+        #         self._thickness_to_chord_loc_b_spline.coefficients.value = self.parameters.thickness_to_chord_loc.value - wing_geom_qts.center_chord.value
+
+        # if self.parameters.MAC is not None:
+        #     if abs(self.parameters.MAC.value - wing_geom_qts.center_chord.value) > 0:
+        #         self._MAC_b_spline.coefficients.value = self.parameters.MAC.value - wing_geom_qts.center_chord.value
+
+        # if self.parameters.S_wet is not None:
+        #     if abs(self.parameters.S_wet.value - wing_geom_qts.center_chord.value) > 0:
+        #         self._S_wet_b_spline.coefficients.value = self.parameters.S_wet.value - wing_geom_qts.center_chord.value
+
+        # if self.parameters.actuate_angle is not None:
+        #     if abs(self.parameters.actuate_angle.value - wing_geom_qts.center_chord.value) > 0:
+        #         self._actuate_angle_b_spline.coefficients.value = self.parameters.actuate_angle.value - wing_geom_qts.center_chord.value
+
+        # if self.parameters.actuate_axis_location is not None:
+        #     if abs(self.parameters.actuate_axis_location.value - wing_geom_qts.center_chord.value) > 0:
+        #         self._actuate_axis_location_b_spline.coefficients.value = self.parameters.actuate_axis_location.value - wing_geom_qts.center_chord.value
+
+
+        # print(f"\nWing Geometry Parameters:")
+        # print(f"Desired:")
+        # print(f"  AR: {self.parameters.AR.value[0]}")
+        # print(f"  S_ref: {self.parameters.S_ref.value[0]} m^2") 
+        # print(f"  Span: {span_input.value[0]} m")
+        # print(f"  Root chord: {root_chord_input.value[0]} m")
+        # print(f"\nCurrent:")
+        # print(f"  Span: {wing_geom_qts.span.value[0]} m")
+        # print(f"  Root chord: {wing_geom_qts.center_chord.value[0]} m")
+        # print(f"  Tip chord left: {wing_geom_qts.left_tip_chord.value[0]} m")
+        # print(f"  Tip chord right: {wing_geom_qts.right_tip_chord.value[0]} m")
 
         return
+
+
+
 
     def apply_incidence(self, incidence: Union[float, int, csdl.Variable]):
         """Apply the incidence angle to the wing geometry.
@@ -736,405 +866,31 @@ class Wing(Component):
         # Rotate the wing geometry about the y-axis by the incidence angle
         wing_geometry.rotate(axis_origin=np.array([0., 0., 0.]), axis_vector=rotation_axis, angles=incidence_rad)
 
+
+
     def _setup_geometry(self, parameterization_solver, ffd_geometric_variables, plot=False):
         """Set up the wing geometry (mainly the FFD)"""
         # Get the ffd block
         wing_ffd_block = self._ffd_block
 
-        # Set up the ffd block
-        self._setup_ffd_block(wing_ffd_block, parameterization_solver, plot=plot)
+        self._setup_ffd_block(wing_ffd_block, parameterization_solver, ffd_geometric_variables, plot=plot)
 
-        if self.skip_ffd is False:
-            print("DO WING FFD")
-            # Get wing geometric quantities (as csdl variable)
-            wing_geom_qts = self._extract_geometric_quantities_from_ffd_block()
+        print("DO WING FFD")
+        # wing_geom_qts = self._extract_geometric_quantities_from_ffd_block()
 
-            # Define the geometric constraints
-            self._setup_ffd_parameterization(wing_geom_qts, ffd_geometric_variables)
-        
-        return 
-        
-    def construct_ribs_and_spars(
-            self, 
-            geometry:lg.Geometry,
-            top_geometry:lg.Geometry=None,
-            bottom_geometry:lg.Geometry=None,
-            num_ribs:int=None, 
-            spar_locations:np.ndarray=None, 
-            rib_locations:np.ndarray=None,
-            LE_TE_interpolation=None,
-            surf_index:int=1000,
-            offset:np.ndarray=np.array([0., 0., .23]), 
-            num_rib_pts:int=20, 
-            plot_projections:bool=False,
-            spar_function_space:lfs.FunctionSpace=None,
-            rib_function_space:lfs.FunctionSpace=None,
-            full_length_ribs:bool=False,
-            finite_te:bool=True,
-            export_wing_box:bool=False,
-            export_half_wing:bool=False,
-            spanwise_multiplicity:int=1,
-            exclute_te:bool=False,
-            return_rib_points=False,
-        ):
-        """
-        Construct ribs and spars for the given wing geometry.
+        # # Then define the geometric constraints
+        # self._setup_ffd_parameterization(wing_geom_qts, ffd_geometric_variables)
 
-        Parameters
-        ----------
-        geometry : lg.Geometry
-            The geometry object to which the ribs and spars will be added.
-        num_ribs : int, optional
-            The number of ribs to be constructed. If not provided, it will be determined based on the rib_locations array.
-        spar_locations : np.ndarray, optional
-            The locations of the spars along the wing span. If not provided, default values of [0.25, 0.75] will be used.
-        rib_locations : np.ndarray, optional
-            The locations of the ribs along the wing span. If not provided, evenly spaced values between 0 and 1 will be used.
-        LE_TE_interpolation : str, optional
-            The method of interpolating the leading and trailing edge; This might be useful for swept and curved wing geometries. Default is None
-        surf_index : int, optional
-            The starting index for the surface functions in the geometry object. Default value is 1000.
-        offset : np.ndarray, optional
-            The offset vector to be applied for projection. Default value is [0., 0., .23].
-        num_rib_pts : int, optional
-            The number of interpolation points to be used for each rib. Default value is 20.
-        plot_projections : bool, optional
-            Whether to plot the projection results. Default value is False.
-        spar_function_space : fs.FunctionSpace, optional
-            The function space to be used for the spars. Defaults to a linear BSplineSpace.
-        rib_function_space : fs.FunctionSpace, optional
-            The function space to be used for the ribs. Defaults to a linear BSplineSpace.
-        full_length_ribs : bool, optional
-            If true, the ribs will be extended to the root and tip of the wing. Default value is False.
-        finite_te : bool, optional
-            If true, the trailing edge will have a finite thickness. Default value is True.
-        export_wing_box : bool, optional
-            If true, a water-tight wing box geometry will be exported to a .igs file. Default value is False.
-        """
-        csdl.check_parameter(num_ribs, "num_ribs", types=int, allow_none=True)
-        csdl.check_parameter(spar_locations, "spar_locations", types=np.ndarray, allow_none=True)
-        csdl.check_parameter(rib_locations, "rib_locations", types=np.ndarray, allow_none=True)
-        csdl.check_parameter(LE_TE_interpolation, "LE_TE_interpolation", values=("ellipse", None))
-        csdl.check_parameter(surf_index, "surf_index", types=int)
+        # Update geometry coefficients
+        geometry_coefficients = wing_ffd_block.evaluate_ffd(wing_ffd_block.coefficients, plot=False)
+        self._base_geometry.set_coefficients(geometry_coefficients)
+        self.geometry.set_coefficients(geometry_coefficients)
 
-        bay_mappings = {}
-
-
-        # Check if if spar and rib locations are between 0 and 1
-        if spar_locations is not None:
-            if not np.all((spar_locations > 0) & (spar_locations < 1)):
-                raise ValueError("all spar locations must be between 0 and 1 (excluding the endpoints)")
-        
-        if rib_locations is not None:
-            if not np.all((rib_locations >= 0) & (rib_locations <= 1)):
-                raise ValueError("all rib locations must be between 0 and 1 (including the endpoints)")
-            if spanwise_multiplicity > 1:
-                raise ValueError("spanwise_multiplicity is not yet supported if rib_locations are provided")
-        
-        # TODO: add interpolation for spars (between ribs)
-        # TODO: add surface panel creation for water-tightness
-        # TODO: add export for meshing
-        # TODO: add option to extend ribs to the root and tip
-        
-        wing = self
-        if export_wing_box:
-            wing_box_geometry = lg.Geometry(functions=[])
-            wing_box_surf_index = 0
-
-        if spar_locations is None:
-            spar_locations = np.array([0.25, 0.75])
-        if rib_locations is None:
-            rib_locations = np.linspace(0, 1, num_ribs)
-        if num_ribs is None:
-            num_ribs = rib_locations.shape[0]
-        num_spars = spar_locations.shape[0]
-        num_ribs = (num_ribs-1)*spanwise_multiplicity + 1
-        if spanwise_multiplicity > 1:
-            rib_locations = np.linspace(0, 1, num_ribs)
-        if num_spars == 1:
-            raise Exception("Cannot have single spar. Provide at least two normalized spar locations.")
-        if spar_function_space is None:
-            spar_function_space = lfs.BSplineSpace(2, (2, 1), (num_ribs, 2))
-        if rib_function_space is None:
-            if full_length_ribs:
-                if exclute_te:
-                    rib_function_space = lfs.BSplineSpace(2, 1, (num_rib_pts*(num_spars)+1, 2))
-                else:
-                    rib_function_space = lfs.BSplineSpace(2, 1, (num_rib_pts*(num_spars+1)+1, 2))
-            else:
-                rib_function_space = lfs.BSplineSpace(2, 1, (num_rib_pts*(num_spars-1)+1, 2))
-
-        # gather important points (right only)
-        root_te = wing.geometry.evaluate(wing._TE_mid_point, non_csdl=True)
-        root_le = wing.geometry.evaluate(wing._LE_mid_point, non_csdl=True)
-        r_tip_te = wing.geometry.evaluate(wing._TE_right_point, non_csdl=True)
-        r_tip_le = wing.geometry.evaluate(wing._LE_right_point, non_csdl=True)
-
-        # figure out what the top and bottom surfaces are via projections
-        if top_geometry is None or bottom_geometry is None:
-            eps = 1e-1
-            num_pts = 20
-            root_center = (root_te + root_le) / 2 + [0, eps, 0]
-            r_tip_center = (r_tip_te + r_tip_le) / 2 - [0, eps, 0]
-            center_line = np.linspace(root_center, r_tip_center, num_pts)
-            top_projection_points = center_line+offset
-            bottom_projection_points = center_line-offset
-            top_points_parametric = wing.geometry.project(top_projection_points)
-            bottom_points_parametric = wing.geometry.project(bottom_projection_points)
-
-            top_surfaces = []
-            bottom_surfaces = []
-            for i in range(num_pts):
-                top_ind, point = top_points_parametric[i]
-                bottom_ind, point = bottom_points_parametric[i]
-                if not top_ind in top_surfaces:
-                    top_surfaces.append(top_ind)
-                if not bottom_ind in bottom_surfaces:
-                    bottom_surfaces.append(bottom_ind)
-            top_surfaces = [wing.geometry.function_names[i] for i in top_surfaces]
-            bottom_surfaces = [wing.geometry.function_names[i] for i in bottom_surfaces]
-            if top_geometry is None:
-                top_geometry = wing.create_subgeometry(top_surfaces)
-            if bottom_geometry is None:
-                bottom_geometry = wing.create_subgeometry(bottom_surfaces)
-
-
-
-
-
-
-        # get spar start/end points (root and tip)
-        root_tip_pts = np.zeros((num_spars, 2, 3))
-        for i in range(num_spars):
-            root_tip_pts[i,0] = (1-spar_locations[i]) * root_le + spar_locations[i] * root_te
-            root_tip_pts[i,1] = (1-spar_locations[i]) * r_tip_le + spar_locations[i] * r_tip_te
-
-        # get intersections between ribs and spars
-        # we'll use these points directly to make the spars
-        # TODO: vectorize across spars?
-        spar_projection_points = np.zeros((num_spars, num_ribs, 3))
-        for i in range(num_spars):
-            for j in range(num_ribs):
-                spar_projection_points[i,j] = root_tip_pts[i,0] * (1-rib_locations[j]) + root_tip_pts[i,1] * rib_locations[j]
-        
-        if LE_TE_interpolation is not None or full_length_ribs:
-            # need leading and trailing edge points for each rib in eiter case
-            from scipy.interpolate import interp1d
-            LE_TE_points = np.zeros((2, num_ribs, 3))
-            interp_y = spar_projection_points[0, :, 1] 
-            
-            for i in range(2):
-                if i == 0:
-                    left_point = self.geometry.evaluate(self._LE_left_point, non_csdl=True)
-                    mid_point = self.geometry.evaluate(self._LE_mid_point, non_csdl=True)
-                    right_point = self.geometry.evaluate(self._LE_right_point, non_csdl=True)
-                else:
-                    left_point = self.geometry.evaluate(self._TE_left_point, non_csdl=True)
-                    mid_point = self.geometry.evaluate(self._TE_mid_point, non_csdl=True)
-                    right_point = self.geometry.evaluate(self._TE_right_point, non_csdl=True)
-
-                array_to_project = np.zeros((num_ribs, 3))
-                y = np.array([left_point[1], mid_point[1], right_point[1]])
-                z = np.array([left_point[2], mid_point[2], right_point[2]])
-                fz = interp1d(y, z, kind="linear")
-
-                # Set up equation for an ellipse
-                h = left_point[0]
-                b = 2 * (h - mid_point[0]) # Semi-minor axis
-                a = right_point[1] # semi-major axis
-                if i == 0:
-                    array_to_project[:, 0] = (b**2 * (1 - interp_y**2/a**2))**0.5 + h
-                else:
-                    array_to_project[:, 0] = -(b**2 * (1 - interp_y**2/a**2))**0.5 + h
-                array_to_project[:, 1] = interp_y
-                array_to_project[:, 2] = fz(interp_y)
-
-                LE_TE_points[i, :, :] = array_to_project
-            LE_TE_points_parametric = self.geometry.project(LE_TE_points)
-            LE_TE_points_eval = self.geometry.evaluate(LE_TE_points_parametric, non_csdl=True).reshape((2, num_ribs, 3))
-            LE_TE_points_parametric = np.array(LE_TE_points_parametric, dtype='O,O').reshape((2, num_ribs))
-
-        if LE_TE_interpolation is not None:
-            root_tip_pts = np.zeros((num_spars, num_ribs, 3))
-            for i in range(num_spars):
-                root_tip_pts[i, :, 0] = (1-spar_locations[i]) * LE_TE_points_eval[0, :, 0] + spar_locations[i] * LE_TE_points_eval[-1, :, 0]
-                root_tip_pts[i, :, 1] = (LE_TE_points_eval[0, :, 1] + LE_TE_points_eval[-1, :, 1]) / 2 # Take the average between LE and TE for y
-                root_tip_pts[i, :, 2] = (LE_TE_points_eval[0, :, 2] + LE_TE_points_eval[-1, :, 2]) / 2 # Take the average between LE and TE for z
-
-            root_tip_pts[:, :, 1] = np.mean(root_tip_pts[:, :, 1], axis=0)
-
-            spar_projection_points = root_tip_pts
-
-
-        # make projection points for ribs
-        # TODO: vectorize across ribs?
-        if full_length_ribs:
-            # add the leading and trailing edge points as if they're spar locations
-            rib_projection_base = np.zeros((num_spars+2, num_ribs, 3))
-            rib_projection_base[1:-1] = spar_projection_points
-            le_points = LE_TE_points_eval[0, :, :]
-            te_points = LE_TE_points_eval[-1, :, :]
-            le_points[:, 1] = te_points[:, 1] = (le_points[:, 1] + te_points[:, 1]) / 2
-            rib_projection_base[0] = le_points
-            rib_projection_base[-1] = te_points
-        else:
-            rib_projection_base = spar_projection_points
-
-        chord_n = rib_projection_base.shape[0]
-        # rib_projection_points = np.zeros((num_ribs, (chord_n-1)+1, 3))
-        # for i in range(num_ribs):
-        #     rib_projection_points[i,0] = rib_projection_base[0,i]
-        #     for j in range(chord_n-1):
-        #         if j == 0 and full_length_ribs:
-        #             # cosine spacing near the leading edge
-        #             spacing = (1-np.cos(np.linspace(0, np.pi/2, num_rib_pts+1)))**0.7
-        #             for k in range(num_rib_pts):
-        #                 rib_projection_points[i,j*num_rib_pts+1+k] = rib_projection_base[j,i] + spacing[k+1] * (rib_projection_base[j+1,i] - rib_projection_base[j,i])
-        #         else:
-        #             rib_projection_points[i,j*num_rib_pts+1:(j+1)*num_rib_pts+1] = np.linspace(rib_projection_base[j,i], rib_projection_base[j+1,i], num_rib_pts+1)[1:]
-
-        direction = np.array([0., 0., 1.])
-        ribs_top = top_geometry.project(rib_projection_base+offset, direction=direction, grid_search_density_parameter=10, plot=plot_projections)
-        ribs_bottom = bottom_geometry.project(rib_projection_base-offset, direction=direction, grid_search_density_parameter=10, plot=plot_projections)
-
-
-
-        ribs_top_base_array = np.array(ribs_top, dtype='O,O').reshape((chord_n, num_ribs))   # it's easier to keep track of this way
-        ribs_bottom_base_array = np.array(ribs_bottom, dtype='O,O').reshape((chord_n, num_ribs))
-        ribs_top_array = np.empty((num_ribs, (chord_n-1)*num_rib_pts+1), dtype='O,O')
-        ribs_bottom_array = np.empty((num_ribs, (chord_n-1)*num_rib_pts+1), dtype='O,O')
-        for i in range(chord_n-1):
-            for j in range(num_ribs):
-                top_ind = ribs_top_base_array[i,j][0]
-                bottom_ind = ribs_bottom_base_array[i,j][0]
-                top_linspace = np.linspace(ribs_top_base_array[i,j][1], ribs_top_base_array[i+1,j][1], num_rib_pts)
-                bottom_linspace = np.linspace(ribs_bottom_base_array[i,j][1], ribs_bottom_base_array[i+1,j][1], num_rib_pts)
-                ribs_top_array[j,i*num_rib_pts:(i+1)*num_rib_pts] = np.array([(top_ind, x) for x in top_linspace], dtype='O,O')
-                ribs_bottom_array[j,i*num_rib_pts:(i+1)*num_rib_pts] = np.array([(bottom_ind, x) for x in bottom_linspace], dtype='O,O')
-        ribs_top_array[:,-1] = ribs_top_base_array[-1,:]
-        ribs_bottom_array[:,-1] = ribs_bottom_base_array[-1,:]
-
-        if plot_projections:
-            wing.geometry.evaluate(ribs_top_array.flatten().tolist(), plot=True, non_csdl=True)
-            wing.geometry.evaluate(ribs_bottom_array.flatten().tolist(), plot=True, non_csdl=True)
+        return
 
 
         
-        if full_length_ribs:
-            # Make top and bottom leading edge point the same
-            ribs_top_array[:,0] = ribs_bottom_array[:,0]
-            if not finite_te:
-                # Make top and bottom trailing edge point the same
-                ribs_top_array[:,-1] = ribs_bottom_array[:,-1]
-        if exclute_te:
-            ribs_top_array = ribs_top_array[:,:-num_rib_pts]
-            ribs_bottom_array = ribs_bottom_array[:,:-num_rib_pts]
-        
-        # create spars
-        coeff_flip = np.eye(3)
-        coeff_flip[1,1] = -1
-        if full_length_ribs:
-            if False:
-                spar_range = range(1, num_spars)
-            else:
-                spar_range = range(1, num_spars+1)
-        else:
-            spar_range = range(num_spars)
 
-        for i in spar_range:
-            parametric_points = ribs_top_array[:,i*num_rib_pts].tolist() + ribs_bottom_array[:,i*num_rib_pts].tolist()
-            u_coords = np.linspace(0, 1, num_ribs)
-            fitting_coords = np.array([[u, 0] for u in u_coords] + [[u, 1] for u in u_coords])
-            spar, right_spar = self._fit_surface(parametric_points, fitting_coords, spar_function_space, True, True)
-            self._add_geometry(surf_index, spar, "Wing_l_spar_", i)
-            surf_index = self._add_geometry(surf_index, spar, "Wing_l_spar_", i, geometry)
-            self._add_geometry(surf_index, right_spar, "Wing_r_spar_", i)
-            surf_index = self._add_geometry(surf_index, right_spar, "Wing_r_spar_", i, geometry)
-
-        if exclute_te:
-            chord_n -= 1
-
-        # create ribs
-        for i in range(0, num_ribs, spanwise_multiplicity):
-            parameteric_points = ribs_top_array[i].tolist() + ribs_bottom_array[i].tolist()
-            u_coords = np.linspace(0, 1, ribs_top_array.shape[1])
-            fitting_coords = np.array([[u, 0] for u in u_coords] + [[u, 1] for u in u_coords])
-            out = self._fit_surface(parameteric_points, fitting_coords, rib_function_space, i>0, True)
-            self._add_geometry(surf_index, out, "Wing_rib_", i)
-            surf_index = self._add_geometry(surf_index, out, "Wing_rib_", i, geometry)
-
-            if export_wing_box:
-                # Make different surfaces for each rib segment between the spars
-                u_coords = np.linspace(0, 1, num_rib_pts+1)
-                fitting_coords = np.array([[u, 0] for u in u_coords] + [[u, 1] for u in u_coords])
-                rib_panel_function_space = lfs.BSplineSpace(2, 1, (num_rib_pts+1, 2))
-                for j in range(chord_n-1):
-                    top_parametric_points = ribs_top_array[i,j*num_rib_pts:(j+1)*num_rib_pts+1].tolist()
-                    bottom_parametric_points = ribs_bottom_array[i,j*num_rib_pts:(j+1)*num_rib_pts+1].tolist()
-                    surfs = self._fit_surface(top_parametric_points+bottom_parametric_points, fitting_coords, rib_panel_function_space, i>0 and not export_half_wing, False)
-                    wing_box_surf_index = self._add_geometry(wing_box_surf_index, surfs, "Wing_rib_panel_", i, wing_box_geometry)
-
-                if i > 0:
-                    # create surface panels
-                    panel_function_space = lfs.BSplineSpace(2, (1, 2), (num_rib_pts+1, spanwise_multiplicity+1))
-                    u_coords = np.linspace(0, 1, num_rib_pts+1)
-                    fitting_coords = []
-                    for j in range(spanwise_multiplicity+1):
-                        fitting_coords += [[u, j/spanwise_multiplicity] for u in u_coords]
-
-                    fitting_coords = np.array(fitting_coords)
-                    for j in range(chord_n-1):
-                        top_parametric_points = []
-                        bottom_parametric_points = []
-                        for k in range(spanwise_multiplicity+1):
-                            top_parametric_points += ribs_top_array[i-k,j*num_rib_pts:(j+1)*num_rib_pts+1].tolist()
-                            bottom_parametric_points += ribs_bottom_array[i-k,j*num_rib_pts:(j+1)*num_rib_pts+1].tolist()
-                        # top_parametric_points = (ribs_top_array[i-1,j*num_rib_pts:(j+1)*num_rib_pts+1].tolist() +
-                        #                          ribs_top_array[i,j*num_rib_pts:(j+1)*num_rib_pts+1].tolist())
-                        # bottom_parametric_points = (ribs_bottom_array[i-1,j*num_rib_pts:(j+1)*num_rib_pts+1].tolist() +
-                        #                             ribs_bottom_array[i,j*num_rib_pts:(j+1)*num_rib_pts+1].tolist())
-                        top_surfs = self._fit_surface(top_parametric_points, fitting_coords, panel_function_space, not export_half_wing, False)
-                        wing_box_surf_index = self._add_geometry(wing_box_surf_index, top_surfs, "Wing_top_panel_", i, wing_box_geometry)
-                        bottom_surfs = self._fit_surface(bottom_parametric_points, fitting_coords, panel_function_space, not export_half_wing, False)
-                        wing_box_surf_index = self._add_geometry(wing_box_surf_index, bottom_surfs, "Wing_bottom_panel_", i, wing_box_geometry)
-
-                    # create spar segments
-                    spar_segment_function_space = lfs.BSplineSpace(2, (2, 1), (spanwise_multiplicity+1, 2))
-                    # spar_segment_function_space = lfs.BSplineSpace(2, 1, (2, 2))
-                    if full_length_ribs:
-                        if finite_te and not exclute_te:
-                            spar_range = range(1, num_spars+2)
-                        else:
-                            spar_range = range(1, num_spars+1)
-                    else:
-                        spar_range = range(0, num_spars)
-                    fitting_coords = []
-                    for j in range(spanwise_multiplicity+1):
-                        fitting_coords += [[0, j/spanwise_multiplicity], [1, j/spanwise_multiplicity]]
-                    for j in spar_range:
-                        top_parametric_points = []
-                        bottom_parametric_points = []
-                        top_fitting_coords = []
-                        bottom_fitting_coords = []
-                        for k in range(spanwise_multiplicity+1):
-                            top_parametric_points.append(ribs_top_array[i-k,j*num_rib_pts])
-                            bottom_parametric_points.append(ribs_bottom_array[i-k,j*num_rib_pts])
-                            top_fitting_coords += [k/spanwise_multiplicity, 0.]
-                            bottom_fitting_coords += [k/spanwise_multiplicity, 1.]
-                        # top_parametric_points = [ribs_top_array[i-2,j*num_rib_pts], ribs_top_array[i-1,j*num_rib_pts], ribs_top_array[i,j*num_rib_pts]]
-                        # bottom_parametric_points = [ribs_bottom_array[i-2,j*num_rib_pts], ribs_bottom_array[i-1,j*num_rib_pts], ribs_bottom_array[i,j*num_rib_pts]]
-                        # fitting_coords = np.array([[0., 0.], [0.5, 0], [1., 0.], [0., 1.], [0.5, 1.], [1., 1.]])
-                        fitting_coords = np.array(top_fitting_coords + bottom_fitting_coords)
-                        surfs = self._fit_surface(top_parametric_points+bottom_parametric_points, fitting_coords, spar_segment_function_space, not export_half_wing, False)
-                        wing_box_surf_index = self._add_geometry(wing_box_surf_index, surfs, "Wing_spar_segment_", i, wing_box_geometry)
-
-        if export_wing_box:
-            wing_box_geometry.plot(opacity=0.5)
-            wing_box_geometry.export_iges("wing_box.igs")
-
-        if return_rib_points:
-            return ribs_top_base_array, ribs_bottom_base_array
-         
     def _fit_surface(self, parametric_points:list, fitting_coords:list, function_space:lfs.FunctionSpace, mirror:bool, dependent:bool):
         """Fit a surface to the given parametric points."""
         if dependent:
@@ -1170,3 +926,7 @@ class Wing(Component):
             else:
                 geometry.function_names[surf_index+i] = name + str(append)
         return surf_index + len(function)
+    
+
+
+    

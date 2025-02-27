@@ -1171,7 +1171,6 @@ from flight_simulator.core.vehicle.components.fuselage import Fuselage as FuseCo
 from flight_simulator.core.vehicle.components.aircraft import Aircraft as AircraftComp
 from flight_simulator.core.vehicle.components.rotor import Rotor as RotorComp
 
-wingspan.value[0]=12
 
 def define_heirarchy():
     """
@@ -1185,15 +1184,15 @@ def define_heirarchy():
     Aircraft = AircraftComp(geometry=geometry, compute_surface_area_flag=False)
 
     config = Configuration(system=Aircraft)
-    config_base_span = csdl.Variable(name="wingspan", shape=(1, ), value=csdl.norm(geometry.evaluate(wing_tip_left_le_parametric) - geometry.evaluate(wing_tip_right_le_parametric)).value)
-    Airframe = Component(name='Airframe')
-    Aircraft.add_subcomponent(Airframe)
+
+    # Airframe = Component(name='Airframe')
+    # Aircraft.add_subcomponent(Airframe)
 
     fuselagelength = csdl.Variable(name="fuselage_length", shape=(1, ), value=csdl.norm(fuselage.evaluate(fuselage_tailing_point).value - fuselage.evaluate(fuselage_leading_point).value).value)
 
     Fuselage = FuseComp(
         length=fuselagelength, geometry=fuselage, skip_ffd=False)
-    Airframe.add_subcomponent(Fuselage)
+    Aircraft.add_subcomponent(Fuselage)
 
 
    
@@ -1208,9 +1207,9 @@ def define_heirarchy():
     wing_span = wingspan
     Wing = WingComp(span=wing_span,S_ref=wing_S_ref,
                                         geometry=wing,
-                                        tight_fit_ffd=False, orientation='horizontal', name='Wing')
+                                        tight_fit_ffd=False, orientation='horizontal', name='WingComp')
     
-
+    Aircraft.add_subcomponent(Wing)
 
     left_ib_flap_span = csdl.norm(geometry.evaluate(ib_left_flap_tip_le_parametric) - geometry.evaluate(ib_right_flap_root_le_parametric)).value
     left_ib_flap_chord = csdl.norm(geometry.evaluate(ib_left_flap_tip_le_parametric) - geometry.evaluate(ib_left_flap_root_le_parametric)).value
@@ -1281,7 +1280,6 @@ def define_heirarchy():
                                         actuate_angle=flap_actuation_angle, actuate_axis_location=0.)
     Wing.add_subcomponent(OBAileronRight)
     config.connect_component_geometries(Wing, OBAileronRight, connection_point=right_ob_aileron_center.value)
-    Airframe.add_subcomponent(Wing)
     config.connect_component_geometries(Fuselage, Wing, connection_point=wing_root_qc)
 
 
@@ -1297,7 +1295,7 @@ def define_heirarchy():
     htail_S_ref = csdl.Variable(name="htail_S_ref", shape=(1, ), value=htail_area)
     Htail = WingComp(AR=htail_AR_var, S_ref=htail_S_ref,
                     geometry=h_tail, tight_fit_ffd=False, orientation='horizontal', name='Horizontal Tail')
-    Airframe.add_subcomponent(Htail)
+    Aircraft.add_subcomponent(Htail)
     config.connect_component_geometries(Fuselage, Htail, connection_point=htail_root_le.value)
     
     vtail_span = csdl.norm(
@@ -1314,7 +1312,7 @@ def define_heirarchy():
     Vtail = WingComp(AR=vtail_AR_var, S_ref=vtail_S_ref,
                     geometry=v_tail, tight_fit_ffd=False, orientation='vertical', name='Vertical Tail')
 
-    Airframe.add_subcomponent(Vtail)
+    Aircraft.add_subcomponent(Vtail)
     config.connect_component_geometries(Fuselage, Vtail, connection_point=vtail_root_le.value)
 
 
@@ -1322,31 +1320,30 @@ def define_heirarchy():
     debug = False
     plot_parameters = {
     'camera': {
-        'pos': (15, wingspan.value[0] * 1.25, -12),
+        'pos': (15, 17, -12),
         'focal_point': (-fuselagelength.value[0] / 2, 0, 0),
         'distance': 0,
         'viewup': (0, 0, -1)
     },
-    'screenshot': f'wiskgenspan_{wingspan.value[0]}_AR_{wingAR}.png',
+    'screenshot': f'wiskgenspan_{wingspan.value[0]}_AR_{AR}.png',
     'title': f'Wisk Gen 6\nSpan: {wing_span.value[0]:.2f} m\nAR: {wing_AR.value[0]:.2f}\nWing Area S: {wing_S_ref.value[0]:.2f} m^2'
     }
     config.system.geometry.plot(show=True, **plot_parameters)
     
-    if run_ffd:
-        if debug:
-            config.setup_geometry(plot=True)
-        else:
-            config.setup_geometry(plot=True,recorder=recorder)
-    else:
-        if debug:
-            pass
-        else:
-            recorder.inline=False
+    # if run_ffd:
+    #     if debug:
+    #         config.setup_geometry(plot=True,plot_parameters=plot_parameters)
+    #     else:
+    #         config.setup_geometry(plot=True,recorder=recorder,plot_parameters=plot_parameters)
+    # else:
+    #     if debug:
+    #         pass
+    #     else:
+    #         recorder.inline=False
         
-    
 
     BaseConfig = config
-    return Aircraft, BaseConfig
+    return Aircraft, BaseConfig, plot_parameters
 
 
 # variances = np.linspace(-0.1, 0.1, 5)
@@ -1354,8 +1351,8 @@ def define_heirarchy():
 # for i, variance in enumerate(variances):
 #     Aircraft, BaseConfig = define_heirarchy(i, variance)
 
-Aircraft, BaseConfig = define_heirarchy()
+Aircraft, BaseConfig, plot_parameters = define_heirarchy()
 
-
+BaseConfig.setup_geometry(plot=True,recorder=recorder,plot_parameters=plot_parameters)
 
 recorder.stop()
