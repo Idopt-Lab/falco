@@ -267,7 +267,7 @@ vt_te_mid_guess = np.array([-28.7, 0., -8])*ft2m
 vt_te_mid= geometry.evaluate(vertTail.project(vt_te_mid_guess, plot=False))
 vt_te_tip = geometry.evaluate(vertTail.project(np.array([-29.75, 0, -10.6])*ft2m, plot=False))
 vt_qc = geometry.evaluate(vertTail.project(np.array([-23 + (0.25*(-28.7+23)), 0., -5.5])*ft2m, plot=False))
-vt_span = np.linalg.norm(vt_le_base.value - vt_te_tip.value)
+vt_span = 1.50814508
 # print('Vertical Tail Span: ', vt_span)
 
 vt_chord = np.linalg.norm(vt_le_mid.value - vt_te_mid.value)
@@ -277,7 +277,7 @@ rudder_le_base = geometry.evaluate(rudder.project(np.array([-23, 0, -5.5])*ft2m,
 rudder_le_mid_parametric = rudder.project(np.array([-28.7, 0., -8.])*ft2m, plot=False)
 rudder_le_mid = geometry.evaluate(rudder_le_mid_parametric)
 rudder_le_tip = geometry.evaluate(rudder.project(np.array([-29.75, 0, -10.6])*ft2m, plot=False))
-rudder_span = np.linalg.norm(rudder_le_base.value - rudder_le_tip.value)
+rudder_span = 1.41737732
 # print('Rudder Span: ', rudder_span)
 rudder_chord = np.linalg.norm(rudder_le_mid.value - rudder_le_tip.value)
 # print('Rudder Chord: ', rudder_chord)
@@ -682,7 +682,7 @@ def axes_create():
     # print('Right Outermost motor axis translation (ft): ', r_om_axis.translation.value)
     # print('Right Outermost motor axis rotation (deg): ', np.rad2deg(r_om_axis.euler_angles_vector.value))
 
-
+    HL_motor_axes = [M1_axis, M2_axis, M3_axis, M4_axis, M5_axis, M6_axis, M7_axis, M8_axis, M9_axis, M10_axis, M11_axis, M12_axis]
     # Cruise Motor Region
 
     @dataclass
@@ -721,6 +721,7 @@ def axes_create():
     # print('Cruise motor axis translation (ft): ', cruise_motor_axis.translation.value)
     # print('Cruise motor axis rotation (deg): ', np.rad2deg(cruise_motor_axis.euler_angles_vector.value))
 
+    cruise_motor_axes = [cruise_motor1_axis, cruise_motor2_axis]
 
     inertial_axis = Axis(
         name='Inertial Axis',
@@ -768,9 +769,9 @@ def axes_create():
     )
     # print('Wind axis angles (deg)', np.rad2deg(wind_axis.euler_angles_vector.value))
 
-    return openvsp_axis, wing_axis, ht_tail_axis, trimTab_axis, vt_tail_axis, M1_axis, M2_axis, M3_axis, M4_axis, M5_axis, M6_axis, M7_axis, M8_axis, M9_axis, M10_axis, M11_axis, M12_axis, cruise_motor1_axis, cruise_motor2_axis, inertial_axis, fd_axis, wind_axis, geometry, left_flap_axis, right_flap_axis, left_aileron_axis, right_aileron_axis
+    return openvsp_axis, wing_axis, ht_tail_axis, trimTab_axis, vt_tail_axis, HL_motor_axes, cruise_motor_axes, inertial_axis, fd_axis, wind_axis, geometry, left_flap_axis, right_flap_axis, left_aileron_axis, right_aileron_axis
 
-openvsp_axis, wing_axis, ht_tail_axis, trimTab_axis, vt_tail_axis, M1_axis, M2_axis, M3_axis, M4_axis, M5_axis, M6_axis, M7_axis, M8_axis, M9_axis, M10_axis, M11_axis, M12_axis, cruise_motor1_axis, cruise_motor2_axis, inertial_axis, fd_axis, wind_axis,geometry,left_flap_axis, right_flap_axis, left_aileron_axis, right_aileron_axis = axes_create()
+openvsp_axis, wing_axis, ht_tail_axis, trimTab_axis, vt_tail_axis, HL_motor_axes, cruise_motor_axes, inertial_axis, fd_axis, wind_axis,geometry,left_flap_axis, right_flap_axis, left_aileron_axis, right_aileron_axis = axes_create()
 
 
 
@@ -817,10 +818,10 @@ aero_force = aero_force.set(csdl.slice[0], -D)
 aero_force = aero_force.set(csdl.slice[2], -L)
 
 aero1, aero2 = calculate_forces_moments(force=aero_force, moment=aero_moment, axis1=wing_axis, axis2=fd_axis)
-print('Aero Force in Wing Axis: ', aero1.F.vector.value)
-print('Aero Moment in Wing Axis: ', aero1.M.vector.value)
-print('Aero Force in Body Axis: ', aero2.F.vector.value)
-print('Aero Moment in Body Axis: ', aero2.M.vector.value)
+# print('Aero Force in Wing Axis: ', aero1.F.vector.value)
+# print('Aero Moment in Wing Axis: ', aero1.M.vector.value)
+# print('Aero Force in Body Axis: ', aero2.F.vector.value)
+# print('Aero Moment in Body Axis: ', aero2.M.vector.value)
 
 
 
@@ -831,12 +832,35 @@ cruise_motor_prop_force = csdl.Variable(shape=(3, ), value=0.)
 cruise_motor_prop_moment = csdl.Variable(shape=(3, ), value=0.)
 cruise_motor_prop_force = cruise_motor_prop_force.set(csdl.slice[1], cruise_motor_thrust)
 
+HL_motor_thrust = 200
+HL_motor_prop_force = csdl.Variable(shape=(3, ), value=0.)
+HL_motor_prop_moment = csdl.Variable(shape=(3, ), value=0.)
+HL_motor_prop_force = HL_motor_prop_force.set(csdl.slice[1], HL_motor_thrust)
 
-prop1, prop2 = calculate_forces_moments(force=cruise_motor_prop_force, moment=cruise_motor_prop_moment, axis1=cruise_motor1_axis, axis2=fd_axis)
-print('Prop Force in Cruise Motor Axis: ', prop1.F.vector.value)
-print('Prop Moment in Cruise Motor Axis: ', prop1.M.vector.value)
-print('Prop Force in Body Axis: ', prop2.F.vector.value)
-print('Prop Moment in Body Axis: ', prop2.M.vector.value)
+HL_props1 = []
+HL_props2 = []
+for i, HL_motor_axes in enumerate(HL_motor_axes, start=1):
+    HL_prop1, HL_prop2 = calculate_forces_moments(force=HL_motor_prop_force, moment=cruise_motor_prop_moment,
+                                                   axis1=HL_motor_axes, axis2=fd_axis)
+    HL_props1.append(HL_prop1)
+    HL_props2.append(HL_prop2)
+    # print(f'High Lift Motor {i} - Prop Force in Cruise Motor Axis: ', HL_prop1.F.vector.value)
+    # print(f'High Lift Motor {i} - Prop Moment in Cruise Motor Axis: ', HL_prop1.M.vector.value)
+    # print(f'High Lift Motor {i} - Prop Force in Body Axis: ', HL_prop2.F.vector.value)
+    # print(f'High Lift Motor {i} - Prop Moment in Body Axis: ', HL_prop2.M.vector.value)
+
+
+cruise_props1 = []
+cruise_props2 = []
+for i, cruise_motor_axis in enumerate(cruise_motor_axes, start=1):
+    cruise_prop1, cruise_prop2 = calculate_forces_moments(force=cruise_motor_prop_force, moment=cruise_motor_prop_moment,
+                                                           axis1=cruise_motor_axis, axis2=fd_axis)
+    cruise_props1.append(cruise_prop1)
+    cruise_props2.append(cruise_prop2)
+    # print(f'Cruise Motor {i} - Prop Force in Cruise Motor Axis: ', cruise_prop1.F.vector.value)
+    # print(f'Cruise Motor {i} - Prop Moment in Cruise Motor Axis: ', cruise_prop1.M.vector.value)
+    # print(f'Cruise Motor {i} - Prop Force in Body Axis: ', cruise_prop2.F.vector.value)
+    # print(f'Cruise Motor {i} - Prop Moment in Body Axis: ', cruise_prop2.M.vector.value)
 
 
 
@@ -879,11 +903,13 @@ Aircraft.add_subcomponent(Fuselage)
 
 wing_AR = csdl.Variable(name="wing_AR", shape=(1, ), value=AR)
 # wing_S_ref = csdl.Variable(name="wing_S_ref", shape=(1, ), value=50)
-wing_span = csdl.Variable(name="wingspan", shape=(1, ), value=csdl.norm(
-    geometry.evaluate(wing_le_left_parametric) - geometry.evaluate(wing_le_right_parametric)
-).value)
+# wing_span = csdl.Variable(name="wingspan", shape=(1, ), value=csdl.norm(
+#     geometry.evaluate(wing_le_left_parametric) - geometry.evaluate(wing_le_right_parametric)
+# ).value)
+
+wing_span = csdl.Variable(name="wingspan", shape=(1, ), value=50)
 Wing = WingComp(AR=wing_AR,
-                span=csdl.Variable(name="span", shape=(1, ), value=wing_span.value),
+                span=wing_span,
                 geometry=wing,
                 tight_fit_ffd=False, 
                 orientation='horizontal', 
@@ -896,15 +922,17 @@ flapAR = left_flap_span**2/flapArea
 
 flap_AR = csdl.Variable(name="flap_AR", shape=(1, ), value=flapAR)
 flap_S_ref = csdl.Variable(name="flap_S_ref", shape=(1, ), value=flapArea)
+flap_spanL = csdl.Variable(name="left_flap_span", shape=(1, ), value=left_flap_span)
+flap_spanR = csdl.Variable(name="right_flap_span", shape=(1, ), value=right_flap_span)
 flap_actuation_angle = csdl.Variable(name="flap_actuation_angle", shape=(1, ), value=0)
 
 
-FlapsLeft = WingComp(AR=flap_AR, S_ref=flap_S_ref,
+FlapsLeft = WingComp(AR=flap_AR, span=flap_spanL,
                                     geometry=flapL,tight_fit_ffd=False, orientation="horizontal", name='Left Flap',
                                     actuate_angle=flap_actuation_angle, actuate_axis_location=0.)
 
 
-FlapsRight = WingComp(AR=flap_AR, S_ref=flap_S_ref,
+FlapsRight = WingComp(AR=flap_AR, span=flap_spanR,
                                     geometry=flapR,tight_fit_ffd=False, orientation="horizontal", name='Right Flap',
                                     actuate_angle=flap_actuation_angle, actuate_axis_location=0.)
 
@@ -913,12 +941,14 @@ aileronArea = left_aileron_span*left_aileron_chord
 aileronAR = left_aileron_span**2/aileronArea
 aileron_AR = csdl.Variable(name="aileron_AR", shape=(1, ), value=aileronAR)
 aileron_S_ref = csdl.Variable(name="aileron_S_ref", shape=(1, ), value=aileronArea)
+aileron_spanL = csdl.Variable(name="left_aileron_span", shape=(1, ), value=left_aileron_span)
+aileron_spanR = csdl.Variable(name="right_aileron_span", shape=(1, ), value=right_aileron_span)
 aileron_actuation_angle = csdl.Variable(name="aileron_actuation_angle", shape=(1, ), value=0)
 
-Left_Aileron = WingComp(AR=aileron_AR, S_ref=aileron_S_ref,
+Left_Aileron = WingComp(AR=aileron_AR, span=aileron_spanL,
                                     geometry=aileronL,tight_fit_ffd=False, name='Left Aileron',orientation='horizontal', actuate_angle=aileron_actuation_angle, actuate_axis_location=0.)
 
-Right_Aileron = WingComp(AR=aileron_AR, S_ref=aileron_S_ref,
+Right_Aileron = WingComp(AR=aileron_AR, span=aileron_spanR,
                                     geometry=aileronR,tight_fit_ffd=False, name='Right Aileron',orientation='horizontal', actuate_angle=aileron_actuation_angle, actuate_axis_location=0.)
 
 Wing.add_subcomponent(FlapsLeft)
@@ -927,32 +957,36 @@ Wing.add_subcomponent(Left_Aileron)
 Wing.add_subcomponent(Right_Aileron)
 Aircraft.add_subcomponent(Wing)
 
-# # Empennage = Component(name='Empennage')
 
 
 HorTailArea = ht_span*ht_chord
 htAR = ht_span**2/HorTailArea
 TrimTabArea = trim_tab_span*trimTab_chord
 trimTabAR = trim_tab_span**2/TrimTabArea
+HT_span = csdl.Variable(name="HT_span", shape=(1, ), value=ht_span)
+TrimTab_span = csdl.Variable(name="TrimTab_span", shape=(1, ), value=trim_tab_span)
 HT_actuation_angle = csdl.Variable(name="HT_actuation_angle", shape=(1, ), value=0)
 
-HorTail = WingComp(AR=htAR, S_ref=HorTailArea, geometry=h_tail, tight_fit_ffd=False, name='Horizontal Tail', orientation='horizontal', actuate_angle=HT_actuation_angle, actuate_axis_location=0.)
-TrimTab = WingComp(AR=trimTabAR, S_ref=TrimTabArea, geometry=trimTab, tight_fit_ffd=False, name='Trim Tab', orientation='horizontal')
+HorTail = WingComp(AR=htAR, span=HT_span, geometry=h_tail, tight_fit_ffd=False, name='Horizontal Tail', orientation='horizontal', actuate_angle=HT_actuation_angle, actuate_axis_location=0.)
+TrimTab = WingComp(AR=trimTabAR, span=TrimTab_span, geometry=trimTab, tight_fit_ffd=False, name='Trim Tab', orientation='horizontal')
 HorTail.add_subcomponent(TrimTab)
 Aircraft.add_subcomponent(HorTail)
 
 VertTailArea = vt_span*vt_chord
 vtAR = vt_span**2/VertTailArea
+VT_span = csdl.Variable(name="VT_span", shape=(1, ), value=vt_span)
+
 
 RudderArea = rudder_span*rudder_chord
 rudderAR = rudder_span**2/RudderArea
+Rudder_span = csdl.Variable(name="Rudder_span", shape=(1, ), value=rudder_span)
 VT_actuation_angle = csdl.Variable(name="VT_actuation_angle", shape=(1, ), value=0)
 
-VertTail = WingComp(AR=vtAR, S_ref=VertTailArea, geometry=vertTail, tight_fit_ffd=False, name='Vertical Tail', orientation='vertical')
-Rudder = WingComp(AR=rudderAR, S_ref=RudderArea, geometry=rudder, tight_fit_ffd=False, name='Rudder', orientation='vertical', actuate_angle=VT_actuation_angle, actuate_axis_location=0.)
+
+VertTail = WingComp(AR=vtAR, span=VT_span, geometry=vertTail, tight_fit_ffd=False, name='Vertical Tail', orientation='vertical')
+Rudder = WingComp(AR=rudderAR, span=Rudder_span, geometry=rudder, tight_fit_ffd=False, name='Rudder', orientation='vertical', actuate_angle=VT_actuation_angle, actuate_axis_location=0.)
 VertTail.add_subcomponent(Rudder)
 Aircraft.add_subcomponent(VertTail)
-# Aircraft.add_subcomponent(Empennage)
 
 
 rotors = Component(name='Rotors')
@@ -986,17 +1020,20 @@ for i in range(1, 3):
 Aircraft.add_subcomponent(rotors)
 
 
-
-
 base_config.connect_component_geometries(Fuselage, Wing, connection_point=0.75*wing_le_center + 0.25*wing_te_center)
 base_config.connect_component_geometries(Fuselage, HorTail, connection_point=ht_te_center)
+base_config.connect_component_geometries(Fuselage, VertTail, connection_point=vt_te_base)
+
 base_config.connect_component_geometries(HorTail, TrimTab, connection_point=ht_te_center)
 base_config.connect_component_geometries(VertTail, Rudder, connection_point=vt_te_mid)
-base_config.connect_component_geometries(Fuselage, VertTail, connection_point=vt_te_base)
 base_config.connect_component_geometries(Wing, FlapsLeft, connection_point=left_flap_le_center)
 base_config.connect_component_geometries(Wing, FlapsRight, connection_point=right_flap_le_center)
 base_config.connect_component_geometries(Wing, Left_Aileron, connection_point=left_aileron_le_center)
 base_config.connect_component_geometries(Wing, Right_Aileron, connection_point=right_aileron_le_center)
+
+
+
+
 
 plot_parameters = {
     'camera': {
@@ -1011,20 +1048,16 @@ plot_parameters = {
 
 if run_ffd:
     if debug:
-        base_config.setup_geometry(plot=True,recorder=recorder)
+        base_config.setup_geometry(plot=True,recorder=recorder, run_ffd=True)
     else:
-        base_config.setup_geometry(plot=True,recorder=recorder)
+        base_config.setup_geometry(plot=True,recorder=recorder, run_ffd=True)
 else:
     if debug:
-        pass
+        base_config.setup_geometry(plot=True,recorder=recorder, run_ffd=False)
     else:
         recorder.inline=False
 
 BaseConfig = base_config
-
-
-
-
 
 
 

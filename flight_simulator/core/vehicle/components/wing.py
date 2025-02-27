@@ -459,12 +459,7 @@ class Wing(Component):
                 name=f"{self._name}_actuate_b_sp_coeffs"
             )
 
-        # Extract geometric quantities from the FFD block
-        wing_geom_qts = self._extract_geometric_quantities_from_ffd_block()
-
-        # Set up the FFD parameterization
-        self._setup_ffd_parameterization(wing_geom_qts, ffd_geometric_variables)
-
+        self._setup_ffd_parameterization(self._extract_geometric_quantities_from_ffd_block(), ffd_geometric_variables)
 
         # evaluate b-splines 
         num_ffd_sections = ffd_block_sectional_parameterization.num_sections
@@ -770,30 +765,28 @@ class Wing(Component):
         # print(f"Computed root chord: {root_chord_input.value}")
 
 
-
-
-        # Loop to set B-spline coefficients based on the difference between user input and computed values
-        if abs(span_input.value - wing_geom_qts.span.value) > 1e-6:
-            print(f"NOT UPDATED span_stretch_b_spline.coefficients.value: {self._span_stretch_b_spline.coefficients.value}")
+        if span_input.value != wing_geom_qts.span.value:
+            # print(f'Name: {self._name}')
+            # print(f"NOT UPDATED span_stretch_b_spline.coefficients.value: {self._span_stretch_b_spline.coefficients.value}")
             self._span_stretch_b_spline.coefficients.value = (span_input.value - wing_geom_qts.span.value) * np.array([-0.5, 0.5])
-            print(f"Updated span_stretch_b_spline.coefficients.value: {self._span_stretch_b_spline.coefficients.value}")
+            # print(f"Updated span_stretch_b_spline.coefficients.value: {self._span_stretch_b_spline.coefficients.value}")
 
-        if abs(root_chord_input.value - wing_geom_qts.center_chord.value) > 1e-6:
+        if root_chord_input.value != wing_geom_qts.center_chord.value:
             self._chord_stretch_b_spline.coefficients.value[1] = (root_chord_input.value - wing_geom_qts.center_chord.value)
-        if abs(tip_chord_left_input.value - wing_geom_qts.left_tip_chord.value) > 1e-6:
+        if tip_chord_left_input.value != wing_geom_qts.left_tip_chord.value:
             self._chord_stretch_b_spline.coefficients.value[0] = tip_chord_left_input.value - wing_geom_qts.left_tip_chord.value
-        if abs(tip_chord_right_input.value - wing_geom_qts.right_tip_chord.value) > 1e-6:
+        if tip_chord_right_input.value != wing_geom_qts.right_tip_chord.value:
             self._chord_stretch_b_spline.coefficients.value[2] = tip_chord_right_input.value - wing_geom_qts.right_tip_chord.value
 
         if self.parameters.sweep is not None:
-            if abs(self.parameters.sweep.value - wing_geom_qts.sweep_angle_left.value) > 1e-6:
+            if self.parameters.sweep.value != wing_geom_qts.sweep_angle_left.value:
                 self._sweep_translation_b_spline.coefficients.value = (self.parameters.sweep.value - wing_geom_qts.sweep_angle_left.value) * np.array([-np.pi/180,np.pi/180,-np.pi/180])
 
 
         if self.parameters.dihedral is not None:
-            if abs(self.parameters.dihedral.value - wing_geom_qts.dihedral_angle_left.value) > 1e-6:
+            if self.parameters.dihedral.value != wing_geom_qts.dihedral_angle_left.value:
                 self._dihedral_translation_b_spline.coefficients.value = self.parameters.dihedral.value - wing_geom_qts.dihedral_angle_left.value
-            if abs(self.parameters.dihedral.value - wing_geom_qts.dihedral_angle_right.value) > 1e-6:
+            if self.parameters.dihedral.value != wing_geom_qts.dihedral_angle_right.value:
                 self._dihedral_translation_b_spline.coefficients.value = self.parameters.dihedral.value - wing_geom_qts.dihedral_angle_right.value
 
         # if self.parameters.root_twist_delta is not None:
@@ -846,6 +839,7 @@ class Wing(Component):
         # print(f"  Root chord: {wing_geom_qts.center_chord.value[0]} m")
         # print(f"  Tip chord left: {wing_geom_qts.left_tip_chord.value[0]} m")
         # print(f"  Tip chord right: {wing_geom_qts.right_tip_chord.value[0]} m")
+
         return
 
 
@@ -872,23 +866,27 @@ class Wing(Component):
         # Rotate the wing geometry about the y-axis by the incidence angle
         wing_geometry.rotate(axis_origin=np.array([0., 0., 0.]), axis_vector=rotation_axis, angles=incidence_rad)
 
+
+
     def _setup_geometry(self, parameterization_solver, ffd_geometric_variables, plot=False):
         """Set up the wing geometry (mainly the FFD)"""
         # Get the ffd block
         wing_ffd_block = self._ffd_block
 
-        # Set up the ffd block
         self._setup_ffd_block(wing_ffd_block, parameterization_solver, ffd_geometric_variables, plot=plot)
 
-        if self.skip_ffd is False:
-            print("DO WING FFD")
-            # Get wing geometric quantities (as csdl variable)
-            wing_geom_qts = self._extract_geometric_quantities_from_ffd_block()
+        print("DO WING FFD")
+        # wing_geom_qts = self._extract_geometric_quantities_from_ffd_block()
 
-            # Define the geometric constraints
-            self._setup_ffd_parameterization(wing_geom_qts, ffd_geometric_variables)
+        # # Then define the geometric constraints
+        # self._setup_ffd_parameterization(wing_geom_qts, ffd_geometric_variables)
 
-        return 
+        # Update geometry coefficients
+        geometry_coefficients = wing_ffd_block.evaluate_ffd(wing_ffd_block.coefficients, plot=False)
+        self._base_geometry.set_coefficients(geometry_coefficients)
+        self.geometry.set_coefficients(geometry_coefficients)
+
+        return
 
 
         

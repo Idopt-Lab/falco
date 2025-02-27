@@ -46,6 +46,8 @@ class Component:
         self.compute_surface_area_flag = compute_surface_area_flag
         self.quantities: ComponentQuantities = ComponentQuantities()
         self.parameters: ComponentParameters = ComponentParameters()
+        self._ffd_block = None  # Initialize FFD block attribute
+        self._skip_ffd = kwargs.pop('skip_ffd', False)  # Initialize skip_ffd flag
 
         for key, value in kwargs.items():
             setattr(self.parameters, key, value)
@@ -56,7 +58,7 @@ class Component:
         if geometry is not None and isinstance(geometry, FunctionSet):
             if "do_not_remake_ffd_block" not in kwargs:
                 self._ffd_block = self._make_ffd_block(self.geometry)
-
+    
 
 
     def add_subcomponent(self, subcomponent: Component):
@@ -113,7 +115,15 @@ class Component:
         ffd_block.coefficients.name = f'{self._name}_coefficients'
         return ffd_block
 
+    def _extract_geometric_quantities_from_ffd_block(self):
+        raise NotImplementedError(f"'_extract_geometric_quantities_from_ffd_block' has not been implemented for {type(self)}")
+    
+    def _setup_ffd_parameterization(self):
+        raise NotImplementedError(f"'_setup_ffd_parameterization' has not been implemented for {type(self)}")
+            
     def _setup_geometry(self, parameterization_solver, ffd_geometric_variables, plot: bool = False):
+        if not hasattr(self, 'geometry') or self.geometry is None:
+            return
         rigid_body_translation = csdl.ImplicitVariable(shape=(3,), value=0., name=f'{self._name}_rigid_body_translation')
 
         for function in self.geometry.functions.values():
@@ -121,7 +131,12 @@ class Component:
                 shape = function.coefficients.shape
                 function.coefficients = function.coefficients + csdl.expand(rigid_body_translation, shape, action="k->ijk")
 
-        parameterization_solver.add_parameter(rigid_body_translation, cost=0.1)
+
+        parameterization_solver.add_parameter(rigid_body_translation, cost=0.001)
+
+
+
+
 
     def _compute_surface_area(self, geometry: Geometry, plot_flag: bool = False):
         parametric_mesh_grid_num = 10
@@ -233,8 +248,8 @@ class Configuration:
             projection_2 = comp_2.geometry.project(point_2)
             self._geometric_connections.append((projection_1, projection_2, comp_1, comp_2, desired_value))
 
-  
 
+    
 
 
     def visualize_component_hierarchy(self, file_name: str = "component_hierarchy", file_format: str = "png", filepath: Path = Path.cwd(), show: bool = False):
@@ -264,6 +279,7 @@ class Configuration:
         ffd_geometric_variables = GeometricVariables()
         system_geometry = self.system.geometry
 
+        
         if system_geometry is None:
             subcomponent_geometries = self._collect_geometries(self.system)
             if subcomponent_geometries:
@@ -301,11 +317,20 @@ class Configuration:
         self._process_geometric_connections(ffd_geometric_variables)
 
 
-
+        # print("FFD Geometric Variables:")
+        # print(ffd_geometric_variables)
 
         t1 = time.time()
         if recorder is not None:
             recorder.inline = False
+        print("\nAttempting parameterization solver evaluation...")
+        # parameterization_solver.evaluate(ffd_geometric_variables)
+        print("Parameterization solver evaluation completed successfully")
+        t2 = time.time()
+        print(f"Parameterization Solver Time: {t2 - t1} seconds")
+
+        
+
 
         if plot:
             if plot_parameters:
@@ -344,5 +369,4 @@ class Configuration:
                 ffd_geometric_variables.add_variable(connection, desired_value)
                 print(f"Adding geometric variable {connection}")
                 print(f"Desired Value: {desired_value}")
-
 
