@@ -1197,9 +1197,11 @@ def define_heirarchy():
 
 
    
-    wingAR = wingspan.value[0]**2/S
+    # wingAR = wingspan.value[0]**2/S
+    # wing_AR = csdl.Variable(name="wing_AR", shape=(1, ), value=wingAR)
+    wing_S_ref = csdl.Variable(name="wing_S_ref", shape=(1, ), value=1e3)
+    wingAR = wingspan.value[0]**2/wing_S_ref.value[0]
     wing_AR = csdl.Variable(name="wing_AR", shape=(1, ), value=wingAR)
-    wing_S_ref = csdl.Variable(name="wing_S_ref", shape=(1, ), value=S)
     # wing_span = csdl.Variable(name="wingspan", shape=(1, ), value=csdl.norm(
     #     geometry.evaluate(wing_tip_left_le_parametric) - geometry.evaluate(wing_tip_right_le_parametric)
     # ).value)
@@ -1327,13 +1329,14 @@ def define_heirarchy():
     },
     'screenshot': f'wiskgenspan_{wingspan.value[0]}_AR_{wingAR}.png',
     'title': f'Wisk Gen 6\nSpan: {wing_span.value[0]:.2f} m\nAR: {wing_AR.value[0]:.2f}\nWing Area S: {wing_S_ref.value[0]:.2f} m^2'
-}
+    }
+    config.system.geometry.plot(show=True, **plot_parameters)
     
     if run_ffd:
         if debug:
-            config.setup_geometry(plot=True,plot_parameters=plot_parameters)
+            config.setup_geometry(plot=True)
         else:
-            config.setup_geometry(plot=True,recorder=recorder,plot_parameters=plot_parameters)
+            config.setup_geometry(plot=True,recorder=recorder)
     else:
         if debug:
             pass
