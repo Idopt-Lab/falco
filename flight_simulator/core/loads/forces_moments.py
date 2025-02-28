@@ -22,6 +22,7 @@ class ForcesMoments:
         orig_force = self.F.vector
         orig_moment = self.M.vector
 
+
         # The loads are in the child axis and we want to transform into the parent axis
         if self.axis.reference.name == parent_or_child_axis.name:
             euler = self.axis.euler_angles_vector
@@ -37,20 +38,20 @@ class ForcesMoments:
             newMoment = InterMoment + csdl.cross(displacement, InterForce)
             newMoment.add_tag(orig_moment.tags[0])
         else:
-            # Transform from one axis to another
-            euler_delta = parent_or_child_axis.euler_angles_vector - self.axis.euler_angles_vector
-            seq_from = parent_or_child_axis.sequence
-            displacement = parent_or_child_axis.translation - self.axis.translation
-            R_from = build_rotation_matrix(euler_delta, seq_from)
-            InterForce = csdl.matvec(R_from, orig_force)
-            InterMoment = csdl.matvec(R_from, orig_moment)
-            # then perform displacement
+            euler_child_to_parent = parent_or_child_axis.euler_angles_vector - self.axis.euler_angles_vector
+            seq = parent_or_child_axis.sequence
+            translation_child_to_parent = parent_or_child_axis.translation - self.axis.translation
+            R_child_to_parent = build_rotation_matrix(euler_child_to_parent, seq)
+            InterForce = csdl.matvec(R_child_to_parent, orig_force)
+            InterMoment = csdl.matvec(R_child_to_parent, orig_moment)
             newForce = InterForce
-            newMoment = InterMoment + csdl.cross(displacement, InterForce)
+            newMoment = InterMoment + csdl.cross(translation_child_to_parent, InterForce)
             if orig_force.tags:
                 newForce.add_tag(orig_force.tags[0])
                 newMoment.add_tag(orig_moment.tags[0])
-            
+
+            # raise NotImplementedError
+
         new_load = ForcesMoments(force=Vector(vector=newForce, axis=parent_or_child_axis),
                                  moment=Vector(vector=newMoment, axis=parent_or_child_axis))
         return new_load

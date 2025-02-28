@@ -48,22 +48,24 @@ class TestComponentInitialization(TestCase):
     # def test_providing_mp(self):
     #     component = Component(name="custom_component")
 
-    #     axis = Axis(
-    #         name='Inertial Axis',
-    #         translation=np.array([0, 0, 0]) * ureg.meter,
-    #         phi=np.array([0, ]) * ureg.degree,
-    #         theta=np.array([0, ]) * ureg.degree,
-    #         psi=np.array([0, ]) * ureg.degree,
-    #         origin=ValidOrigins.Inertial.value
-    #     )
+        axis = Axis(
+            name='Inertial Axis',
+            x=np.array([0]) * ureg.meter,
+            y=np.array([0]) * ureg.meter,
+            z=np.array([0]) * ureg.meter,
+            phi=np.array([0, ]) * ureg.degree,
+            theta=np.array([0, ]) * ureg.degree,
+            psi=np.array([0, ]) * ureg.degree,
+            origin=ValidOrigins.Inertial.value
+        )
 
-    #     # Create a Quantity vector with units
-    #     cg = Q_([0, 0, 0], 'newton')
-    #     cg = Vector(cg, axis)
-    #     # Create a mass moment of inertia object
-    #     mi = MassMI(axis=axis)
-    #     # Create a mass properties object
-    #     mp = MassProperties(cg_vector=cg, inertia_tensor=mi, mass=Q_(10, 'lb'))
+        # Create a Quantity vector with units
+        cg = Q_([0, 0, 0], 'newton')
+        cg = Vector(cg, axis)
+        # Create a mass moment of inertia object
+        mi = MassMI(axis=axis)
+        # Create a mass properties object
+        mp = MassProperties(cg=cg, inertia=mi, mass=Q_(10, 'lb'))
 
     #     component.quantities.mass_properties = mp
     #     np.testing.assert_equal(component.quantities.mass_properties.inertia_tensor.inertia_tensor.value,

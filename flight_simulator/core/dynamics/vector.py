@@ -3,6 +3,7 @@ from flight_simulator.core.dynamics.axis_lsdogeo import AxisLsdoGeo
 import csdl_alpha as csdl
 from flight_simulator import ureg
 import numpy as np
+from flight_simulator.core.dynamics.axis_lsdogeo import AxisLsdoGeo
 
 class Vector:
     def __init__(self, vector, axis):
@@ -27,6 +28,9 @@ class Vector:
             raise TypeError("axis must be an instance of Axis or AxisLSDOGeo")
         self.axis = axis
         self.magnitude = csdl.norm(self.vector)
+        # Ensure axis is assigned correctly
+        if not hasattr(self, 'axis'):
+            raise Exception("Axis not assigned correctly.")
 
 
     def __str__(self):

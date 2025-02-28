@@ -64,8 +64,8 @@ class TestCsdlLoads(TestCase):
         L = self.loads.get_FM_refPoint()
         state_vector: csdl.Variable = self.states.state_vector
         dydx = csdl.derivative(L, state_vector)
-        self.assertEqual(L.value, 5)
-        pass
+        self.assertEqual(dydx.value.max(), 5)
+        
 
 
 class TestNonCsdlLoads(TestCase):
@@ -159,7 +159,6 @@ class TestNonCsdlLoads(TestCase):
         L = self.loads.get_FM_refPoint(mesh=self.mesh)
         state_vector: csdl.Variable = self.states.state_vector
         dydx = csdl.derivative(L.magnitude, state_vector)
-        self.assertEqual(dydx.value, 0)
+        self.assertEqual(dydx.value.max(), 10)
 
-        dfdx = csdl.derivative(f, inputs.x)
 

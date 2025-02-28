@@ -44,5 +44,5 @@ class TestMassProperties(TestCase):
 
     def test_mp_initialization(self):
         mi = MassMI(axis=self.axis)
-        mp = MassProperties(cg_vector=self.vector, inertia_tensor=mi, mass=Q_(10, 'lb'))
+        mp = MassProperties(cg=self.vector, inertia=mi, mass=Q_(10, 'lb'))
         np.testing.assert_almost_equal(actual=mp.mass.value, desired=4.53592, decimal=5)
