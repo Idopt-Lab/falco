@@ -1,4 +1,5 @@
 from flight_simulator.core.dynamics.axis import Axis
+from flight_simulator.core.dynamics.axis_lsdogeo import AxisLsdoGeo
 import csdl_alpha as csdl
 from flight_simulator import ureg
 import numpy as np
@@ -23,16 +24,18 @@ class Vector:
         else:
             raise IOError
 
-        assert isinstance(axis, Axis) or isinstance(axis, AxisLsdoGeo)
+        if not isinstance(axis, (Axis, AxisLsdoGeo)):
+            raise TypeError("axis must be an instance of Axis or AxisLSDOGeo")
         self.axis = axis
         self.magnitude = csdl.norm(self.vector)
         # Ensure axis is assigned correctly
         if not hasattr(self, 'axis'):
             raise Exception("Axis not assigned correctly.")
 
-    # def __str__(self):
-    #     print_string = """Vector: %s \nUnit: %s \nAxis: %s""" % \
-    #                    (np.array_str(np.around(self.vector.value, 2)),
-    #                     self.vector.tags[0],
-    #                     self.axis.name)
-    #     return print_string
+
+    def __str__(self):
+        print_string = """Vector: %s \nUnit: %s \nAxis: %s""" % \
+                       (np.array_str(np.around(self.vector.value, 2)),
+                        self.vector.tags[0],
+                        self.axis.name)
+        return print_string

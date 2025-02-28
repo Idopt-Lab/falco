@@ -10,7 +10,7 @@ class TestEulerRotations(unittest.TestCase):
         angles = csdl.Variable(shape=(3,), value=np.array([0., np.pi/2, 0.]))
         seq = np.array([3, 2, 1])
         R = build_rotation_matrix(angles, seq)
-        print('\nr matrix',R.value)
+
         expected_R = np.array([[0., 0., 1.],
                                [0., 1., 0.],
                                [-1., 0., 0.]])
@@ -48,6 +48,7 @@ class TestEulerRotations(unittest.TestCase):
                                [0., 0.965925826289068, 0.258819045102521],
                                [-1., 0., 0.]])
         np.testing.assert_array_almost_equal(R.value, expected_R)
+
 
 
 
