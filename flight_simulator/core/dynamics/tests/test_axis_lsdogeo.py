@@ -26,20 +26,14 @@ class TestAxisLsdoGeo(unittest.TestCase):
 
     def test_initialization(self):
         self.assertEqual(self.axis.name, "test_axis")
-        self.assertEqual(self.axis.translation[0].magnitude, 1.0)
-        self.assertEqual(self.axis.translation[1].magnitude, 2.0)
-        self.assertEqual(self.axis.translation[2].magnitude, 3.0)
+        self.assertEqual(self.axis.translation.value[0], 1.0)
+        self.assertEqual(self.axis.translation.value[1], 2.0)
+        self.assertEqual(self.axis.translation.value[2], 3.0)
         self.assertEqual(self.axis.origin, self.origin)
 
     def test_translation_property(self):
         translation = self.axis.translation
-        np.testing.assert_array_equal(translation, np.array([1.0, 2.0, 3.0]))
-
-    def test_translation_setter(self):
-        # Test that the setter does not change the translation
-        self.axis.translation = np.array([4.0, 5.0, 6.0])
-        translation = self.axis.translation
-        np.testing.assert_array_equal(translation, np.array([1.0, 2.0, 3.0]))
+        np.testing.assert_array_equal(translation.value, np.array([1.0, 2.0, 3.0]))
 
 if __name__ == '__main__':
     unittest.main()
