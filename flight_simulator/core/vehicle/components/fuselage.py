@@ -1,4 +1,4 @@
-from flight_simulator.core.component import Component
+from flight_simulator.core.vehicle.component import Component
 
 from lsdo_geo.core.parameterization.volume_sectional_parameterization import (
     VolumeSectionalParameterization, VolumeSectionalParameterizationInputs
