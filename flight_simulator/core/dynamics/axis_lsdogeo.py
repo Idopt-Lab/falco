@@ -16,19 +16,10 @@ class AxisLsdoGeo(Axis):
                  sequence=np.array([3, 2, 1]), reference=None):
         self.geometry = geometry
         self.parametric_coords = parametric_coords
-        translation = geometry.evaluate(parametric_coords)
+        self.translation = self.geometry.evaluate(self.parametric_coords)
         
 
-        super().__init__(name=name, x=translation[0], y=translation[1], z=translation[2],
+        super().__init__(name=name, x=self.translation[0], y=self.translation[1], z=self.translation[2],
                          phi=phi, theta=theta, psi=psi,
                          origin=origin, sequence=sequence, reference=reference)
         
-
-    @property
-    def translation(self):
-        return self.geometry.evaluate(self.parametric_coords)
-
-
-    @translation.setter
-    def translation(self, translation_vector):
-        pass
