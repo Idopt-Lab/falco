@@ -1325,10 +1325,10 @@ def define_heirarchy():
         'distance': 0,
         'viewup': (0, 0, -1)
     },
-    'screenshot': f'wiskgenspan_{wingspan.value[0]}_AR_{AR}.png',
+    'screenshot': f'wiskgenspan_{wingspan.value[0]}_AR_SOMETHINGIDK.png',
     'title': f'Wisk Gen 6\nSpan: {wing_span.value[0]:.2f} m\nAR: {wing_AR.value[0]:.2f}\nWing Area S: {wing_S_ref.value[0]:.2f} m^2'
     }
-    config.system.geometry.plot(show=True, **plot_parameters)
+    # config.system.geometry.plot(show=True, **plot_parameters)
     
     # if run_ffd:
     #     if debug:
