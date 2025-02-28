@@ -65,7 +65,7 @@ class TestComponentInitialization(TestCase):
         # Create a mass moment of inertia object
         mi = MassMI(axis=axis)
         # Create a mass properties object
-        mp = MassProperties(cg_vector=cg, inertia_tensor=mi, mass=Q_(10, 'lb'))
+        mp = MassProperties(cg=cg, inertia=mi, mass=Q_(10, 'lb'))
 
         component.quantities.mass_properties = mp
         np.testing.assert_equal(component.quantities.mass_properties.inertia_tensor.inertia_tensor.value,
