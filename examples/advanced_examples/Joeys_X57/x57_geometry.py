@@ -5,7 +5,7 @@ import numpy as np
 import lsdo_geo as lg
 from flight_simulator.utils.import_geometry import import_geometry
 from flight_simulator import REPO_ROOT_FOLDER
-from flight_simulator.core.component import Component, Configuration
+from flight_simulator.core.vehicle.component import Component, Configuration
 from flight_simulator.core.condition import Condition
 from flight_simulator.core.loads.mass_properties import MassProperties
 from flight_simulator.core.dynamics.axis import Axis, ValidOrigins
@@ -1082,7 +1082,7 @@ BaseConfig = base_config
 
 
 
-from flight_simulator.core.aircraft_control_system import AircraftControlSystem
+from flight_simulator.core.vehicle.aircraft_control_system import AircraftControlSystem
 # ControlSystem = AircraftControlSystem(symmetrical=False, airframe=Aircraft)       
 
 

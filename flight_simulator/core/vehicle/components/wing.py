@@ -1,4 +1,4 @@
-from flight_simulator.core.component import Component
+from flight_simulator.core.vehicle.component import Component
 
 from lsdo_geo import construct_ffd_block_around_entities, construct_tight_fit_ffd_block
 import lsdo_function_spaces as lfs

@@ -1,4 +1,4 @@
-from flight_simulator.core.component import Configuration
+from flight_simulator.core.vehicle.component import Configuration
 
 
 class Condition:
