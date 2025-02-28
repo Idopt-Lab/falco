@@ -1082,7 +1082,7 @@ BaseConfig = base_config
 
 
 
-from flight_simulator.core.aircraft_control_system import AircraftControlSystem
+from flight_simulator.core.vehicle.aircraft_control_system import AircraftControlSystem
 # ControlSystem = AircraftControlSystem(symmetrical=False, airframe=Aircraft)       
 
 
