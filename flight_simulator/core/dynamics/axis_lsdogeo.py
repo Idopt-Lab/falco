@@ -23,3 +23,12 @@ class AxisLsdoGeo(Axis):
                          phi=phi, theta=theta, psi=psi,
                          origin=origin, sequence=sequence, reference=reference)
         
+
+    @property
+    def translation(self):
+        return self.geometry.evaluate(self.parametric_coords)
+
+
+    @translation.setter
+    def translation(self, translation_vector):
+        pass
