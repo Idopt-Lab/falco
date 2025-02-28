@@ -56,7 +56,3 @@ class PropulsiveControl:
     def upper_bound(self):
         return self._ub
 
-
-
-
-
