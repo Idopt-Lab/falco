@@ -357,6 +357,14 @@ class Configuration:
 
 
     def _process_geometric_connections(self, ffd_geometric_variables):
+        """
+        Process geometric connections between components and add them to FFD variables.
+        
+        Parameters
+        ----------
+        ffd_geometric_variables : GeometricVariables
+            Object storing the FFD geometric variables
+        """
         for connection in self._geometric_connections:
             projection_1, projection_2, comp_1, comp_2, desired_value = connection
             if isinstance(projection_1, list):
