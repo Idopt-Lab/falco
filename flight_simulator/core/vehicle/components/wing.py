@@ -347,8 +347,8 @@ class Wing(Component):
                                                     num_coefficients=num_coefficients, degree=degree)
         else:
             if self._orientation == "horizontal":
-                num_coefficients = (2, 11, 2) # NOTE: hard coding here might be limiting
-                degree = (1, 3, 1)
+                num_coefficients = (3, 15, 3) # NOTE: hard coding here might be limiting
+                degree = (2, 3, 2)
             else:
                 degree = (1, 1, 1)
                 num_coefficients = (2, 2, 2)
@@ -543,7 +543,7 @@ class Wing(Component):
         
         else:            
             parameterization_solver.add_parameter(self._chord_stretch_b_spline.coefficients)
-            parameterization_solver.add_parameter(self._span_stretch_b_spline.coefficients)
+            parameterization_solver.add_parameter(self._span_stretch_b_spline.coefficients, cost=1e8)
             if self.parameters.sweep is not None:
                 parameterization_solver.add_parameter(self._sweep_translation_b_spline.coefficients)
             if self.parameters.dihedral is not None:
@@ -784,6 +784,12 @@ class Wing(Component):
             if self.parameters.dihedral.value != wing_geom_qts.dihedral_angle_right.value:
                 self._dihedral_translation_b_spline.coefficients.value = self.parameters.dihedral.value - wing_geom_qts.dihedral_angle_right.value
 
+
+
+        # print(f"Desired span: {span_input.value}")
+        # print(f"Current span: {wing_geom_qts.span.value}")
+        # print(f"Span difference: {span_input.value - wing_geom_qts.span.value}")
+        # print(f"Updated span_stretch coefficients: {self._span_stretch_b_spline.coefficients.value}")
         # if self.parameters.root_twist_delta is not None:
         #     if abs(self.parameters.root_twist_delta.value - wing_geom_qts.center_chord.value) > 0:
         #         self._twist_b_spline.coefficients.value = self.parameters.root_twist_delta.value - wing_geom_qts.center_chord.value
