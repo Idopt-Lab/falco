@@ -1068,7 +1068,12 @@ else:
     else:
         recorder.inline=False
 
-
+# print("\nVerifying solver state:")
+# print(f"Base config solver: {base_config._parameterization_solver}")
+# print(f"Base config geometric variables: {base_config._ffd_geometric_variables.computed_values}")
+# print(f"Aircraft solver: {Aircraft._parameterization_solver}")
+# print(f"Wing solver: {Wing._parameterization_solver}")
+# print(f"Fuselage solver: {Fuselage._parameterization_solver}")
 
 BaseConfig = base_config
 
