@@ -872,11 +872,11 @@ wing_twist_coefficients = csdl.Variable(name='wing_twist_coefficients', value=np
 wing_twist_b_spline = lfs.Function(name='wing_twist_b_spline', space=cubic_b_spline_curve_5_dof_space,
                                           coefficients=wing_twist_coefficients)
 
-wing_sweep_amount = csdl.Variable(name='wing_sweep_amount', value=np.array([0.]))
+wing_sweep_amount = csdl.Variable(name='wing_sweep_amount', value=np.array([45.]))
 wing_sweep_coefficients = csdl.Variable(name='wing_sweep_coefficients', value=np.array([-wing_sweep_amount.value[0]*np.pi/180, wing_sweep_amount.value[0]*np.pi/180, -wing_sweep_amount.value[0]*np.pi/180]))
 wing_sweep_b_spline = lfs.Function(name='wing_sweep_b_spline',space=linear_b_spline_curve_3_dof_space, coefficients=wing_sweep_coefficients)
 
-wing_translation_x_coefficients = csdl.Variable(name='wing_translation_x_coefficients', value=np.array([0.]))
+wing_translation_x_coefficients = csdl.Variable(name='wing_translation_x_coefficients', value=np.array([10.]))
 wing_translation_x_b_spline = lfs.Function(name='wing_translation_x_b_spline', space=constant_b_spline_curve_1_dof_space,
                                           coefficients=wing_translation_x_coefficients)
 
@@ -1294,6 +1294,7 @@ Aircraft, config, config2 = define_heirarchy()
 
 config.system.geometry.plot(camera={'pos':(15,wingspan.value[0]*1.25,-12), 'focal_point':(-fuselage_length/2,0,0), 'distance':0,'viewup':(0,0,-1)})
 parameterization_solver.evaluate(parameterization_design_parameters)
+# config.setup_geometry(plot=True)
 config.system.geometry.plot(color='red',camera={'pos':(15,wingspan.value[0]*1.25,-12), 'focal_point':(-fuselage_length/2,0,0), 'distance':0,'viewup':(0,0,-1)})
 
 # config2.system.geometry.plot.show()
