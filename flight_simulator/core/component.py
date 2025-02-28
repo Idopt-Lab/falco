@@ -38,7 +38,7 @@ class ComponentParameters:
 
 
 class Component:
-    def __init__(self, name: str, geometry: Union[FunctionSet, None] = None, compute_surface_area_flag: bool = False, **kwargs) -> None:
+    def __init__(self, name: str, geometry: Union[FunctionSet, None] = None, compute_surface_area_flag: bool = False, parameterization_solver: ParameterizationSolver=None, ffd_geometric_variables: GeometricVariables=None, **kwargs) -> None:
         self._name = name
         self.parent = None
         self.comps: ComponentDict = ComponentDict(parent=self)
@@ -48,6 +48,8 @@ class Component:
         self.parameters: ComponentParameters = ComponentParameters()
         self._ffd_block = None  # Initialize FFD block attribute
         self._skip_ffd = kwargs.pop('skip_ffd', False)  # Initialize skip_ffd flag
+        self._parameterization_solver = parameterization_solver
+        self._ffd_geometric_variables = ffd_geometric_variables 
 
         for key, value in kwargs.items():
             setattr(self.parameters, key, value)
@@ -110,6 +112,7 @@ class Component:
         add_component_to_graph(self, self._name)
         graph.render(file_name, directory=filepath, format=file_format, view=show)
 
+
     def _make_ffd_block(self, entities, num_coefficients: tuple = (2, 2, 2), order: tuple = (1, 1, 1), num_physical_dimensions: int = 3):
         ffd_block = construct_ffd_block_around_entities(name=self._name, entities=entities, num_coefficients=num_coefficients, degree=order)
         ffd_block.coefficients.name = f'{self._name}_coefficients'
@@ -135,8 +138,7 @@ class Component:
         parameterization_solver.add_parameter(rigid_body_translation, cost=0.001)
 
 
-
-
+    
 
     def _compute_surface_area(self, geometry: Geometry, plot_flag: bool = False):
         parametric_mesh_grid_num = 10
@@ -214,13 +216,15 @@ class ComponentDict(dict):
 
 
 class Configuration:
-    def __init__(self, system: Component) -> None:
+    def __init__(self, system: Component, parameterization_solver: ParameterizationSolver=None, ffd_geometric_variables: GeometricVariables=None) -> None:
         if not isinstance(system, Component):
             raise TypeError(f"system must by of type {Component}")
         if system.geometry is not None and not isinstance(system.geometry, FunctionSet):
             raise TypeError(f"If system geometry is not None, it must be of type '{FunctionSet}', received object of type '{type(system.geometry)}'")
         self.system = system
         self._geometric_connections = []
+        self._parameterization_solver = parameterization_solver 
+        self._ffd_geometric_variables = ffd_geometric_variables
 
     def connect_component_geometries(self, comp_1: Component, comp_2: Component, connection_point: Union[csdl.Variable, np.ndarray, None] = None, desired_value: Union[csdl.Variable, None] = None):
         csdl.check_parameter(comp_1, "comp_1", types=Component)
@@ -275,10 +279,14 @@ class Configuration:
 
 
     def setup_geometry(self, additional_constraints: List[tuple] = None, run_ffd: bool = True, plot: bool = False, plot_parameters: dict = None, recorder: csdl.Recorder = None):
-        parameterization_solver = ParameterizationSolver()
-        ffd_geometric_variables = GeometricVariables()
-        system_geometry = self.system.geometry
 
+        system_geometry = self.system.geometry
+        if self._parameterization_solver is None:
+            raise ValueError("No parameterization solver provided. Please initialize the component/configuration with a parameterization solver.")
+        
+        parameterization_solver = self._parameterization_solver
+        ffd_geometric_variables = self._ffd_geometric_variables
+    
         
         if system_geometry is None:
             subcomponent_geometries = self._collect_geometries(self.system)
@@ -294,10 +302,7 @@ class Configuration:
         
         def setup_geometries(component: Component):
             if component.geometry is not None:
-                component._skip_ffd = False
-                if component._skip_ffd is True:
-                    pass
-                else:
+                if not component._skip_ffd:  
                     try:
                         component._setup_geometry(parameterization_solver, ffd_geometric_variables, plot=plot)
                     except NotImplementedError:
@@ -307,6 +312,7 @@ class Configuration:
                 for comp_name, comp in component.comps.items():
                     setup_geometries(comp)
             return
+
         setup_geometries(self.system)
 
         if additional_constraints:
@@ -324,7 +330,7 @@ class Configuration:
         if recorder is not None:
             recorder.inline = False
         print("\nAttempting parameterization solver evaluation...")
-        # parameterization_solver.evaluate(ffd_geometric_variables)
+        parameterization_solver.evaluate(ffd_geometric_variables)
         print("Parameterization solver evaluation completed successfully")
         t2 = time.time()
         print(f"Parameterization Solver Time: {t2 - t1} seconds")

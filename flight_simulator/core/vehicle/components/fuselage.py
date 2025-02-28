@@ -183,7 +183,6 @@ class Fuselage(Component):
             name=f"{self._name}_width_stretch_b_sp_coeffs",
         )
 
-        self._setup_ffd_parameterization(self._extract_geometric_quantities_from_ffd_block(), ffd_geometric_variables)
 
         # evaluate b-splines 
         num_ffd_sections = ffd_block_sectional_parameterization.num_sections
@@ -262,8 +261,6 @@ class Fuselage(Component):
     
     def _setup_ffd_parameterization(self, fuselage_geometric_qts : FuselageGeometricQuantities, ffd_geometric_variables):
 
-        self.ffd_geometric_variables = ffd_geometric_variables
-
         """Set up the fuselage parameterization."""
         # If user doesn't specify length, use initial geometry
         if self.parameters.length is None:
@@ -313,9 +310,9 @@ class Fuselage(Component):
         # Set up the ffd block
         self._setup_ffd_block(fuselage_ffd_block, parameterization_solver, ffd_geometric_variables, plot=plot)
 
-        # fuselage_geom_qts = self._extract_geometric_quantities_from_ffd_block()
+        fuselage_geom_qts = self._extract_geometric_quantities_from_ffd_block()
 
-        # self._setup_ffd_parameterization(fuselage_geom_qts, ffd_geometric_variables)
+        self._setup_ffd_parameterization(fuselage_geom_qts, ffd_geometric_variables)
 
         # print(f"Fuselage geo qts: {fuselage_geom_qts.length.value}")
         # print(f"Fuselage parameters: {self.parameters}")

@@ -90,7 +90,7 @@ class Wing(Component):
     ) -> None:
         kwargs["do_not_remake_ffd_block"] = True
         super().__init__(geometry=geometry, **kwargs)
-    
+        
         # Print statements for debugging
         # print(f"Initializing Wing with parameters:")
         # print(f"AR: {AR}")
@@ -459,7 +459,6 @@ class Wing(Component):
                 name=f"{self._name}_actuate_b_sp_coeffs"
             )
 
-        self._setup_ffd_parameterization(self._extract_geometric_quantities_from_ffd_block(), ffd_geometric_variables)
 
         # evaluate b-splines 
         num_ffd_sections = ffd_block_sectional_parameterization.num_sections
@@ -758,11 +757,7 @@ class Wing(Component):
         # print(wing_geom_qts.center_chord.value, root_chord_input.value)
         # print(wing_geom_qts.left_tip_chord.value, tip_chord_left_input.value)
         # print(wing_geom_qts.right_tip_chord.value, tip_chord_right_input.value)
-        # print(f"Name: {self._name}")
-        # print(f"Target AR: {self.parameters.AR.value}")
-        # print(f"Target S_ref: {self.parameters.S_ref.value}")
-        # print(f"Computed span: {span_input.value}")
-        # print(f"Computed root chord: {root_chord_input.value}")
+ 
 
 
         if span_input.value != wing_geom_qts.span.value:
@@ -876,10 +871,10 @@ class Wing(Component):
         self._setup_ffd_block(wing_ffd_block, parameterization_solver, ffd_geometric_variables, plot=plot)
 
         print("DO WING FFD")
-        # wing_geom_qts = self._extract_geometric_quantities_from_ffd_block()
+        wing_geom_qts = self._extract_geometric_quantities_from_ffd_block()
 
-        # # Then define the geometric constraints
-        # self._setup_ffd_parameterization(wing_geom_qts, ffd_geometric_variables)
+        # Then define the geometric constraints
+        self._setup_ffd_parameterization(wing_geom_qts, ffd_geometric_variables)
 
         # Update geometry coefficients
         geometry_coefficients = wing_ffd_block.evaluate_ffd(wing_ffd_block.coefficients, plot=False)
