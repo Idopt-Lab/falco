@@ -114,42 +114,20 @@ class Component:
 
 
     def _make_ffd_block(self, entities, num_coefficients: tuple = (2, 2, 2), order: tuple = (1, 1, 1), num_physical_dimensions: int = 3):
-        """Make FFD block around entities with proper type handling."""
-        # Handle different input types
-        if isinstance(entities, Geometry):
-            entity_functions = list(entities.functions.values())
-        elif isinstance(entities, FunctionSet):
-            entity_functions = list(entities.functions.values())
-        else:
-            entity_functions = entities
-            
-        # Create and return FFD block
-        try:
-            ffd_block = construct_ffd_block_around_entities(
-                name=self._name,
-                entities=entity_functions,
-                num_coefficients=num_coefficients,
-                degree=order
-            )
-            ffd_block.coefficients.name = f'{self._name}_coefficients'
-            return ffd_block
-        except Exception as e:
-            print(f"Failed to create FFD block for {self._name}")
-            print(f"Entity types: {[type(e) for e in entity_functions]}")
-            raise
-
-    def actuate(self):
-        raise NotImplementedError(f"'actuate' has not been implemented for component of type {type(self)}")
+        ffd_block = construct_ffd_block_around_entities(name=self._name, entities=entities, num_coefficients=num_coefficients, degree=order)
+        ffd_block.coefficients.name = f'{self._name}_coefficients'
+        return ffd_block
 
     def _extract_geometric_quantities_from_ffd_block(self):
         raise NotImplementedError(f"'_extract_geometric_quantities_from_ffd_block' has not been implemented for {type(self)}")
     
-    def _setup_ffd_parameterization(self, geometric_quantities, ffd_geometric_variables):
+    def _setup_ffd_parameterization(self):
         raise NotImplementedError(f"'_setup_ffd_parameterization' has not been implemented for {type(self)}")
-
+            
     def _setup_geometry(self, parameterization_solver, ffd_geometric_variables, plot: bool = False):
-
-        rigid_body_translation = csdl.ImplicitVariable(name=f'{self._name}_rigid_body_translation', shape=(3,), value=0.)
+        if not hasattr(self, 'geometry') or self.geometry is None:
+            return
+        rigid_body_translation = csdl.ImplicitVariable(shape=(3,), value=0., name=f'{self._name}_rigid_body_translation')
 
         for function in self.geometry.functions.values():
             if function.name == "rigid_body_translation":
@@ -157,7 +135,7 @@ class Component:
                 function.coefficients = function.coefficients + csdl.expand(rigid_body_translation, shape, action="k->ijk")
 
 
-        parameterization_solver.add_parameter(rigid_body_translation, cost=1e-4)
+        parameterization_solver.add_parameter(rigid_body_translation, cost=0.001)
 
 
     
@@ -258,20 +236,6 @@ class Configuration:
         if comp_2.geometry is None:
             raise Exception(f"Comp {comp_2._name} does not have a geometry.")
 
-
-        translation_1 = csdl.Variable(shape=(3,), value=np.array([0., 0., 0.]))
-        translation_2 = csdl.Variable(shape=(3,), value=np.array([0., 0., 0.]))
-
-        for function in comp_1.geometry.functions.values():
-            if function.name == "rigid_body_translation":
-                translation_1 = function.coefficients
-                break
-                
-        for function in comp_2.geometry.functions.values():
-            if function.name == "rigid_body_translation":
-                translation_2 = function.coefficients
-                break
-
         if connection_point is not None:
             try:
                 connection_point = connection_point.reshape((3,))
@@ -281,10 +245,6 @@ class Configuration:
             projection_1 = comp_1.geometry.project(connection_point)
             projection_2 = comp_2.geometry.project(connection_point)
             self._geometric_connections.append((projection_1, projection_2, comp_1, comp_2, desired_value))
-            print(f"Projection 1 type: {type(projection_1)}")
-            print(f"Projection 2 type: {type(projection_2)}")
-            print(f"Projection 1 value: {projection_1}")
-            print(f"Projection 2 value: {projection_2}")
         else:
             point_1 = comp_1._ffd_block.evaluate(parametric_coordinates=np.array([0.5, 0.5, 0.5]))
             point_2 = comp_2._ffd_block.evaluate(parametric_coordinates=np.array([0.5, 0.5, 0.5]))
@@ -342,12 +302,12 @@ class Configuration:
         
         def setup_geometries(component: Component):
             if component.geometry is not None:
-                  if not component._skip_ffd:  
+                if not component._skip_ffd:  
                     try:
                         component._setup_geometry(parameterization_solver, ffd_geometric_variables, plot=plot)
                     except NotImplementedError:
                         warnings.warn(f"'_setup_geometry' has not been implemented for component {component._name} of {type(component)}")
-
+            
             if component.comps:
                 for comp_name, comp in component.comps.items():
                     setup_geometries(comp)
@@ -355,55 +315,28 @@ class Configuration:
 
         setup_geometries(self.system)
 
+        if additional_constraints:
+            for constr in additional_constraints:
+                connection = csdl.norm(self.system.geometry.evaluate(parametric_coordinates=constr[0]) - self.system.geometry.evaluate(parametric_coordinates=constr[1]))
+                ffd_geometric_variables.add_variable(connection, constr[2])
 
-        for connection in self._geometric_connections:
-
-            projection_1 = connection[0]
-            projection_2 = connection[1]
-            comp_1 : Component = connection[2]
-            comp_2 : Component = connection[3]
-            desired_value : csdl.Variable = connection[4]
-            print(f"Processing connection between {connection[2]._name} and {connection[3]._name}")
-            print(f"Projection types: {type(projection_1)}, {type(projection_2)}")
+        self._process_geometric_connections(ffd_geometric_variables)
 
 
-            if isinstance(projection_1, list):
-                connection = comp_1.geometry.evaluate(parametric_coordinates=projection_1) - comp_2.geometry.evaluate(parametric_coordinates=projection_2)
-            elif isinstance(projection_1, np.ndarray):
-                connection = comp_1._ffd_block.evaluate(parametric_coordinates=projection_1) - comp_2._ffd_block.evaluate(parametric_coordinates=projection_2)
-            else:
-                raise NotImplementedError(f"wrong type {type(projection_1)} for projection")
-
-            if desired_value is None:
-                ffd_geometric_variables.add_variable(connection, connection.value)
-                print(f"Adding Connection {connection}")
-                print(f"Connection Value: {connection.value}")
-            else:
-                
-                ffd_geometric_variables.add_variable(connection, desired_value)
-                # print(f"Adding Connection  {connection}")
-                # print(f"Connection (Desired) Value: {desired_value}")
-
-        # if additional_constraints:
-        #     for constr in additional_constraints:
-        #         connection = csdl.norm(self.system.geometry.evaluate(parametric_coordinates=constr[0]) - self.system.geometry.evaluate(parametric_coordinates=constr[1]))
-        #         ffd_geometric_variables.add_variable(connection, constr[2])
-
-
-       
-
-
+        # print("FFD Geometric Variables:")
+        # print(ffd_geometric_variables)
 
         t1 = time.time()
         if recorder is not None:
             recorder.inline = False
-
         print("\nAttempting parameterization solver evaluation...")
         parameterization_solver.evaluate(ffd_geometric_variables)
         print("Parameterization solver evaluation completed successfully")
         t2 = time.time()
         print(f"Parameterization Solver Time: {t2 - t1} seconds")
+
         
+
 
         if plot:
             if plot_parameters:
@@ -422,6 +355,32 @@ class Configuration:
         return geometries
 
 
-        
 
+    def _process_geometric_connections(self, ffd_geometric_variables):
+        """
+        Process geometric connections between components and add them to FFD variables.
+        
+        Parameters
+        ----------
+        ffd_geometric_variables : GeometricVariables
+            Object storing the FFD geometric variables
+        """
+        for connection in self._geometric_connections:
+            projection_1, projection_2, comp_1, comp_2, desired_value = connection
+            if isinstance(projection_1, list):
+                connection = comp_1.geometry.evaluate(parametric_coordinates=projection_1) - comp_2.geometry.evaluate(parametric_coordinates=projection_2)
+            elif isinstance(projection_1, np.ndarray):
+                connection = comp_1._ffd_block.evaluate(parametric_coordinates=projection_1) - comp_2._ffd_block.evaluate(parametric_coordinates=projection_2)
+            else:
+                raise NotImplementedError(f"wrong type {type(projection_1)} for projection")
+
+            if desired_value is None:
+                ffd_geometric_variables.add_variable(connection, connection.value)
+                print(f"Adding geometric variable {connection}")
+                print(f"Value: {connection.value}")
+            else:
+                
+                ffd_geometric_variables.add_variable(connection, desired_value)
+                print(f"Adding geometric variable {connection}")
+                print(f"Desired Value: {desired_value}")
 

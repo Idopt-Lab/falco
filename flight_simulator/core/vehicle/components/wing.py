@@ -199,11 +199,8 @@ class Wing(Component):
 
         if t_o_c is None:
             t_o_c = 0.15
-
         if sweep is None:
-            sweep = csdl.Variable(name=f"{self._name}_sweep", value=0)
-            self.parameters.sweep = sweep
-
+            sweep = 0.
 
         FF = (1 + 0.6 / x_c_m + 100 * (t_o_c) ** 4) * csdl.cos(sweep) ** 0.28
         # self.quantities.drag_parameters.form_factor = FF
@@ -260,28 +257,18 @@ class Wing(Component):
                     # print(self.geometry.evaluate(self._TE_root_point).value)
                     # exit()
 
-                self._ffd_block = self._make_ffd_block(self.geometry, tight_fit=False, degree=(1, 3, 1), num_coefficients=(2, 11, 2))
+                self._ffd_block = self._make_ffd_block(self.geometry, tight_fit=False)
 
                 # Print FFD block details for debugging
                 # print("FFD block created:")
                 # print(f"  num_coefficients: {ffd_block.coefficients.value}")
 
                 # print("time for computing corner points", t6-t5)
-
-
-
-
-            self._wing_chord_stretch_coefficients = csdl.Variable(name=f'{self._name}_chord_stretch_coefficients', value=np.array([0.,root_chord.value,0.]))
-            self._wing_span_stretch_coefficients = csdl.Variable(name=f'{self._name}_span_stretch_coefficients', value=self.parameters.span.value * np.array([-0.5, 0.5]))
-            self._wing_sweep_translation_coefficients = csdl.Variable(name=f'{self._name}_sweep_translation_coefficients', value=self.parameters.sweep.value * np.array([-np.pi/180,np.pi/180,-np.pi/180]))
-            self._wing_dihedral_translation_coefficients = csdl.Variable(name=f'{self._name}_dihedral_translation_coefficients', value=np.array([0., 0., 0.]))
-            self._wing_twist_coefficients = csdl.Variable(name=f'{self._name}_twist_coefficients', value=np.array([0., 0., 0.]))
-        
             # internal geometry projection info
             self._dependent_geometry_points = [] # {'parametric_points', 'function_space', 'fitting_coords', 'mirror'}
             self._base_geometry = self.geometry.copy()
         
-
+            
         if actuate_angle is not None:
             self.actuate(actuate_angle, actuate_axis_location)
   
@@ -356,21 +343,15 @@ class Wing(Component):
         if needed (via num_coefficients)
         """
         if tight_fit:
-            num_coefficients = (4, 13, 4)  # More control points
-            degree = (2, 3, 2)  # Higher degree for smoother deformation
-            ffd_block = construct_tight_fit_ffd_block(
-                name=self._name, 
-                entities=entities,
-                num_coefficients=num_coefficients,
-                degree=degree
-            )
+            ffd_block = construct_tight_fit_ffd_block(name=self._name, entities=entities, 
+                                                    num_coefficients=num_coefficients, degree=degree)
         else:
             if self._orientation == "horizontal":
-                num_coefficients = (2, 9, 2) # NOTE: hard coding here might be limiting
-                degree = (1, 2, 1)
+                num_coefficients = (3, 15, 3) # NOTE: hard coding here might be limiting
+                degree = (2, 3, 2)
             else:
-                degree = (1, 2, 1)
-                num_coefficients = (2, 9, 2)
+                degree = (1, 1, 1)
+                num_coefficients = (2, 2, 2)
             ffd_block = construct_ffd_block_around_entities(name=self._name, entities=entities,
                                                             num_coefficients=num_coefficients, degree=degree)
         
@@ -410,41 +391,61 @@ class Wing(Component):
         # if plot:
         #     ffd_block_sectional_parameterization.plot()
 
+        chord_stretch_amount = np.array([0., 0., 0.])
+        span_stretch_amount = np.array([0, 0], dtype=object).reshape((2,))
+        sweep_translation_amount = np.array([0, 0., 0], dtype=object)
+        dihedral_translation_amount = np.array([0., 0., 0], dtype=object)
+        twist_rotation_amount = np.array([0, 0, 0], dtype=object)
 
         # Make B-spline functions for changing geometric quantities
         self._chord_stretch_b_spline = lfs.Function(
             space=self._linear_b_spline_3_dof_space, 
-            coefficients=self._wing_chord_stretch_coefficients,
+            coefficients=csdl.ImplicitVariable(
+                shape=(3, ), 
+                value=chord_stretch_amount
+            ),
             name=f"{self._name}_chord_stretch_b_sp_coeffs"
         )
 
         self._span_stretch_b_spline = lfs.Function(
             space=self._linear_b_spline_2_dof_space,
-            coefficients=self._wing_span_stretch_coefficients, 
+            coefficients=csdl.ImplicitVariable(
+                shape=(2, ),
+                value=span_stretch_amount,
+            ),
             name=f"{self._name}_span_stretch_b_sp_coeffs",
         )
 
         if self.parameters.sweep is not None:
             self._sweep_translation_b_spline = lfs.Function(
                 space=self._linear_b_spline_3_dof_space,
-                coefficients=self._wing_sweep_translation_coefficients,
+                coefficients=csdl.ImplicitVariable(
+                    shape=(3, ),
+                    value=sweep_translation_amount,
+                ),
                 name=f"{self._name}_sweep_transl_b_sp_coeffs"
             )
 
         if self.parameters.dihedral is not None:
             self._dihedral_translation_b_spline = lfs.Function(
                 space=self._linear_b_spline_3_dof_space,
-                coefficients=self._wing_dihedral_translation_coefficients,
+                coefficients=csdl.ImplicitVariable(
+                    shape=(3, ),
+                    value=dihedral_translation_amount,
+                ),
                 name=f"{self._name}_dihedral_transl_b_sp_coeffs"
             )
 
-        self._wing_twist_coefficients.value[0] = self.parameters.tip_twist_delta
-        self._wing_twist_coefficients.value[1] = self.parameters.root_twist_delta  
-        self._wing_twist_coefficients.value[2] = self.parameters.tip_twist_delta
-        
+        coefficients=csdl.Variable(
+                shape=(3, ),
+                value=twist_rotation_amount,
+        )
+        coefficients = coefficients.set(csdl.slice[0], self.parameters.tip_twist_delta)
+        coefficients = coefficients.set(csdl.slice[1], self.parameters.root_twist_delta)
+        coefficients = coefficients.set(csdl.slice[2], self.parameters.tip_twist_delta)
         self._twist_b_spline = lfs.Function(
             space=self._linear_b_spline_3_dof_space,
-            coefficients=self._wing_twist_coefficients,
+            coefficients=coefficients,
             name=f"{self._name}_twist_b_sp_coeffs"
         )
 
@@ -528,28 +529,30 @@ class Wing(Component):
         self.geometry.set_coefficients(geometry_coefficients)
 
         # Add rigid body translation (without FFD)
-        self._rigid_body_translation = csdl.ImplicitVariable(shape=(3, ), value=0.)
+        rigid_body_translation = csdl.ImplicitVariable(shape=(3, ), value=0.)
         for function in self.geometry.functions.values():
             # if len(function.coefficients.shape) != 2:
             #     function.coefficients = function.coefficients.reshape((-1, 3))
             # shape = function.coefficients.shape
-            function.coefficients = function.coefficients + csdl.expand(self._rigid_body_translation, function.coefficients.shape, action='k->ijk')
+            # print('Wing Shape: ', shape)
+            function.coefficients = function.coefficients + csdl.expand(rigid_body_translation, function.coefficients.shape, action='k->ijk')
         
-    ####PUTTING THIS BACK IN THIS FUNCTION TO TEST
+        # Add the coefficients of all B-splines to the parameterization solver
         if self.skip_ffd:
-            parameterization_solver.add_parameter(self._rigid_body_translation, cost=1e-4)
-    
-        else:
-            parameterization_solver.add_parameter(parameter=self._wing_chord_stretch_coefficients,cost=1e4)
-            parameterization_solver.add_parameter(parameter=self._wing_span_stretch_coefficients, cost=1e3)
-            if self.parameters.sweep is not None:
-                parameterization_solver.add_parameter(parameter=self._wing_sweep_translation_coefficients,cost=1e2)
-            if self.parameters.dihedral is not None:
-                parameterization_solver.add_parameter(parameter=self._wing_dihedral_translation_coefficients,cost=1e2)   
-            parameterization_solver.add_parameter(self._rigid_body_translation, cost=1e-4)
+            parameterization_solver.add_parameter(rigid_body_translation, cost=10)
         
-        print("FFD block set up for wing.", self._name)
-        print('span stretch', self._wing_span_stretch_coefficients.value)
+        else:            
+            parameterization_solver.add_parameter(self._chord_stretch_b_spline.coefficients)
+            parameterization_solver.add_parameter(self._span_stretch_b_spline.coefficients, cost=1e8)
+            if self.parameters.sweep is not None:
+                parameterization_solver.add_parameter(self._sweep_translation_b_spline.coefficients)
+            if self.parameters.dihedral is not None:
+                parameterization_solver.add_parameter(self._dihedral_translation_b_spline.coefficients)
+            if self.parameters.actuate_angle is not None:
+                parameterization_solver.add_parameter(self._actuate_b_spline.coefficients)    
+            parameterization_solver.add_parameter(rigid_body_translation, cost=10)
+        
+
         return 
 
     def _extract_geometric_quantities_from_ffd_block(self) -> WingGeometricQuantities:
@@ -728,12 +731,6 @@ class Wing(Component):
             ffd_geometric_variables.add_variable(wing_geom_qts.center_chord, root_chord_input)
             ffd_geometric_variables.add_variable(wing_geom_qts.left_tip_chord, tip_chord_left_input)
             ffd_geometric_variables.add_variable(wing_geom_qts.right_tip_chord, tip_chord_right_input)
-        
-            if self.parameters.dihedral is not None:
-                dihedral_input = self.parameters.dihedral
-                ffd_geometric_variables.add_variable(wing_geom_qts.dihedral_angle_left, dihedral_input)
-                ffd_geometric_variables.add_variable(wing_geom_qts.dihedral_angle_right, dihedral_input)
-
         else:
             ffd_geometric_variables.add_variable(wing_geom_qts.span, span_input)
             ffd_geometric_variables.add_variable(wing_geom_qts.center_chord, root_chord_input)
@@ -742,9 +739,12 @@ class Wing(Component):
         if self.parameters.sweep is not None:
             sweep_input = self.parameters.sweep
             ffd_geometric_variables.add_variable(wing_geom_qts.sweep_angle_left, sweep_input)
-            if wing_geom_qts.sweep_angle_right is not None:
-                ffd_geometric_variables.add_variable(wing_geom_qts.sweep_angle_right, sweep_input)
+            ffd_geometric_variables.add_variable(wing_geom_qts.sweep_angle_right, sweep_input)
 
+        if self.parameters.dihedral is not None:
+            dihedral_input = self.parameters.dihedral
+            ffd_geometric_variables.add_variable(wing_geom_qts.dihedral_angle_left, dihedral_input)
+            ffd_geometric_variables.add_variable(wing_geom_qts.dihedral_angle_right, dihedral_input)
 
         if self.parameters.actuate_angle is not None:
             actuate_angle_input = self.parameters.actuate_angle
@@ -760,32 +760,29 @@ class Wing(Component):
  
 
 
-
         if span_input.value != wing_geom_qts.span.value:
-            print(f'Name: {self._name}')
+            # print(f'Name: {self._name}')
             # print(f"NOT UPDATED span_stretch_b_spline.coefficients.value: {self._span_stretch_b_spline.coefficients.value}")
-            self._wing_span_stretch_coefficients.value = (span_input.value - wing_geom_qts.span.value) * np.array([-0.5, 0.5])
+            self._span_stretch_b_spline.coefficients.value = (span_input.value - wing_geom_qts.span.value) * np.array([-0.5, 0.5])
             # print(f"Updated span_stretch_b_spline.coefficients.value: {self._span_stretch_b_spline.coefficients.value}")
 
         if root_chord_input.value != wing_geom_qts.center_chord.value:
-            self._wing_chord_stretch_coefficients.value[1] = (root_chord_input.value - wing_geom_qts.center_chord.value)
+            self._chord_stretch_b_spline.coefficients.value[1] = (root_chord_input.value - wing_geom_qts.center_chord.value)
         if tip_chord_left_input.value != wing_geom_qts.left_tip_chord.value:
-            self._wing_chord_stretch_coefficients.value[0] = tip_chord_left_input.value - wing_geom_qts.left_tip_chord.value
+            self._chord_stretch_b_spline.coefficients.value[0] = tip_chord_left_input.value - wing_geom_qts.left_tip_chord.value
         if tip_chord_right_input.value != wing_geom_qts.right_tip_chord.value:
-            self._wing_chord_stretch_coefficients.value[2] = tip_chord_right_input.value - wing_geom_qts.right_tip_chord.value
+            self._chord_stretch_b_spline.coefficients.value[2] = tip_chord_right_input.value - wing_geom_qts.right_tip_chord.value
 
         if self.parameters.sweep is not None:
             if self.parameters.sweep.value != wing_geom_qts.sweep_angle_left.value:
-                self._wing_sweep_translation_coefficients.value = (self.parameters.sweep.value - wing_geom_qts.sweep_angle_left.value) * np.array([-np.pi/180,np.pi/180,-np.pi/180])
+                self._sweep_translation_b_spline.coefficients.value = (self.parameters.sweep.value - wing_geom_qts.sweep_angle_left.value) * np.array([-np.pi/180,np.pi/180,-np.pi/180])
 
 
         if self.parameters.dihedral is not None:
-            if dihedral_input.value != wing_geom_qts.dihedral_angle_left.value:
-                self._wing_dihedral_translation_coefficients.value[0] = dihedral_input.value - wing_geom_qts.dihedral_angle_left.value
-            if dihedral_input.value != wing_geom_qts.dihedral_angle_right.value:
-                self._wing_dihedral_translation_coefficients.value[1] = dihedral_input.value - wing_geom_qts.dihedral_angle_right.value
-
-
+            if self.parameters.dihedral.value != wing_geom_qts.dihedral_angle_left.value:
+                self._dihedral_translation_b_spline.coefficients.value = self.parameters.dihedral.value - wing_geom_qts.dihedral_angle_left.value
+            if self.parameters.dihedral.value != wing_geom_qts.dihedral_angle_right.value:
+                self._dihedral_translation_b_spline.coefficients.value = self.parameters.dihedral.value - wing_geom_qts.dihedral_angle_right.value
 
 
 
@@ -879,15 +876,20 @@ class Wing(Component):
 
         self._setup_ffd_block(wing_ffd_block, parameterization_solver, ffd_geometric_variables, plot=plot)
 
-
-        print(f"DO WING FFD for {self._name}")
+        print("DO WING FFD")
         wing_geom_qts = self._extract_geometric_quantities_from_ffd_block()
 
         # Then define the geometric constraints
         self._setup_ffd_parameterization(wing_geom_qts, ffd_geometric_variables)
 
+        # Update geometry coefficients
+        geometry_coefficients = wing_ffd_block.evaluate_ffd(wing_ffd_block.coefficients, plot=False)
+        self._base_geometry.set_coefficients(geometry_coefficients)
+        self.geometry.set_coefficients(geometry_coefficients)
 
         return
+
+
         
 
     def _fit_surface(self, parametric_points:list, fitting_coords:list, function_space:lfs.FunctionSpace, mirror:bool, dependent:bool):

@@ -1,4 +1,4 @@
-from flight_simulator.core.vehicle.vehicle_control_system import VehicleControlSystem, ControlSurface, PropulsiveControl
+from flight_simulator.core.vehicle_control_system import VehicleControlSystem, ControlSurface, PropulsiveControl
 from dataclasses import dataclass
 import csdl_alpha as csdl
 import numpy as np
