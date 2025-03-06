@@ -271,7 +271,7 @@ class Wing(Component):
 
 
 
-            self._wing_chord_stretch_coefficients = csdl.Variable(name=f'{self._name}_chord_stretch_coefficients', value=np.array([0.,root_chord.value,0.]))
+            self._wing_chord_stretch_coefficients = csdl.Variable(name=f'{self._name}_chord_stretch_coefficients', value=np.array([0.,root_chord.value[0],0.]))
             self._wing_span_stretch_coefficients = csdl.Variable(name=f'{self._name}_span_stretch_coefficients', value=self.parameters.span.value * np.array([-0.5, 0.5]))
             self._wing_sweep_translation_coefficients = csdl.Variable(name=f'{self._name}_sweep_translation_coefficients', value=self.parameters.sweep.value * np.array([-np.pi/180,np.pi/180,-np.pi/180]))
             self._wing_dihedral_translation_coefficients = csdl.Variable(name=f'{self._name}_dihedral_translation_coefficients', value=np.array([0., 0., 0.]))
