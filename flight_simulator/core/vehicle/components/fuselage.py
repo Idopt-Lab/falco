@@ -66,6 +66,8 @@ class Fuselage(Component):
         self._name = f"Fuselage"
         self.geometry = geometry
         self._skip_ffd = False
+        self._base_geometry = self.geometry.copy()
+
         
         self._constant_b_spline_1_dof_space = lfs.BSplineSpace(num_parametric_dimensions=1, degree=0, coefficients_shape=(1,))
         self._linear_b_spline_2_dof_space = lfs.BSplineSpace(num_parametric_dimensions=1, degree=1, coefficients_shape=(2,))
@@ -135,51 +137,28 @@ class Fuselage(Component):
 
 
 
-        if isinstance(self.parameters.length, csdl.Variable):
-            length_value = self.parameters.length.value
-        else:
-            length_value = self.parameters.length
-
-        if isinstance(self.parameters.max_height, csdl.Variable):
-            height_value = self.parameters.max_height.value
-        else:
-            height_value = self.parameters.max_height
-
-        if isinstance(self.parameters.max_width, csdl.Variable):
-            width_value = self.parameters.max_width.value
-        else:
-            width_value = self.parameters.max_width
+        fuselage_length_stretch_coefficients = csdl.Variable(name='fuselage_length_stretch_coefficients', value=np.array([0., 0.]))
+        fuselage_height_stretch_coefficients = csdl.Variable(name='fuselage_height_stretch_coefficients', value=np.array([0., 0.]))
+        fuselage_width_stretch_coefficients = csdl.Variable(name='fuselage_width_stretch_coefficients', value=np.array([0., 0.]))      
 
 
-        length_stretch = np.array([-0, 0.], dtype=object)
-        height_stretch = np.array([0, 0], dtype=object)
-        width_stretch = np.array([0, 0], dtype=object)
 
         # Make B-spline functions for changing geometric quantities
         self._length_stretch_b_spline = lfs.Function(
             space=self._linear_b_spline_2_dof_space,
-            coefficients=csdl.ImplicitVariable(
-                shape=(2, ),
-                value=length_stretch,
-            ),
+            coefficients=fuselage_length_stretch_coefficients,
             name=f"{self._name}_length_stretch_b_sp_coeffs",
         )
 
         self._height_stretch_b_spline = lfs.Function(
             space=self._linear_b_spline_2_dof_space,
-            coefficients=csdl.ImplicitVariable(
-                shape=(2, ),
-                value=height_stretch,
-            ),
+            coefficients=fuselage_height_stretch_coefficients,
             name=f"{self._name}_height_stretch_b_sp_coeffs",
         )
 
         self._width_stretch_b_spline = lfs.Function(
             space=self._linear_b_spline_2_dof_space,
-            coefficients=csdl.ImplicitVariable(
-                shape=(2, ),
-                value=width_stretch,
-            ),
+            coefficients=fuselage_width_stretch_coefficients,
             name=f"{self._name}_width_stretch_b_sp_coeffs",
         )
 
@@ -211,24 +190,12 @@ class Fuselage(Component):
         self.geometry.set_coefficients(geometry_coefficients)
 
         # Add rigid body translation (without FFD)
-        rigid_body_translation = csdl.ImplicitVariable(shape=(3, ), value=0.)
+        self._rigid_body_translation = csdl.ImplicitVariable(name=f'{self._name}_rigid_body_translation', shape=(3, ), value=0.)
         for function in self.geometry.functions.values():
             shape = function.coefficients.shape
             # print('Fuselage Shape: ', shape)
-            function.coefficients = function.coefficients + csdl.expand(rigid_body_translation, shape, action='k->ijk')            
+            function.coefficients = function.coefficients + csdl.expand(self._rigid_body_translation, shape, action='k->ijk')            
 
-
-        # Add (B-spline) coefficients to parameterization solver
-        self.skip_ffd = False
-        if self.skip_ffd:
-            parameterization_solver.add_parameter(rigid_body_translation, cost=1000)
-        else:
-            parameterization_solver.add_parameter(self._length_stretch_b_spline.coefficients)
-            parameterization_solver.add_parameter(self._height_stretch_b_spline.coefficients)
-            parameterization_solver.add_parameter(self._width_stretch_b_spline.coefficients)
-            parameterization_solver.add_parameter(rigid_body_translation, cost=1000)
-
-        return
 
     def _extract_geometric_quantities_from_ffd_block(self):
         """Extract the following quantities from the FFD block:
@@ -301,20 +268,34 @@ class Fuselage(Component):
 
         return ffd_geometric_variables
     
+
+
     def _setup_geometry(self, parameterization_solver, ffd_geometric_variables, plot: bool = False):
         """Set up the fuselage geometry (mainly for FFD)"""
-
         # Get ffd block
         fuselage_ffd_block = self._ffd_block
-
-        # Set up the ffd block
+        
         self._setup_ffd_block(fuselage_ffd_block, parameterization_solver, ffd_geometric_variables, plot=plot)
-
+        
+        print("DO FUSELAGE FFD")
         fuselage_geom_qts = self._extract_geometric_quantities_from_ffd_block()
-
+        
         self._setup_ffd_parameterization(fuselage_geom_qts, ffd_geometric_variables)
-
-        # print(f"Fuselage geo qts: {fuselage_geom_qts.length.value}")
-        # print(f"Fuselage parameters: {self.parameters}")
-        # print(f"Fuselage geometric variables: {ffd_geometric_variables}")
+        
+        # Now add parameters to the solver once (and only once)
+        self.skip_ffd = False
+        if self.skip_ffd:
+            parameterization_solver.add_parameter(self._rigid_body_translation, cost=1000)
+        else:           
+            parameterization_solver.add_parameter(self._length_stretch_b_spline.coefficients)
+            parameterization_solver.add_parameter(self._height_stretch_b_spline.coefficients)
+            parameterization_solver.add_parameter(self._width_stretch_b_spline.coefficients)
+            parameterization_solver.add_parameter(self._rigid_body_translation, cost=1000)
+        
+        # Update geometry coefficients
+        geometry_coefficients = fuselage_ffd_block.evaluate_ffd(fuselage_ffd_block.coefficients, plot=False)
+        
+        self._base_geometry.set_coefficients(geometry_coefficients)
+        self.geometry.set_coefficients(geometry_coefficients)
+        
         return
