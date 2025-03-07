@@ -154,41 +154,22 @@ class Wing(Component):
             lam = taper_ratio
             span = (AR * S_ref)**0.5
             self.parameters.span = span
-            root_chord = 2 * S_ref/((1 + lam) * span)
-            MAC = (2/3) * (1 + lam + lam**2) / (1 + lam) * root_chord
-            # self.quantities.drag_parameters.characteristic_length = MAC
-            self.parameters.MAC = MAC
         elif S_ref is not None and span is not None:
             lam = taper_ratio
             span = self.parameters.span
-            root_chord = 2 * S_ref/((1 + lam) * span)
-            MAC = (2/3) * (1 + lam + lam**2) / (1 + lam) * root_chord
-            # self.quantities.drag_parameters.characteristic_length = MAC
-            self.parameters.MAC = MAC
+            AR = self.parameters.span**2 / self.parameters.S_ref
+            self.parameters.AR = AR
         elif span is not None and AR is not None:
             lam = taper_ratio
             S_ref = span**2 / AR
             self.parameters.S_ref = S_ref
-            root_chord = 2 * S_ref/((1 + lam) * span)
-            MAC = (2/3) * (1 + lam + lam**2) / (1 + lam) * root_chord
-            # self.quantities.drag_parameters.characteristic_length = MAC
-            self.parameters.MAC = MAC
 
-        # Compute form factor according to Raymer 
-        # (ignoring Mach number; include in drag build up model)
-        x_c_m = self.parameters.thickness_to_chord_loc
-        t_o_c = self.parameters.thickness_to_chord
 
-        if t_o_c is None:
-            t_o_c = 0.15
 
         if sweep is None:
             sweep = csdl.Variable(name=f"{self._name}_sweep", value=0)
             self.parameters.sweep = sweep
 
-
-        FF = (1 + 0.6 / x_c_m + 100 * (t_o_c) ** 4) * csdl.cos(sweep) ** 0.28
-        # self.quantities.drag_parameters.form_factor = FF
   
 
 
