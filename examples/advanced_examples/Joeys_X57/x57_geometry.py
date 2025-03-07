@@ -267,7 +267,7 @@ vt_te_mid_guess = np.array([-28.7, 0., -8])*ft2m
 vt_te_mid= geometry.evaluate(vertTail.project(vt_te_mid_guess, plot=False))
 vt_te_tip = geometry.evaluate(vertTail.project(np.array([-29.75, 0, -10.6])*ft2m, plot=False))
 vt_qc = geometry.evaluate(vertTail.project(np.array([-23 + (0.25*(-28.7+23)), 0., -5.5])*ft2m, plot=False))
-vt_span = 1.50814508
+vt_span = np.linalg.norm(vt_te_base.value - vt_te_tip.value)
 # print('Vertical Tail Span: ', vt_span)
 
 vt_chord = np.linalg.norm(vt_le_mid.value - vt_te_mid.value)
@@ -277,7 +277,7 @@ rudder_le_base = geometry.evaluate(rudder.project(np.array([-23, 0, -5.5])*ft2m,
 rudder_le_mid_parametric = rudder.project(np.array([-28.7, 0., -8.])*ft2m, plot=False)
 rudder_le_mid = geometry.evaluate(rudder_le_mid_parametric)
 rudder_le_tip = geometry.evaluate(rudder.project(np.array([-29.75, 0, -10.6])*ft2m, plot=False))
-rudder_span = 1.41737732
+rudder_span = np.linalg.norm(rudder_le_base.value - rudder_le_tip.value)
 # print('Rudder Span: ', rudder_span)
 rudder_chord = np.linalg.norm(rudder_le_mid.value - rudder_le_tip.value)
 # print('Rudder Chord: ', rudder_chord)
@@ -909,7 +909,7 @@ wing_AR = csdl.Variable(name="wing_AR", shape=(1, ), value=AR)
 #     geometry.evaluate(wing_le_left_parametric) - geometry.evaluate(wing_le_right_parametric)
 # ).value)
 
-wing_span = csdl.Variable(name="wingspan", shape=(1, ), value=10)
+wing_span = csdl.Variable(name="wingspan", shape=(1, ), value=25)
 wing_sweep = csdl.Variable(name="wing_sweep", shape=(1, ), value=30)
 
 Wing = WingComp(AR=wing_AR,
@@ -957,7 +957,6 @@ Left_Aileron = WingComp(AR=aileron_AR, span=aileron_spanL,
 
 Right_Aileron = WingComp(AR=aileron_AR, span=aileron_spanR,
                                     geometry=aileronR,tight_fit_ffd=False, name='Right Aileron',orientation='horizontal', actuate_angle=aileron_actuation_angle, actuate_axis_location=0.,parameterization_solver=parameterization_solver,ffd_geometric_variables=ffd_geometric_variables)
-
 
 Aircraft.add_subcomponent(Wing)
 base_config.connect_component_geometries(Fuselage, Wing, connection_point=0.75*wing_le_center + 0.25*wing_te_center)

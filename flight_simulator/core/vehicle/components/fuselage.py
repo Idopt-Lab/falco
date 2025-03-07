@@ -69,10 +69,6 @@ class Fuselage(Component):
         self._base_geometry = self.geometry.copy()
 
         
-        self._constant_b_spline_1_dof_space = lfs.BSplineSpace(num_parametric_dimensions=1, degree=0, coefficients_shape=(1,))
-        self._linear_b_spline_2_dof_space = lfs.BSplineSpace(num_parametric_dimensions=1, degree=1, coefficients_shape=(2,))
-        self._linear_b_spline_3_dof_space = lfs.BSplineSpace(num_parametric_dimensions=1, degree=1, coefficients_shape=(3,))
-        self._cubic_b_spline_5_dof_space = lfs.BSplineSpace(num_parametric_dimensions=1, degree=3, coefficients_shape=(5,))
 
         # Assign parameters
         self.parameters : FuselageParameters = FuselageParameters(
@@ -120,12 +116,21 @@ class Fuselage(Component):
                 self._bottom_point = geometry.project(self._ffd_block.evaluate(parametric_coordinates=np.array([0.5, 0.5, 0.])))
 
 
+        self._fuselage_length_stretch_coefficients = csdl.Variable(name='fuselage_length_stretch_coefficients', value=np.array([0., 0.]))
+        self._fuselage_height_stretch_coefficients = csdl.Variable(name='fuselage_height_stretch_coefficients', value=np.array([0., 0.]))
+        self._fuselage_width_stretch_coefficients = csdl.Variable(name='fuselage_width_stretch_coefficients', value=np.array([0., 0.]))      
 
 
 
     def _setup_ffd_block(self, ffd_block, parameterization_solver, ffd_geometric_variables, plot : bool=False):
         """Set up the fuselage ffd block."""
         
+
+        self._constant_b_spline_1_dof_space = lfs.BSplineSpace(num_parametric_dimensions=1, degree=0, coefficients_shape=(1,))
+        self._linear_b_spline_2_dof_space = lfs.BSplineSpace(num_parametric_dimensions=1, degree=1, coefficients_shape=(2,))
+        self._linear_b_spline_3_dof_space = lfs.BSplineSpace(num_parametric_dimensions=1, degree=1, coefficients_shape=(3,))
+        self._cubic_b_spline_5_dof_space = lfs.BSplineSpace(num_parametric_dimensions=1, degree=3, coefficients_shape=(5,))
+
         # Instantiate a volume sectional parameterization object
         ffd_block_sectional_parameterization = VolumeSectionalParameterization(
             name=f'{self._name}_sectional_parameterization',
@@ -136,29 +141,22 @@ class Fuselage(Component):
         #     ffd_block_sectional_parameterization.plot()
 
 
-
-        fuselage_length_stretch_coefficients = csdl.Variable(name='fuselage_length_stretch_coefficients', value=np.array([0., 0.]))
-        fuselage_height_stretch_coefficients = csdl.Variable(name='fuselage_height_stretch_coefficients', value=np.array([0., 0.]))
-        fuselage_width_stretch_coefficients = csdl.Variable(name='fuselage_width_stretch_coefficients', value=np.array([0., 0.]))      
-
-
-
         # Make B-spline functions for changing geometric quantities
         self._length_stretch_b_spline = lfs.Function(
             space=self._linear_b_spline_2_dof_space,
-            coefficients=fuselage_length_stretch_coefficients,
+            coefficients=self._fuselage_length_stretch_coefficients,
             name=f"{self._name}_length_stretch_b_sp_coeffs",
         )
 
         self._height_stretch_b_spline = lfs.Function(
             space=self._linear_b_spline_2_dof_space,
-            coefficients=fuselage_height_stretch_coefficients,
+            coefficients=self._fuselage_height_stretch_coefficients,
             name=f"{self._name}_height_stretch_b_sp_coeffs",
         )
 
         self._width_stretch_b_spline = lfs.Function(
             space=self._linear_b_spline_2_dof_space,
-            coefficients=fuselage_width_stretch_coefficients,
+            coefficients=self._fuselage_width_stretch_coefficients,
             name=f"{self._name}_width_stretch_b_sp_coeffs",
         )
 

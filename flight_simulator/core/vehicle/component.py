@@ -281,10 +281,7 @@ class Configuration:
             projection_1 = comp_1.geometry.project(connection_point)
             projection_2 = comp_2.geometry.project(connection_point)
             self._geometric_connections.append((projection_1, projection_2, comp_1, comp_2, desired_value))
-            print(f"Projection 1 type: {type(projection_1)}")
-            print(f"Projection 2 type: {type(projection_2)}")
-            print(f"Projection 1 value: {projection_1}")
-            print(f"Projection 2 value: {projection_2}")
+
         else:
             point_1 = comp_1._ffd_block.evaluate(parametric_coordinates=np.array([0.5, 0.5, 0.5]))
             point_2 = comp_2._ffd_block.evaluate(parametric_coordinates=np.array([0.5, 0.5, 0.5]))
@@ -363,8 +360,8 @@ class Configuration:
             comp_1 : Component = connection[2]
             comp_2 : Component = connection[3]
             desired_value : csdl.Variable = connection[4]
-            print(f"Processing connection between {connection[2]._name} and {connection[3]._name}")
-            print(f"Projection types: {type(projection_1)}, {type(projection_2)}")
+            # print(f"Processing connection between {connection[2]._name} and {connection[3]._name}")
+            # print(f"Projection types: {type(projection_1)}, {type(projection_2)}")
 
 
             if isinstance(projection_1, list):
@@ -376,8 +373,8 @@ class Configuration:
 
             if desired_value is None:
                 ffd_geometric_variables.add_variable(connection, connection.value)
-                print(f"Adding Connection {connection}")
-                print(f"Connection Value: {connection.value}")
+                # print(f"Adding Connection {connection}")
+                # print(f"Connection Value: {connection.value}")
             else:
                 
                 ffd_geometric_variables.add_variable(connection, desired_value)
