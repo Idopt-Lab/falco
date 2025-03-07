@@ -151,16 +151,13 @@ class Wing(Component):
         if taper_ratio is None:
             taper_ratio = 1
         if AR is not None and S_ref is not None:
-            lam = taper_ratio
             span = (AR * S_ref)**0.5
             self.parameters.span = span
         elif S_ref is not None and span is not None:
-            lam = taper_ratio
             span = self.parameters.span
             AR = self.parameters.span**2 / self.parameters.S_ref
             self.parameters.AR = AR
         elif span is not None and AR is not None:
-            lam = taper_ratio
             S_ref = span**2 / AR
             self.parameters.S_ref = S_ref
 
@@ -341,7 +338,6 @@ class Wing(Component):
                 # Set the wetted area
                 self.parameters.S_wet = self.quantities.surface_area
                 num_ffd_sections = 3
-                num_wing_sections = 2
                 ffd_block = construct_ffd_block_around_entities(entities=geometry, num_coefficients=(2, (num_ffd_sections), 2), degree=(1,1,1))
 
                 # Compute the corner points of the wing 
