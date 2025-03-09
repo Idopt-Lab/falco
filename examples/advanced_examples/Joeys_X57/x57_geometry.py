@@ -1089,15 +1089,20 @@ ffd_geometric_variables = GeometricVariables()
 # lets also 
 
 
-Aircraft = AircraftComp(geometry=geometry, compute_surface_area_flag=False, parameterization_solver=parameterization_solver,ffd_geometric_variables=ffd_geometric_variables)
+Aircraft = AircraftComp(geometry=geometry, compute_surface_area_flag=False, 
+                        parameterization_solver=parameterization_solver,
+                        ffd_geometric_variables=ffd_geometric_variables)
 
 
-fuselage_length = csdl.Variable(name="fuselage_length", shape=(1, ), value=csdl.norm(fuselage_rear_guess[0] - fuselage_nose_guess[0]).value)
-Fuselage = FuseComp(
-    length=csdl.Variable(name="length", shape=(1, ), value=fuselage_length.value), geometry=fuselage, skip_ffd=False, parameterization_solver=parameterization_solver,ffd_geometric_variables=ffd_geometric_variables)
+# fuselage_length = csdl.Variable(name="fuselage_length", shape=(1, ), value=csdl.norm(fuselage_rear_guess[0] - fuselage_nose_guess[0]).value)
+# Fuselage = FuseComp(
+#     length=csdl.Variable(name="length", shape=(1, ), value=fuselage_length.value), 
+#     geometry=fuselage, skip_ffd=False, 
+#     parameterization_solver=parameterization_solver,
+#     ffd_geometric_variables=ffd_geometric_variables)
 
 
-Aircraft.add_subcomponent(Fuselage)
+# Aircraft.add_subcomponent(Fuselage)
 
 
 wing_AR = csdl.Variable(name="wing_AR", shape=(1, ), value=AR)
@@ -1120,43 +1125,50 @@ Aircraft.add_subcomponent(Wing)
 wing_fuse_connection = geometry.evaluate(wing_te_center_parametric) - geometry.evaluate(fuselage_wing_te_center_parametric)
 parameterization_solver.add_variable(computed_value=wing_fuse_connection[1:], desired_value=wing_fuse_connection.value[1:])
 
-# flapArea=left_flap_span*left_flap_chord
-# flapAR = left_flap_span**2/flapArea
 
 
-# flap_AR = csdl.Variable(name="flap_AR", shape=(1, ), value=flapAR)
-# flap_S_ref = csdl.Variable(name="flap_S_ref", shape=(1, ), value=flapArea)
-# flap_spanL = csdl.Variable(name="left_flap_span", shape=(1, ), value=2.5)
-# flap_spanR = csdl.Variable(name="right_flap_span", shape=(1, ), value=2.5)
-# flap_actuation_angle = csdl.Variable(name="flap_actuation_angle", shape=(1, ), value=0)
-
-# FlapsLeft = WingComp(AR=flap_AR, span=flap_spanL,
-#                                     geometry=flapL,parametric_geometry=left_flap_parametric_geometry,
-#                                     tight_fit_ffd=False, skip_ffd=False,
-#                                     orientation="horizontal", name='Left Flap',
-#                                     parameterization_solver=parameterization_solver,
-#                                     ffd_geometric_variables=ffd_geometric_variables)
-# Wing.add_subcomponent(FlapsLeft)
-# left_flap_wing_connection = geometry.evaluate(left_flap_le_center_parametric) - geometry.evaluate(left_flap_le_center_on_wing_te_parametric)
-# print("left_flap_wing_connection: ", left_flap_wing_connection.value)
-# parameterization_solver.add_variable(computed_value=left_flap_wing_connection[1:], desired_value=left_flap_wing_connection.value[1:])
+flapArea=left_flap_span*left_flap_chord
+flapAR = left_flap_span**2/flapArea
 
 
-# FlapsRight = WingComp(AR=flap_AR, span=flap_spanR,
-#                                     geometry=flapR,parametric_geometry=right_flap_parametric_geometry,
-#                                     tight_fit_ffd=False, orientation="horizontal", name='Right Flap',
-#                                     parameterization_solver=parameterization_solver,ffd_geometric_variables=ffd_geometric_variables)
-# Wing.add_subcomponent(FlapsRight)
-# right_flap_wing_connection = geometry.evaluate(right_flap_le_center_parametric) - geometry.evaluate(right_flap_le_center_on_wing_te_parametric)
+flap_AR = csdl.Variable(name="flap_AR", shape=(1, ), value=17.47)
+flap_S_ref = csdl.Variable(name="flap_S_ref", shape=(1, ), value=flapArea)
+flap_spanL = csdl.Variable(name="left_flap_span", shape=(1, ), value=2.85679904)
+flap_spanR = csdl.Variable(name="right_flap_span", shape=(1, ), value=2.85679904)
+flap_actuation_angle = csdl.Variable(name="flap_actuation_angle", shape=(1, ), value=0)
+
+FlapsLeft = WingComp(AR=flap_AR, span=flap_spanL,
+                                    geometry=flapL,parametric_geometry=left_flap_parametric_geometry,
+                                    tight_fit_ffd=False, skip_ffd=False,
+                                    orientation="horizontal", name='Left Flap',
+                                    parameterization_solver=parameterization_solver,
+                                    ffd_geometric_variables=ffd_geometric_variables)
+Wing.add_subcomponent(FlapsLeft)
+left_flap_wing_connection = geometry.evaluate(left_flap_le_center_parametric) - geometry.evaluate(left_flap_le_center_on_wing_te_parametric)
+print("left_flap_wing_connection: ", left_flap_wing_connection.value)
+parameterization_solver.add_variable(computed_value=left_flap_wing_connection, desired_value=left_flap_wing_connection.value)
+
+FlapsRight = WingComp(AR=flap_AR, span=flap_spanR,
+                                    geometry=flapR,parametric_geometry=right_flap_parametric_geometry,
+                                    tight_fit_ffd=False, orientation="horizontal", name='Right Flap',
+                                    parameterization_solver=parameterization_solver,
+                                    ffd_geometric_variables=ffd_geometric_variables)
+Wing.add_subcomponent(FlapsRight)
+right_flap_wing_connection = geometry.evaluate(right_flap_le_center_parametric) - geometry.evaluate(right_flap_le_center_on_wing_te_parametric)
+print("right_flap_wing_connection: ", right_flap_wing_connection.value)
 # parameterization_solver.add_variable(computed_value=right_flap_wing_connection[1:], desired_value=left_flap_wing_connection.value[1:])
 
-aileronArea = left_aileron_span*left_aileron_chord
-aileronAR = left_aileron_span**2/aileronArea
-aileron_AR = csdl.Variable(name="aileron_AR", shape=(1, ), value=aileronAR)
-aileron_S_ref = csdl.Variable(name="aileron_S_ref", shape=(1, ), value=aileronArea)
-aileron_spanL = csdl.Variable(name="left_aileron_span", shape=(1, ), value=1.14)
-aileron_spanR = csdl.Variable(name="right_aileron_span", shape=(1, ), value=1.14)
-aileron_actuation_angle = csdl.Variable(name="aileron_actuation_angle", shape=(1, ), value=0)
+parameterization_solver.evaluate(ffd_geometric_variables)
+geometry.plot()
+
+
+# aileronArea = left_aileron_span*left_aileron_chord
+# aileronAR = left_aileron_span**2/aileronArea
+# aileron_AR = csdl.Variable(name="aileron_AR", shape=(1, ), value=aileronAR)
+# aileron_S_ref = csdl.Variable(name="aileron_S_ref", shape=(1, ), value=aileronArea)
+# aileron_spanL = csdl.Variable(name="left_aileron_span", shape=(1, ), value=1.14)
+# aileron_spanR = csdl.Variable(name="right_aileron_span", shape=(1, ), value=1.14)
+# aileron_actuation_angle = csdl.Variable(name="aileron_actuation_angle", shape=(1, ), value=0)
 
 # Left_Aileron = WingComp(AR=aileron_AR, span=aileron_spanL,
 #                                     geometry=aileronL,parametric_geometry=left_aileron_parametric_geometry,
@@ -1165,86 +1177,88 @@ aileron_actuation_angle = csdl.Variable(name="aileron_actuation_angle", shape=(1
 #                                     actuate_angle=aileron_actuation_angle, actuate_axis_location=0.,
 #                                     parameterization_solver=parameterization_solver,
 #                                     ffd_geometric_variables=ffd_geometric_variables)
-# Aircraft.add_subcomponent(Left_Aileron)
+# Wing.add_subcomponent(Left_Aileron)
 # left_aileron_wing_connection = geometry.evaluate(left_aileron_le_center_parametric) - geometry.evaluate(left_aileron_le_center_on_wing_te_parametric)
 # print("left_aileron_wing_connection: ", left_aileron_wing_connection.value)
-# parameterization_solver.add_variable(computed_value=left_aileron_wing_connection[1:], desired_value=left_aileron_wing_connection.value[1:])
+# # parameterization_solver.add_variable(computed_value=left_aileron_wing_connection[1:], desired_value=left_aileron_wing_connection.value[1:])
 
 # Right_Aileron = WingComp(AR=aileron_AR, span=aileron_spanR,
 #                                     geometry=aileronR,parametric_geometry=right_aileron_parametric_geometry,
 #                                     tight_fit_ffd=False, name='Right Aileron',orientation='horizontal', 
 #                                     actuate_angle=aileron_actuation_angle, actuate_axis_location=0.,
-#                                     parameterization_solver=parameterization_solver,ffd_geometric_variables=ffd_geometric_variables)
-# Aircraft.add_subcomponent(Right_Aileron)
+#                                     parameterization_solver=parameterization_solver,
+#                                     ffd_geometric_variables=ffd_geometric_variables)
+# Wing.add_subcomponent(Right_Aileron)
 # right_aileron_wing_connection = geometry.evaluate(right_aileron_le_center_parametric) - geometry.evaluate(right_aileron_le_center_on_wing_te_parametric)
-# parameterization_solver.add_variable(computed_value=right_aileron_wing_connection[1:], desired_value=right_aileron_wing_connection.value[1:])
+# # parameterization_solver.add_variable(computed_value=right_aileron_wing_connection[1:], desired_value=right_aileron_wing_connection.value[1:])
 
 
 
 
-HorTailArea = ht_span*ht_chord
-htAR = ht_span**2/HorTailArea
-TrimTabArea = trim_tab_span*trimTab_chord
-trimTabAR = trim_tab_span**2/TrimTabArea
-HorTail_AR = csdl.Variable(name="HT_AR", shape=(1, ), value=htAR)
-TrimTab_AR = csdl.Variable(name="TrimTab_AR", shape=(1, ), value=trimTabAR)
-HT_span = csdl.Variable(name="HT_span", shape=(1, ), value=3.14986972)
-TrimTab_span = csdl.Variable(name="TrimTab_span", shape=(1, ), value=1.9)
-HT_actuation_angle = csdl.Variable(name="HT_actuation_angle", shape=(1, ), value=0)
+# HorTailArea = ht_span*ht_chord
+# htAR = ht_span**2/HorTailArea
+# TrimTabArea = trim_tab_span*trimTab_chord
+# trimTabAR = trim_tab_span**2/TrimTabArea
+# HorTail_AR = csdl.Variable(name="HT_AR", shape=(1, ), value=htAR)
+# TrimTab_AR = csdl.Variable(name="TrimTab_AR", shape=(1, ), value=trimTabAR)
+# HT_span = csdl.Variable(name="HT_span", shape=(1, ), value=3.14986972)
+# TrimTab_span = csdl.Variable(name="TrimTab_span", shape=(1, ), value=1.9)
+# HT_actuation_angle = csdl.Variable(name="HT_actuation_angle", shape=(1, ), value=0)
 
-HorTail = WingComp(AR=HorTail_AR, span=HT_span, 
-                   geometry=htALL, parametric_geometry=ht_parametric_geometry,
-                   tight_fit_ffd=False, skip_ffd=False,
-                   name='Horizontal Tail', orientation='horizontal', 
-                   parameterization_solver=parameterization_solver,ffd_geometric_variables=ffd_geometric_variables)
-Aircraft.add_subcomponent(HorTail)
+# HorTail = WingComp(AR=HorTail_AR, span=HT_span, 
+#                    geometry=htALL, parametric_geometry=ht_parametric_geometry,
+#                    tight_fit_ffd=False, skip_ffd=False,
+#                    name='Horizontal Tail', orientation='horizontal', 
+#                    parameterization_solver=parameterization_solver,ffd_geometric_variables=ffd_geometric_variables)
+# Aircraft.add_subcomponent(HorTail)
 
-tail_moment_arm_computed = csdl.norm(geometry.evaluate(ht_qc_center_parametric) - geometry.evaluate(wing_qc_center_parametric))
-h_tail_fuselage_connection = geometry.evaluate(ht_te_center_parametric) - geometry.evaluate(fuselage_tail_te_center_parametric)
-print('Tail Moment Arm: ', tail_moment_arm_computed.value)
-print('Tail Fuselage Connection: ', h_tail_fuselage_connection.value)
-parameterization_solver.add_variable(computed_value=tail_moment_arm_computed, desired_value=tail_moment_arm_computed.value)
-parameterization_solver.add_variable(computed_value=h_tail_fuselage_connection, desired_value=h_tail_fuselage_connection.value)
+# tail_moment_arm_computed = csdl.norm(geometry.evaluate(ht_qc_center_parametric) - geometry.evaluate(wing_qc_center_parametric))
+# h_tail_fuselage_connection = geometry.evaluate(ht_te_center_parametric) - geometry.evaluate(fuselage_tail_te_center_parametric)
+# print('Tail Moment Arm: ', tail_moment_arm_computed.value)
+# print('Tail Fuselage Connection: ', h_tail_fuselage_connection.value)
+# # parameterization_solver.add_variable(computed_value=tail_moment_arm_computed, desired_value=tail_moment_arm_computed.value)
+# # parameterization_solver.add_variable(computed_value=h_tail_fuselage_connection, desired_value=h_tail_fuselage_connection.value)
 
 
 # TrimTab = WingComp(AR=TrimTab_AR, span=TrimTab_span, 
 #                    geometry=trimTab, parametric_geometry=trimTab_parametric_geometry,
 #                    tight_fit_ffd=False, name='Trim Tab', orientation='horizontal',
-#                    parameterization_solver=parameterization_solver,ffd_geometric_variables=ffd_geometric_variables)
+#                    parameterization_solver=parameterization_solver,
+#                    ffd_geometric_variables=ffd_geometric_variables)
 
 # HorTail.add_subcomponent(TrimTab)
+# trim_tab_ht_connection = geometry.evaluate(trimTab_le_center_parametric) - geometry.evaluate(ht_te_center_parametric)
+# # parameterization_solver.add_variable(computed_value=trim_tab_ht_connection[1:], desired_value=trim_tab_ht_connection.value[1:])
+
+# VertTailArea = vt_span*vt_chord
+# vtAR = vt_span**2/VertTailArea
+# VT_span = csdl.Variable(name="VT_span", shape=(1, ), value=vt_span)
 
 
-VertTailArea = vt_span*vt_chord
-vtAR = vt_span**2/VertTailArea
-VT_span = csdl.Variable(name="VT_span", shape=(1, ), value=vt_span)
+# RudderArea = rudder_span*rudder_chord
+# rudderAR = rudder_span**2/RudderArea
+# Rudder_span = csdl.Variable(name="Rudder_span", shape=(1, ), value=rudder_span)
+# VT_actuation_angle = csdl.Variable(name="VT_actuation_angle", shape=(1, ), value=0)
 
 
-RudderArea = rudder_span*rudder_chord
-rudderAR = rudder_span**2/RudderArea
-Rudder_span = csdl.Variable(name="Rudder_span", shape=(1, ), value=rudder_span)
-VT_actuation_angle = csdl.Variable(name="VT_actuation_angle", shape=(1, ), value=0)
+# VertTail = WingComp(AR=vtAR, span=VT_span, 
+#                     geometry=vertTail, parametric_geometry=vt_parametric_geometry,
+#                     tight_fit_ffd=False, 
+#                     name='Vertical Tail', orientation='vertical',
+#                     parameterization_solver=parameterization_solver,
+#                     ffd_geometric_variables=ffd_geometric_variables)
+# # Rudder = WingComp(AR=rudderAR, span=Rudder_span, geometry=rudder, tight_fit_ffd=False, name='Rudder', orientation='vertical', actuate_angle=VT_actuation_angle, actuate_axis_location=0.,parameterization_solver=parameterization_solver,ffd_geometric_variables=ffd_geometric_variables)
+# Aircraft.add_subcomponent(VertTail)
+# # VertTail.add_subcomponent(Rudder)
 
-
-VertTail = WingComp(AR=vtAR, span=VT_span, 
-                    geometry=vertTail, parametric_geometry=vt_parametric_geometry,
-                    tight_fit_ffd=False, 
-                    name='Vertical Tail', orientation='vertical',
-                    parameterization_solver=parameterization_solver,
-                    ffd_geometric_variables=ffd_geometric_variables)
-# Rudder = WingComp(AR=rudderAR, span=Rudder_span, geometry=rudder, tight_fit_ffd=False, name='Rudder', orientation='vertical', actuate_angle=VT_actuation_angle, actuate_axis_location=0.,parameterization_solver=parameterization_solver,ffd_geometric_variables=ffd_geometric_variables)
-Aircraft.add_subcomponent(VertTail)
-# VertTail.add_subcomponent(Rudder)
-
-vtail_fuselage_connection = geometry.evaluate(fuselage_rear_pts_parametric) - geometry.evaluate(vt_qc_base_parametric)
-print('VTail Fuselage Connection: ', vtail_fuselage_connection.value)
-parameterization_solver.add_variable(computed_value=vtail_fuselage_connection, desired_value=vtail_fuselage_connection.value)
+# vtail_fuselage_connection = geometry.evaluate(fuselage_rear_pts_parametric) - geometry.evaluate(vt_qc_base_parametric)
+# print('VTail Fuselage Connection: ', vtail_fuselage_connection.value)
+# parameterization_solver.add_variable(computed_value=vtail_fuselage_connection, desired_value=vtail_fuselage_connection.value)
 
 
 # rotors = Component(name='Rotors', 
 #                    parameterization_solver=parameterization_solver,
 #                    ffd_geometric_variables=ffd_geometric_variables)
-
 
 
 # for i in range(1, 13):
@@ -1294,7 +1308,8 @@ parameterization_solver.add_variable(computed_value=vtail_fuselage_connection, d
 
 
 # geometry.plot()
-parameterization_solver.evaluate(ffd_geometric_variables)
+# parameterization_solver.evaluate(ffd_geometric_variables)
+# geometry.plot()
 
 
 
