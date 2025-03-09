@@ -209,22 +209,23 @@ class Wing(Component):
 
 
         if self._orientation == "horizontal":
-            num_coefficients = (2,3,2)
+            num_coefficients = (2,11,2)
         else:
-            num_coefficients = (2,2,2)
+            num_coefficients = (2,10,2)
+
 
 
         if self._tight_fit_ffd is True:
             ffd_block = lg.construct_ffd_block_around_entities(
                 entities=geometry, 
-                num_coefficients=num_coefficients, 
+                num_coefficients=(2,2,2), 
                 degree=(1,1,1)
             )
         else:
             ffd_block = lg.construct_ffd_block_around_entities(
                 entities=geometry, 
                 num_coefficients=num_coefficients, 
-                degree=(1,1,1)
+                degree=(1,3,1)
             )
         self._ffd_block = ffd_block
         
@@ -358,17 +359,17 @@ class Wing(Component):
         if self._orientation == "horizontal":
             ffd_geometric_variables.add_variable(wingspan, wingspan_outer_dv)
             ffd_geometric_variables.add_variable(root_chord, root_chord_outer_dv)
-            ffd_geometric_variables.add_variable(tip_chord_left, tip_chord_outer_dv)
-            ffd_geometric_variables.add_variable(tip_chord_right, tip_chord_outer_dv)
-            if self.parameters.sweep is not None:
-                ffd_geometric_variables.add_variable(sweep_angle_left, sweep_angle_outer_dv)
-                ffd_geometric_variables.add_variable(sweep_angle_right, sweep_angle_outer_dv)
-        else:
-            ffd_geometric_variables.add_variable(wingspan, wingspan_outer_dv)
-            ffd_geometric_variables.add_variable(root_chord, root_chord_outer_dv)
-            ffd_geometric_variables.add_variable(tip_chord, tip_chord_outer_dv)
-            if self.parameters.sweep is not None:
-                ffd_geometric_variables.add_variable(sweep_angle, sweep_angle_outer_dv)
+        #     ffd_geometric_variables.add_variable(tip_chord_left, tip_chord_outer_dv)
+        #     ffd_geometric_variables.add_variable(tip_chord_right, tip_chord_outer_dv)
+        #     if self.parameters.sweep is not None:
+        #         ffd_geometric_variables.add_variable(sweep_angle_left, sweep_angle_outer_dv)
+        #         ffd_geometric_variables.add_variable(sweep_angle_right, sweep_angle_outer_dv)
+        # else:
+        #     ffd_geometric_variables.add_variable(wingspan, wingspan_outer_dv)
+        #     ffd_geometric_variables.add_variable(root_chord, root_chord_outer_dv)
+        #     ffd_geometric_variables.add_variable(tip_chord, tip_chord_outer_dv)
+        #     if self.parameters.sweep is not None:
+        #         ffd_geometric_variables.add_variable(sweep_angle, sweep_angle_outer_dv)
 
 
         print("Component Name: ", self._name)
