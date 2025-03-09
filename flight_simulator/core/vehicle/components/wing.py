@@ -323,8 +323,11 @@ class Wing(Component):
         tip_chord_outer_dv = csdl.Variable(shape=(1,), value=tip_chord_input.value)
         sweep_angle_outer_dv = csdl.Variable(shape=(1,), value=self.parameters.sweep.value * np.pi / 180)
 
-
-
+        if self.parameters.actuate_angle is not None:
+            if self._orientation == "horizontal":
+                geometry.rotate(axis_origin=self.parameters.actuate_axis_location, axis_vector=np.array([0., 0., 1.]), angles=self.parameters.actuate_angle)
+            else:
+                geometry.rotate(axis_origin=self.parameters.actuate_axis_location, axis_vector=np.array([0., 1., 0.]), angles=self.parameters.actuate_angle)
 
         parameterization_solver.add_parameter(chord_stretching_b_spline.coefficients)
         parameterization_solver.add_parameter(wingspan_stretching_b_spline.coefficients)
