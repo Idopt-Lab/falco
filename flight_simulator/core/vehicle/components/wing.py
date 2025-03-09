@@ -207,11 +207,10 @@ class Wing(Component):
 
 
 
-
         if self._orientation == "horizontal":
-            num_coefficients = (2,11,2)
+            num_coefficients = (3,11,3)
         else:
-            num_coefficients = (2,10,2)
+            num_coefficients = (3,11,3)
 
 
 
@@ -338,6 +337,7 @@ class Wing(Component):
         chord_stretching_b_spline.coefficients.add_name('chord_stretching_b_spline_coefficients')
         wingspan_stretching_b_spline.coefficients.add_name('wingspan_stretching_b_spline_coefficients')
         sweep_translation_b_spline.coefficients.add_name('sweep_translation_b_spline_coefficients')
+        twist_b_spline.coefficients.add_name('twist_b_spline_coefficients')
 
 
         wingspan_outer_dv = csdl.Variable(shape=(1,), value=self.parameters.span.value)
@@ -354,22 +354,24 @@ class Wing(Component):
         parameterization_solver.add_parameter(chord_stretching_b_spline.coefficients)
         parameterization_solver.add_parameter(wingspan_stretching_b_spline.coefficients)
         parameterization_solver.add_parameter(sweep_translation_b_spline.coefficients)
+        parameterization_solver.add_parameter(twist_b_spline.coefficients)
 
 
         if self._orientation == "horizontal":
             ffd_geometric_variables.add_variable(wingspan, wingspan_outer_dv)
             ffd_geometric_variables.add_variable(root_chord, root_chord_outer_dv)
-        #     ffd_geometric_variables.add_variable(tip_chord_left, tip_chord_outer_dv)
-        #     ffd_geometric_variables.add_variable(tip_chord_right, tip_chord_outer_dv)
-        #     if self.parameters.sweep is not None:
-        #         ffd_geometric_variables.add_variable(sweep_angle_left, sweep_angle_outer_dv)
-        #         ffd_geometric_variables.add_variable(sweep_angle_right, sweep_angle_outer_dv)
-        # else:
-        #     ffd_geometric_variables.add_variable(wingspan, wingspan_outer_dv)
-        #     ffd_geometric_variables.add_variable(root_chord, root_chord_outer_dv)
-        #     ffd_geometric_variables.add_variable(tip_chord, tip_chord_outer_dv)
-        #     if self.parameters.sweep is not None:
-        #         ffd_geometric_variables.add_variable(sweep_angle, sweep_angle_outer_dv)
+            ffd_geometric_variables.add_variable(tip_chord_left, tip_chord_outer_dv)
+            ffd_geometric_variables.add_variable(tip_chord_right, tip_chord_outer_dv)
+            if self.parameters.sweep is not None:
+                ffd_geometric_variables.add_variable(sweep_angle_left, sweep_angle_outer_dv)
+                ffd_geometric_variables.add_variable(sweep_angle_right, sweep_angle_outer_dv)
+        else:
+            ffd_geometric_variables.add_variable(wingspan, wingspan_outer_dv)
+            ffd_geometric_variables.add_variable(root_chord, root_chord_outer_dv)
+            ffd_geometric_variables.add_variable(tip_chord, tip_chord_outer_dv)
+            if self.parameters.sweep is not None:
+                ffd_geometric_variables.add_variable(sweep_angle, sweep_angle_outer_dv)
+        
 
 
         print("Component Name: ", self._name)
@@ -386,6 +388,7 @@ class Wing(Component):
         print("Chord Stretching: ", chord_stretching_b_spline.coefficients.value)
         print("Wingspan Stretching: ", wingspan_stretching_b_spline.coefficients.value)
         print("Sweep Translation: ", sweep_translation_b_spline.coefficients.value)
+        print("Twist: ", twist_b_spline.coefficients.value)
 
 
 
