@@ -9,6 +9,7 @@ import numpy as np
 import csdl_alpha as csdl 
 from dataclasses import dataclass
 from lsdo_function_spaces import FunctionSet
+import lsdo_geo as lg
 
 
 
@@ -100,20 +101,23 @@ class Fuselage(Component):
 
                 
                 # Automatically make the FFD block upon instantiation 
-                self._ffd_block = self._make_ffd_block(self.geometry)
+
+                num_ffd_sections = 3
+                self.ffd_block = lg.construct_ffd_block_around_entities(entities=geometry, num_coefficients=(2, num_ffd_sections, 2), degree=(1,1,1))
+
 
                 # Extract dimensions (height, width, length) from the FFD block
-                self._nose_point = geometry.project(self._ffd_block.evaluate(parametric_coordinates=np.array([1., 0.5, 0.5])))
-                self._tail_point = geometry.project(self._ffd_block.evaluate(parametric_coordinates=np.array([0., 0.5, 0.5])))
+                self._nose_point = geometry.project(self.ffd_block.evaluate(parametric_coordinates=np.array([1., 0.5, 0.5])))
+                self._tail_point = geometry.project(self.ffd_block.evaluate(parametric_coordinates=np.array([0., 0.5, 0.5])))
 
                 self.nose_point = geometry.evaluate(self._nose_point)
                 self.tail_point = geometry.evaluate(self._tail_point)
 
-                self._left_point = geometry.project(self._ffd_block.evaluate(parametric_coordinates=np.array([0.5, 0., 0.5])))
-                self._right_point = geometry.project(self._ffd_block.evaluate(parametric_coordinates=np.array([0.5, 1., 0.5])))
+                self._left_point = geometry.project(self.ffd_block.evaluate(parametric_coordinates=np.array([0.5, 0., 0.5])))
+                self._right_point = geometry.project(self.ffd_block.evaluate(parametric_coordinates=np.array([0.5, 1., 0.5])))
 
-                self._top_point = geometry.project(self._ffd_block.evaluate(parametric_coordinates=np.array([0.5, 0.5, 1.])))
-                self._bottom_point = geometry.project(self._ffd_block.evaluate(parametric_coordinates=np.array([0.5, 0.5, 0.])))
+                self._top_point = geometry.project(self.ffd_block.evaluate(parametric_coordinates=np.array([0.5, 0.5, 1.])))
+                self._bottom_point = geometry.project(self.ffd_block.evaluate(parametric_coordinates=np.array([0.5, 0.5, 0.])))
 
 
         self._fuselage_length_stretch_coefficients = csdl.Variable(name='fuselage_length_stretch_coefficients', value=np.array([0., 0.]))
@@ -271,7 +275,7 @@ class Fuselage(Component):
     def _setup_geometry(self, parameterization_solver, ffd_geometric_variables, plot: bool = False):
         """Set up the fuselage geometry (mainly for FFD)"""
         # Get ffd block
-        fuselage_ffd_block = self._ffd_block
+        fuselage_ffd_block = self.ffd_block
         
         self._setup_ffd_block(fuselage_ffd_block, parameterization_solver, ffd_geometric_variables, plot=plot)
         

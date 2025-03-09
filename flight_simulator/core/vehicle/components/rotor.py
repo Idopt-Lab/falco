@@ -8,6 +8,7 @@ import numpy as np
 from dataclasses import dataclass
 import csdl_alpha as csdl
 from typing import Union
+import lsdo_geo as lg
 
 
 @dataclass
@@ -42,20 +43,21 @@ class Rotor(Component):
                 raise TypeError(f"wing geometry must be of type {FunctionSet}, received {type(self.geometry)}")
 
             else:
-                self._ffd_block = self._make_ffd_block(self.geometry)
+                num_ffd_sections = 3
+                self.ffd_block = lg.construct_ffd_block_around_entities(entities=geometry, num_coefficients=(2, num_ffd_sections, 2), degree=(1,1,1))
                 # Do projections for corner points
                 # Find principal axis/dim
                 # u-direction
-                u_dim = self._ffd_block.evaluate(parametric_coordinates=np.array([0., 0.5, 0.5])) - \
-                        self._ffd_block.evaluate(parametric_coordinates=np.array([1., 0.5, 0.5]))
+                u_dim = self.ffd_block.evaluate(parametric_coordinates=np.array([0., 0.5, 0.5])) - \
+                        self.ffd_block.evaluate(parametric_coordinates=np.array([1., 0.5, 0.5]))
 
                 # v-direction
-                v_dim = self._ffd_block.evaluate(parametric_coordinates=np.array([0., 0., 0.5])) - \
-                        self._ffd_block.evaluate(parametric_coordinates=np.array([0., 1., 0.5]))
+                v_dim = self.ffd_block.evaluate(parametric_coordinates=np.array([0., 0., 0.5])) - \
+                        self.ffd_block.evaluate(parametric_coordinates=np.array([0., 1., 0.5]))
                 
                 # w-direction
-                w_dim = self._ffd_block.evaluate(parametric_coordinates=np.array([0.5, 0.5, 0.])) - \
-                        self._ffd_block.evaluate(parametric_coordinates=np.array([0.5, 0.5, 1.]))
+                w_dim = self.ffd_block.evaluate(parametric_coordinates=np.array([0.5, 0.5, 0.])) - \
+                        self.ffd_block.evaluate(parametric_coordinates=np.array([0.5, 0.5, 1.]))
                 
                 # Get the dimension (i.e., size) of the FFD-block
                 u_norm = csdl.norm(u_dim).value
@@ -71,22 +73,22 @@ class Rotor(Component):
                 self._pr_dim = smllst_dim
                 
                 if smllst_dim == 0:
-                    self._corner_point_1 = geometry.project(self._ffd_block.evaluate(parametric_coordinates=np.array([0.5, 0.5, 0.])))
-                    self._corner_point_2 = geometry.project(self._ffd_block.evaluate(parametric_coordinates=np.array([0.5, 0.5, 1.])))
-                    self._corner_point_3 = geometry.project(self._ffd_block.evaluate(parametric_coordinates=np.array([0.5, 0., 0.5])))
-                    self._corner_point_4 = geometry.project(self._ffd_block.evaluate(parametric_coordinates=np.array([0.5, 1., 0.5])))
+                    self._corner_point_1 = geometry.project(self.ffd_block.evaluate(parametric_coordinates=np.array([0.5, 0.5, 0.])))
+                    self._corner_point_2 = geometry.project(self.ffd_block.evaluate(parametric_coordinates=np.array([0.5, 0.5, 1.])))
+                    self._corner_point_3 = geometry.project(self.ffd_block.evaluate(parametric_coordinates=np.array([0.5, 0., 0.5])))
+                    self._corner_point_4 = geometry.project(self.ffd_block.evaluate(parametric_coordinates=np.array([0.5, 1., 0.5])))
 
                 elif smllst_dim == 1:
-                    self._corner_point_1 = geometry.project(self._ffd_block.evaluate(parametric_coordinates=np.array([0., 0.5, 0.5])))
-                    self._corner_point_2 = geometry.project(self._ffd_block.evaluate(parametric_coordinates=np.array([1., 0.5, 0.5])))
-                    self._corner_point_3 = geometry.project(self._ffd_block.evaluate(parametric_coordinates=np.array([0.5, 0.5, 0.])))
-                    self._corner_point_4 = geometry.project(self._ffd_block.evaluate(parametric_coordinates=np.array([0.5, 0.5, 1.])))
+                    self._corner_point_1 = geometry.project(self.ffd_block.evaluate(parametric_coordinates=np.array([0., 0.5, 0.5])))
+                    self._corner_point_2 = geometry.project(self.ffd_block.evaluate(parametric_coordinates=np.array([1., 0.5, 0.5])))
+                    self._corner_point_3 = geometry.project(self.ffd_block.evaluate(parametric_coordinates=np.array([0.5, 0.5, 0.])))
+                    self._corner_point_4 = geometry.project(self.ffd_block.evaluate(parametric_coordinates=np.array([0.5, 0.5, 1.])))
 
                 elif smllst_dim == 2:
-                    self._corner_point_1 = geometry.project(self._ffd_block.evaluate(parametric_coordinates=np.array([0., 0.5, 0.5])))
-                    self._corner_point_2 = geometry.project(self._ffd_block.evaluate(parametric_coordinates=np.array([1., 0.5, 0.5])))
-                    self._corner_point_3 = geometry.project(self._ffd_block.evaluate(parametric_coordinates=np.array([0.5, 0., 0.5])))
-                    self._corner_point_4 = geometry.project(self._ffd_block.evaluate(parametric_coordinates=np.array([0.5, 1., 0.5])))
+                    self._corner_point_1 = geometry.project(self.ffd_block.evaluate(parametric_coordinates=np.array([0., 0.5, 0.5])))
+                    self._corner_point_2 = geometry.project(self.ffd_block.evaluate(parametric_coordinates=np.array([1., 0.5, 0.5])))
+                    self._corner_point_3 = geometry.project(self.ffd_block.evaluate(parametric_coordinates=np.array([0.5, 0., 0.5])))
+                    self._corner_point_4 = geometry.project(self.ffd_block.evaluate(parametric_coordinates=np.array([0.5, 1., 0.5])))
 
                 else:
                     raise Exception(f"Invalid smallest dimension {smllst_dim}. Needs to be 0, 1, 2. This is unlikely to be a user error")
@@ -262,7 +264,7 @@ class Rotor(Component):
         """Set up the fuselage geometry (mainly for FFD)"""
 
         # Get ffd block
-        fuselage_ffd_block = self._ffd_block
+        fuselage_ffd_block = self.ffd_block
 
         # Set up the ffd block
         self._setup_ffd_block(fuselage_ffd_block, parameterization_solver)
