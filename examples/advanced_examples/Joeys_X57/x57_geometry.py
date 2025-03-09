@@ -483,7 +483,8 @@ fuselage_wing_qc = geometry.evaluate(fuselage.project(np.array([-12.356+(0.25*(-
 fuselage_wing_te_center_parametric = fuselage.project(np.array([-14.25, 0., -5.5])*ft2m, plot=False)
 fuselage_wing_te_center = geometry.evaluate(fuselage_wing_te_center_parametric)
 fuselage_tail_qc = geometry.evaluate(fuselage.project(np.array([-27 + (0.25*(-30+27)), 0., -5.5])*ft2m, plot=False))
-fuselage_tail_te_center = geometry.evaluate(fuselage.project(np.array([-30, 0., -5.5])*ft2m, plot=False))
+fuselage_tail_te_center_parametric = fuselage.project(np.array([-30, 0., -5.5])*ft2m, plot=False)
+fuselage_tail_te_center = geometry.evaluate(fuselage_tail_te_center_parametric)
 
 
 # Propeller Region Info
@@ -1181,26 +1182,30 @@ aileron_actuation_angle = csdl.Variable(name="aileron_actuation_angle", shape=(1
 
 
 
-# HorTailArea = ht_span*ht_chord
-# htAR = ht_span**2/HorTailArea
-# TrimTabArea = trim_tab_span*trimTab_chord
-# trimTabAR = trim_tab_span**2/TrimTabArea
-# HorTail_AR = csdl.Variable(name="HT_AR", shape=(1, ), value=htAR)
-# TrimTab_AR = csdl.Variable(name="TrimTab_AR", shape=(1, ), value=trimTabAR)
-# HT_span = csdl.Variable(name="HT_span", shape=(1, ), value=3.14986972)
-# TrimTab_span = csdl.Variable(name="TrimTab_span", shape=(1, ), value=1.9)
-# HT_actuation_angle = csdl.Variable(name="HT_actuation_angle", shape=(1, ), value=0)
+HorTailArea = ht_span*ht_chord
+htAR = ht_span**2/HorTailArea
+TrimTabArea = trim_tab_span*trimTab_chord
+trimTabAR = trim_tab_span**2/TrimTabArea
+HorTail_AR = csdl.Variable(name="HT_AR", shape=(1, ), value=htAR)
+TrimTab_AR = csdl.Variable(name="TrimTab_AR", shape=(1, ), value=trimTabAR)
+HT_span = csdl.Variable(name="HT_span", shape=(1, ), value=3.14986972)
+TrimTab_span = csdl.Variable(name="TrimTab_span", shape=(1, ), value=1.9)
+HT_actuation_angle = csdl.Variable(name="HT_actuation_angle", shape=(1, ), value=0)
 
-# HorTail = WingComp(AR=HorTail_AR, span=HT_span, 
-#                    geometry=htALL, parametric_geometry=ht_parametric_geometry,
-#                    tight_fit_ffd=False, skip_ffd=False,
-#                    name='Horizontal Tail', orientation='horizontal', 
-#                    parameterization_solver=parameterization_solver,ffd_geometric_variables=ffd_geometric_variables)
-# Aircraft.add_subcomponent(HorTail)
+HorTail = WingComp(AR=HorTail_AR, span=HT_span, 
+                   geometry=htALL, parametric_geometry=ht_parametric_geometry,
+                   tight_fit_ffd=False, skip_ffd=False,
+                   name='Horizontal Tail', orientation='horizontal', 
+                   parameterization_solver=parameterization_solver,ffd_geometric_variables=ffd_geometric_variables)
+Aircraft.add_subcomponent(HorTail)
 
-# tail_moment_arm_computed = csdl.norm(geometry.evaluate(ht_qc_center_parametric) - geometry.evaluate(wing_qc_center_parametric))
-# print('Tail Moment Arm: ', tail_moment_arm_computed.value)
-# parameterization_solver.add_variable(computed_value=tail_moment_arm_computed, desired_value=tail_moment_arm_computed.value)
+tail_moment_arm_computed = csdl.norm(geometry.evaluate(ht_qc_center_parametric) - geometry.evaluate(wing_qc_center_parametric))
+h_tail_fuselage_connection = geometry.evaluate(ht_te_center_parametric) - geometry.evaluate(fuselage_tail_te_center_parametric)
+print('Tail Moment Arm: ', tail_moment_arm_computed.value)
+print('Tail Fuselage Connection: ', h_tail_fuselage_connection.value)
+parameterization_solver.add_variable(computed_value=tail_moment_arm_computed, desired_value=tail_moment_arm_computed.value)
+parameterization_solver.add_variable(computed_value=h_tail_fuselage_connection, desired_value=h_tail_fuselage_connection.value)
+
 
 # TrimTab = WingComp(AR=TrimTab_AR, span=TrimTab_span, 
 #                    geometry=trimTab, parametric_geometry=trimTab_parametric_geometry,
@@ -1228,8 +1233,13 @@ VertTail = WingComp(AR=vtAR, span=VT_span,
                     parameterization_solver=parameterization_solver,
                     ffd_geometric_variables=ffd_geometric_variables)
 # Rudder = WingComp(AR=rudderAR, span=Rudder_span, geometry=rudder, tight_fit_ffd=False, name='Rudder', orientation='vertical', actuate_angle=VT_actuation_angle, actuate_axis_location=0.,parameterization_solver=parameterization_solver,ffd_geometric_variables=ffd_geometric_variables)
-# Aircraft.add_subcomponent(VertTail)
+Aircraft.add_subcomponent(VertTail)
 # VertTail.add_subcomponent(Rudder)
+
+vtail_fuselage_connection = geometry.evaluate(fuselage_rear_pts_parametric) - geometry.evaluate(vt_qc_base_parametric)
+print('VTail Fuselage Connection: ', vtail_fuselage_connection.value)
+parameterization_solver.add_variable(computed_value=vtail_fuselage_connection, desired_value=vtail_fuselage_connection.value)
+
 
 # rotors = Component(name='Rotors', 
 #                    parameterization_solver=parameterization_solver,
