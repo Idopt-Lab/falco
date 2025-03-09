@@ -194,20 +194,40 @@ class Wing(Component):
             wing_qc_center = parametric_geometry[6]
             wing_qc_tip_right = parametric_geometry[7]
             wing_qc_tip_left = parametric_geometry[8]
+        else:
+            wing_le_base_parametric = parametric_geometry[0]
+            wing_le_tip_parametric = parametric_geometry[1]
+            wing_le_base_parametric = parametric_geometry[2]
+            wing_te_base_parametric = parametric_geometry[3]
+            wing_te_tip_parametric = parametric_geometry[4]
+            wing_te_mid_parametric = parametric_geometry[5]
+            wing_qc_parametric = parametric_geometry[6]
+            wing_qc_base_parametric = parametric_geometry[7]
+            wing_qc_tip_parametric = parametric_geometry[8]
 
 
 
 
-        num_ffd_sections = 3
-        num_wing_sections = 2
+        if self._orientation == "horizontal":
+            num_coefficients = (2,3,2)
+        else:
+            num_coefficients = (2,2,2)
+
 
         if self._tight_fit_ffd is True:
-            ffd_block = lg.construct_ffd_block_around_entities(entities=geometry, num_coefficients=(2, (num_ffd_sections // num_wing_sections + 1), 2), degree=(1,1,1))
+            ffd_block = lg.construct_ffd_block_around_entities(
+                entities=geometry, 
+                num_coefficients=num_coefficients, 
+                degree=(1,1,1)
+            )
         else:
-            ffd_block = lg.construct_ffd_block_around_entities(entities=geometry, num_coefficients=(2, num_ffd_sections, 2), degree=(1,1,1))
-        # ffd_block = lg.construct_ffd_block_around_entities(entities=geometry, num_coefficients=(2, (num_ffd_sections // num_wing_sections + 1), 2), degree=(1,1,1))
-        # ffd_block = construct_tight_fit_ffd_block(entities=geometry, num_coefficients=(2, 3, 2), degree=(1,1,1))
-        # ffd_block.plot()
+            ffd_block = lg.construct_ffd_block_around_entities(
+                entities=geometry, 
+                num_coefficients=num_coefficients, 
+                degree=(1,1,1)
+            )
+        self._ffd_block = ffd_block
+        
 
 
 
@@ -217,11 +237,15 @@ class Wing(Component):
             VolumeSectionalParameterizationInputs
         )
 
+        if self._orientation == "horizontal":
+            principal_parametric_dimension = 1
+        else:
+            principal_parametric_dimension = 2
 
         ffd_sectional_parameterization = VolumeSectionalParameterization(
             name="ffd_sectional_parameterization",
             parameterized_points=ffd_block.coefficients,
-            principal_parametric_dimension=1,
+            principal_parametric_dimension=principal_parametric_dimension,
         )
 
         space_of_linear_3_dof_b_splines = lfs.BSplineSpace(num_parametric_dimensions=1, degree=1, coefficients_shape=(3,))
@@ -235,12 +259,12 @@ class Wing(Component):
 
         sweep_translation_b_spline = lfs.Function(space=space_of_linear_3_dof_b_splines,
                                                     coefficients=csdl.ImplicitVariable(shape=(3,), value=np.array([0.0, 0.0, 0.0])), name='sweep_translation_b_spline_coefficients')
-        # sweep_translation_b_spline.plot()
 
         twist_b_spline = lfs.Function(space=space_of_linear_3_dof_b_splines,
                                         coefficients=csdl.Variable(shape=(3,), value=np.array([0, 0., 0])*np.pi/180), name='twist_b_spline_coefficients')
 
 
+        num_ffd_sections = ffd_sectional_parameterization.num_sections
 
         parametric_b_spline_inputs = np.linspace(0.0, 1.0, num_ffd_sections).reshape((-1, 1))
         chord_stretch_sectional_parameters = chord_stretching_b_spline.evaluate(
@@ -249,9 +273,11 @@ class Wing(Component):
         wingspan_stretch_sectional_parameters = wingspan_stretching_b_spline.evaluate(
             parametric_b_spline_inputs
         )
-        sweep_translation_sectional_parameters = sweep_translation_b_spline.evaluate(
-            parametric_b_spline_inputs
-        )
+
+        if self.parameters.sweep is not None:
+            sweep_translation_sectional_parameters = sweep_translation_b_spline.evaluate(
+                parametric_b_spline_inputs
+            )
 
         twist_sectional_parameters = twist_b_spline.evaluate(
             parametric_b_spline_inputs
@@ -262,19 +288,21 @@ class Wing(Component):
         if self._orientation == "horizontal":
             sectional_parameters.add_sectional_stretch(axis=0, stretch=chord_stretch_sectional_parameters)
             sectional_parameters.add_sectional_translation(axis=1, translation=wingspan_stretch_sectional_parameters)
-            sectional_parameters.add_sectional_translation(axis=0, translation=sweep_translation_sectional_parameters)
+            if self.parameters.sweep is not None:
+                sectional_parameters.add_sectional_translation(axis=0, translation=sweep_translation_sectional_parameters)
             sectional_parameters.add_sectional_rotation(axis=1, rotation=twist_sectional_parameters)
 
         else:
             sectional_parameters.add_sectional_stretch(axis=0, stretch=chord_stretch_sectional_parameters)
             sectional_parameters.add_sectional_translation(axis=2, translation=wingspan_stretch_sectional_parameters)
-            sectional_parameters.add_sectional_translation(axis=0, translation=sweep_translation_sectional_parameters)
+            if self.parameters.sweep is not None:
+                sectional_parameters.add_sectional_translation(axis=0, translation=sweep_translation_sectional_parameters)
 
 
 
 
 
-        ffd_coefficients = ffd_sectional_parameterization.evaluate(sectional_parameters, plot=False)    # TODO: Fix plot function
+        ffd_coefficients = ffd_sectional_parameterization.evaluate(sectional_parameters, plot=False) 
         ffd_coefficients.name = 'ffd_coefficients'
 
 
@@ -283,36 +311,29 @@ class Wing(Component):
         geometry.set_coefficients(geometry_coefficients)
         # wing.plot()
 
-        wingspan = csdl.norm(
-            geometry.evaluate(wing_le_right_parametric) - geometry.evaluate(wing_le_left_parametric)
-        )
-        root_chord = csdl.norm(
-            geometry.evaluate(wing_te_center_parametric) - geometry.evaluate(wing_le_center_parametric)
-        )
-        tip_chord_left = csdl.norm(
-            geometry.evaluate(wing_te_left_parametric) - geometry.evaluate(wing_le_left_parametric)
-        )
-        tip_chord_right = csdl.norm(
-            geometry.evaluate(wing_te_right_parametric) - geometry.evaluate(wing_le_right_parametric)
-        )
-
-        spanwise_direction_left = geometry.evaluate(wing_qc_tip_left) - geometry.evaluate(wing_qc_center)
-        spanwise_direction_right = geometry.evaluate(wing_qc_tip_right) - geometry.evaluate(wing_qc_center)
-        # sweep_angle = csdl.arccos(csdl.vdot(spanwise_direction, np.array([0., -1., 0.])) / csdl.norm(spanwise_direction))
-        sweep_angle_left = csdl.arccos(-spanwise_direction_left[1] / csdl.norm(spanwise_direction_left))
-        sweep_angle_right = csdl.arccos(spanwise_direction_right[1] / csdl.norm(spanwise_direction_right))
 
 
 
+        if self._orientation == "horizontal":
+            wingspan = csdl.norm(geometry.evaluate(wing_le_right_parametric) - geometry.evaluate(wing_le_left_parametric))
+            root_chord = csdl.norm(geometry.evaluate(wing_te_center_parametric) - geometry.evaluate(wing_le_center_parametric))
+            tip_chord_left = csdl.norm(geometry.evaluate(wing_te_left_parametric) - geometry.evaluate(wing_le_left_parametric))
+            tip_chord_right = csdl.norm(geometry.evaluate(wing_te_right_parametric) - geometry.evaluate(wing_le_right_parametric))
+            spanwise_direction_left = geometry.evaluate(wing_qc_tip_left) - geometry.evaluate(wing_qc_center)
+            spanwise_direction_right = geometry.evaluate(wing_qc_tip_right) - geometry.evaluate(wing_qc_center)
+            sweep_angle_left = csdl.arcsin(-spanwise_direction_left[0] / csdl.norm(spanwise_direction_left))
+            sweep_angle_right = csdl.arcsin(-spanwise_direction_right[0] / csdl.norm(spanwise_direction_right))
+        else:
+            wingspan = csdl.norm(geometry.evaluate(wing_le_tip_parametric) - geometry.evaluate(wing_le_base_parametric))
+            root_chord = csdl.norm(geometry.evaluate(wing_te_base_parametric) - geometry.evaluate(wing_le_base_parametric))
+            tip_chord = csdl.norm(geometry.evaluate(wing_te_tip_parametric) - geometry.evaluate(wing_le_tip_parametric))
+            spanwise_direction = geometry.evaluate(wing_qc_tip_parametric) - geometry.evaluate(wing_qc_base_parametric)
+            sweep_angle = csdl.arcsin(spanwise_direction[0] / csdl.norm(spanwise_direction))
 
-        # print("Wingspan: ", wingspan.value)
-        # print("Root Chord: ", root_chord.value)
-        # print("Tip Chord Left: ", tip_chord_left.value)
-        # print("Tip Chord Right: ", tip_chord_right.value)
-        # print("Sweep Angle Left: ", sweep_angle_left.value*180/np.pi)
-        # print("Sweep Angle Right: ", sweep_angle_right.value*180/np.pi)
 
-        # Create Newton solver for inner optimization
+
+
+
         chord_stretching_b_spline.coefficients.add_name('chord_stretching_b_spline_coefficients')
         wingspan_stretching_b_spline.coefficients.add_name('wingspan_stretching_b_spline_coefficients')
         sweep_translation_b_spline.coefficients.add_name('sweep_translation_b_spline_coefficients')
@@ -334,25 +355,38 @@ class Wing(Component):
         parameterization_solver.add_parameter(sweep_translation_b_spline.coefficients)
 
 
-
-        ffd_geometric_variables.add_variable(wingspan, wingspan_outer_dv)
-        ffd_geometric_variables.add_variable(root_chord, root_chord_outer_dv)
-        # ffd_geometric_variables.add_variable(tip_chord_left, tip_chord_outer_dv)
-        # ffd_geometric_variables.add_variable(tip_chord_right, tip_chord_outer_dv)
-        ffd_geometric_variables.add_variable(sweep_angle_left, sweep_angle_outer_dv)
-        ffd_geometric_variables.add_variable(sweep_angle_right, sweep_angle_outer_dv)
+        if self._orientation == "horizontal":
+            ffd_geometric_variables.add_variable(wingspan, wingspan_outer_dv)
+            ffd_geometric_variables.add_variable(root_chord, root_chord_outer_dv)
+            ffd_geometric_variables.add_variable(tip_chord_left, tip_chord_outer_dv)
+            ffd_geometric_variables.add_variable(tip_chord_right, tip_chord_outer_dv)
+            if self.parameters.sweep is not None:
+                ffd_geometric_variables.add_variable(sweep_angle_left, sweep_angle_outer_dv)
+                ffd_geometric_variables.add_variable(sweep_angle_right, sweep_angle_outer_dv)
+        else:
+            ffd_geometric_variables.add_variable(wingspan, wingspan_outer_dv)
+            ffd_geometric_variables.add_variable(root_chord, root_chord_outer_dv)
+            ffd_geometric_variables.add_variable(tip_chord, tip_chord_outer_dv)
+            if self.parameters.sweep is not None:
+                ffd_geometric_variables.add_variable(sweep_angle, sweep_angle_outer_dv)
 
 
         print("Component Name: ", self._name)
         print("Wingspan: ", wingspan.value)
         print("Root Chord: ", root_chord.value)
-        print("Tip Chord Left: ", tip_chord_left.value)
-        print("Tip Chord Right: ", tip_chord_right.value)
-        print("Sweep Angle Left: ", sweep_angle_left.value*180/np.pi)
-        print("Sweep Angle Right: ", sweep_angle_right.value*180/np.pi)
+        if self._orientation == "horizontal":
+            print("Tip Chord Left: ", tip_chord_left.value)
+            print("Tip Chord Right: ", tip_chord_right.value)
+            print("Sweep Angle Left: ", sweep_angle_left.value*180/np.pi)
+            print("Sweep Angle Right: ", sweep_angle_right.value*180/np.pi)
+        else:
+            print("Tip Chord: ", tip_chord.value)
+            print("Sweep Angle: ", sweep_angle.value*180/np.pi)
         print("Chord Stretching: ", chord_stretching_b_spline.coefficients.value)
         print("Wingspan Stretching: ", wingspan_stretching_b_spline.coefficients.value)
         print("Sweep Translation: ", sweep_translation_b_spline.coefficients.value)
+
+
 
 
 
