@@ -1153,6 +1153,11 @@ wing_AR = csdl.Variable(name="wing_AR", shape=(1, ), value=AR)
 wing_span = csdl.Variable(name="wingspan", shape=(1, ), value=10)
 wing_sweep = csdl.Variable(name="wing_sweep", shape=(1, ), value=20)
 
+aileronL.rotate(left_aileron_le_center, np.array([0., 1., 0.]), angles=np.deg2rad(20))
+aileronR.rotate(right_aileron_le_center, np.array([0., 1., 0.]), angles=np.deg2rad(20))
+flapL.rotate(left_flap_le_center, np.array([0., 1., 0.]), angles=np.deg2rad(20))
+flapR.rotate(right_flap_le_center, np.array([0., 1., 0.]), angles=np.deg2rad(20))
+
 
 Wing = WingComp(AR=wing_AR,
                 span=wing_span,
@@ -1167,7 +1172,7 @@ Wing = WingComp(AR=wing_AR,
 
 Aircraft.add_subcomponent(Wing)
 wing_fuse_connection = geometry.evaluate(wing_te_center_parametric) - geometry.evaluate(fuselage_wing_te_center_parametric)
-print("wing_fuse_connection: ", wing_fuse_connection.value)
+# print("wing_fuse_connection: ", wing_fuse_connection.value)
 parameterization_solver.add_variable(computed_value=wing_fuse_connection, desired_value=wing_fuse_connection.value)
 
 
@@ -1180,7 +1185,7 @@ HorTail_AR = csdl.Variable(name="HT_AR", shape=(1, ), value=4)
 TrimTab_AR = csdl.Variable(name="TrimTab_AR", shape=(1, ), value=trimTabAR)
 HT_span = csdl.Variable(name="HT_span", shape=(1, ), value=3.14986972)
 TrimTab_span = csdl.Variable(name="TrimTab_span", shape=(1, ), value=1.9)
-HT_actuation_angle = csdl.Variable(name="HT_actuation_angle", shape=(1, ), value=0)
+HT_actuation_angle = csdl.Variable(name="HT_actuation_angle", shape=(1, ), value=30)
 
 HorTail = WingComp(AR=HorTail_AR, span=HT_span, 
                    geometry=htALL, parametric_geometry=ht_parametric_geometry,
@@ -1189,10 +1194,12 @@ HorTail = WingComp(AR=HorTail_AR, span=HT_span,
                    parameterization_solver=parameterization_solver,ffd_geometric_variables=ffd_geometric_variables)
 Aircraft.add_subcomponent(HorTail)
 
+htALL.rotate(ht_qc, np.array([0., 1., 0.]), angles=HT_actuation_angle)
+
 tail_moment_arm_computed = csdl.norm(geometry.evaluate(ht_qc_center_parametric) - geometry.evaluate(wing_qc_center_parametric))
 h_tail_fuselage_connection = geometry.evaluate(ht_te_center_parametric) - geometry.evaluate(fuselage_tail_te_center_parametric)
-print('Tail Moment Arm: ', tail_moment_arm_computed.value)
-print('Tail Fuselage Connection: ', h_tail_fuselage_connection.value)
+# print('Tail Moment Arm: ', tail_moment_arm_computed.value)
+# print('Tail Fuselage Connection: ', h_tail_fuselage_connection.value)
 # parameterization_solver.add_variable(computed_value=tail_moment_arm_computed, desired_value=tail_moment_arm_computed.value)
 parameterization_solver.add_variable(computed_value=h_tail_fuselage_connection, desired_value=h_tail_fuselage_connection.value)
 
