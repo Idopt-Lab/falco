@@ -1,4 +1,4 @@
-from flight_simulator.core.vehicle_control_system import VehicleControlSystem, ControlSurface, PropulsiveControl
+from flight_simulator.core.vehicle.vehicle_control_system import VehicleControlSystem, ControlSurface, PropulsiveControl
 from dataclasses import dataclass
 import csdl_alpha as csdl
 import numpy as np
@@ -18,18 +18,18 @@ class AircraftControlSystem(VehicleControlSystem):
 
     def __init__(self, airframe, symmetrical: bool = True):
         self.symmetrical = symmetrical
-        self.elevator = ControlSurface(name='Elevator', min_value=-25, max_value=25)
+        self.elevator = ControlSurface(name='Elevator')
         
         if not symmetrical:
-            self.left_aileron = ControlSurface(name='Left Aileron', min_value=-25, max_value=25)
-            self.right_aileron = ControlSurface(name='Right Aileron', min_value=-25, max_value=25)
-            self.left_flap = ControlSurface(name='Left Flap', min_value=-25, max_value=25)
-            self.right_flap = ControlSurface(name='Right Flap', min_value=-25, max_value=25)
+            self.left_aileron = ControlSurface(name='Left Aileron')
+            self.right_aileron = ControlSurface(name='Right Aileron')
+            self.left_flap = ControlSurface(name='Left Flap')
+            self.right_flap = ControlSurface(name='Right Flap')
         else:
-            self.aileron = ControlSurface(name='Aileron', min_value=-10, max_value=10)
-            self.flap = ControlSurface(name='Flap', min_value=-25, max_value=25)
+            self.aileron = ControlSurface(name='Aileron')
+            self.flap = ControlSurface(name='Flap')
 
-        self.rudder = ControlSurface(name='Rudder', min_value=-30, max_value=30)
+        self.rudder = ControlSurface(name='Rudder')
         num_engines = len(airframe.comps['Rotors'].comps)
         self.engines = [PropulsiveControl(name=f'Motor{i+1}') for i in range(num_engines)]
 
