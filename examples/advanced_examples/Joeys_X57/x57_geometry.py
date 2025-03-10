@@ -95,9 +95,9 @@ cruise_spinner2 =  geometry.declare_component(function_search_names=['CruiseNace
 wingALL = geometry.declare_component(function_search_names=['Wing_Sec1','Wing_Sec2','Wing_Sec3','Wing_Sec4','Rt_Aileron','Lt_Aileron','Flap, 0','Flap, 1',
                                                             'Pylon_12, 1','Pylon_11, 1','Pylon_10, 1','Pylon_09, 1','Pylon_08, 1','Pylon_07, 1',
                                                             'Pylon_12, 0','Pylon_11, 0','Pylon_10, 0','Pylon_09, 0','Pylon_08, 0','Pylon_07, 0',
-                                                            'HL_Spinner12, 1','HL_Spinner11, 1','HL_Spinner10, 1','HL_Spinner09, 1','HL_Spinner08, 1','HL_Spinner07, 1',
-                                                            'HL_Spinner12, 0','HL_Spinner11, 0','HL_Spinner10, 0','HL_Spinner09, 0','HL_Spinner08, 0','HL_Spinner07, 0',
-                                                            'CruiseNacelle-Spinner, 0','CruiseNacelle-Spinner, 1'], name='CompleteWing')
+                                                            'HL_Spinner12, 1','HL_Spinner11, 1','HL_Spinner10, 1','HL_Spinner9, 1','HL_Spinner8, 1','HL_Spinner7, 1',
+                                                            'HL_Spinner12, 0','HL_Spinner11, 0','HL_Spinner10, 0','HL_Spinner9, 0','HL_Spinner8, 0','HL_Spinner7, 0',
+                                                            'CruiseNacelle-Spinner, 0','CruiseNacelle-Spinner, 1', 'Flap_Cover_7','Flap_Cover_9','Flap_Cover_11'], name='CompleteWing')
 
 
 
@@ -1128,9 +1128,7 @@ from lsdo_geo.core.parameterization.parameterization_solver import Parameterizat
 parameterization_solver = ParameterizationSolver()
 ffd_geometric_variables = GeometricVariables()
 
-# Most of the values below come from the OpenVSP model
-# lets vary AR from 12 - 18
-# lets also 
+
 
 
 Aircraft = AircraftComp(geometry=geometry, compute_surface_area_flag=False, 
@@ -1149,9 +1147,7 @@ Fuselage = FuseComp(
 Aircraft.add_subcomponent(Fuselage)
 
 
-wing_AR = csdl.Variable(name="wing_AR", shape=(1, ), value=AR)
-wing_span = csdl.Variable(name="wingspan", shape=(1, ), value=10)
-wing_sweep = csdl.Variable(name="wing_sweep", shape=(1, ), value=20)
+
 
 aileronL.rotate(left_aileron_le_center, np.array([0., 1., 0.]), angles=np.deg2rad(-30))
 aileronR.rotate(right_aileron_le_center, np.array([0., 1., 0.]), angles=np.deg2rad(30))
@@ -1159,6 +1155,9 @@ flapL.rotate(left_flap_le_center, np.array([0., 1., 0.]), angles=np.deg2rad(20))
 flapR.rotate(right_flap_le_center, np.array([0., 1., 0.]), angles=np.deg2rad(20))
 rudder.rotate(rudder_le_mid, np.array([0., 0., 1.]), angles=np.deg2rad(15))
 
+wing_AR = csdl.Variable(name="wing_AR", shape=(1, ), value=AR)
+wing_span = csdl.Variable(name="wingspan", shape=(1, ), value=9.6)
+wing_sweep = csdl.Variable(name="wing_sweep", shape=(1, ), value=20)
 
 Wing = WingComp(AR=wing_AR,
                 span=wing_span,
@@ -1186,7 +1185,7 @@ HorTail_AR = csdl.Variable(name="HT_AR", shape=(1, ), value=4)
 TrimTab_AR = csdl.Variable(name="TrimTab_AR", shape=(1, ), value=trimTabAR)
 HT_span = csdl.Variable(name="HT_span", shape=(1, ), value=3.14986972)
 TrimTab_span = csdl.Variable(name="TrimTab_span", shape=(1, ), value=1.9)
-HT_actuation_angle = csdl.Variable(name="HT_actuation_angle", shape=(1, ), value=10)
+HT_actuation_angle = csdl.Variable(name="HT_actuation_angle", shape=(1, ), value=0)
 htALL.rotate(ht_qc, np.array([0., 1., 0.]), angles=HT_actuation_angle)
 
 HorTail = WingComp(AR=HorTail_AR, span=HT_span, 
@@ -1229,8 +1228,8 @@ parameterization_solver.evaluate(ffd_geometric_variables)
 geometry.plot(camera=dict(pos=(15, 17, -12),  # Camera position 
                          focal_point=(-fuselage_length.value/2, 0, 0),  # Point camera looks at
                          viewup=(0, 0, -1)),    # Camera up direction
-                         title= f'X-57 Maxwell Aircraft Geometry\nSpan: {wing_span.value[0]:.2f} m\nAR: {wing_AR.value[0]:.2f}\nWing Area S: {Wing.parameters.S_ref.value[0]:.2f} m^2\nSweep: {Wing.parameters.sweep.value[0]:.2f} deg',
-                         screenshot= REPO_ROOT_FOLDER / 'examples'/ 'advanced_examples' / 'Joeys_X57'/ 'images' / f'x_57_{wing_span.value[0]}_AR_{wing_AR.value[0]}.png')
+                         title= f'X-57 Maxwell Aircraft Geometry\nSpan: {Wing.parameters.span.value[0]:.2f} m\nAR: {Wing.parameters.AR.value[0]:.2f}\nWing Area S: {Wing.parameters.S_ref.value[0]:.2f} m^2\nSweep: {Wing.parameters.sweep.value[0]:.2f} deg',
+                         screenshot= REPO_ROOT_FOLDER / 'examples'/ 'advanced_examples' / 'Joeys_X57'/ 'images' / f'x_57_{Wing.parameters.span.value[0]}_AR_{Wing.parameters.AR.value[0]}_S_ref_{Wing.parameters.S_ref.value[0]}_sweep_{Wing.parameters.sweep.value[0]}.png')
 
 
 
