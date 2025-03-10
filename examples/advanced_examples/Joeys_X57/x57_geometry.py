@@ -1141,9 +1141,13 @@ Aircraft = AircraftComp(geometry=geometry, compute_surface_area_flag=False,
                         ffd_geometric_variables=ffd_geometric_variables)
 
 
-fuselage_length = csdl.Variable(name="fuselage_length", shape=(1, ), value=csdl.norm(fuselage_rear_guess[0] - fuselage_nose_guess[0]).value)
+fuselage_length = csdl.Variable(name="fuselage_length", shape=(1, ), value=8.2242552)
+fuselage_height = csdl.Variable(name="fuselage_height", shape=(1, ), value=1.09236312)
+fuselage_width = csdl.Variable(name="fuselage_width", shape=(1, ), value=1.24070602)
 Fuselage = FuseComp(
-    length=csdl.Variable(name="length", shape=(1, ), value=fuselage_length.value), 
+    length=csdl.Variable(name="length", shape=(1, ), value=fuselage_length.value),
+    max_height=csdl.Variable(name="max_height", shape=(1, ), value=fuselage_height.value),
+    max_width=csdl.Variable(name="max_width", shape=(1, ), value=fuselage_width.value),
     geometry=fuselage, skip_ffd=False, 
     parameterization_solver=parameterization_solver,
     ffd_geometric_variables=ffd_geometric_variables)
@@ -1153,9 +1157,9 @@ Aircraft.add_subcomponent(Fuselage)
 
 
 
-aileron_actuation_angle = csdl.Variable(name="aileron_actuation_angle", shape=(1, ), value=30)
-flap_actuation_angle = csdl.Variable(name="flap_actuation_angle", shape=(1, ), value=30)
-HT_actuation_angle = csdl.Variable(name="HT_actuation_angle", shape=(1, ), value=20)
+aileron_actuation_angle = csdl.Variable(name="aileron_actuation_angle", shape=(1, ), value=0)
+flap_actuation_angle = csdl.Variable(name="flap_actuation_angle", shape=(1, ), value=0)
+HT_actuation_angle = csdl.Variable(name="HT_actuation_angle", shape=(1, ), value=0)
 rudder_actuation_angle = csdl.Variable(name="rudder_actuation_angle", shape=(1, ), value=0)
 aileronL.rotate(left_aileron_le_center, np.array([0., 1., 0.]), angles=np.deg2rad(aileron_actuation_angle.value))
 aileronR.rotate(right_aileron_le_center, np.array([0., 1., 0.]), angles=np.deg2rad(aileron_actuation_angle.value))
@@ -1209,13 +1213,14 @@ h_tail_fuselage_connection = geometry.evaluate(ht_te_center_parametric) - geomet
 parameterization_solver.add_variable(computed_value=h_tail_fuselage_connection, desired_value=h_tail_fuselage_connection.value)
 
 
-# VertTailArea = vt_span*vt_chord
-# vtAR = vt_span**2/VertTailArea
-# VT_span = csdl.Variable(name="VT_span", shape=(1, ), value=vt_span)
-# VT_actuation_angle = csdl.Variable(name="VT_actuation_angle", shape=(1, ), value=0)
+
+vt_AR= csdl.Variable(name="VT_AR", shape=(1, ), value=1.998)
+VT_span = csdl.Variable(name="VT_span", shape=(1, ), value=2.3761728)
+VT_actuation_angle = csdl.Variable(name="VT_actuation_angle", shape=(1, ), value=0)
+VT_sweep = csdl.Variable(name="VT_sweep", shape=(1, ), value=-40)
 
 
-# VertTail = WingComp(AR=vtAR, span=VT_span, 
+# VertTail = WingComp(AR=vt_AR, span=VT_span, sweep=VT_sweep,
 #                     geometry=vtALL, parametric_geometry=vt_parametric_geometry,
 #                     tight_fit_ffd=False, 
 #                     name='Vertical Tail', orientation='vertical',
@@ -1233,8 +1238,7 @@ parameterization_solver.evaluate(ffd_geometric_variables)
 geometry.plot(camera=dict(pos=(12, 15, -12),  # Camera position 
                          focal_point=(-fuselage_length.value/2, 0, 0),  # Point camera looks at
                          viewup=(0, 0, -1)),    # Camera up direction
-                        #  title= f'X-57 Maxwell Aircraft Geometry\nSpan: {Wing.parameters.span.value[0]:.2f} m\nAR: {Wing.parameters.AR.value[0]:.2f}\nWing Area S: {Wing.parameters.S_ref.value[0]:.2f} m^2\nSweep: {Wing.parameters.sweep.value[0]:.2f} deg\nAileron Deflection: {aileron_actuation_angle.value[0]:.2f} deg\nFlap Deflection: {flap_actuation_angle.value[0]:.2f} deg\nHorizontal Tail Deflection: {HT_actuation_angle.value[0]:.2f} deg\nRudder Deflection: {rudder_actuation_angle.value[0]:.2f} deg',
-                        title= f'X-57 Maxwell Aircraft Geometry\nAileron Deflection: {aileron_actuation_angle.value[0]:.2f} deg\nFlap Deflection: {flap_actuation_angle.value[0]:.2f} deg\nHorizontal Tail Deflection: {HT_actuation_angle.value[0]:.2f} deg',
+                         title= f'X-57 Maxwell Aircraft Geometry\nWing Span: {Wing.parameters.span.value[0]:.2f} m\nWing AR: {Wing.parameters.AR.value[0]:.2f}\nWing Area S: {Wing.parameters.S_ref.value[0]:.2f} m^2\nWing Sweep: {Wing.parameters.sweep.value[0]:.2f} deg\nAileron Deflection: {aileron_actuation_angle.value[0]:.2f} deg\nFlap Deflection: {flap_actuation_angle.value[0]:.2f} deg\nHorizontal Tail Deflection: {HT_actuation_angle.value[0]:.2f} deg\nRudder Deflection: {rudder_actuation_angle.value[0]:.2f} deg',
                          screenshot= REPO_ROOT_FOLDER / 'examples'/ 'advanced_examples' / 'Joeys_X57'/ 'images' / f'x_57_{Wing.parameters.span.value[0]}_AR_{Wing.parameters.AR.value[0]}_S_ref_{Wing.parameters.S_ref.value[0]}_sweep_{Wing.parameters.sweep.value[0]}.png')
 
 
