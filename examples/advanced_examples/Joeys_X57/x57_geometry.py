@@ -1153,10 +1153,11 @@ wing_AR = csdl.Variable(name="wing_AR", shape=(1, ), value=AR)
 wing_span = csdl.Variable(name="wingspan", shape=(1, ), value=10)
 wing_sweep = csdl.Variable(name="wing_sweep", shape=(1, ), value=20)
 
-aileronL.rotate(left_aileron_le_center, np.array([0., 1., 0.]), angles=np.deg2rad(20))
-aileronR.rotate(right_aileron_le_center, np.array([0., 1., 0.]), angles=np.deg2rad(20))
+aileronL.rotate(left_aileron_le_center, np.array([0., 1., 0.]), angles=np.deg2rad(-30))
+aileronR.rotate(right_aileron_le_center, np.array([0., 1., 0.]), angles=np.deg2rad(30))
 flapL.rotate(left_flap_le_center, np.array([0., 1., 0.]), angles=np.deg2rad(20))
 flapR.rotate(right_flap_le_center, np.array([0., 1., 0.]), angles=np.deg2rad(20))
+rudder.rotate(rudder_le_mid, np.array([0., 0., 1.]), angles=np.deg2rad(15))
 
 
 Wing = WingComp(AR=wing_AR,
@@ -1185,7 +1186,8 @@ HorTail_AR = csdl.Variable(name="HT_AR", shape=(1, ), value=4)
 TrimTab_AR = csdl.Variable(name="TrimTab_AR", shape=(1, ), value=trimTabAR)
 HT_span = csdl.Variable(name="HT_span", shape=(1, ), value=3.14986972)
 TrimTab_span = csdl.Variable(name="TrimTab_span", shape=(1, ), value=1.9)
-HT_actuation_angle = csdl.Variable(name="HT_actuation_angle", shape=(1, ), value=30)
+HT_actuation_angle = csdl.Variable(name="HT_actuation_angle", shape=(1, ), value=10)
+htALL.rotate(ht_qc, np.array([0., 1., 0.]), angles=HT_actuation_angle)
 
 HorTail = WingComp(AR=HorTail_AR, span=HT_span, 
                    geometry=htALL, parametric_geometry=ht_parametric_geometry,
@@ -1194,7 +1196,6 @@ HorTail = WingComp(AR=HorTail_AR, span=HT_span,
                    parameterization_solver=parameterization_solver,ffd_geometric_variables=ffd_geometric_variables)
 Aircraft.add_subcomponent(HorTail)
 
-htALL.rotate(ht_qc, np.array([0., 1., 0.]), angles=HT_actuation_angle)
 
 tail_moment_arm_computed = csdl.norm(geometry.evaluate(ht_qc_center_parametric) - geometry.evaluate(wing_qc_center_parametric))
 h_tail_fuselage_connection = geometry.evaluate(ht_te_center_parametric) - geometry.evaluate(fuselage_tail_te_center_parametric)
