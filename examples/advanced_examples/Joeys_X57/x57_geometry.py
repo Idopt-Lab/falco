@@ -43,27 +43,27 @@ aileronR = geometry.declare_component(function_search_names=['Rt_Aileron'], name
 aileronL = geometry.declare_component(function_search_names=['Lt_Aileron'], name='aileronL')
 flapL = geometry.declare_component(function_search_names=['Flap, 1'], name='left_flap')
 flapR = geometry.declare_component(function_search_names=['Flap, 0'], name='right_flap')
-wingALL = geometry.declare_component(function_search_names=['Wing_Sec1','Wing_Sec2','Wing_Sec3','Wing_Sec4','Rt_Aileron','Lt_Aileron','Flap, 0','Flap, 1'], name='CompleteWing')
 h_tail = geometry.declare_component(function_search_names=['HorzStab'], name='h_tail')
 trimTab = geometry.declare_component(function_search_names=['TrimTab'], name='trimTab')
 htALL = geometry.declare_component(function_search_names=['HorzStab', 'TrimTab'], name='CompleteHT')
 vertTail = geometry.declare_component(function_search_names=['VertTail'], name='vertTail')
 rudder = geometry.declare_component(function_search_names=['Rudder'], name='rudder')
+vtALL = geometry.declare_component(function_search_names=['VertTail', 'Rudder'], name='CompleteVT')
 fuselage = geometry.declare_component(function_search_names=['Fuselage'], name='fuselage')
 gear_pod = geometry.declare_component(function_search_names=['GearPod'], name='gear_pod')
 
-pylon1 = geometry.declare_component(function_search_names=['Pylon_07'], name='pylon1')
-pylon2 = geometry.declare_component(function_search_names=['Pylon_08'], name='pylon2')
-pylon3 = geometry.declare_component(function_search_names=['Pylon_09'], name='pylon3')
-pylon4 = geometry.declare_component(function_search_names=['Pylon_10'], name='pylon4')
-pylon5 = geometry.declare_component(function_search_names=['Pylon_11'], name='pylon5')
-pylon6 = geometry.declare_component(function_search_names=['Pylon_12'], name='pylon6')
-pylon7 = geometry.declare_component(function_search_names=['Pylon_07'], name='pylon7')
-pylon8 = geometry.declare_component(function_search_names=['Pylon_08'], name='pylon8')
-pylon9 = geometry.declare_component(function_search_names=['Pylon_09'], name='pylon9')
-pylon10 = geometry.declare_component(function_search_names=['Pylon_10'], name='pylon10')
-pylon11 = geometry.declare_component(function_search_names=['Pylon_11'], name='pylon11')
-pylon12 = geometry.declare_component(function_search_names=['Pylon_12'], name='pylon12')
+pylon1 = geometry.declare_component(function_search_names=['Pylon_12, 1'], name='pylon1')
+pylon2 = geometry.declare_component(function_search_names=['Pylon_11, 1'], name='pylon2')
+pylon3 = geometry.declare_component(function_search_names=['Pylon_10, 1'], name='pylon3')
+pylon4 = geometry.declare_component(function_search_names=['Pylon_09, 1'], name='pylon4')
+pylon5 = geometry.declare_component(function_search_names=['Pylon_08, 1'], name='pylon5')
+pylon6 = geometry.declare_component(function_search_names=['Pylon_07, 1'], name='pylon6')
+pylon7 = geometry.declare_component(function_search_names=['Pylon_07, 0'], name='pylon7')
+pylon8 = geometry.declare_component(function_search_names=['Pylon_08, 0'], name='pylon8')
+pylon9 = geometry.declare_component(function_search_names=['Pylon_09, 0'], name='pylon9')
+pylon10 = geometry.declare_component(function_search_names=['Pylon_10, 0'], name='pylon10')
+pylon11 = geometry.declare_component(function_search_names=['Pylon_11, 0'], name='pylon11')
+pylon12 = geometry.declare_component(function_search_names=['Pylon_12, 0'], name='pylon12')
 
 nacelle7 = geometry.declare_component(function_search_names=['HLNacelle_7_Tail'], name='nacelle7')
 nacelle8 = geometry.declare_component(function_search_names=['HLNacelle_8_Tail'], name='nacelle8')
@@ -72,19 +72,18 @@ nacelle10 = geometry.declare_component(function_search_names=['HLNacelle_10_Tail
 nacelle11 = geometry.declare_component(function_search_names=['HLNacelle_11_Tail'], name='nacelle11')
 nacelle12 = geometry.declare_component(function_search_names=['HLNacelle_12_Tail'], name='nacelle12')
 
-spinner1 = geometry.declare_component(function_search_names=['HL_Spinner12, 0'], name='spinner1')
-spinner2 = geometry.declare_component(function_search_names=['HL_Spinner11, 0'], name='spinner2')
-spinner3 = geometry.declare_component(function_search_names=['HL_Spinner10, 0'], name='spinner3')
-spinner4 = geometry.declare_component(function_search_names=['HL_Spinner9, 0'], name='spinner4')
-spinner5 = geometry.declare_component(function_search_names=['HL_Spinner8, 0'], name='spinner5')
-spinner6 = geometry.declare_component(function_search_names=['HL_Spinner7, 0'], name='spinner6')
-spinner7 = geometry.declare_component(function_search_names=['HL_Spinner7, 1'], name='spinner7')
-spinner8 = geometry.declare_component(function_search_names=['HL_Spinner8, 1'], name='spinner8')
-spinner9 = geometry.declare_component(function_search_names=['HL_Spinner9, 1'], name='spinner9')
-spinner10 = geometry.declare_component(function_search_names=['HL_Spinner10, 1'], name='spinner10')
-spinner11 = geometry.declare_component(function_search_names=['HL_Spinner11, 1'], name='spinner11')
-spinner12 = geometry.declare_component(function_search_names=['HL_Spinner12, 1'], name='spinner12')
-
+spinner1 = geometry.declare_component(function_search_names=['HL_Spinner12, 1'], name='spinner1')
+spinner2 = geometry.declare_component(function_search_names=['HL_Spinner11, 1'], name='spinner2')
+spinner3 = geometry.declare_component(function_search_names=['HL_Spinner10, 1'], name='spinner3')
+spinner4 = geometry.declare_component(function_search_names=['HL_Spinner9, 1'], name='spinner4')
+spinner5 = geometry.declare_component(function_search_names=['HL_Spinner8, 1'], name='spinner5')
+spinner6 = geometry.declare_component(function_search_names=['HL_Spinner7, 1'], name='spinner6')
+spinner7 = geometry.declare_component(function_search_names=['HL_Spinner7, 0'], name='spinner7')
+spinner8 = geometry.declare_component(function_search_names=['HL_Spinner8, 0'], name='spinner8')
+spinner9 = geometry.declare_component(function_search_names=['HL_Spinner9, 0'], name='spinner9')
+spinner10 = geometry.declare_component(function_search_names=['HL_Spinner10, 0'], name='spinner10')
+spinner11 = geometry.declare_component(function_search_names=['HL_Spinner11, 0'], name='spinner11')
+spinner12 = geometry.declare_component(function_search_names=['HL_Spinner12, 0'], name='spinner12')
 
 prop = geometry.declare_component(function_search_names=['HL-Prop'], name='prop')
 motor = geometry.declare_component(function_search_names=['HL_Motor'], name='motor')
@@ -92,6 +91,15 @@ motor_interface = geometry.declare_component(function_search_names=['HL_Motor_Co
 
 cruise_spinner1 =  geometry.declare_component(function_search_names=['CruiseNacelle-Spinner, 0'], name='cruise_spinner1')
 cruise_spinner2 =  geometry.declare_component(function_search_names=['CruiseNacelle-Spinner, 1'], name='cruise_spinner2')
+
+wingALL = geometry.declare_component(function_search_names=['Wing_Sec1','Wing_Sec2','Wing_Sec3','Wing_Sec4','Rt_Aileron','Lt_Aileron','Flap, 0','Flap, 1',
+                                                            'Pylon_12, 1','Pylon_11, 1','Pylon_10, 1','Pylon_09, 1','Pylon_08, 1','Pylon_07, 1',
+                                                            'Pylon_12, 0','Pylon_11, 0','Pylon_10, 0','Pylon_09, 0','Pylon_08, 0','Pylon_07, 0',
+                                                            'HL_Spinner12, 1','HL_Spinner11, 1','HL_Spinner10, 1','HL_Spinner09, 1','HL_Spinner08, 1','HL_Spinner07, 1',
+                                                            'HL_Spinner12, 0','HL_Spinner11, 0','HL_Spinner10, 0','HL_Spinner09, 0','HL_Spinner08, 0','HL_Spinner07, 0',
+                                                            'CruiseNacelle-Spinner, 0','CruiseNacelle-Spinner, 1'], name='CompleteWing')
+
+
 
 cruise_motor =  geometry.declare_component(function_search_names=['CruiseNacelle-Motor'], name='cruise_motor')
 cruise_nacelle =  geometry.declare_component(function_search_names=['CruiseNacelle-Tail'], name='cruise_nacelle')
@@ -449,34 +457,39 @@ vt_qc_base_parametric = vertTail.project(np.array([-23 + (0.25*(-28.7+23)), 0., 
 vt_qc_tip_parametric = vertTail.project(np.array([-27.33 + (0.25*(-28.7+23)), 0., -10.85])*ft2m,plot=False)
 
 
-vt_parametric_geometry = [
-    vt_le_base_parametric,
-    vt_le_tip_parametric,
-    vt_le_base_parametric,
-    vt_te_base_parametric,
-    vt_te_tip_parametric,
-    vt_te_mid_parametric,
-    vt_qc_parametric,
-    vt_qc_base_parametric,
-    vt_qc_tip_parametric
-]
-
 vt_span = np.linalg.norm(vt_te_base.value - vt_te_tip.value)
 # print('Vertical Tail Span: ', vt_span)
 
 vt_chord = np.linalg.norm(vt_le_mid.value - vt_te_mid.value)
 # print('Vertical Tail Chord: ', vt_chord)
 
-rudder_le_base = geometry.evaluate(rudder.project(np.array([-23, 0, -5.5])*ft2m, plot=False))
+rudder_le_base_parametric = rudder.project(np.array([-23, 0, -5.5])*ft2m, plot=False)
+rudder_le_base = geometry.evaluate(rudder_le_base_parametric)
 rudder_le_mid_parametric = rudder.project(np.array([-28.7, 0., -8.])*ft2m, plot=False)
 rudder_le_mid = geometry.evaluate(rudder_le_mid_parametric)
 rudder_le_tip = geometry.evaluate(rudder.project(np.array([-29.75, 0, -10.6])*ft2m, plot=False))
+
+rudder_te_base_parametric = rudder.project(np.array([-29.5, 0, -5.5])*ft2m, plot=False)
+rudder_te_mid_parametric = rudder.project(np.array([-30., 0., -8])*ft2m, plot=False)
+rudder_te_tip_parametric = rudder.project(np.array([-30.4, 0, -11.])*ft2m, plot=False)
+
+
 rudder_span = np.linalg.norm(rudder_le_base.value - rudder_le_tip.value)
 # print('Rudder Span: ', rudder_span)
 rudder_chord = np.linalg.norm(rudder_le_mid.value - rudder_le_tip.value)
 # print('Rudder Chord: ', rudder_chord)
 
-
+vt_parametric_geometry = [
+    vt_le_base_parametric,
+    vt_le_tip_parametric,
+    vt_le_base_parametric,
+    rudder_te_base_parametric,
+    rudder_te_tip_parametric,
+    rudder_te_mid_parametric,
+    vt_qc_parametric,
+    vt_qc_base_parametric,
+    vt_qc_tip_parametric
+]
 
 # Fuselage Region Info
 fuselage_wing_qc = geometry.evaluate(fuselage.project(np.array([-12.356+(0.25*(-14.25+12.356))*ft2m, 0., -5.5]), plot=False))
@@ -488,18 +501,18 @@ fuselage_tail_te_center = geometry.evaluate(fuselage_tail_te_center_parametric)
 
 
 # Propeller Region Info
-M1_disk_pt =  np.array([-12.5, 14, -7.355])*ft2m
-M12_disk_pt = np.array([-12.5, -14, -7.355])*ft2m
-M2_disk_pt =  np.array([-12.35, 12, -7.355])*ft2m
-M11_disk_pt = np.array([-12.35, -12, -7.355])*ft2m
-M3_disk_pt = np.array([-12.2, 10, -7.659])*ft2m
-M10_disk_pt = np.array([-12.2, -10, -7.659])*ft2m
-M4_disk_pt = np.array([-12, 8, -7.659])*ft2m
-M9_disk_pt = np.array([-12, -8, -7.659])*ft2m
-M5_disk_pt = np.array([-11.8, 6, -7.659])*ft2m
-M8_disk_pt = np.array([-11.8, -6, -7.659])*ft2m
-M6_disk_pt = np.array([-11.6, 4, -7.659])*ft2m
-M7_disk_pt = np.array([-11.6, -4, -7.659])*ft2m
+M12_disk_pt =  np.array([-12.5, 14, -7.355])*ft2m
+M1_disk_pt = np.array([-12.5, -14, -7.355])*ft2m
+M11_disk_pt =  np.array([-12.35, 12, -7.355])*ft2m
+M2_disk_pt = np.array([-12.35, -12, -7.355])*ft2m
+M10_disk_pt = np.array([-12.2, 10, -7.659])*ft2m
+M3_disk_pt = np.array([-12.2, -10, -7.659])*ft2m
+M9_disk_pt = np.array([-12, 8, -7.659])*ft2m
+M4_disk_pt = np.array([-12, -8, -7.659])*ft2m
+M8_disk_pt = np.array([-11.8, 6, -7.659])*ft2m
+M5_disk_pt = np.array([-11.8, -6, -7.659])*ft2m
+M7_disk_pt = np.array([-11.6, 4, -7.659])*ft2m
+M6_disk_pt = np.array([-11.6, -4, -7.659])*ft2m
 
 M1_disk_on_wing = spinner1.project(M1_disk_pt, plot=False)
 M1_disk = geometry.evaluate(M1_disk_on_wing)
@@ -550,6 +563,37 @@ M12_disk = geometry.evaluate(M12_disk_on_wing)
 # print('From aircraft, Right Outermost Disk (ft): ', M12_disk.value)
 
 MotorDisks = [M1_disk, M2_disk, M3_disk, M4_disk, M5_disk, M6_disk, M7_disk, M8_disk, M9_disk, M10_disk, M11_disk, M12_disk]
+
+
+# Define pylon connection points
+M1_pylon_pt = np.array([-12.5, -14, -7.355])*ft2m 
+M2_pylon_pt = np.array([-12.35, -12, -7.355])*ft2m
+M3_pylon_pt = np.array([-12.2, -10, -7.659])*ft2m
+M4_pylon_pt = np.array([-12, -8, -7.659])*ft2m
+M5_pylon_pt = np.array([-11.8, -6, -7.659])*ft2m
+M6_pylon_pt = np.array([-11.6, -4, -7.659])*ft2m
+M7_pylon_pt = np.array([-11.6, 4, -7.659])*ft2m
+M8_pylon_pt = np.array([-11.8, 6, -7.659])*ft2m
+M9_pylon_pt = np.array([-12, 8, -7.659])*ft2m
+M10_pylon_pt = np.array([-12.2, 10, -7.659])*ft2m
+M11_pylon_pt = np.array([-12.35, 12, -7.355])*ft2m
+M12_pylon_pt = np.array([-12.5, 14, -7.355])*ft2m
+
+# Project pylon points onto their respective components
+M1_pylon_on_wing = pylon1.project(M1_pylon_pt, plot=False)
+M2_pylon_on_wing = pylon2.project(M2_pylon_pt, plot=False)
+M3_pylon_on_wing = pylon3.project(M3_pylon_pt, plot=False)
+M4_pylon_on_wing = pylon4.project(M4_pylon_pt, plot=False)
+M5_pylon_on_wing = pylon5.project(M5_pylon_pt, plot=False)
+M6_pylon_on_wing = pylon6.project(M6_pylon_pt, plot=False)
+M7_pylon_on_wing = pylon7.project(M7_pylon_pt, plot=False)
+M8_pylon_on_wing = pylon8.project(M8_pylon_pt, plot=False)
+M9_pylon_on_wing = pylon9.project(M9_pylon_pt, plot=False)
+M10_pylon_on_wing = pylon10.project(M10_pylon_pt, plot=False)
+M11_pylon_on_wing = pylon11.project(M11_pylon_pt, plot=False)
+M12_pylon_on_wing = pylon12.project(M12_pylon_pt, plot=False)
+
+
 
 
 fuselage_nose_guess = np.array([-1.75, 0, -4])*ft2m
@@ -1113,7 +1157,7 @@ wing_sweep = csdl.Variable(name="wing_sweep", shape=(1, ), value=20)
 Wing = WingComp(AR=wing_AR,
                 span=wing_span,
                 sweep=wing_sweep,
-                geometry=wing,
+                geometry=wingALL,
                 parametric_geometry=wing_parametric_geometry,
                 tight_fit_ffd=False, 
                 orientation='horizontal', 
@@ -1126,72 +1170,6 @@ wing_fuse_connection = geometry.evaluate(wing_te_center_parametric) - geometry.e
 print("wing_fuse_connection: ", wing_fuse_connection.value)
 parameterization_solver.add_variable(computed_value=wing_fuse_connection, desired_value=wing_fuse_connection.value)
 
-
-
-
-flapArea=left_flap_span*left_flap_chord
-flapAR = left_flap_span**2/flapArea
-flap_AR = csdl.Variable(name="flap_AR", shape=(1, ), value=17.47)
-flap_S_ref = csdl.Variable(name="flap_S_ref", shape=(1, ), value=flapArea)
-flap_spanL = csdl.Variable(name="left_flap_span", shape=(1, ), value=2.85679904)
-flap_spanR = csdl.Variable(name="right_flap_span", shape=(1, ), value=2.85679904)
-flap_actuation_angle = csdl.Variable(name="flap_actuation_angle", shape=(1, ), value=0)
-
-# FlapsLeft = WingComp(AR=flap_AR, span=flap_spanL,
-#                                     geometry=flapL,parametric_geometry=left_flap_parametric_geometry,
-#                                     tight_fit_ffd=False, skip_ffd=False,
-#                                     orientation="horizontal", name='Left Flap',
-#                                     parameterization_solver=parameterization_solver,
-#                                     ffd_geometric_variables=ffd_geometric_variables)
-# Wing.add_subcomponent(FlapsLeft)
-# left_flap_wing_connection = geometry.evaluate(left_flap_le_center_parametric) - geometry.evaluate(left_flap_le_center_on_wing_te_parametric)
-# print("left_flap_wing_connection: ", left_flap_wing_connection.value)
-# parameterization_solver.add_variable(computed_value=left_flap_wing_connection, desired_value=left_flap_wing_connection.value)
-
-# FlapsRight = WingComp(AR=flap_AR, span=flap_spanR,
-#                                     geometry=flapR,parametric_geometry=right_flap_parametric_geometry,
-#                                     tight_fit_ffd=False, orientation="horizontal", name='Right Flap',
-#                                     parameterization_solver=parameterization_solver,
-#                                     ffd_geometric_variables=ffd_geometric_variables)
-# Wing.add_subcomponent(FlapsRight)
-# right_flap_wing_connection = geometry.evaluate(right_flap_le_center_parametric) - geometry.evaluate(right_flap_le_center_on_wing_te_parametric)
-# print("right_flap_wing_connection: ", right_flap_wing_connection.value)
-# parameterization_solver.add_variable(computed_value=right_flap_wing_connection, desired_value=left_flap_wing_connection.value)
-
-
-
-
-aileronArea = left_aileron_span*left_aileron_chord
-aileronAR = left_aileron_span**2/aileronArea
-aileron_AR = csdl.Variable(name="aileron_AR", shape=(1, ), value=aileronAR)
-aileron_S_ref = csdl.Variable(name="aileron_S_ref", shape=(1, ), value=aileronArea)
-aileron_spanL = csdl.Variable(name="left_aileron_span", shape=(1, ), value=1.14)
-aileron_spanR = csdl.Variable(name="right_aileron_span", shape=(1, ), value=1.14)
-aileron_actuation_angle = csdl.Variable(name="aileron_actuation_angle", shape=(1, ), value=0)
-
-# Left_Aileron = WingComp(AR=aileron_AR, span=aileron_spanL,
-#                                     geometry=aileronL,parametric_geometry=left_aileron_parametric_geometry,
-#                                     tight_fit_ffd=False, skip_ffd=False,
-#                                     name='Left Aileron',orientation='horizontal', 
-#                                     actuate_angle=aileron_actuation_angle, actuate_axis_location=0.,
-#                                     parameterization_solver=parameterization_solver,
-#                                     ffd_geometric_variables=ffd_geometric_variables)
-# Wing.add_subcomponent(Left_Aileron)
-# left_aileron_wing_connection = geometry.evaluate(left_aileron_le_center_parametric) - geometry.evaluate(left_aileron_le_center_on_wing_te_parametric)
-# print("left_aileron_wing_connection: ", left_aileron_wing_connection.value)
-# parameterization_solver.add_variable(computed_value=left_aileron_wing_connection, desired_value=left_aileron_wing_connection.value)
-
-
-
-# Right_Aileron = WingComp(AR=aileron_AR, span=aileron_spanR,
-#                                     geometry=aileronR,parametric_geometry=right_aileron_parametric_geometry,
-#                                     tight_fit_ffd=False, name='Right Aileron',orientation='horizontal', 
-#                                     actuate_angle=aileron_actuation_angle, actuate_axis_location=0.,
-#                                     parameterization_solver=parameterization_solver,
-#                                     ffd_geometric_variables=ffd_geometric_variables)
-# Wing.add_subcomponent(Right_Aileron)
-# right_aileron_wing_connection = geometry.evaluate(right_aileron_le_center_parametric) - geometry.evaluate(right_aileron_le_center_on_wing_te_parametric)
-# # parameterization_solver.add_variable(computed_value=right_aileron_wing_connection, desired_value=right_aileron_wing_connection.value)
 
 
 HorTailArea = ht_span*ht_chord
@@ -1215,103 +1193,28 @@ tail_moment_arm_computed = csdl.norm(geometry.evaluate(ht_qc_center_parametric) 
 h_tail_fuselage_connection = geometry.evaluate(ht_te_center_parametric) - geometry.evaluate(fuselage_tail_te_center_parametric)
 print('Tail Moment Arm: ', tail_moment_arm_computed.value)
 print('Tail Fuselage Connection: ', h_tail_fuselage_connection.value)
-parameterization_solver.add_variable(computed_value=tail_moment_arm_computed, desired_value=tail_moment_arm_computed.value)
+# parameterization_solver.add_variable(computed_value=tail_moment_arm_computed, desired_value=tail_moment_arm_computed.value)
 parameterization_solver.add_variable(computed_value=h_tail_fuselage_connection, desired_value=h_tail_fuselage_connection.value)
 
-
-# TrimTab = WingComp(AR=TrimTab_AR, span=TrimTab_span, 
-#                    geometry=trimTab, parametric_geometry=trimTab_parametric_geometry,
-#                    tight_fit_ffd=False, name='Trim Tab', orientation='horizontal',
-#                    parameterization_solver=parameterization_solver,
-#                    ffd_geometric_variables=ffd_geometric_variables)
-
-# HorTail.add_subcomponent(TrimTab)
-# trim_tab_ht_connection = geometry.evaluate(trimTab_le_center_parametric) - geometry.evaluate(ht_te_center_parametric)
-# # parameterization_solver.add_variable(computed_value=trim_tab_ht_connection[1:], desired_value=trim_tab_ht_connection.value[1:])
 
 # VertTailArea = vt_span*vt_chord
 # vtAR = vt_span**2/VertTailArea
 # VT_span = csdl.Variable(name="VT_span", shape=(1, ), value=vt_span)
-
-
-# RudderArea = rudder_span*rudder_chord
-# rudderAR = rudder_span**2/RudderArea
-# Rudder_span = csdl.Variable(name="Rudder_span", shape=(1, ), value=rudder_span)
 # VT_actuation_angle = csdl.Variable(name="VT_actuation_angle", shape=(1, ), value=0)
 
 
 # VertTail = WingComp(AR=vtAR, span=VT_span, 
-#                     geometry=vertTail, parametric_geometry=vt_parametric_geometry,
+#                     geometry=vtALL, parametric_geometry=vt_parametric_geometry,
 #                     tight_fit_ffd=False, 
 #                     name='Vertical Tail', orientation='vertical',
 #                     parameterization_solver=parameterization_solver,
 #                     ffd_geometric_variables=ffd_geometric_variables)
-# # Rudder = WingComp(AR=rudderAR, span=Rudder_span, geometry=rudder, tight_fit_ffd=False, name='Rudder', orientation='vertical', actuate_angle=VT_actuation_angle, actuate_axis_location=0.,parameterization_solver=parameterization_solver,ffd_geometric_variables=ffd_geometric_variables)
 # Aircraft.add_subcomponent(VertTail)
-# # VertTail.add_subcomponent(Rudder)
 
 # vtail_fuselage_connection = geometry.evaluate(fuselage_rear_pts_parametric) - geometry.evaluate(vt_qc_base_parametric)
 # print('VTail Fuselage Connection: ', vtail_fuselage_connection.value)
 # parameterization_solver.add_variable(computed_value=vtail_fuselage_connection, desired_value=vtail_fuselage_connection.value)
 
-
-# rotors = Component(name='Rotors', 
-#                    parameterization_solver=parameterization_solver,
-#                    ffd_geometric_variables=ffd_geometric_variables)
-
-
-# for i in range(1, 13):
-#     HL_pylon = Component(name=f'Pylon {i}', geometry=eval(f'pylon{i}'),
-#                          parameterization_solver=parameterization_solver,
-#                          ffd_geometric_variables=ffd_geometric_variables)
-#     Aircraft.add_subcomponent(HL_pylon)
-
-
-# for i in range(1, 13):
-#     HL_rotor = RotorComp(radius=MotorDisks[i-1],geometry=eval(f'spinner{i}'), 
-#                          compute_surface_area_flag=False, skip_ffd=True, 
-#                          name=f'HL Rotor {i}',
-#                          parameterization_solver=parameterization_solver,
-#                          ffd_geometric_variables=ffd_geometric_variables)
-    
-
-#     Aircraft.add_subcomponent(HL_rotor)
-#     rotors_wing_connection = geometry.evaluate(eval(f'M{i}_disk_on_wing')) - geometry.evaluate(wing.project(eval(f'M{i}_disk_pt'), plot=False))
-#     print(f'rotors_wing_connection {i}: ', rotors_wing_connection.value)
-#     # parameterization_solver.add_variable(computed_value=rotors_wing_connection, desired_value=rotors_wing_connection.value)
-
-
-# for i in range(1, 3):
-#     CruiseRotor = RotorComp(radius=MotorDisks[i-1],
-#                             geometry=eval(f'cruise_spinner{i}'), 
-#                             compute_surface_area_flag=False, skip_ffd=True, 
-#                             name=f'Cruise Rotor {i}',
-#                             parameterization_solver=parameterization_solver,
-#                             ffd_geometric_variables=ffd_geometric_variables)
-#     Aircraft.add_subcomponent(CruiseRotor)
-
-
-
-# cruise_motor_left_wing_connection = geometry.evaluate(wing_le_left_parametric) - geometry.evaluate(wing_on_cruise_motor1_parametric)
-# print("cruise_motor_left_wing_connection: ", cruise_motor_left_wing_connection.value)
-# cruise_motor_right_wing_connection = geometry.evaluate(wing_le_right_parametric) - geometry.evaluate(wing_on_cruise_motor2_parametric)
-# print("cruise_motor_right_wing_connection: ", cruise_motor_right_wing_connection.value)
-# parameterization_solver.add_variable(computed_value=cruise_motor_left_wing_connection, desired_value=cruise_motor_left_wing_connection.value)
-# parameterization_solver.add_variable(computed_value=cruise_motor_right_wing_connection, desired_value=cruise_motor_right_wing_connection.value)
-
-
-
-
-# plot_parameters = {
-#     'camera': {
-#         'pos': (15, 15 * 1.25, -12),
-#         'focal_point': (-10 / 2, 0, 0),
-#         'distance': 0,
-#         'viewup': (0, 0, -1)
-#     },
-#     'screenshot': f'_x57_{5}.png',
-#     'title': f'x57 Plot\nAspect Ratio {5}\nArea {25} m^2\nSpan {15} m',
-# }
 
 # geometry.plot()
 parameterization_solver.evaluate(ffd_geometric_variables)
@@ -1322,8 +1225,8 @@ geometry.plot()
 
 
 
-from flight_simulator.core.vehicle.aircraft_control_system import AircraftControlSystem
-ControlSystem = AircraftControlSystem(symmetrical=False, airframe=Aircraft)       
+# from flight_simulator.core.vehicle.aircraft_control_system import AircraftControlSystem
+# ControlSystem = AircraftControlSystem(symmetrical=False, airframe=Aircraft)       
 
 
 
