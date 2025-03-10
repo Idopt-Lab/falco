@@ -1138,15 +1138,15 @@ Aircraft = AircraftComp(geometry=geometry, compute_surface_area_flag=False,
                         ffd_geometric_variables=ffd_geometric_variables)
 
 
-# fuselage_length = csdl.Variable(name="fuselage_length", shape=(1, ), value=csdl.norm(fuselage_rear_guess[0] - fuselage_nose_guess[0]).value)
-# Fuselage = FuseComp(
-#     length=csdl.Variable(name="length", shape=(1, ), value=fuselage_length.value), 
-#     geometry=fuselage, skip_ffd=False, 
-#     parameterization_solver=parameterization_solver,
-#     ffd_geometric_variables=ffd_geometric_variables)
+fuselage_length = csdl.Variable(name="fuselage_length", shape=(1, ), value=csdl.norm(fuselage_rear_guess[0] - fuselage_nose_guess[0]).value)
+Fuselage = FuseComp(
+    length=csdl.Variable(name="length", shape=(1, ), value=fuselage_length.value), 
+    geometry=fuselage, skip_ffd=False, 
+    parameterization_solver=parameterization_solver,
+    ffd_geometric_variables=ffd_geometric_variables)
 
 
-# Aircraft.add_subcomponent(Fuselage)
+Aircraft.add_subcomponent(Fuselage)
 
 
 wing_AR = csdl.Variable(name="wing_AR", shape=(1, ), value=AR)
@@ -1226,8 +1226,11 @@ parameterization_solver.add_variable(computed_value=h_tail_fuselage_connection, 
 
 # geometry.plot()
 parameterization_solver.evaluate(ffd_geometric_variables)
-geometry.plot()
-
+geometry.plot(camera=dict(pos=(15, 17, -12),  # Camera position 
+                         focal_point=(-fuselage_length.value/2, 0, 0),  # Point camera looks at
+                         viewup=(0, 0, -1)),    # Camera up direction
+                         title= f'X-57 Maxwell Aircraft Geometry\nSpan: {wing_span.value[0]:.2f} m\nAR: {wing_AR.value[0]:.2f}\nWing Area S: {Wing.parameters.S_ref.value[0]:.2f} m^2\nSweep: {Wing.parameters.sweep.value[0]:.2f} deg',
+                         screenshot= REPO_ROOT_FOLDER / 'examples'/ 'advanced_examples' / 'Joeys_X57'/ 'images' / f'x_57_{wing_span.value[0]}_AR_{wing_AR.value[0]}.png')
 
 
 
