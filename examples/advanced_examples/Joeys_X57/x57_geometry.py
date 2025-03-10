@@ -197,6 +197,7 @@ left_aileron_te_right_parametric = aileronL.project(np.array([-14.25, -11.4, -7.
 left_aileron_te_right = geometry.evaluate(left_aileron_te_right_parametric)
 
 left_aileron_qc_center_parametric = aileronL.project(np.array([-13.85+(0.25*(-14.25+13.85)), -13.4, -7.5])*ft2m, plot=False)
+left_aileron_qc = geometry.evaluate(left_aileron_qc_center_parametric)
 left_aileron_qc_tip_right_parametric = aileronL.project(np.array([-13.85+(0.25*(-14.25+13.85)), -11.4, -7.5])*ft2m, plot=False)
 left_aileron_qc_tip_left_parametric = aileronL.project(np.array([-13.85+(0.25*(-14.25+13.85)), -15.15, -7.5])*ft2m, plot=False)
 
@@ -243,6 +244,7 @@ right_aileron_te_right_parametric = aileronR.project(np.array([-14.25, 15.5, -7.
 right_aileron_te_right = geometry.evaluate(right_aileron_te_right_parametric)
 
 right_aileron_qc_center_parametric = aileronR.project(np.array([-13.85+(0.25*(-14.25+13.85)), 13.12, -7.5])*ft2m, plot=False)
+right_aileron_qc = geometry.evaluate(right_aileron_qc_center_parametric)
 right_aileron_qc_tip_right_parametric = aileronR.project(np.array([-13.85+(0.25*(-14.25+13.85)), 11.4, -7.5])*ft2m, plot=False)
 right_aileron_qc_tip_left_parametric = aileronR.project(np.array([-13.85+(0.25*(-14.25+13.85)), 15.15, -7.5])*ft2m, plot=False)
                                                          
@@ -290,6 +292,7 @@ left_flap_te_right_parametric = flapL.project(np.array([-14.25, -0.6, -5.5])*ft2
 left_flap_te_right = geometry.evaluate(left_flap_te_right_parametric)
 
 left_flap_qc_center_parametric = flapL.project(np.array([-13.85+(0.25*(-14.25+13.85)), -6.56, -5.5])*ft2m, plot=False)
+left_flap_qc = geometry.evaluate(left_flap_qc_center_parametric)
 left_flap_qc_tip_right_parametric = flapL.project(np.array([-13.85+(0.25*(-14.25+13.85)), -0.6, -5.5])*ft2m, plot=False)
 left_flap_qc_tip_left_parametric = flapL.project(np.array([-13.85+(0.25*(-14.25+13.85)), -11.48, -5.5])*ft2m, plot=False)
                                                   
@@ -336,6 +339,7 @@ right_flap_te_right_parametric = flapR.project(np.array([-14.25, 11.5, -7.5])*ft
 right_flap_te_right = geometry.evaluate(right_flap_te_right_parametric)
 
 right_flap_qc_center_parametric = flapR.project(np.array([-13.85+(0.25*(-14.25+13.85)), 6.56, -7.5])*ft2m, plot=False)
+right_flap_qc = geometry.evaluate(right_flap_qc_center_parametric)
 right_flap_qc_tip_right_parametric = flapR.project(np.array([-13.85+(0.25*(-14.25+13.85)), 11.48, -7.5])*ft2m, plot=False)
 right_flap_qc_tip_left_parametric = flapR.project(np.array([-13.85+(0.25*(-14.25+13.85)), 1.5, -7.5])*ft2m, plot=False)
 
@@ -377,6 +381,7 @@ ht_te_right_parametric = h_tail.project(np.array([-30, 5.25, -5.5])*ft2m, plot=F
 ht_te_right = geometry.evaluate(ht_te_right_parametric)
 
 ht_qc_center_parametric = h_tail.project(np.array([-27 + (0.25*(-30+27)), 0., -5.5])*ft2m, plot=False)
+ht_qc = geometry.evaluate(ht_qc_center_parametric)
 ht_qc_tip_right_parametric = h_tail.project(np.array([-27 + (0.25*(-30+27)), 5.25, -5.5])*ft2m, plot=False)
 ht_qc_tip_left_parametric = h_tail.project(np.array([-27 + (0.25*(-30+27)), -5.25, -5.5])*ft2m, plot=False)
                                             
@@ -465,12 +470,12 @@ vt_chord = np.linalg.norm(vt_le_mid.value - vt_te_mid.value)
 
 rudder_le_base_parametric = rudder.project(np.array([-23, 0, -5.5])*ft2m, plot=False)
 rudder_le_base = geometry.evaluate(rudder_le_base_parametric)
-rudder_le_mid_parametric = rudder.project(np.array([-28.7, 0., -8.])*ft2m, plot=False)
+rudder_le_mid_parametric = rudder.project(np.array([-28.7, 0., -8.5])*ft2m, plot=False)
 rudder_le_mid = geometry.evaluate(rudder_le_mid_parametric)
 rudder_le_tip = geometry.evaluate(rudder.project(np.array([-29.75, 0, -10.6])*ft2m, plot=False))
 
 rudder_te_base_parametric = rudder.project(np.array([-29.5, 0, -5.5])*ft2m, plot=False)
-rudder_te_mid_parametric = rudder.project(np.array([-30., 0., -8])*ft2m, plot=False)
+rudder_te_mid_parametric = rudder.project(np.array([-30., 0., -8.5])*ft2m, plot=False)
 rudder_te_tip_parametric = rudder.project(np.array([-30.4, 0, -11.])*ft2m, plot=False)
 
 
@@ -1148,12 +1153,17 @@ Aircraft.add_subcomponent(Fuselage)
 
 
 
+aileron_actuation_angle = csdl.Variable(name="aileron_actuation_angle", shape=(1, ), value=30)
+flap_actuation_angle = csdl.Variable(name="flap_actuation_angle", shape=(1, ), value=30)
+HT_actuation_angle = csdl.Variable(name="HT_actuation_angle", shape=(1, ), value=20)
+rudder_actuation_angle = csdl.Variable(name="rudder_actuation_angle", shape=(1, ), value=0)
+aileronL.rotate(left_aileron_le_center, np.array([0., 1., 0.]), angles=np.deg2rad(aileron_actuation_angle.value))
+aileronR.rotate(right_aileron_le_center, np.array([0., 1., 0.]), angles=np.deg2rad(aileron_actuation_angle.value))
+flapL.rotate(left_flap_le_center, np.array([0., 1., 0.]), angles=np.deg2rad(flap_actuation_angle.value))
+flapR.rotate(right_flap_le_center, np.array([0., 1., 0.]), angles=np.deg2rad(flap_actuation_angle.value))
+htALL.rotate(ht_qc, np.array([0., 1., 0.]), angles=np.deg2rad(HT_actuation_angle.value))
+rudder.rotate(rudder_le_mid, np.array([0., 0., 1.]), angles=np.deg2rad(rudder_actuation_angle.value))
 
-aileronL.rotate(left_aileron_le_center, np.array([0., 1., 0.]), angles=np.deg2rad(-30))
-aileronR.rotate(right_aileron_le_center, np.array([0., 1., 0.]), angles=np.deg2rad(30))
-flapL.rotate(left_flap_le_center, np.array([0., 1., 0.]), angles=np.deg2rad(20))
-flapR.rotate(right_flap_le_center, np.array([0., 1., 0.]), angles=np.deg2rad(20))
-rudder.rotate(rudder_le_mid, np.array([0., 0., 1.]), angles=np.deg2rad(15))
 
 wing_AR = csdl.Variable(name="wing_AR", shape=(1, ), value=AR)
 wing_span = csdl.Variable(name="wingspan", shape=(1, ), value=9.6)
@@ -1182,8 +1192,6 @@ htAR = ht_span**2/HorTailArea
 HorTail_AR = csdl.Variable(name="HT_AR", shape=(1, ), value=4)
 HT_span = csdl.Variable(name="HT_span", shape=(1, ), value=3.14986972)
 HT_sweep = csdl.Variable(name="HT_sweep", shape=(1, ), value=0)
-HT_actuation_angle = csdl.Variable(name="HT_actuation_angle", shape=(1, ), value=0)
-htALL.rotate(ht_qc, np.array([0., 1., 0.]), angles=HT_actuation_angle)
 
 HorTail = WingComp(AR=HorTail_AR, span=HT_span, sweep=HT_sweep,
                    geometry=htALL, parametric_geometry=ht_parametric_geometry,
@@ -1222,10 +1230,11 @@ parameterization_solver.add_variable(computed_value=h_tail_fuselage_connection, 
 
 # geometry.plot()
 parameterization_solver.evaluate(ffd_geometric_variables)
-geometry.plot(camera=dict(pos=(15, 17, -12),  # Camera position 
+geometry.plot(camera=dict(pos=(12, 15, -12),  # Camera position 
                          focal_point=(-fuselage_length.value/2, 0, 0),  # Point camera looks at
                          viewup=(0, 0, -1)),    # Camera up direction
-                         title= f'X-57 Maxwell Aircraft Geometry\nSpan: {Wing.parameters.span.value[0]:.2f} m\nAR: {Wing.parameters.AR.value[0]:.2f}\nWing Area S: {Wing.parameters.S_ref.value[0]:.2f} m^2\nSweep: {Wing.parameters.sweep.value[0]:.2f} deg',
+                        #  title= f'X-57 Maxwell Aircraft Geometry\nSpan: {Wing.parameters.span.value[0]:.2f} m\nAR: {Wing.parameters.AR.value[0]:.2f}\nWing Area S: {Wing.parameters.S_ref.value[0]:.2f} m^2\nSweep: {Wing.parameters.sweep.value[0]:.2f} deg\nAileron Deflection: {aileron_actuation_angle.value[0]:.2f} deg\nFlap Deflection: {flap_actuation_angle.value[0]:.2f} deg\nHorizontal Tail Deflection: {HT_actuation_angle.value[0]:.2f} deg\nRudder Deflection: {rudder_actuation_angle.value[0]:.2f} deg',
+                        title= f'X-57 Maxwell Aircraft Geometry\nAileron Deflection: {aileron_actuation_angle.value[0]:.2f} deg\nFlap Deflection: {flap_actuation_angle.value[0]:.2f} deg\nHorizontal Tail Deflection: {HT_actuation_angle.value[0]:.2f} deg',
                          screenshot= REPO_ROOT_FOLDER / 'examples'/ 'advanced_examples' / 'Joeys_X57'/ 'images' / f'x_57_{Wing.parameters.span.value[0]}_AR_{Wing.parameters.AR.value[0]}_S_ref_{Wing.parameters.S_ref.value[0]}_sweep_{Wing.parameters.sweep.value[0]}.png')
 
 
