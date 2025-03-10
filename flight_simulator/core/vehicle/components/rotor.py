@@ -22,11 +22,12 @@ class Rotor(Component):
                  radius: Union[int, float, csdl.Variable],
                  geometry: Union[FunctionSet, None] = None,
                  name: str = None,
+                 skip_ffd: bool = False,
                  **kwargs) -> None:
         csdl.check_parameter(radius, "radius", types=(float, int, csdl.Variable))
         super().__init__(geometry, **kwargs)
 
-        self._skip_ffd = False
+        self._skip_ffd = skip_ffd
         self.geometry = geometry
 
         if name is None:
@@ -227,7 +228,6 @@ class Rotor(Component):
 
 
         # Add (B-spline) coefficients to parameterization solver
-        self.skip_ffd=False
         if self.skip_ffd:
             parameterization_solver.add_parameter(rigid_body_translation)
         else:
