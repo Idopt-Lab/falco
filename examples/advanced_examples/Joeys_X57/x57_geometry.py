@@ -1157,7 +1157,7 @@ rudder.rotate(rudder_le_mid, np.array([0., 0., 1.]), angles=np.deg2rad(15))
 
 wing_AR = csdl.Variable(name="wing_AR", shape=(1, ), value=AR)
 wing_span = csdl.Variable(name="wingspan", shape=(1, ), value=9.6)
-wing_sweep = csdl.Variable(name="wing_sweep", shape=(1, ), value=20)
+wing_sweep = csdl.Variable(name="wing_sweep", shape=(1, ), value=0)
 
 Wing = WingComp(AR=wing_AR,
                 span=wing_span,
@@ -1179,16 +1179,13 @@ parameterization_solver.add_variable(computed_value=wing_fuse_connection, desire
 
 HorTailArea = ht_span*ht_chord
 htAR = ht_span**2/HorTailArea
-TrimTabArea = trim_tab_span*trimTab_chord
-trimTabAR = trim_tab_span**2/TrimTabArea
 HorTail_AR = csdl.Variable(name="HT_AR", shape=(1, ), value=4)
-TrimTab_AR = csdl.Variable(name="TrimTab_AR", shape=(1, ), value=trimTabAR)
 HT_span = csdl.Variable(name="HT_span", shape=(1, ), value=3.14986972)
-TrimTab_span = csdl.Variable(name="TrimTab_span", shape=(1, ), value=1.9)
+HT_sweep = csdl.Variable(name="HT_sweep", shape=(1, ), value=0)
 HT_actuation_angle = csdl.Variable(name="HT_actuation_angle", shape=(1, ), value=0)
 htALL.rotate(ht_qc, np.array([0., 1., 0.]), angles=HT_actuation_angle)
 
-HorTail = WingComp(AR=HorTail_AR, span=HT_span, 
+HorTail = WingComp(AR=HorTail_AR, span=HT_span, sweep=HT_sweep,
                    geometry=htALL, parametric_geometry=ht_parametric_geometry,
                    tight_fit_ffd=False, skip_ffd=False,
                    name='Horizontal Tail', orientation='horizontal', 
