@@ -409,23 +409,23 @@ class Wing(Component):
        
 
 
-        print("Component Name: ", self._name)
-        print("Wingspan: ", wingspan.value)
-        print("Root Chord: ", root_chord.value)
-        if self._orientation == "horizontal":
-            print("Tip Chord Left: ", tip_chord_left.value)
-            print("Tip Chord Right: ", tip_chord_right.value)
-            print("Sweep Angle Left: ", sweep_angle_left.value*180/np.pi)
-            print("Sweep Angle Right: ", sweep_angle_right.value*180/np.pi)
-            print("Dihedral Angle Left: ", dihedral_angle_left.value*180/np.pi)
-            print("Dihedral Angle Right: ", dihedral_angle_right.value*180/np.pi)
-        else:
-            print("Tip Chord: ", tip_chord.value)
-            print("Sweep Angle: ", sweep_angle.value*180/np.pi)
-        print("Chord Stretching: ", chord_stretching_b_spline.coefficients.value)
-        print("Wingspan Stretching: ", wingspan_stretching_b_spline.coefficients.value)
-        print("Sweep Translation: ", sweep_translation_b_spline.coefficients.value)
-        print("Twist: ", twist_b_spline.coefficients.value)
+        # print("Component Name: ", self._name)
+        # print("Wingspan: ", wingspan.value)
+        # print("Root Chord: ", root_chord.value)
+        # if self._orientation == "horizontal":
+        #     print("Tip Chord Left: ", tip_chord_left.value)
+        #     print("Tip Chord Right: ", tip_chord_right.value)
+        #     print("Sweep Angle Left: ", sweep_angle_left.value*180/np.pi)
+        #     print("Sweep Angle Right: ", sweep_angle_right.value*180/np.pi)
+        #     print("Dihedral Angle Left: ", dihedral_angle_left.value*180/np.pi)
+        #     print("Dihedral Angle Right: ", dihedral_angle_right.value*180/np.pi)
+        # else:
+        #     print("Tip Chord: ", tip_chord.value)
+        #     print("Sweep Angle: ", sweep_angle.value*180/np.pi)
+        # print("Chord Stretching: ", chord_stretching_b_spline.coefficients.value)
+        # print("Wingspan Stretching: ", wingspan_stretching_b_spline.coefficients.value)
+        # print("Sweep Translation: ", sweep_translation_b_spline.coefficients.value)
+        # print("Twist: ", twist_b_spline.coefficients.value)
 
 
 
