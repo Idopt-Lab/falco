@@ -4,16 +4,18 @@ import csdl_alpha as csdl
 import numpy as np
 import lsdo_geo as lg
 from flight_simulator.utils.import_geometry import import_geometry
-from flight_simulator import REPO_ROOT_FOLDER
+from flight_simulator import REPO_ROOT_FOLDER, ureg, Q_
 from flight_simulator.core.vehicle.component import Component
-from flight_simulator.core.loads.mass_properties import MassProperties
+from flight_simulator.core.dynamics.aircraft_states import AircaftStates
+from flight_simulator.core.loads.mass_properties import MassProperties, MassMI
 from flight_simulator.core.dynamics.axis import Axis, ValidOrigins
 from flight_simulator.core.dynamics.axis_lsdogeo import AxisLsdoGeo
 from typing import Union, List
 from dataclasses import dataclass
-from flight_simulator import ureg
 from flight_simulator.core.loads.forces_moments import Vector, ForcesMoments
 from flight_simulator.utils.euler_rotations import build_rotation_matrix
+from flight_simulator.core.vehicle.aircraft_control_system import AircraftControlSystem
+from flight_simulator.core.vehicle.models.propulsion.propulsion_model import PropCurve, AircraftPropulsion
 
 lfs.num_workers = 1
 
@@ -21,8 +23,6 @@ debug = False
 recorder = csdl.Recorder(inline=True, expand_ops=True, debug=debug)
 
 recorder.start()
-run_ffd = True
-# run_optimization = True
 
 
 in2m=0.0254
@@ -1243,16 +1243,34 @@ geometry.plot(camera=dict(pos=(12, 15, -12),  # Camera position
                          screenshot= REPO_ROOT_FOLDER / 'examples'/ 'advanced_examples' / 'Joeys_X57'/ 'images' / f'x_57_{Wing.parameters.span.value[0]}_AR_{Wing.parameters.AR.value[0]}_S_ref_{Wing.parameters.S_ref.value[0]}_sweep_{Wing.parameters.sweep.value[0]}.png')
 
 
+x_57_states = AircaftStates(axis=fd_axis,u=Q_(125, 'mph'))
+x_57_mi = MassMI(axis=fd_axis,
+                 Ixx=Q_(4314.08, 'kg*(m*m)'),
+                 Ixy=Q_(-232.85, 'kg*(m*m)'),
+                 Ixz=Q_(-2563.29, 'kg*(m*m)'),
+                 Iyy=Q_(18656.93, 'kg*(m*m)'),
+                 Iyz=Q_(-62.42, 'kg*(m*m)'),
+                 Izz=Q_(22340.21, 'kg*(m*m)'),
+                 )
+
+x57_mass_properties = MassProperties(mass=Q_(1360.77, 'kg'),
+                                      inertia=x_57_mi,
+                                      cg=Vector(vector=Q_(np.array([0, 0, 0]), 'm'), axis=fd_axis))
 
 
 
-# from flight_simulator.core.vehicle.aircraft_control_system import AircraftControlSystem
-# ControlSystem = AircraftControlSystem(symmetrical=False, airframe=Aircraft)       
+x57_controls = AircraftControlSystem(engine_count=12,symmetrical=True)
+Aircraft.quantities.mass_properties = x57_mass_properties
+x57_prop_curve = PropCurve()
+adv_rt = csdl.Variable(shape=(1,), value=0.1)
+prop_data_outputs = x57_prop_curve.evaluate(advance_ratio=adv_rt)
+print(prop_data_outputs.ct.value)
 
 
 
-
-
+radius_x57 = csdl.Variable(shape=(1,), value=1.2192) # propeller radius in meters, 4 ft
+x57_propulsion = AircraftPropulsion(states=x_57_states, controls=x57_controls, radius=radius_x57, prop_curve=x57_prop_curve)
+# prop_loads = x57_propulsion.get_FM_refPoint()
 
 
 recorder.stop()

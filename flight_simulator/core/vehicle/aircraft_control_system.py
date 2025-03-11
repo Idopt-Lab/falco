@@ -2,7 +2,10 @@ from flight_simulator.core.vehicle.vehicle_control_system import VehicleControlS
 from dataclasses import dataclass
 import csdl_alpha as csdl
 import numpy as np
+from flight_simulator import ureg, Q_
 from typing import List, Union
+
+
 
 class AircraftControlSystem(VehicleControlSystem):
 
@@ -16,43 +19,39 @@ class AircraftControlSystem(VehicleControlSystem):
         rudder: csdl.Variable
         throttle: csdl.Variable
 
-    def __init__(self, airframe, symmetrical: bool = True):
+    def __init__(self, engine_count, symmetrical: bool = True):
         self.symmetrical = symmetrical
-        self.elevator = ControlSurface(name='Elevator')
+        self.elevator = ControlSurface(name='Elevator',lb=-26, ub=28)
         
         if not symmetrical:
-            self.left_aileron = ControlSurface(name='Left Aileron')
-            self.right_aileron = ControlSurface(name='Right Aileron')
-            self.left_flap = ControlSurface(name='Left Flap')
-            self.right_flap = ControlSurface(name='Right Flap')
+            self.left_aileron = ControlSurface(name='Left Aileron',lb=-15, ub=20)
+            self.right_aileron = ControlSurface(name='Right Aileron',lb=-15, ub=20)
+            self.left_flap = ControlSurface(name='Left Flap',lb=-15, ub=20)
+            self.right_flap = ControlSurface(name='Right Flap',lb=-15, ub=20)
         else:
-            self.aileron = ControlSurface(name='Aileron')
-            self.flap = ControlSurface(name='Flap')
+            self.aileron = ControlSurface(name='Aileron',lb=-15, ub=20)
+            self.flap = ControlSurface(name='Flap',lb=-15, ub=20)
 
-        self.rudder = ControlSurface(name='Rudder')
-        num_engines = len(airframe.comps['Rotors'].comps)
-        self.engines = [PropulsiveControl(name=f'Motor{i+1}') for i in range(num_engines)]
+        self.rudder = ControlSurface(name='Rudder',lb=-15, ub=15)
+        num_engines = engine_count
+        self.engines = [PropulsiveControl(name=f'Motor{i+1}', throttle=1.0) for i in range(num_engines)]
 
         if symmetrical:
-            self.u = self.ControlVector(
-                left_aileron = self.aileron.deflection,
-                right_aileron = -self.aileron.deflection,
-                left_flap = self.flap.deflection,
-                right_flap = -self.flap.deflection,
-                elevator = self.elevator.deflection,
-                rudder = self.rudder.deflection,
-                throttle = self.engines[0].throttle
-                )
+            self.u = csdl.concatenate((self.aileron.deflection,
+                                        -self.aileron.deflection,
+                                        self.flap.deflection,
+                                        -self.flap.deflection,
+                                        self.elevator.deflection,
+                                        self.rudder.deflection,
+                                        self.engines[0].throttle),axis=0)
         else:
-            self.u = self.ControlVector(
-                left_aileron=self.left_aileron.deflection,
-                right_aileron=self.right_aileron.deflection,
-                left_flap=self.left_flap.deflection,
-                right_flap=self.right_flap.deflection,
-                elevator=self.elevator.deflection,
-                rudder=self.rudder.deflection,
-                throttle=[engine.throttle for engine in self.engines]
-            )
+            self.u = csdl.concatenate((self.left_aileron.deflection,
+                                       self.right_aileron.deflection,
+                                       self.left_flap.deflection,
+                                       self.right_flap.deflection,
+                                       self.elevator.deflection,
+                                       self.rudder.deflection,
+                                       [engine.throttle for engine in self.engines]),axis=0)
         
         if symmetrical:
             super().__init__(
@@ -110,3 +109,4 @@ class AircraftControlSystem(VehicleControlSystem):
             max_right_flap = self.right_flap.max_value
             max_throttle = [engine.max_value for engine in self.engines]
             return np.array([max_left_aileron, max_right_aileron, max_left_flap, max_right_flap, max_elevator, max_rudder]+max_throttle)
+
