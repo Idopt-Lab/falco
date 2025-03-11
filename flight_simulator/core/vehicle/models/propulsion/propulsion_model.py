@@ -75,20 +75,28 @@ class AircraftPropulsion(Loads):
         velocity = self.states.VTAS
         axis = self.states.axis
 
+        print('Debug values:')
+        print(f'throttle: {throttle.value}')
+        print(f'density: {density.value}') 
+        print(f'velocity: {velocity.value}')
+
         # Compute RPM
         min_RPM = 1000
         max_RPM = 2500
         rpm = min_RPM + (max_RPM - min_RPM) * throttle
         omega_RAD = (rpm * 2 * np.pi) / 60.0  # rad/s
+        print(f'rpm: {rpm.value}')
+        print(f'omega_RAD: {omega_RAD.value}')
 
         # Compute advance ratio
         J = (np.pi * velocity) / (omega_RAD * self.radius)  # non-dimensional
-
+        print(f'advance ratio J: {J.value}')
         # Compute Ct
         ct = self.prop_curve.evaluate(advance_ratio=J).ct
-
+        print(f'ct: {ct.value}')
         # Compute Thrust
         T =  (2 / np.pi) ** 2 * density * (omega_RAD * self.radius) ** 2 * ct  # N
+        print(f'Thrust T: {T.value}')
 
         force_vector = Vector(vector=csdl.concatenate((T,
                                                        csdl.Variable(shape=(1,), value=0.),
