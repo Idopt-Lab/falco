@@ -53,39 +53,8 @@ class LiftModel(csdl.CustomExplicitOperation):
             self.incidence = csdl.Variable(name='incidence', shape=(1,), value=incidence.to_base_units())
         else:
             self.incidence = incidence
-
-
-    def define(self):
-        # Define inputs
-        self.add_input('AR', shape=(1,), val=self.AR)
-        self.add_input('e', shape=(1,), val=self.e)
-        self.add_input('CD0', shape=(1,), val=self.CD0)
-        self.add_input('S', shape=(1,), val=self.S)
-        self.add_input('incidence', shape=(1,), val=self.incidence)
-
-        # Define outputs
-        self.add_outputs('AR', shape=(1,), val=self.AR)
-        self.add_outputs('e', shape=(1,), val=self.e)
-        self.add_outputs('CD0', shape=(1,), val=self.CD0)
-        self.add_outputs('S', shape=(1,), val=self.S)
-        self.add_outputs('incidence', shape=(1,), val=self.incidence)
-
-    
-    def compute(self, inputs, outputs):
-        alpha = inputs['alpha']
-        AR = inputs['AR']
-        e = inputs['e']
-        CD0 = inputs['CD0']
-        incidence = inputs['incidence']
         
-        # Compute lift and drag coefficients
-        outputs['alpha'] = alpha
-        outputs['AR'] = AR
-        outputs['e'] = e
-        outputs['CD0'] = CD0
-        outputs['incidence'] = incidence
-        return outputs
-     
+    
 
 
 class AircraftAerodynamics(Loads):
