@@ -1262,15 +1262,10 @@ x57_mass_properties = MassProperties(mass=Q_(1360.77, 'kg'),
 x57_controls = AircraftControlSystem(engine_count=12,symmetrical=True)
 Aircraft.quantities.mass_properties = x57_mass_properties
 x57_prop_curve = PropCurve()
-adv_rt = csdl.Variable(shape=(1,), value=0.1)
-prop_data_outputs = x57_prop_curve.evaluate(advance_ratio=adv_rt)
-print(prop_data_outputs.ct.value)
-
-
 
 radius_x57 = csdl.Variable(shape=(1,), value=1.2192) # propeller radius in meters, 4 ft
 x57_propulsion = AircraftPropulsion(states=x_57_states, controls=x57_controls, radius=radius_x57, prop_curve=x57_prop_curve)
-# prop_loads = x57_propulsion.get_FM_refPoint()
+prop_loads = x57_propulsion.get_FM_refPoint()
 
 
 recorder.stop()
