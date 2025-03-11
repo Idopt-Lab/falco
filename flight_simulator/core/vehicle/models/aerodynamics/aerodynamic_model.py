@@ -86,3 +86,119 @@ class AircraftAerodynamics(Loads):
             return loads
     
 
+    def plot_aerodynamics(self, velocity_range=(20, 100), alpha_range=(-5, 15), num_points=50, AR_values=None, e_values=None):
+        """
+        Plot aerodynamic coefficients and forces for different configurations
+        
+        Parameters:
+        -----------
+        velocity_range : tuple
+            Range of velocities in mph
+        alpha_range : tuple
+            Range of angles of attack in degrees
+        num_points : int
+            Number of points to plot
+        AR_values : list
+            List of aspect ratios to plot
+        e_values : list
+            List of efficiency factors to plot
+        """
+        velocities = np.linspace(velocity_range[0], velocity_range[1], num_points)
+        alphas = np.linspace(alpha_range[0], alpha_range[1], num_points) * np.pi/180
+
+        # Create 3x2 subplot layout
+        fig = plt.figure(figsize=(15, 12))
+        gs = plt.GridSpec(3, 2, figure=fig)
+        
+        # Coefficient plots
+        ax_cl = fig.add_subplot(gs[0, 0])
+        ax_cd = fig.add_subplot(gs[0, 1])
+        
+        # Force plots
+        ax_lift_v = fig.add_subplot(gs[1, 0])
+        ax_drag_v = fig.add_subplot(gs[1, 1])
+        ax_lift_a = fig.add_subplot(gs[2, 0])
+        ax_drag_a = fig.add_subplot(gs[2, 1])
+
+        # Default values if none provided
+        if AR_values is None:
+            AR_values = [self.lift_model.AR.value]
+        if e_values is None:
+            e_values = [self.lift_model.e.value]
+
+        colors = plt.cm.viridis(np.linspace(0, 1, len(AR_values) * len(e_values)))
+        color_idx = 0
+
+        for AR in AR_values:
+            for e in e_values:
+                # Calculate coefficients
+                CLs = 2 * np.pi * alphas
+                CDs = self.lift_model.CD0.value + (1/(e * AR * np.pi)) * CLs**2
+                
+                # Velocity sweep calculations
+                lift_forces = []
+                drag_forces = []
+                ref_alpha = 2 * np.pi/180  # 2 degrees reference angle
+                
+                for v in velocities:
+                    density = self.states.atmospheric_states.density.value
+                    CL = 2 * np.pi * ref_alpha
+                    CD = self.lift_model.CD0.value + (1/(e * AR * np.pi)) * CL**2
+                    
+                    L = 0.5 * density * v**2 * self.lift_model.S.value * CL
+                    D = 0.5 * density * v**2 * self.lift_model.S.value * CD
+                    
+                    lift_forces.append(L)
+                    drag_forces.append(D)
+
+                # Alpha sweep calculations
+                ref_velocity = 67  # mph reference velocity
+                alpha_lifts = []
+                alpha_drags = []
+                
+                for alpha in alphas:
+                    density = self.states.atmospheric_states.density.value
+                    CL = 2 * np.pi * alpha
+                    CD = self.lift_model.CD0.value + (1/(e * AR * np.pi)) * CL**2
+                    
+                    L = 0.5 * density * ref_velocity**2 * self.lift_model.S.value * CL
+                    D = 0.5 * density * ref_velocity**2 * self.lift_model.S.value * CD
+                    
+                    alpha_lifts.append(L)
+                    alpha_drags.append(D)
+
+                label = f'AR={AR:.1f}, e={e:.2f}'
+                
+                # Plot all curves for this configuration
+                ax_cl.plot(np.degrees(alphas), CLs, '-', color=colors[color_idx], label=label)
+                ax_cd.plot(np.degrees(alphas), CDs, '-', color=colors[color_idx], label=label)
+                ax_lift_v.plot(velocities, lift_forces, '-', color=colors[color_idx], label=label)
+                ax_drag_v.plot(velocities, drag_forces, '-', color=colors[color_idx], label=label)
+                ax_lift_a.plot(np.degrees(alphas), alpha_lifts, '-', color=colors[color_idx], label=label)
+                ax_drag_a.plot(np.degrees(alphas), alpha_drags, '-', color=colors[color_idx], label=label)
+                
+                color_idx += 1
+
+        # Configure all axes
+        ax_cl.set(xlabel='Angle of Attack (degrees)', ylabel='Lift Coefficient',
+                title='Lift Coefficient vs Alpha')
+        ax_cd.set(xlabel='Angle of Attack (degrees)', ylabel='Drag Coefficient',
+                title='Drag Coefficient vs Alpha')
+        
+        ax_lift_v.set(xlabel='Velocity (mph)', ylabel='Force (N)',
+                    title=f'Lift Force vs Velocity (α = {np.degrees(ref_alpha):.1f}°)')
+        ax_drag_v.set(xlabel='Velocity (mph)', ylabel='Force (N)',
+                    title=f'Drag Force vs Velocity (α = {np.degrees(ref_alpha):.1f}°)')
+        
+        ax_lift_a.set(xlabel='Angle of Attack (degrees)', ylabel='Force (N)',
+                    title=f'Lift Force vs Alpha (V = {ref_velocity} mph)')
+        ax_drag_a.set(xlabel='Angle of Attack (degrees)', ylabel='Force (N)',
+                    title=f'Drag Force vs Alpha (V = {ref_velocity} mph)')
+
+        # Add grid and legend to all subplots
+        for ax in [ax_cl, ax_cd, ax_lift_v, ax_drag_v, ax_lift_a, ax_drag_a]:
+            ax.grid(True)
+            ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+
+        plt.tight_layout()
+        return fig, (ax_cl, ax_cd, ax_lift_v, ax_drag_v, ax_lift_a, ax_drag_a)
