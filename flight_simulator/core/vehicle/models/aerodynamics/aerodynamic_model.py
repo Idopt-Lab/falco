@@ -13,13 +13,47 @@ from flight_simulator.core.dynamics.aircraft_states import AircaftStates
 from flight_simulator.core.vehicle.aircraft_control_system import AircraftControlSystem
 
 class LiftModel(csdl.CustomExplicitOperation):
-    def __init__(self, AR, e, CD0, S, incidence=0):
+    def __init__(self, AR:Union[ureg.Quantity, csdl.Variable], e:Union[ureg.Quantity, csdl.Variable], CD0:Union[ureg.Quantity, csdl.Variable], 
+                 S:Union[ureg.Quantity, csdl.Variable], incidence:Union[ureg.Quantity, csdl.Variable]):
         super().__init__()
-        self.AR = AR 
-        self.e = e
-        self.CD0 = CD0
-        self.S = S
-        self.incidence = incidence 
+
+
+        if AR is None:
+            self.AR = csdl.Variable(name='AR', shape=(1,), value=15)
+        elif isinstance(AR, ureg.Quantity):
+            self.AR = csdl.Variable(name='AR', shape=(1,), value=AR.to_base_units())
+        else:
+            self.AR = AR
+        
+
+        if e is None:
+            self.e = csdl.Variable(name='e', shape=(1,), value=0.87)
+        elif isinstance(e, ureg.Quantity):
+            self.e = csdl.Variable(name='e', shape=(1,), value=e.to_base_units())
+        else:
+            self.e = e
+
+        if CD0 is None:
+            self.CD0 = csdl.Variable(name='CD0', shape=(1,), value=0.001)
+        elif isinstance(CD0, ureg.Quantity):
+            self.CD0 = csdl.Variable(name='CD0', shape=(1,), value=CD0.to_base_units())
+        else:
+            self.CD0 = CD0
+
+        if S is None:
+            self.S = csdl.Variable(name='S', shape=(1,), value=6.22)
+        elif isinstance(S, ureg.Quantity):
+            self.S = csdl.Variable(name='S', shape=(1,), value=S.to_base_units())
+        else:
+            self.S = S
+
+        if incidence is None:
+            self.incidence = csdl.Variable(name='incidence', shape=(1,), value=2*np.pi/180)
+        elif isinstance(incidence, ureg.Quantity):
+            self.incidence = csdl.Variable(name='incidence', shape=(1,), value=incidence.to_base_units())
+        else:
+            self.incidence = incidence
+
 
     def define(self):
         # Define inputs
@@ -50,6 +84,7 @@ class LiftModel(csdl.CustomExplicitOperation):
         outputs['e'] = e
         outputs['CD0'] = CD0
         outputs['incidence'] = incidence
+        return outputs
      
 
 
