@@ -163,26 +163,42 @@ class Wing(Component):
             self.parameters.span = span
             root_chord_input = 2 * S_ref/((1 + taper_ratio) * span)
             tip_chord_input = root_chord_input * taper_ratio
+            MAC = (2/3) * (1 + taper_ratio + taper_ratio**2) / (1 + taper_ratio) * root_chord_input
+            self.parameters.MAC = MAC
+
         elif S_ref is not None and span is not None:
             span = self.parameters.span
             AR = self.parameters.span**2 / self.parameters.S_ref
             self.parameters.AR = AR
             root_chord_input = 2 * S_ref/((1 + taper_ratio) * span)
             tip_chord_input = root_chord_input * taper_ratio
+            MAC = (2/3) * (1 + taper_ratio + taper_ratio**2) / (1 + taper_ratio) * root_chord_input
+            self.parameters.MAC = MAC
 
         elif span is not None and AR is not None:
             S_ref = span**2 / AR
             self.parameters.S_ref = S_ref
             root_chord_input = 2 * S_ref/((1 + taper_ratio) * span)
             tip_chord_input = root_chord_input * taper_ratio
+            MAC = (2/3) * (1 + taper_ratio + taper_ratio**2) / (1 + taper_ratio) * root_chord_input
+            self.parameters.MAC = MAC
 
+        x_c_m = self.parameters.thickness_to_chord_loc
+        t_o_c = self.parameters.thickness_to_chord
 
+        if t_o_c is None:
+            t_o_c = 0.15
 
+        self.parameters.S_wet = self.quantities.surface_area
 
 
         if sweep is None:
             sweep = csdl.Variable(name=f"{self._name}_sweep", value=0)
             self.parameters.sweep = sweep
+        
+        if dihedral is None:
+            dihedral = csdl.Variable(name=f"{self._name}_dihedral", value=0)
+            self.parameters.dihedral = dihedral
 
         if self._orientation == "horizontal":
             wing_le_left_parametric = parametric_geometry[0]
@@ -263,6 +279,8 @@ class Wing(Component):
         twist_b_spline = lfs.Function(space=space_of_linear_3_dof_b_splines,
                                         coefficients=csdl.Variable(shape=(3,), value=np.array([0, 0., 0])*np.pi/180), name='twist_b_spline_coefficients')
 
+        dihedral_b_spline = lfs.Function(space=space_of_linear_3_dof_b_splines,
+                                        coefficients=csdl.Variable(shape=(3,), value=np.array([0, 0., 0])*np.pi/180), name='dihedral_b_spline_coefficients')
 
         num_ffd_sections = ffd_sectional_parameterization.num_sections
 
@@ -283,6 +301,10 @@ class Wing(Component):
             parametric_b_spline_inputs
         )
 
+        if self.parameters.dihedral is not None:
+            dihedral_sectional_parameters = dihedral_b_spline.evaluate(
+                parametric_b_spline_inputs
+            )
 
         sectional_parameters = VolumeSectionalParameterizationInputs()
         if self._orientation == "horizontal":
@@ -291,6 +313,8 @@ class Wing(Component):
             if self.parameters.sweep is not None:
                 sectional_parameters.add_sectional_translation(axis=0, translation=sweep_translation_sectional_parameters)
             sectional_parameters.add_sectional_rotation(axis=1, rotation=twist_sectional_parameters)
+            if self.parameters.dihedral is not None:
+                sectional_parameters.add_sectional_translation(axis=2, translation=dihedral_sectional_parameters)
 
         else:
             sectional_parameters.add_sectional_stretch(axis=0, stretch=chord_stretch_sectional_parameters)
@@ -323,6 +347,8 @@ class Wing(Component):
             spanwise_direction_right = geometry.evaluate(wing_qc_tip_right) - geometry.evaluate(wing_qc_center)
             sweep_angle_left = csdl.arcsin(-spanwise_direction_left[0] / csdl.norm(spanwise_direction_left))
             sweep_angle_right = csdl.arcsin(-spanwise_direction_right[0] / csdl.norm(spanwise_direction_right))
+            dihedral_angle_left = csdl.arcsin(spanwise_direction_left[2] / csdl.norm(spanwise_direction_left))
+            dihedral_angle_right = csdl.arcsin(spanwise_direction_right[2] / csdl.norm(spanwise_direction_right))
         else:
             wingspan = csdl.norm(geometry.evaluate(wing_le_tip_parametric) - geometry.evaluate(wing_le_base_parametric))
             root_chord = csdl.norm(geometry.evaluate(wing_te_base_parametric) - geometry.evaluate(wing_le_base_parametric))
@@ -338,12 +364,14 @@ class Wing(Component):
         wingspan_stretching_b_spline.coefficients.add_name('wingspan_stretching_b_spline_coefficients')
         sweep_translation_b_spline.coefficients.add_name('sweep_translation_b_spline_coefficients')
         twist_b_spline.coefficients.add_name('twist_b_spline_coefficients')
+        dihedral_b_spline.coefficients.add_name('dihedral_b_spline_coefficients')
 
 
         wingspan_outer_dv = csdl.Variable(shape=(1,), value=self.parameters.span.value)
         root_chord_outer_dv = csdl.Variable(shape=(1,), value=root_chord_input.value)
         tip_chord_outer_dv = csdl.Variable(shape=(1,), value=tip_chord_input.value)
         sweep_angle_outer_dv = csdl.Variable(shape=(1,), value=self.parameters.sweep.value * np.pi / 180)
+        dihedral_outer_dv = csdl.Variable(shape=(1,), value=self.parameters.dihedral.value* np.pi / 180)
 
         if self.parameters.actuate_angle is not None:
             if self._orientation == "horizontal":
@@ -355,6 +383,9 @@ class Wing(Component):
         parameterization_solver.add_parameter(wingspan_stretching_b_spline.coefficients)
         parameterization_solver.add_parameter(sweep_translation_b_spline.coefficients)
         parameterization_solver.add_parameter(twist_b_spline.coefficients)
+        parameterization_solver.add_parameter(dihedral_b_spline.coefficients)
+
+
 
 
         if self._orientation == "horizontal":
@@ -365,13 +396,16 @@ class Wing(Component):
             if self.parameters.sweep is not None:
                 ffd_geometric_variables.add_variable(sweep_angle_left, sweep_angle_outer_dv)
                 ffd_geometric_variables.add_variable(sweep_angle_right, sweep_angle_outer_dv)
+            if self.parameters.dihedral is not None:
+                ffd_geometric_variables.add_variable(dihedral_angle_left, dihedral_outer_dv)
+                ffd_geometric_variables.add_variable(dihedral_angle_right, dihedral_outer_dv) 
         else:
             ffd_geometric_variables.add_variable(wingspan, wingspan_outer_dv)
             ffd_geometric_variables.add_variable(root_chord, root_chord_outer_dv)
             ffd_geometric_variables.add_variable(tip_chord, tip_chord_outer_dv)
             if self.parameters.sweep is not None:
                 ffd_geometric_variables.add_variable(sweep_angle, sweep_angle_outer_dv)
-        
+       
 
 
         print("Component Name: ", self._name)
@@ -382,6 +416,8 @@ class Wing(Component):
             print("Tip Chord Right: ", tip_chord_right.value)
             print("Sweep Angle Left: ", sweep_angle_left.value*180/np.pi)
             print("Sweep Angle Right: ", sweep_angle_right.value*180/np.pi)
+            print("Dihedral Angle Left: ", dihedral_angle_left.value*180/np.pi)
+            print("Dihedral Angle Right: ", dihedral_angle_right.value*180/np.pi)
         else:
             print("Tip Chord: ", tip_chord.value)
             print("Sweep Angle: ", sweep_angle.value*180/np.pi)

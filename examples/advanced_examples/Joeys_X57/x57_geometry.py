@@ -499,7 +499,9 @@ vt_parametric_geometry = [
 ]
 
 # Fuselage Region Info
-fuselage_wing_qc = geometry.evaluate(fuselage.project(np.array([-12.356+(0.25*(-14.25+12.356))*ft2m, 0., -5.5]), plot=False))
+fuselage_wing_le_center_parametric = fuselage.project(np.array([-12.356, 0., -5.5])*ft2m, plot=False)
+fuselage_wing_qc_center_parametric = fuselage.project(np.array([-12.356+(0.25*(-14.25+12.356)), 0., -5.5])*ft2m, plot=False)
+fuselage_wing_qc = geometry.evaluate(fuselage_wing_qc_center_parametric)
 fuselage_wing_te_center_parametric = fuselage.project(np.array([-14.25, 0., -5.5])*ft2m, plot=False)
 fuselage_wing_te_center = geometry.evaluate(fuselage_wing_te_center_parametric)
 fuselage_tail_qc = geometry.evaluate(fuselage.project(np.array([-27 + (0.25*(-30+27)), 0., -5.5])*ft2m, plot=False))
@@ -1189,10 +1191,12 @@ rudder.rotate(rudder_le_mid, np.array([0., 0., 1.]), angles=np.deg2rad(0))
 wing_AR = csdl.Variable(name="wing_AR", shape=(1, ), value=AR)
 wing_span = csdl.Variable(name="wingspan", shape=(1, ), value=9.6)
 wing_sweep = csdl.Variable(name="wing_sweep", shape=(1, ), value=0)
+wing_dihedral = csdl.Variable(name="wing_dihedral", shape=(1, ), value=5)
 
 Wing = WingComp(AR=wing_AR,
                 span=wing_span,
                 sweep=wing_sweep,
+                dihedral=wing_dihedral,
                 geometry=wingALL,
                 parametric_geometry=wing_parametric_geometry,
                 tight_fit_ffd=False, 
@@ -1202,9 +1206,13 @@ Wing = WingComp(AR=wing_AR,
                 )
 
 Aircraft.add_subcomponent(Wing)
-wing_fuse_connection = geometry.evaluate(wing_te_center_parametric) - geometry.evaluate(fuselage_wing_te_center_parametric)
+wing_le_fuse_connection = geometry.evaluate(wing_le_center_parametric) - geometry.evaluate(fuselage_wing_le_center_parametric)
+wing_te_fuse_connection = geometry.evaluate(wing_te_center_parametric) - geometry.evaluate(fuselage_wing_te_center_parametric)
+wing_qc_fuse_connection = geometry.evaluate(wing_qc_center_parametric) - geometry.evaluate(fuselage_wing_qc_center_parametric)
 # print("wing_fuse_connection: ", wing_fuse_connection.value)
-parameterization_solver.add_variable(computed_value=wing_fuse_connection, desired_value=wing_fuse_connection.value)
+# parameterization_solver.add_variable(computed_value=wing_le_fuse_connection, desired_value=wing_le_fuse_connection.value)
+parameterization_solver.add_variable(computed_value=wing_qc_fuse_connection, desired_value=wing_qc_fuse_connection.value)
+# parameterization_solver.add_variable(computed_value=wing_te_fuse_connection, desired_value=wing_te_fuse_connection.value)
 
 
 
