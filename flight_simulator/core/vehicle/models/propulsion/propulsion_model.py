@@ -2,11 +2,16 @@ from flight_simulator.core.vehicle.vehicle_control_system import VehicleControlS
 from dataclasses import dataclass
 import csdl_alpha as csdl
 import numpy as np
+import matplotlib.pyplot as plt
 from flight_simulator import ureg, Q_
 from typing import List, Union
 from scipy.interpolate import Akima1DInterpolator
 from flight_simulator.core.loads.loads import Loads
 from flight_simulator.core.loads.forces_moments import Vector, ForcesMoments
+from flight_simulator.core.dynamics.axis import Axis, ValidOrigins
+from flight_simulator.core.dynamics.aircraft_states import AircaftStates
+from flight_simulator.core.vehicle.aircraft_control_system import AircraftControlSystem
+
 
 
 class PropCurve(csdl.CustomExplicitOperation):
@@ -49,6 +54,18 @@ class PropCurve(csdl.CustomExplicitOperation):
         derivatives['ct', 'advance_ratio'] = np.diag(self.ct_derivative(advance_ratio))
 
 
+class AircraftPropulsion(Loads):
+
+    def __init__(self, states, controls, radius:Union[ureg.Quantity, csdl.Variable], prop_curve:PropCurve):
+        super().__init__(states=states, controls=controls)
+        self.prop_curve = prop_curve
+
+        if radius is None:
+            self.radius = csdl.Variable(name='radius', shape=(1,), value=1.2192/2) # prop diameter in ft is 4 ft = 1.2192 m
+        elif isinstance(radius, ureg.Quantity):
+            self.radius = csdl.Variable(name='radius', shape=(1,), value=radius.to_base_units())
+        else:
+            self.radius = radius
 
 class AircraftPropulsion(Loads):
 
@@ -57,11 +74,12 @@ class AircraftPropulsion(Loads):
         self.prop_curve = prop_curve
 
         if radius is None:
-            self.radius = csdl.Variable(name='radius', shape=(1,), value=1.2192) # prop diameter in ft is 4 ft = 1.2192 m
+            self.radius = csdl.Variable(name='radius', shape=(1,), value=1.2192/2) # prop diameter in ft is 4 ft = 1.2192 m
         elif isinstance(radius, ureg.Quantity):
             self.radius = csdl.Variable(name='radius', shape=(1,), value=radius.to_base_units())
         else:
             self.radius = radius
+
 
     def get_FM_refPoint(self):
         throttle = self.controls.u[6]
@@ -71,7 +89,7 @@ class AircraftPropulsion(Loads):
 
         # Compute RPM
         min_RPM = 1000
-        max_RPM = 2800
+        max_RPM = 2500
         rpm = min_RPM + (max_RPM - min_RPM) * throttle
         omega_RAD = (rpm * 2 * np.pi) / 60.0  # rad/s
 
@@ -92,3 +110,6 @@ class AircraftPropulsion(Loads):
         moment_vector = Vector(vector=csdl.Variable(shape=(3,), value=0.), axis=axis)
         loads = ForcesMoments(force=force_vector, moment=moment_vector)
         return loads
+
+
+    
