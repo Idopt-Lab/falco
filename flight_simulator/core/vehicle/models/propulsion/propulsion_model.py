@@ -71,7 +71,7 @@ class AircraftPropulsion(Loads):
 
         # Compute RPM
         min_RPM = 1000
-        max_RPM = 2500
+        max_RPM = 2800
         rpm = min_RPM + (max_RPM - min_RPM) * throttle
         omega_RAD = (rpm * 2 * np.pi) / 60.0  # rad/s
 
