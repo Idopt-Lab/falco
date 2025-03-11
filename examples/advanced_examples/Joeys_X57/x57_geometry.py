@@ -1068,13 +1068,18 @@ x57_controls = AircraftControlSystem(engine_count=12,symmetrical=True)
 x57_aircraft = Component(name='X-57')
 x57_aircraft.quantities.mass_properties = x57_mass_properties
 radius_x57 = csdl.Variable(shape=(1,), value=1.2192/2) # propeller radius in meters, 2 ft
+AR_x57 = csdl.Variable(shape=(1,), value=15) # Aspect ratio of the wing
+e_x57 = csdl.Variable(shape=(1,), value=0.87) # Oswald efficiency factor
+CD0_x57 = csdl.Variable(shape=(1,), value=0.001) # Zero-lift drag coefficient
+S_x57 = csdl.Variable(shape=(1,), value=6.22) # Wing area in m^2
+incidence_x57 = csdl.Variable(shape=(1,), value=2*np.pi/180) # Wing incidence angle in degrees
 
 
 
 ## Aerodynamic Forces - from Modification IV
 
 
-x57_lift_model = LiftModel(AR=15, e=0.87, CD0=0.001, S=6.22, incidence=2)
+x57_lift_model = LiftModel(AR=AR_x57, e=e_x57, CD0=CD0_x57, S=S_x57, incidence=incidence_x57)
 x57_aero = AircraftAerodynamics(states=x_57_states, controls=x57_controls, lift_model=x57_lift_model)
 aero_loads1 = x57_aero.get_FM_refPoint()
 aero_loads2 = aero_loads1.rotate_to_axis(wing_axis)
