@@ -1049,7 +1049,7 @@ wind_vector_in_wing =  Vector(csdl.matvec(csdl.transpose(R_wing_to_openvsp), win
 ### FORCES AND MOMENTS MODELLING
 
 
-x_57_states = AircaftStates(axis=fd_axis,u=Q_(35, 'mph'))
+x_57_states = AircaftStates(axis=fd_axis,u=Q_(67, 'mph')) # stall speed
 x_57_mi = MassMI(axis=fd_axis,
                  Ixx=Q_(4314.08, 'kg*(m*m)'),
                  Ixy=Q_(-232.85, 'kg*(m*m)'),
@@ -1072,7 +1072,7 @@ AR_x57 = csdl.Variable(shape=(1,), value=15) # Aspect ratio of the wing
 e_x57 = csdl.Variable(shape=(1,), value=0.87) # Oswald efficiency factor
 CD0_x57 = csdl.Variable(shape=(1,), value=0.001) # Zero-lift drag coefficient
 S_x57 = csdl.Variable(shape=(1,), value=6.22) # Wing area in m^2
-incidence_x57 = csdl.Variable(shape=(1,), value=2*np.pi/180) # Wing incidence angle in degrees
+incidence_x57 = csdl.Variable(shape=(1,), value=2*np.pi/180) # Wing incidence angle in radians
 
 
 
