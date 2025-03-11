@@ -67,18 +67,6 @@ class AircraftPropulsion(Loads):
         else:
             self.radius = radius
 
-class AircraftPropulsion(Loads):
-
-    def __init__(self, states, controls, radius:Union[ureg.Quantity, csdl.Variable], prop_curve:PropCurve):
-        super().__init__(states=states, controls=controls)
-        self.prop_curve = prop_curve
-
-        if radius is None:
-            self.radius = csdl.Variable(name='radius', shape=(1,), value=1.2192/2) # prop diameter in ft is 4 ft = 1.2192 m
-        elif isinstance(radius, ureg.Quantity):
-            self.radius = csdl.Variable(name='radius', shape=(1,), value=radius.to_base_units())
-        else:
-            self.radius = radius
 
 
     def get_FM_refPoint(self):
