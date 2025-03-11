@@ -1044,12 +1044,6 @@ alpha = csdl.arctan(wind_vector_in_wing.vector[2]/wind_vector_in_wing.vector.val
 
 
 ## Aerodynamic Forces - from Modification IV
-def calculate_forces_moments(force, moment, axis1, axis2):
-    force_in_axis1 = Vector(vector=force, axis=axis1)
-    moment_in_axis1 = Vector(vector=moment, axis=axis1)     
-    force_moment_in_axis1 = ForcesMoments(force=force_in_axis1, moment=moment_in_axis1)
-    force_moment_in_axis2 = force_moment_in_axis1.rotate_to_axis(axis2)
-    return force_moment_in_axis1, force_moment_in_axis2
 
 CL = 2*np.pi*alpha
 e = 0.87
@@ -1066,7 +1060,9 @@ aero_moment = csdl.Variable(shape=(3, ), value=0.)
 aero_force = aero_force.set(csdl.slice[0], -D)
 aero_force = aero_force.set(csdl.slice[2], -L)
 
-aero1, aero2 = calculate_forces_moments(force=aero_force, moment=aero_moment, axis1=wing_axis, axis2=fd_axis)
+aero_loads1 = ForcesMoments(force=aero_force, moment=aero_moment)
+aero_loads2 = aero_loads1.rotate_to_axis(fd_axis)
+
 # print('Aero Force in Wing Axis: ', aero1.F.vector.value)
 # print('Aero Moment in Wing Axis: ', aero1.M.vector.value)
 # print('Aero Force in Body Axis: ', aero2.F.vector.value)
@@ -1095,9 +1091,9 @@ x57_mass_properties = MassProperties(mass=Q_(1360.77, 'kg'),
 x57_controls = AircraftControlSystem(engine_count=12,symmetrical=True)
 x57_aircraft = Component(name='X-57')
 x57_aircraft.quantities.mass_properties = x57_mass_properties
-x57_prop_curve = PropCurve()
-
 radius_x57 = csdl.Variable(shape=(1,), value=1.2192/2) # propeller radius in meters, 2 ft
+
+x57_prop_curve = PropCurve()
 x57_propulsion = AircraftPropulsion(states=x_57_states, controls=x57_controls, radius=radius_x57, prop_curve=x57_prop_curve)
 prop_loads = x57_propulsion.get_FM_refPoint()
 
