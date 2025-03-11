@@ -189,6 +189,7 @@ class Wing(Component):
         if t_o_c is None:
             t_o_c = 0.15
 
+        FF = (1 + 0.6 / x_c_m + 100 * (t_o_c) ** 4) * csdl.cos(sweep) ** 0.28
         self.parameters.S_wet = self.quantities.surface_area
 
 

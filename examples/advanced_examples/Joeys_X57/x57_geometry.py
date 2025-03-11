@@ -17,6 +17,7 @@ from flight_simulator.core.loads.forces_moments import Vector, ForcesMoments
 from flight_simulator.utils.euler_rotations import build_rotation_matrix
 from flight_simulator.core.vehicle.aircraft_control_system import AircraftControlSystem
 from flight_simulator.core.vehicle.models.propulsion.propulsion_model import PropCurve, AircraftPropulsion
+from flight_simulator.core.vehicle.models.aerodynamics.aerodynamic_model import LiftModel, AircraftAerodynamics
 
 lfs.num_workers = 1
 
@@ -1041,14 +1042,14 @@ wind_vector_in_body =  Vector(csdl.matvec(csdl.transpose(R_body_to_inertial), wi
 R_wing_to_openvsp = build_rotation_matrix(wing_axis.euler_angles_vector, np.array([3, 2, 1]))
 wind_vector_in_wing =  Vector(csdl.matvec(csdl.transpose(R_wing_to_openvsp), wind_vector_in_body.vector), axis=wing_axis)
 # print('Unit wind vector in wing axis: ', wind_vector_in_wing.vector.value)
-alpha = csdl.arctan(wind_vector_in_wing.vector[2]/wind_vector_in_wing.vector.value[0])
+# alpha = csdl.arctan(wind_vector_in_wing.vector[2]/wind_vector_in_wing.vector.value[0])
 # print('Effective angle of attack (deg): ', np.rad2deg(alpha.value))
 
 
 ### FORCES AND MOMENTS MODELLING
 
 
-x_57_states = AircaftStates(axis=fd_axis,u=Q_(100, 'mph'))
+x_57_states = AircaftStates(axis=fd_axis,u=Q_(35, 'mph'))
 x_57_mi = MassMI(axis=fd_axis,
                  Ixx=Q_(4314.08, 'kg*(m*m)'),
                  Ixy=Q_(-232.85, 'kg*(m*m)'),
@@ -1072,32 +1073,15 @@ radius_x57 = csdl.Variable(shape=(1,), value=1.2192/2) # propeller radius in met
 
 ## Aerodynamic Forces - from Modification IV
 
-CL = 2*np.pi*alpha
-e = 0.87
-AR = 15
-CD = 0.001 + 1/(np.pi*e*AR) * CL**2
-rho = 1.225
-S = 6.22
-V = 35
-L = 0.5*rho*V**2*CL*S
-D = 0.5*rho*V**2*CD*S
 
-aero_force = csdl.Variable(shape=(3, ), value=0.)
-aero_moment = csdl.Variable(shape=(3, ), value=0.)
-aero_force = aero_force.set(csdl.slice[0], -D)
-aero_force = aero_force.set(csdl.slice[2], -L)
-aero_force_vector = Vector(vector=aero_force, axis=wing_axis)
-aero_moment_vector = Vector(vector=aero_moment, axis=wing_axis)
-
-aero_loads1 = ForcesMoments(force=aero_force_vector, moment=aero_moment_vector)
-aero_loads2 = aero_loads1.rotate_to_axis(fd_axis)
-
-# print('Aero Force in Wing Axis: ', aero1.F.vector.value)
-# print('Aero Moment in Wing Axis: ', aero1.M.vector.value)
-# print('Aero Force in Body Axis: ', aero2.F.vector.value)
-# print('Aero Moment in Body Axis: ', aero2.M.vector.value)
-
-
+x57_lift_model = LiftModel(AR=15, e=0.87, CD0=0.001, S=6.22, incidence=2)
+x57_aero = AircraftAerodynamics(states=x_57_states, controls=x57_controls, lift_model=x57_lift_model)
+aero_loads1 = x57_aero.get_FM_refPoint()
+aero_loads2 = aero_loads1.rotate_to_axis(wing_axis)
+print('Aero Force in FD Axis: ', aero_loads1.F.vector.value)
+print('Aero Moment in FD Axis: ', aero_loads1.M.vector.value)
+print('Aero Force in Wing Axis: ', aero_loads2.F.vector.value)
+print('Aero Moment in Wing Axis: ', aero_loads2.M.vector.value)
 
 # Rotor Forces
 
@@ -1188,7 +1172,7 @@ htALL.rotate(ht_qc, np.array([0., 1., 0.]), angles=np.deg2rad(0))
 rudder.rotate(rudder_le_mid, np.array([0., 0., 1.]), angles=np.deg2rad(0))
 
 
-wing_AR = csdl.Variable(name="wing_AR", shape=(1, ), value=AR)
+wing_AR = csdl.Variable(name="wing_AR", shape=(1, ), value=15)
 wing_span = csdl.Variable(name="wingspan", shape=(1, ), value=9.6)
 wing_sweep = csdl.Variable(name="wing_sweep", shape=(1, ), value=0)
 wing_dihedral = csdl.Variable(name="wing_dihedral", shape=(1, ), value=5)
