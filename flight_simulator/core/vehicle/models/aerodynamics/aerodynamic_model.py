@@ -106,19 +106,20 @@ class AircraftAerodynamics(Loads):
         velocities = np.linspace(velocity_range[0], velocity_range[1], num_points)
         alphas = np.linspace(alpha_range[0], alpha_range[1], num_points) * np.pi/180
 
-        # Create 3x2 subplot layout
-        fig = plt.figure(figsize=(15, 12))
-        gs = plt.GridSpec(3, 2, figure=fig)
+        # Create 4x2 subplot layout
+        fig = plt.figure(figsize=(10, 8))
+        gs = plt.GridSpec(4, 2, figure=fig, hspace=0.4, wspace=0.3)
         
         # Coefficient plots
         ax_cl = fig.add_subplot(gs[0, 0])
         ax_cd = fig.add_subplot(gs[0, 1])
+        ax_polar = fig.add_subplot(gs[1, :])  # Drag polar takes full width
         
         # Force plots
-        ax_lift_v = fig.add_subplot(gs[1, 0])
-        ax_drag_v = fig.add_subplot(gs[1, 1])
-        ax_lift_a = fig.add_subplot(gs[2, 0])
-        ax_drag_a = fig.add_subplot(gs[2, 1])
+        ax_lift_v = fig.add_subplot(gs[2, 0])
+        ax_drag_v = fig.add_subplot(gs[2, 1])
+        ax_lift_a = fig.add_subplot(gs[3, 0])
+        ax_drag_a = fig.add_subplot(gs[3, 1])
 
         # Default values if none provided
         if AR_values is None:
@@ -152,7 +153,7 @@ class AircraftAerodynamics(Loads):
                     drag_forces.append(D)
 
                 # Alpha sweep calculations
-                ref_velocity = 67  # mph reference velocity
+                ref_velocity = self.states.VTAS.value 
                 alpha_lifts = []
                 alpha_drags = []
                 
@@ -172,18 +173,31 @@ class AircraftAerodynamics(Loads):
                 # Plot all curves for this configuration
                 ax_cl.plot(np.degrees(alphas), CLs, '-', color=colors[color_idx], label=label)
                 ax_cd.plot(np.degrees(alphas), CDs, '-', color=colors[color_idx], label=label)
+                ax_polar.plot(CDs, CLs, '-', color=colors[color_idx], label=label)
                 ax_lift_v.plot(velocities, lift_forces, '-', color=colors[color_idx], label=label)
                 ax_drag_v.plot(velocities, drag_forces, '-', color=colors[color_idx], label=label)
                 ax_lift_a.plot(np.degrees(alphas), alpha_lifts, '-', color=colors[color_idx], label=label)
                 ax_drag_a.plot(np.degrees(alphas), alpha_drags, '-', color=colors[color_idx], label=label)
                 
+                # Add alpha annotations on drag polar
+                alpha_markers = [-5, 0, 5, 10, 15]
+                for alpha_marker in alpha_markers:
+                    idx = np.abs(np.degrees(alphas) - alpha_marker).argmin()
+                    ax_polar.plot(CDs[idx], CLs[idx], 'o', color=colors[color_idx], markersize=5)
+                    ax_polar.annotate(f'{alpha_marker}°', 
+                                    (CDs[idx], CLs[idx]),
+                                    xytext=(5, 5), textcoords='offset points',
+                                    fontsize=6)
+                
                 color_idx += 1
-
+        plt.rcParams.update({'font.size': 8})
         # Configure all axes
         ax_cl.set(xlabel='Angle of Attack (degrees)', ylabel='Lift Coefficient',
                 title='Lift Coefficient vs Alpha')
         ax_cd.set(xlabel='Angle of Attack (degrees)', ylabel='Drag Coefficient',
                 title='Drag Coefficient vs Alpha')
+        ax_polar.set(xlabel='Drag Coefficient (CD)', ylabel='Lift Coefficient (CL)',
+                    title='Drag Polar')
         
         ax_lift_v.set(xlabel='Velocity (mph)', ylabel='Force (N)',
                     title=f'Lift Force vs Velocity (α = {np.degrees(ref_alpha):.1f}°)')
@@ -196,9 +210,10 @@ class AircraftAerodynamics(Loads):
                     title=f'Drag Force vs Alpha (V = {ref_velocity} mph)')
 
         # Add grid and legend to all subplots
-        for ax in [ax_cl, ax_cd, ax_lift_v, ax_drag_v, ax_lift_a, ax_drag_a]:
-            ax.grid(True)
-            ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+        for ax in [ax_cl, ax_cd, ax_polar, ax_lift_v, ax_drag_v, ax_lift_a, ax_drag_a]:
+            ax.grid(True, alpha=0.3)
+            ax.legend(loc='best', fontsize=6)
+            ax.tick_params(labelsize=8)
 
         plt.tight_layout()
-        return fig, (ax_cl, ax_cd, ax_lift_v, ax_drag_v, ax_lift_a, ax_drag_a)
+        return fig, (ax_cl, ax_cd, ax_polar, ax_lift_v, ax_drag_v, ax_lift_a, ax_drag_a)
