@@ -18,6 +18,11 @@ from flight_simulator.utils.euler_rotations import build_rotation_matrix
 from flight_simulator.core.vehicle.aircraft_control_system import AircraftControlSystem
 from flight_simulator.core.vehicle.models.propulsion.propulsion_model import PropCurve, AircraftPropulsion
 from flight_simulator.core.vehicle.models.aerodynamics.aerodynamic_model import LiftModel, AircraftAerodynamics
+from flight_simulator.core.vehicle.components.wing import Wing as WingComp
+from flight_simulator.core.vehicle.components.fuselage import Fuselage as FuseComp
+from flight_simulator.core.vehicle.components.aircraft import Aircraft as AircraftComp
+from flight_simulator.core.vehicle.components.rotor import Rotor as RotorComp
+from lsdo_geo.core.parameterization.parameterization_solver import ParameterizationSolver, GeometricVariables
 
 lfs.num_workers = 1
 
@@ -1150,11 +1155,7 @@ thrust_axis = cruise_motor1_tip - cruise_motor1_base
 
 
 
-from flight_simulator.core.vehicle.components.wing import Wing as WingComp
-from flight_simulator.core.vehicle.components.fuselage import Fuselage as FuseComp
-from flight_simulator.core.vehicle.components.aircraft import Aircraft as AircraftComp
-from flight_simulator.core.vehicle.components.rotor import Rotor as RotorComp
-from lsdo_geo.core.parameterization.parameterization_solver import ParameterizationSolver, GeometricVariables
+
 
 parameterization_solver = ParameterizationSolver()
 ffd_geometric_variables = GeometricVariables()
