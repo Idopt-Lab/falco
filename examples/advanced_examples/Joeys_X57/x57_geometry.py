@@ -1104,6 +1104,51 @@ print('-' * 40)
 #     e_values=[0.75, 0.85, 0.95]
 # )
 
+
+
+# ##########################################################################################
+
+# ##### TESTING AERO FORCES AND MOMENTS MATRIX ROTATION
+
+# def calculate_forces_moments(force, moment, axis1, axis2):
+#      force_in_axis1 = Vector(vector=force, axis=axis1)
+#      moment_in_axis1 = Vector(vector=moment, axis=axis1)   
+#      force_moment_in_axis1 = ForcesMoments(force=force_in_axis1, moment=moment_in_axis1)
+#      force_moment_in_axis2 = force_moment_in_axis1.rotate_to_axis(axis2)
+#      return force_moment_in_axis1, force_moment_in_axis2
+
+
+# alpha = 2*np.pi/180
+# CL = 2*np.pi*alpha
+# e = 0.87
+# AR = 15
+# CD = 0.001 + 1/(np.pi*e*AR) * CL**2
+# rho = 1.225
+# S = 6.22
+# V = 29.9517
+# L = 0.5*rho*V**2*CL*S
+# D = 0.5*rho*V**2*CD*S
+ 
+# aero_force = csdl.Variable(shape=(3, ), value=0.)
+# aero_moment = csdl.Variable(shape=(3, ), value=0.)
+# aero_force = aero_force.set(csdl.slice[0], -D)
+# aero_force = aero_force.set(csdl.slice[2], -L)
+
+# aero1, aero2 = calculate_forces_moments(force=aero_force, moment=aero_moment, axis1=wing_axis, axis2=fd_axis)
+# print('TEST Aerodynamic Forces and Moments:')
+# print(f'TEST Aero Force in FD Axis: [{aero1.F.vector.value[0]:.2f}, {aero1.F.vector.value[1]:.2f}, {aero1.F.vector.value[2]:.2f}] N')
+# print(f'TEST Aero Moment in FD Axis: [{aero1.M.vector.value[0]:.2f}, {aero1.M.vector.value[1]:.2f}, {aero1.M.vector.value[2]:.2f}] N⋅m')
+# print(f'TEST Aero Force in Wing Axis: [{aero2.F.vector.value[0]:.2f}, {aero2.F.vector.value[1]:.2f}, {aero2.F.vector.value[2]:.2f}] N')
+# print(f'TEST Aero Moment in Wing Axis: [{aero2.M.vector.value[0]:.2f}, {aero2.M.vector.value[1]:.2f}, {aero2.M.vector.value[2]:.2f}] N⋅m')
+
+
+
+
+# ##########################################################################################
+
+
+
+
 # Rotor Forces
 
 
@@ -1157,6 +1202,8 @@ print('-' * 40)
 
 thrust_axis = cruise_motor1_tip - cruise_motor1_base
 # print('Thrust Axis: ', thrust_axis.value)
+
+
 
 
 parameterization_solver = ParameterizationSolver()
