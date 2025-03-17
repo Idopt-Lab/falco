@@ -952,8 +952,8 @@ Aircraft.add_subcomponent(Wing)
 wing_qc_fuse_connection = geometry.evaluate(wing_root_qc_parametric) - geometry.evaluate(fuselage_wing_qc_center_parametric)
 parameterization_solver.add_variable(computed_value=wing_qc_fuse_connection, desired_value=wing_qc_fuse_connection.value)
 
-HorTail = WingComp(AR=csdl.Variable(name="HT_AR", shape=(1, ), value=4), 
-                   span=csdl.Variable(name="HT_span", shape=(1, ), value=3.93820952), 
+HorTail = WingComp(AR=csdl.Variable(name="HT_AR", shape=(1, ), value=4.70738), 
+                   span=csdl.Variable(name="HT_span", shape=(1, ), value=12.92063*ft2m), 
                    sweep=csdl.Variable(name="HT_sweep", shape=(1, ), value=0),
                    geometry=h_tail, parametric_geometry=ht_parametric_geometry,
                    tight_fit_ffd=False, skip_ffd=False,
