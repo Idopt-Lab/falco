@@ -1184,7 +1184,6 @@ Aircraft.add_subcomponent(Fuselage)
 
 
 
-
 aileronL.rotate(left_aileron_le_center, np.array([0., 1., 0.]), angles=np.deg2rad(0))
 aileronR.rotate(right_aileron_le_center, np.array([0., 1., 0.]), angles=np.deg2rad(0))
 flapL.rotate(left_flap_le_center, np.array([0., 1., 0.]), angles=np.deg2rad(0))
@@ -1193,10 +1192,11 @@ htALL.rotate(ht_qc, np.array([0., 1., 0.]), angles=np.deg2rad(0))
 rudder.rotate(rudder_le_mid, np.array([0., 0., 1.]), angles=np.deg2rad(0))
 
 
+
 wing_AR = csdl.Variable(name="wing_AR", shape=(1, ), value=15)
 wing_span = csdl.Variable(name="wingspan", shape=(1, ), value=9.6)
 wing_sweep = csdl.Variable(name="wing_sweep", shape=(1, ), value=0)
-wing_dihedral = csdl.Variable(name="wing_dihedral", shape=(1, ), value=5)
+wing_dihedral = csdl.Variable(name="wing_dihedral", shape=(1, ), value=0)
 
 Wing = WingComp(AR=wing_AR,
                 span=wing_span,
@@ -1211,13 +1211,14 @@ Wing = WingComp(AR=wing_AR,
                 )
 
 Aircraft.add_subcomponent(Wing)
-wing_le_fuse_connection = geometry.evaluate(wing_le_center_parametric) - geometry.evaluate(fuselage_wing_le_center_parametric)
-wing_te_fuse_connection = geometry.evaluate(wing_te_center_parametric) - geometry.evaluate(fuselage_wing_te_center_parametric)
+# wing_le_fuse_connection = geometry.evaluate(wing_le_center_parametric) - geometry.evaluate(fuselage_wing_le_center_parametric)
+# wing_te_fuse_connection = geometry.evaluate(wing_te_center_parametric) - geometry.evaluate(fuselage_wing_te_center_parametric)
 wing_qc_fuse_connection = geometry.evaluate(wing_qc_center_parametric) - geometry.evaluate(fuselage_wing_qc_center_parametric)
 # print("wing_fuse_connection: ", wing_fuse_connection.value)
 # parameterization_solver.add_variable(computed_value=wing_le_fuse_connection, desired_value=wing_le_fuse_connection.value)
 parameterization_solver.add_variable(computed_value=wing_qc_fuse_connection, desired_value=wing_qc_fuse_connection.value)
 # parameterization_solver.add_variable(computed_value=wing_te_fuse_connection, desired_value=wing_te_fuse_connection.value)
+
 
 
 
