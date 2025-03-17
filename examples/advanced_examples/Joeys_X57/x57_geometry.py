@@ -1086,12 +1086,6 @@ incidence_x57 = csdl.Variable(shape=(1,), value=2*np.pi/180) # Wing incidence an
 
 x57_lift_model = LiftModel(AR=AR_x57, e=e_x57, CD0=CD0_x57, S=S_x57, incidence=incidence_x57)
 x57_aero = AircraftAerodynamics(states=x_57_states, controls=x57_controls, lift_model=x57_lift_model)
-# x57_aero.plot_aerodynamics(
-#     velocity_range=(20, 100),
-#     alpha_range=(-5, 15),
-#     AR_values=[6, 8, 10, 12],
-#     e_values=[0.75, 0.85, 0.95]
-# )
 aero_loads1 = x57_aero.get_FM_refPoint()
 aero_loads2 = aero_loads1.rotate_to_axis(wing_axis)
 
@@ -1103,25 +1097,22 @@ print(f'Forces in Wing Axis: [{aero_loads2.F.vector.value[0]:.2f}, {aero_loads2.
 print(f'Moments in Wing Axis: [{aero_loads2.M.vector.value[0]:.2f}, {aero_loads2.M.vector.value[1]:.2f}, {aero_loads2.M.vector.value[2]:.2f}] N⋅m')
 print('-' * 40)
 
+# x57_aero.plot_aerodynamics(
+#     velocity_range=(20, 100),
+#     alpha_range=(-5, 15),
+#     AR_values=[15],
+#     e_values=[0.75, 0.85, 0.95]
+# )
 
 # Rotor Forces
 
 
 x57_prop_curve = PropCurve()
 x57_propulsion = AircraftPropulsion(states=x_57_states, controls=x57_controls, radius=radius_x57, prop_curve=x57_prop_curve)
-# x57_propulsion.plot_propulsion(
-#     velocity_range=(0, 150),
-#     ref_velocities=[50, 75, 80],  # Compare different reference velocities
-#     ref_throttles=[0.3, 0.5, 0.7],  # Compare different throttle settings
-#     rpm_ranges=[(1000, 2500), (1200, 2700), (800, 2300)],  # Compare different RPM ranges
-#     labels=['Low Power', 'Medium Power', 'High Power'],
-# )
-
-# plt.show()
-
 prop_loads = x57_propulsion.get_FM_refPoint()
 
-print('\High LiftPropulsive Forces and Moments:')
+
+print('High Lift Propulsive Forces and Moments:')
 print('-' * 40)
 print(f'Prop Forces in Flight Dynamics Axis: [{prop_loads.F.vector.value[0]:.2f}, {prop_loads.F.vector.value[1]:.2f}, {prop_loads.F.vector.value[2]:.2f}] N')
 print(f'Prop Moments in Flight Dynamics Axis: [{prop_loads.M.vector.value[0]:.2f}, {prop_loads.M.vector.value[1]:.2f}, {prop_loads.M.vector.value[2]:.2f}] N⋅m')
@@ -1133,12 +1124,12 @@ for i, HL_motor_axes in enumerate(HL_motor_axes, start=1):
     HL_prop2 = prop_loads.rotate_to_axis(HL_motor_axes)
     HL_props1.append(prop_loads)
     HL_props2.append(HL_prop2)
-    print(f'Prop Force in HL Motor{i} Axis: [{HL_prop2.F.vector.value[0]:.2f}, {HL_prop2.F.vector.value[1]:.2f}, {HL_prop2.F.vector.value[2]:.2f}] N')
-    print(f'Prop Moment in HL Motor{i} Axis: [{HL_prop2.M.vector.value[0]:.2f}, {HL_prop2.M.vector.value[1]:.2f}, {HL_prop2.M.vector.value[2]:.2f}] N⋅m')
+    print(f'Prop Force in HL Motor {i} Axis: [{HL_prop2.F.vector.value[0]:.2f}, {HL_prop2.F.vector.value[1]:.2f}, {HL_prop2.F.vector.value[2]:.2f}] N')
+    print(f'Prop Moment in HL Motor {i} Axis: [{HL_prop2.M.vector.value[0]:.2f}, {HL_prop2.M.vector.value[1]:.2f}, {HL_prop2.M.vector.value[2]:.2f}] N⋅m')
     print('-' * 20)
     
 print('-' * 40)
-print('\nCruise Propulsive Forces and Moments:')
+print('Cruise Propulsive Forces and Moments:')
 print('-' * 40)
 cruise_props1 = []
 cruise_props2 = []
@@ -1146,25 +1137,26 @@ for i, cruise_motor_axis in enumerate(cruise_motor_axes, start=1):
     cruise_prop2 = prop_loads.rotate_to_axis(cruise_motor_axis)
     cruise_props1.append(prop_loads)
     cruise_props2.append(cruise_prop2)
-    print(f'Prop Force in Cruise Motor{i} Axis: [{cruise_prop2.F.vector.value[0]:.2f}, {cruise_prop2.F.vector.value[1]:.2f}, {cruise_prop2.F.vector.value[2]:.2f}] N')
-    print(f'Prop Moment in Cruise Motor{i} Axis: [{cruise_prop2.M.vector.value[0]:.2f}, {cruise_prop2.M.vector.value[1]:.2f}, {cruise_prop2.M.vector.value[2]:.2f}] N⋅m')
+    print(f'Prop Force in Cruise Motor {i} Axis: [{cruise_prop2.F.vector.value[0]:.2f}, {cruise_prop2.F.vector.value[1]:.2f}, {cruise_prop2.F.vector.value[2]:.2f}] N')
+    print(f'Prop Moment in Cruise Motor {i} Axis: [{cruise_prop2.M.vector.value[0]:.2f}, {cruise_prop2.M.vector.value[1]:.2f}, {cruise_prop2.M.vector.value[2]:.2f}] N⋅m')
     print('-' * 20)
 
 print('-' * 40)
 
 
+# x57_propulsion.plot_propulsion(
+#     velocity_range=(0, 150),
+#     ref_velocities=[50, 75, 80],  # Compare different reference velocities
+#     ref_throttles=[0.3, 0.5, 0.7],  # Compare different throttle settings
+#     rpm_ranges=[(1000, 2500), (1200, 2700), (800, 2300)],  # Compare different RPM ranges
+#     labels=['Low Power', 'Medium Power', 'High Power'],
+# )
+
+# plt.show()
+
 
 thrust_axis = cruise_motor1_tip - cruise_motor1_base
 # print('Thrust Axis: ', thrust_axis.value)
-
-
-
-
-
-
-
-
-
 
 
 parameterization_solver = ParameterizationSolver()
