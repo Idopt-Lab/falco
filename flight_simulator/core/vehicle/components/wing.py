@@ -248,7 +248,7 @@ class Wing(Component):
  
  
             # Rotate the component about the axis
-            geometry.rotate(axis_origin=axis_origin, axis_vector=axis_vector / csdl.norm(axis_vector), angles=angle)
+            geometry.rotate(axis_origin=axis_origin, axis_vector=axis_vector / csdl.norm(axis_vector), angles=actuate_angle)
         
 
         if self._orientation == "horizontal":
