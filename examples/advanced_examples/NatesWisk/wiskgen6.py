@@ -952,9 +952,6 @@ Aircraft.add_subcomponent(Wing)
 wing_qc_fuse_connection = geometry.evaluate(wing_root_qc_parametric) - geometry.evaluate(fuselage_wing_qc_center_parametric)
 parameterization_solver.add_variable(computed_value=wing_qc_fuse_connection, desired_value=wing_qc_fuse_connection.value)
 
-
-
-
 HorTail = WingComp(AR=csdl.Variable(name="HT_AR", shape=(1, ), value=4), 
                    span=csdl.Variable(name="HT_span", shape=(1, ), value=3.93820952), 
                    sweep=csdl.Variable(name="HT_sweep", shape=(1, ), value=0),
@@ -968,28 +965,9 @@ Aircraft.add_subcomponent(HorTail)
 
 tail_moment_arm_computed = csdl.norm(geometry.evaluate(ht_qc_center_parametric) - geometry.evaluate(wing_root_qc_parametric))
 h_tail_fuselage_connection = geometry.evaluate(htail_root_te_parametric) - geometry.evaluate(fuselage_tail_te_center_parametric)
-# parameterization_solver.add_variable(computed_value=tail_moment_arm_computed, desired_value=tail_moment_arm_computed.value)
 parameterization_solver.add_variable(computed_value=h_tail_fuselage_connection, desired_value=h_tail_fuselage_connection.value)
 
-
-
-
-# vt_AR= csdl.Variable(name="VT_AR", shape=(1, ), value=1.998)
-# VT_span = csdl.Variable(name="VT_span", shape=(1, ), value=2.3761728)
-# VT_actuation_angle = csdl.Variable(name="VT_actuation_angle", shape=(1, ), value=0)
-# VT_sweep = csdl.Variable(name="VT_sweep", shape=(1, ), value=-40)
-
-
-# VertTail = WingComp(AR=vt_AR, span=VT_span, sweep=VT_sweep,
-#                     geometry=vtALL, parametric_geometry=vt_parametric_geometry,
-#                     tight_fit_ffd=False, 
-#                     name='Vertical Tail', orientation='vertical',
-#                     parameterization_solver=parameterization_solver,
-#                     ffd_geometric_variables=ffd_geometric_variables)
-# Aircraft.add_subcomponent(VertTail)
-
 vtail_fuselage_connection = geometry.evaluate(fuselage_rear_pts_parametric) - geometry.evaluate(vt_qc_base_parametric)
-# print('VTail Fuselage Connection: ', vtail_fuselage_connection.value)
 parameterization_solver.add_variable(computed_value=vtail_fuselage_connection, desired_value=vtail_fuselage_connection.value)
 
 
@@ -999,9 +977,6 @@ geometry.plot(camera=dict(pos=(12, 15, -12),  # Camera position
                          viewup=(0, 0, -1)),    # Camera up direction
                          title= f'Wisk Gen 6 Geometry\nWing Span: {Wing.parameters.span.value[0]:.2f} m\nWing AR: {Wing.parameters.AR.value[0]:.2f}\nWing Area S: {Wing.parameters.S_ref.value[0]:.2f} m^2\nWing Sweep: {Wing.parameters.sweep.value[0]:.2f} deg\nFuselage Length: {Fuselage.parameters.length.value[0]:.2f} m\nFuselage Height: {Fuselage.parameters.max_height.value[0]:.2f} m\nFuselage Width: {Fuselage.parameters.max_width.value[0]:.2f} m',
                          screenshot= REPO_ROOT_FOLDER / 'examples'/ 'advanced_examples' / 'NatesWisk'/ 'images' / f'Wisk_{Wing.parameters.span.value[0]}_AR_{Wing.parameters.AR.value[0]}_S_ref_{Wing.parameters.S_ref.value[0]}_sweep_{Wing.parameters.sweep.value[0]}.png')
-
-
-
 
 
 recorder.stop()
