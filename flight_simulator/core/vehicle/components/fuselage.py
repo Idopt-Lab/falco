@@ -241,7 +241,3 @@ class Fuselage(Component):
         else:
             ffd_geometric_variables.add_variable(fuselage_geometric_qts.width, width_outer_dv)
 
-
-        print('Computed Fuselage Length',fuselage_geometric_qts.length.value)
-        print('Computed Fuselage Width',fuselage_geometric_qts.width.value)
-        print('Computed Fuselage Height',fuselage_geometric_qts.height.value)
