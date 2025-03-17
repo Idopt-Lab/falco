@@ -65,7 +65,7 @@ class AircraftControlSystem(VehicleControlSystem):
                 pitch_control=[self.elevator],
                 roll_control=[self.left_aileron, self.right_aileron],
                 yaw_control=[self.rudder],
-                throttle_control=self.engines
+                throttle_control=[self.engines]
             )
     @property
     def control_order(self)-> List[str]:
