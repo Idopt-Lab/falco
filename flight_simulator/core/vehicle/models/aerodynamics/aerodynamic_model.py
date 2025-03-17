@@ -86,7 +86,12 @@ class AircraftAerodynamics(Loads):
             return loads
     
 
-    def plot_aerodynamics(self, velocity_range=(20, 100), alpha_range=(-5, 15), num_points=50, AR_values=None, e_values=None):
+    def plot_aerodynamics(self, 
+                          velocity_range=(20, 100), 
+                          alpha_range=(-5, 15), 
+                          num_points=50, 
+                          AR_values=None, 
+                          e_values=None):
         """
         Plot aerodynamic coefficients and forces for different configurations
         
@@ -139,7 +144,7 @@ class AircraftAerodynamics(Loads):
                 # Velocity sweep calculations
                 lift_forces = []
                 drag_forces = []
-                ref_alpha = 2 * np.pi/180  # 2 degrees reference angle
+                ref_alpha = float(self.lift_model.incidence.value)  # 2 degrees reference angle
                 
                 for v in velocities:
                     density = self.states.atmospheric_states.density.value
