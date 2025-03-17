@@ -334,6 +334,7 @@ class Wing(Component):
                 parametric_b_spline_inputs
             )
 
+
         sectional_parameters = VolumeSectionalParameterizationInputs()
         if self._orientation == "horizontal":
             sectional_parameters.add_sectional_stretch(axis=0, stretch=chord_stretch_sectional_parameters)

@@ -1179,6 +1179,7 @@ Fuselage = FuseComp(
     parameterization_solver=parameterization_solver,
     ffd_geometric_variables=ffd_geometric_variables)
 
+# print(f"Fuselage parameters: {Fuselage.parameters.__dict__}")
 
 Aircraft.add_subcomponent(Fuselage)
 

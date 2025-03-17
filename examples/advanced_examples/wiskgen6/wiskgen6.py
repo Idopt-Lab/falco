@@ -100,15 +100,12 @@ wing_root_qc = wing_root_le + 1/4*(wing_root_te - wing_root_le)
 wing_tip_left_le_guess = np.array([-10, -26, -5.5])*ft2m
 wing_tip_left_le_parametric = wing.project(wing_tip_left_le_guess,plot=plot_flag)
 
-wing_tip_left_te_guess = np.array([-16,-26,-5.5])*ft2m
-wing_tip_left_te_parametric = wing.project(wing_tip_left_te_guess,plot=plot_flag)
-
 wing_tip_right_le_guess = np.array([-10, 26, -5.5])*ft2m
 wing_tip_right_le_parametric = wing.project(wing_tip_right_le_guess,plot=plot_flag)
 
-wing_tip_right_te_guess = np.array([-16,26,-5.5])*ft2m
-wing_tip_right_te_parametric = wing.project(wing_tip_right_te_guess,plot=plot_flag)
-
+wingspan = csdl.norm(
+    geometry.evaluate(wing_tip_left_le_parametric) - geometry.evaluate(wing_tip_right_le_parametric)
+)
 # print('Wingspan: ',wingspan.value)
 
 # Aileron and Flap Info
@@ -203,17 +200,14 @@ htail_root_te = geometry.evaluate(htail_root_te_parametric)
 htail_tip_left_le_guess = np.array([-25, -7, -3.7])*ft2m
 htail_tip_left_le_parametric = h_tail.project(htail_tip_left_le_guess,plot=plot_flag)
 
-htail_tip_left_te_guess = np.array([-28, -7, -3.7])*ft2m
-htail_tip_left_te_parametric = h_tail.project(htail_tip_left_te_guess,plot=plot_flag)
-
 htail_tip_right_le_guess = np.array([-25, 7, -3.7])*ft2m
 htail_tip_right_le_parametric = h_tail.project(htail_tip_right_le_guess,plot=plot_flag)
 
-htail_tip_right_te_guess = np.array([-28, 7, -3.7])*ft2m
-htail_tip_right_te_parametric = h_tail.project(htail_tip_right_te_guess,plot=plot_flag)
-
-htail_root_qc = htail_root_le + 1/4*(htail_root_te - htail_root_le)
-
+htail_span = csdl.norm(
+    geometry.evaluate(htail_tip_left_le_parametric) - geometry.evaluate(htail_tip_right_le_parametric)
+)
+# print('Horizontal Tail Span: ',htail_span.value)
+# print('Horizontal Tail Span (ft): ',htail_span.value /ft2m)
 
 # Vertical Tail Info
 vtail_root_le_guess = np.array([-23, 0, -3.6])*ft2m
@@ -230,7 +224,11 @@ vtail_tip_le_parametric = v_tail.project(vtail_tip_le_guess, plot=plot_flag)
 vtail_tip_te_guess = np.array([-29.8, 0, -10.25])*ft2m
 vtail_tip_te_parametric = v_tail.project(vtail_tip_te_guess, plot=plot_flag)
 
-vtail_root_qc = vtail_root_le + 1/4*(vtail_root_te - vtail_root_le)
+vtail_span = csdl.norm(
+    vtail_root_te - geometry.evaluate(vtail_tip_te_parametric)
+)
+# print('Vertical Tail Span: ',vtail_span.value)
+# print('Vertical Tail Span (ft): ',vtail_span.value /ft2m)
 
 
 # Propeller Region Info
@@ -238,6 +236,10 @@ pt_ob_left_fwd_top_guess = np.array([-4.262,-22.672,-6])*ft2m
 pt_ob_left_fwd_top_parametric = rotor_hub_ob_left_fwd.project(pt_ob_left_fwd_top_guess, plot=plot_flag)
 pt_ob_left_fwd_bot_guess = np.array([-4.262,-22.672,-4.9])*ft2m
 pt_ob_left_fwd_bot_parametric = rotor_hub_ob_left_fwd.project(pt_ob_left_fwd_bot_guess, plot=plot_flag)
+
+
+# pt_ob_left_fwd_mid_guess = 1/2*(rotor_hub_ob_left_fwd.evaluate(pt_ob_left_fwd_top_parametric) + rotor_hub_ob_left_fwd.evaluate(pt_ob_left_fwd_bot_parametric))
+# print("pt_ob_left_fwd_mid_guess:", pt_ob_left_fwd_mid_guess)
 
 pt_mid_left_fwd_top_guess = np.array([-4.262,-15.4,-6])*ft2m
 pt_mid_left_fwd_bot_guess = np.array([-4.262,-15.4,-4.9])*ft2m
@@ -866,15 +868,15 @@ wing_wingspan_stretch_coefficients = csdl.Variable(name='wing_wingspan_stretch_c
 wing_wingspan_stretch_b_spline = lfs.Function(name='wing_wingspan_stretch_b_spline', space=linear_b_spline_curve_2_dof_space, 
                                           coefficients=wing_wingspan_stretch_coefficients)
 
-wing_twist_coefficients = csdl.Variable(name='wing_twist_coefficients', value=np.array([0.,0.,0.,0.,0.]))
+wing_twist_coefficients = csdl.Variable(name='wing_twist_coefficients', value=np.array([0,0,0,0,0])*np.pi/180)
 wing_twist_b_spline = lfs.Function(name='wing_twist_b_spline', space=cubic_b_spline_curve_5_dof_space,
                                           coefficients=wing_twist_coefficients)
 
-
-wing_sweep_coefficients = csdl.Variable(name='wing_sweep_coefficients', value=np.array([0., 0., 0.]))
+wing_sweep_amount = csdl.Variable(name='wing_sweep_amount', value=np.array([45.]))
+wing_sweep_coefficients = csdl.Variable(name='wing_sweep_coefficients', value=np.array([-wing_sweep_amount.value[0]*np.pi/180, wing_sweep_amount.value[0]*np.pi/180, -wing_sweep_amount.value[0]*np.pi/180]))
 wing_sweep_b_spline = lfs.Function(name='wing_sweep_b_spline',space=linear_b_spline_curve_3_dof_space, coefficients=wing_sweep_coefficients)
 
-wing_translation_x_coefficients = csdl.Variable(name='wing_translation_x_coefficients', value=np.array([0.]))
+wing_translation_x_coefficients = csdl.Variable(name='wing_translation_x_coefficients', value=np.array([10.]))
 wing_translation_x_b_spline = lfs.Function(name='wing_translation_x_b_spline', space=constant_b_spline_curve_1_dof_space,
                                           coefficients=wing_translation_x_coefficients)
 
@@ -902,8 +904,8 @@ parameterization_solver.add_parameter(parameter=wing_chord_stretch_coefficients)
 parameterization_solver.add_parameter(parameter=wing_wingspan_stretch_coefficients, cost=1.e3)
 parameterization_solver.add_parameter(parameter=wing_translation_x_coefficients)
 parameterization_solver.add_parameter(parameter=wing_translation_z_coefficients)
-# parameterization_solver.add_parameter(parameter=wing_twist_coefficients)
-# parameterization_solver.add_parameter(parameter=wing_sweep_coefficients)
+parameterization_solver.add_parameter(parameter=wing_twist_coefficients)
+parameterization_solver.add_parameter(parameter=wing_sweep_coefficients)
 
 
 # # region Horizontal Stabilizer setup
@@ -948,42 +950,7 @@ parameterization_solver.add_parameter(parameter=h_tail_chord_stretch_coefficient
 parameterization_solver.add_parameter(parameter=h_tail_span_stretch_coefficients, cost=1.e3)
 parameterization_solver.add_parameter(parameter=h_tail_translation_x_coefficients)
 parameterization_solver.add_parameter(parameter=h_tail_translation_z_coefficients)
-# parameterization_solver.add_parameter(parameter=h_tail_twist_coefficients)
-
-
-# region Vertical Stabilizer setup
-v_tail_ffd_block = lg.construct_ffd_block_around_entities(name='v_tail_ffd_block', entities=v_tail, num_coefficients=(2,11,2), degree=(1,3,1))
-v_tail_ffd_block_sectional_parameterization = lg.VolumeSectionalParameterization(name='v_tail_sectional_parameterization',
-                                                                            parameterized_points=v_tail_ffd_block.coefficients,
-                                                                            principal_parametric_dimension=1)
-
-v_tail_chord_stretch_coefficients = csdl.Variable(name='v_tail_chord_stretch_coefficients', value=np.array([0., 0.]))
-v_tail_chord_stretch_b_spline = lfs.Function(name='v_tail_chord_stretch_b_spline', space=linear_b_spline_curve_2_dof_space,
-                                            coefficients=v_tail_chord_stretch_coefficients)
-v_tail_span_stretch_coefficients = csdl.Variable(name='v_tail_span_stretch_coefficients', value=np.array([0.]))
-v_tail_span_stretch_b_spline = lfs.Function(name='v_tail_span_stretch_b_spline', space=constant_b_spline_curve_1_dof_space, 
-                                          coefficients=v_tail_span_stretch_coefficients)
-v_tail_translation_x_coefficients = csdl.Variable(name='v_tail_translation_x_coefficients', value=np.array([0.]))
-v_tail_translation_x_b_spline = lfs.Function(name='v_tail_translation_x_b_spline', space=constant_b_spline_curve_1_dof_space,
-                                          coefficients=v_tail_translation_x_coefficients)
-v_tail_translation_z_coefficients = csdl.Variable(name='v_tail_translation_z_coefficients', value=np.array([0.]))
-v_tail_translation_z_b_spline = lfs.Function(name='v_tail_translation_z_b_spline', space=constant_b_spline_curve_1_dof_space,
-                                          coefficients=v_tail_translation_z_coefficients)
-
-vtail_section_parametric_coordinates = np.linspace(0., 1., v_tail_ffd_block_sectional_parameterization.num_sections).reshape((-1,1))
-sectional_v_tail_chord_stretch = v_tail_chord_stretch_b_spline.evaluate(vtail_section_parametric_coordinates)
-sectional_v_tail_span_stretch = v_tail_span_stretch_b_spline.evaluate(vtail_section_parametric_coordinates)
-sectional_v_tail_translation_x = v_tail_translation_x_b_spline.evaluate(vtail_section_parametric_coordinates)
-sectional_v_tail_translation_z = v_tail_translation_z_b_spline.evaluate(vtail_section_parametric_coordinates)
-
-vtail_sectional_parameters = lg.VolumeSectionalParameterizationInputs(
-    stretches={0: sectional_v_tail_chord_stretch,2: sectional_v_tail_span_stretch},
-    translations={0: sectional_v_tail_translation_x, 2: sectional_v_tail_translation_z}
-)
-# parameterization_solver.add_parameter(parameter=v_tail_chord_stretch_coefficients)
-# parameterization_solver.add_parameter(parameter=v_tail_span_stretch_coefficients, cost=1.e3)
-# parameterization_solver.add_parameter(parameter=v_tail_translation_x_coefficients)
-# parameterization_solver.add_parameter(parameter=v_tail_translation_z_coefficients)
+parameterization_solver.add_parameter(parameter=h_tail_twist_coefficients)
 
 
 # region Control Surface Parameterization setup
@@ -998,14 +965,13 @@ control_surfaces = [
 control_surface_ffd_blocks = []
 control_surface_sectional_parameterizations = []
 control_surface_parameterization_b_splines = []
-control_surface_sectional_parameters = []
 
 for control_surface in control_surfaces:
     ffd_block = lg.construct_ffd_block_around_entities(
         name=f'{control_surface.name}_ffd_block',
         entities=[control_surface],
-        num_coefficients=(2, 11, 2),
-        degree=(1, 3, 1)
+        num_coefficients=(2, 2, 2),
+        degree=(1, 1, 1)
     )
     sectional_parameterization = lg.VolumeSectionalParameterization(
         name=f'{control_surface.name}_sectional_parameterization',
@@ -1034,43 +1000,42 @@ for control_surface in control_surfaces:
         stretches={0: sectional_stretch}
     )
 
-    control_surface_sectional_parameters.append(sectional_parameters) 
+    parameterization_solver.add_parameter(parameter=stretch_coefficients)
 
-    # parameterization_solver.add_parameter(parameter=stretch_coefficients)
+    ffd_block_coefficients = sectional_parameterization.evaluate(sectional_parameters, plot=False)
+    coefficients = ffd_block.evaluate(ffd_block_coefficients, plot=False)
+    control_surface.set_coefficients(coefficients)
 
-#
-rotors = [rotor_hub_ob_left_fwd, rotor_hub_mid_left_fwd, rotor_hub_ib_left_fwd, rotor_hub_ob_right_fwd, rotor_hub_mid_right_fwd, rotor_hub_ib_right_fwd,
-          rotor_hub_ob_left_aft, rotor_hub_mid_left_aft, rotor_hub_ib_left_aft, rotor_hub_ob_right_aft, rotor_hub_mid_right_aft, rotor_hub_ib_right_aft]
+# region Vertical Stabilizer setup
+# v_tail_ffd_block = lg.construct_ffd_block_around_entities(name='v_tail_ffd_block', entities=v_tail, num_coefficients=(2,11,2), degree=(1,3,1))
+# v_tail_ffd_block_sectional_parameterization = lg.VolumeSectionalParameterization(name='v_tail_sectional_parameterization',
+#                                                                             parameterized_points=v_tail_ffd_block.coefficients,
+#                                                                             principal_parametric_dimension=1)
 
-rotor_ffd_blocks = []
-rotor_sectional_parameterizations = []
-rotor_parameterization_b_splines = []
-rotor_sectional_parameters=[]
+# v_tail_chord_stretch_coefficients = csdl.Variable(name='v_tail_chord_stretch_coefficients', value=np.array([0.]))
+# v_tail_chord_stretch_b_spline = lfs.Function(name='v_tail_chord_stretch_b_spline', space=linear_b_spline_curve_2_dof_space,
+#                                             coefficients=v_tail_chord_stretch_coefficients)
+# v_tail_span_stretch_coefficients = csdl.Variable(name='v_tail_span_stretch_coefficients', value=np.array([0.]))
+# v_tail_span_stretch_b_spline = lfs.Function(name='v_tail_span_stretch_b_spline', space=constant_b_spline_curve_1_dof_space, 
+#                                           coefficients=v_tail_span_stretch_coefficients)
+# v_tail_translation_x_coefficients = csdl.Variable(name='v_tail_translation_x_coefficients', value=np.array([0.]))
+# v_tail_translation_x_b_spline = lfs.Function(name='v_tail_translation_x_b_spline', space=constant_b_spline_curve_1_dof_space,
+#                                           coefficients=v_tail_translation_x_coefficients)
+# v_tail_translation_z_coefficients = csdl.Variable(name='v_tail_translation_z_coefficients', value=np.array([0.]))
+# v_tail_translation_z_b_spline = lfs.Function(name='v_tail_translation_z_b_spline', space=constant_b_spline_curve_1_dof_space,
+#                                           coefficients=v_tail_translation_z_coefficients)
 
-for i, comp in enumerate(rotors):
-    rotor_ffd_block = lg.construct_ffd_block_around_entities(name=f'{comp.name[6:]}_rotor_ffd_block', entities=comp, num_coefficients=(2,2,2), degree=(1,1,1))
-    rotor_ffd_block_sectional_parameterization = lg.VolumeSectionalParameterization(name=f'{comp.name[6:]}_rotor_sectional_parameterization',
-                                                                                parameterized_points=rotor_ffd_block.coefficients,
-                                                                                principal_parametric_dimension=2)
-    
-    rotor_stretch_coefficient = csdl.Variable(name=f'{comp.name[6:]}_rotor_stretch_coefficient', shape=(1,), value=0)
-    rotor_sectional_stretch_b_spline = lfs.Function(name=f'{comp.name[6:]}_rotor_stretch_b_spline', space=constant_b_spline_curve_1_dof_space,
-                                                    coefficients=rotor_stretch_coefficient)
-    rotor_ffd_blocks.append(rotor_ffd_block)
-    rotor_sectional_parameterizations.append(rotor_ffd_block_sectional_parameterization)
-    rotor_parameterization_b_splines.append(rotor_sectional_stretch_b_spline)
+# vtail_section_parametric_coordinates = np.linspace(0., 1., v_tail_ffd_block_sectional_parameterization.num_sections).reshape((-1,1))
+# sectional_v_tail_chord_stretch = v_tail_chord_stretch_b_spline.evaluate(vtail_section_parametric_coordinates)
+# sectional_v_tail_span_stretch = v_tail_span_stretch_b_spline.evaluate(vtail_section_parametric_coordinates)
+# sectional_v_tail_translation_x = v_tail_translation_x_b_spline.evaluate(vtail_section_parametric_coordinates)
+# sectional_v_tail_translation_z = v_tail_translation_z_b_spline.evaluate(vtail_section_parametric_coordinates)
 
-    rotor_section_parametric_coordinates = np.linspace(0., 1., rotor_sectional_parameterizations[i].num_sections).reshape((-1, 1))
-    sectional_rotor_stretch = rotor_parameterization_b_splines[i].evaluate(rotor_section_parametric_coordinates)
+# vtail_sectional_parameters = lg.VolumeSectionalParameterizationInputs(
+#     stretches={0: sectional_v_tail_chord_stretch,2: sectional_v_tail_span_stretch},
+#     translations={0: sectional_v_tail_translation_x, 2: sectional_v_tail_translation_z}
+# )
 
-    rotor_sectional_parameter = lg.VolumeSectionalParameterizationInputs(
-        stretches={0: sectional_rotor_stretch}
-    )
-
-    rotor_sectional_parameters.append(rotor_sectional_parameter)
-
-    # parameterization_solver.add_parameter(parameter=rotor_stretch_coefficient)
-                                                    
 
 # Pylon FFD setup
 pylons = [pylon_ob_left, pylon_mid_left, pylon_ib_left, pylon_ob_right, pylon_mid_right, pylon_ib_right]
@@ -1078,7 +1043,6 @@ pylons = [pylon_ob_left, pylon_mid_left, pylon_ib_left, pylon_ob_right, pylon_mi
 pylon_ffd_blocks = []
 pylon_sectional_parameterizations = []
 pylon_parameterization_b_splines = []
-pylon_sectional_parameters = []
 for i, comp in enumerate(pylons):
     pylon_ffd_block = lg.construct_ffd_block_around_entities(name=f'{comp.name[:8]}_pylon_ffd_block', entities=comp, num_coefficients=(2,2,2), degree=(1,1,1))
     pylon_ffd_block_sectional_parameterization = lg.VolumeSectionalParameterization(name=f'{comp.name[:8]}_pylon_sectional_parameterization',
@@ -1095,13 +1059,9 @@ for i, comp in enumerate(pylons):
     pylon_section_parametric_coordinates = np.linspace(0., 1., pylon_sectional_parameterizations[i].num_sections).reshape((-1, 1))
     sectional_pylon_stretch = pylon_parameterization_b_splines[i].evaluate(pylon_section_parametric_coordinates)
 
-    pylon_sectional_parameter = lg.VolumeSectionalParameterizationInputs(
+    pylon_sectional_parameters = lg.VolumeSectionalParameterizationInputs(
         stretches={0: sectional_pylon_stretch}
     )
-
-    pylon_sectional_parameters.append(pylon_sectional_parameter)
-
-    # parameterization_solver.add_parameter(parameter=pylon_stretch_coefficient)
 
 
 # # region Fuselage setup
@@ -1137,228 +1097,206 @@ wing.set_coefficients(wing_coefficients)
 h_tail_ffd_block_coefficients = h_tail_ffd_block_sectional_parameterization.evaluate(htail_sectional_parameters, plot=False)
 h_tail_coefficients = h_tail_ffd_block.evaluate(h_tail_ffd_block_coefficients, plot=False)
 h_tail.set_coefficients(coefficients=h_tail_coefficients)
-v_tail_ffd_block_coefficients = v_tail_ffd_block_sectional_parameterization.evaluate(vtail_sectional_parameters, plot=False)
-v_tail_coefficients = v_tail_ffd_block.evaluate(v_tail_ffd_block_coefficients, plot=False)
-v_tail.set_coefficients(coefficients=v_tail_coefficients)
-for i, comp in enumerate(control_surfaces):
-    control_surface_ffd_block_coefficients = control_surface_sectional_parameterizations[i].evaluate(control_surface_sectional_parameters[i], plot=False)
-    control_surface_coefficients = control_surface_ffd_blocks[i].evaluate(control_surface_ffd_block_coefficients, plot=False)
-    control_surfaces[i].set_coefficients(control_surface_coefficients)
-for i, comp in enumerate(rotors):
-    rotor_ffd_block_coefficients = rotor_sectional_parameterizations[i].evaluate(rotor_sectional_parameters[i], plot=False)
-    rotor_coefficients = rotor_ffd_blocks[i].evaluate(rotor_ffd_block_coefficients, plot=False)
-    rotors[i].set_coefficients(rotor_coefficients)
+# v_tail_ffd_block_coefficients = v_tail_ffd_block_sectional_parameterization.evaluate(vtail_sectional_parameters, plot=False)
+# v_tail_coefficients = v_tail_ffd_block.evaluate(v_tail_ffd_block_coefficients, plot=False)
+# v_tail.set_coefficients(coefficients=v_tail_coefficients)
 for i, comp in enumerate(pylons):
-    pylon_ffd_block_coefficients = pylon_sectional_parameterizations[i].evaluate(pylon_sectional_parameters[i], plot=False)
+    pylon_ffd_block_coefficients = pylon_sectional_parameterizations[i].evaluate(pylon_sectional_parameters, plot=False)
     pylon_coefficients = pylon_ffd_blocks[i].evaluate(pylon_ffd_block_coefficients, plot=False)
     pylons[i].set_coefficients(pylon_coefficients)
 fuselage_ffd_block_coefficients = fuselage_ffd_block_sectional_parameterization.evaluate(sectional_parameters, plot=False)
 fuselage_coefficients = fuselage_ffd_block.evaluate(fuselage_ffd_block_coefficients, plot=False)
 fuselage.set_coefficients(coefficients=fuselage_coefficients)
 
-# Define Design parameters
-wing_span_computed = csdl.norm(geometry.evaluate(wing_tip_left_le_parametric) - geometry.evaluate(wing_tip_right_le_parametric))
-wing_root_chord_computed = csdl.norm(geometry.evaluate(wing_root_le_parametric) - geometry.evaluate(wing_root_te_parametric))
-wing_tip_chord_left_computed = csdl.norm(geometry.evaluate(wing_tip_left_le_parametric) - geometry.evaluate(wing_tip_left_te_parametric))
-wing_tip_chord_right_computed = csdl.norm(geometry.evaluate(wing_tip_right_le_parametric) - geometry.evaluate(wing_tip_right_te_parametric))
+# config2.system.geometry.plot()
+camera_position = tuple = (0, 0, 1)
+camera_focal_point = tuple = (0, 0, 0)
+camera_viewup = tuple = (0, 1, 0)
+# These values are used to set the camera position and focal point. These are kinda good to just mess around with and decide how you prefer to see the aircraft
 
-wing_span = csdl.Variable(name='wing_span', value=70*ft2m)
-wing_root_chord = csdl.Variable(name='wing_root_chord', value=10*ft2m)
-wing_tip_chord = csdl.Variable(name='wing_tip_chord_left', value=5*ft2m)
+values = np.linspace(-0.1, 0.1, 20)
 
-parameterization_design_parameters.add_variable(computed_value = wing_span_computed, desired_value=wing_span)
-parameterization_design_parameters.add_variable(computed_value = wing_root_chord_computed, desired_value=wing_root_chord)
-parameterization_design_parameters.add_variable(computed_value = wing_tip_chord_left_computed, desired_value=wing_tip_chord)
-parameterization_design_parameters.add_variable(computed_value = wing_tip_chord_right_computed, desired_value=wing_tip_chord)
-
-h_tail_span_computed = csdl.norm(geometry.evaluate(htail_tip_left_le_parametric) - geometry.evaluate(htail_tip_right_le_parametric))
-h_tail_root_chord_computed = csdl.norm(geometry.evaluate(htail_root_le_parametric) - geometry.evaluate(htail_root_te_parametric))
-h_tail_tip_chord_left_computed = csdl.norm(geometry.evaluate(htail_tip_left_le_parametric) - geometry.evaluate(htail_tip_left_te_parametric))
-h_tail_tip_chord_right_computed = csdl.norm(geometry.evaluate(htail_tip_right_le_parametric) - geometry.evaluate(htail_tip_right_te_parametric))
-
-h_tail_span = csdl.Variable(name='h_tail_span', value=np.array([12.]))
-h_tail_root_chord = csdl.Variable(name='h_tail_root_chord', value=np.array([3.]))
-h_tail_tip_chord = csdl.Variable(name='h_tail_tip_chord_left', value=np.array([2.]))
-
-parameterization_design_parameters.add_variable(computed_value=h_tail_span_computed, desired_value=h_tail_span)
-parameterization_design_parameters.add_variable(computed_value=h_tail_root_chord_computed, desired_value=h_tail_root_chord)
-parameterization_design_parameters.add_variable(computed_value=h_tail_tip_chord_left_computed, desired_value=h_tail_tip_chord)
-parameterization_design_parameters.add_variable(computed_value=h_tail_tip_chord_right_computed, desired_value=h_tail_tip_chord)
-
-h_tail_moment_arm_computed = csdl.norm(htail_root_qc - wing_root_qc)
-h_tail_moment_arm = csdl.Variable(name='h_tail_moment_arm', value=np.array([10.]))
-parameterization_design_parameters.add_variable(computed_value=h_tail_moment_arm_computed, desired_value=h_tail_moment_arm)
-
-# v_tail_moment_arm_computed = csdl.norm(vtail_root_qc - wing_root_qc)
-# v_tail_moment_arm = csdl.Variable(name='v_tail_moment_arm', value=np.array([10.]))
-# parameterization_design_parameters.add_variable(computed_value=v_tail_moment_arm_computed, desired_value=v_tail_moment_arm)
-
-fuselage_wing_root_te = fuselage.project(wing.evaluate(wing_root_te_parametric))
-fuselage_htail_root_te = fuselage.project(h_tail.evaluate(htail_root_te_parametric))
-fuselage_vtail_root_le = fuselage.project(v_tail.evaluate(vtail_root_le_parametric))
-wing_fuselage_connection = wing_root_te - geometry.evaluate(fuselage_wing_root_te)
-h_tail_fuselage_connection = htail_root_te - geometry.evaluate(fuselage_htail_root_te)
-v_tail_fuselage_connection = vtail_root_le - geometry.evaluate(fuselage_vtail_root_le)
-parameterization_design_parameters.add_variable(computed_value=wing_fuselage_connection, desired_value=wing_fuselage_connection.value)
-parameterization_design_parameters.add_variable(computed_value=h_tail_fuselage_connection, desired_value=h_tail_fuselage_connection.value)
-parameterization_design_parameters.add_variable(computed_value=v_tail_fuselage_connection, desired_value=v_tail_fuselage_connection.value)
+# for i, val in enumerate(values):
+#     span_change_amount = val
+#     wing_wingspan_stretch_amount = wing_wingspan_stretch_amount.set(csdl.slice[0], wing_wingspan_stretch_amount.value[0] + span_change_amount)
+#     wing_wingspan_stretch_coefficients = csdl.Variable(name='wing_wingspan_stretch_coefficients', value=np.array([-wing_wingspan_stretch_amount.value[0]/2, wing_wingspan_stretch_amount.value[0]/2]))
+#     wing_wingspan_stretch_b_spline = lfs.Function(name='wing_wingspan_stretch_b_spline', space=linear_b_spline_curve_2_dof_space, 
+#                                             coefficients=wing_wingspan_stretch_coefficients)
+#     sectional_wing_wingspan_stretch = wing_wingspan_stretch_b_spline.evaluate(wing_section_parametric_coordinates)
+#     wing_sectional_parameters = lg.VolumeSectionalParameterizationInputs(
+#         stretches={0: sectional_wing_chord_stretch},
+#         translations={1: sectional_wing_wingspan_stretch, 0: sectional_wing_translation_x, 2: sectional_wing_translation_z, 0: sectional_wing_sweep},
+#         rotations={1: sectional_wing_twist}
+#     )
+#     wing_ffd_block_coefficients = wing_ffd_block_sectional_parameterization.evaluate(wing_sectional_parameters, plot=False)
+#     wing_coefficients = wing_ffd_block.evaluate(wing_ffd_block_coefficients, plot=False)
+#     wing.set_coefficients(wing_coefficients)
+#     geometry.plot(camera={'pos':(15,wingspan.value[0]*1.25,-12), 'focal_point':(-fuselage_length/2,0,0), 'distance':0,'viewup':(0,0,-1)}, screenshot=f'{i}_wiskgen_span.png',title=f'Wingspan Change: {span_change_amount:.3f} m')
 
 
-pylon_points = []
-pylon_olf = pylon_ob_left.project(rotor_hub_ob_left_fwd.evaluate(pt_ob_left_fwd_bot_parametric))
-pylon_points.append(pylon_olf)
-pylon_mlf = pylon_mid_left.project(rotor_hub_mid_left_fwd.evaluate(pt_mid_left_fwd_bot_parametric))
-pylon_points.append(pylon_mlf)
-pylon_ilf = pylon_ib_left.project(rotor_hub_ib_left_fwd.evaluate(pt_ib_left_fwd_bot_parametric))
-pylon_points.append(pylon_ilf)
-pylon_orf = pylon_ob_right.project(rotor_hub_ob_right_fwd.evaluate(pt_ob_right_fwd_bot_parametric))
-pylon_points.append(pylon_orf)
-pylon_mrf = pylon_mid_right.project(rotor_hub_mid_right_fwd.evaluate(pt_mid_right_fwd_bot_parametric))
-pylon_points.append(pylon_mrf)
-pylon_irf = pylon_ib_right.project(rotor_hub_ib_right_fwd.evaluate(pt_ib_right_fwd_bot_parametric))
-pylon_points.append(pylon_irf)
-pylon_ola = pylon_ob_left.project(rotor_hub_ob_left_aft.evaluate(pt_ob_left_aft_bot_parametric))
-pylon_points.append(pylon_ola)
-pylon_mla = pylon_mid_left.project(rotor_hub_mid_left_aft.evaluate(pt_mid_left_aft_bot_parametric))
-pylon_points.append(pylon_mla)
-pylon_ila = pylon_ib_left.project(rotor_hub_ib_left_aft.evaluate(pt_ib_left_aft_bot_parametric))
-pylon_points.append(pylon_ila)
-pylon_ora = pylon_ob_right.project(rotor_hub_ob_right_aft.evaluate(pt_ob_right_aft_bot_parametric))
-pylon_points.append(pylon_ora)
-pylon_mra = pylon_mid_right.project(rotor_hub_mid_right_aft.evaluate(pt_mid_right_aft_bot_parametric))
-pylon_points.append(pylon_mra)
-pylon_ira = pylon_ib_right.project(rotor_hub_ib_right_aft.evaluate(pt_ib_right_aft_bot_parametric))
-pylon_points.append(pylon_ira)
-
-pylon_point_on_wing = []
-wing_pylon_olf = wing.project(rotor_hub_ob_left_fwd.evaluate(pt_ob_left_fwd_bot_parametric))
-pylon_point_on_wing.append(wing_pylon_olf)
-wing_pylon_mlf = wing.project(rotor_hub_mid_left_fwd.evaluate(pt_mid_left_fwd_bot_parametric))
-pylon_point_on_wing.append(wing_pylon_mlf)
-wing_pylon_ilf = wing.project(rotor_hub_ib_left_fwd.evaluate(pt_ib_left_fwd_bot_parametric))
-pylon_point_on_wing.append(wing_pylon_ilf)
-wing_pylon_orf = wing.project(rotor_hub_ob_right_fwd.evaluate(pt_ob_right_fwd_bot_parametric))
-pylon_point_on_wing.append(wing_pylon_orf)
-wing_pylon_mrf = wing.project(rotor_hub_mid_right_fwd.evaluate(pt_mid_right_fwd_bot_parametric))
-pylon_point_on_wing.append(wing_pylon_mrf)
-wing_pylon_irf = wing.project(rotor_hub_ib_right_fwd.evaluate(pt_ib_right_fwd_bot_parametric))
-pylon_point_on_wing.append(wing_pylon_irf)
-wing_pylon_ola = wing.project(rotor_hub_ob_left_aft.evaluate(pt_ob_left_aft_bot_parametric))
-pylon_point_on_wing.append(wing_pylon_ola)
-wing_pylon_mla = wing.project(rotor_hub_mid_left_aft.evaluate(pt_mid_left_aft_bot_parametric))
-pylon_point_on_wing.append(wing_pylon_mla)
-wing_pylon_ila = wing.project(rotor_hub_ib_left_aft.evaluate(pt_ib_left_aft_bot_parametric))
-pylon_point_on_wing.append(wing_pylon_ila)
-wing_pylon_ora = wing.project(rotor_hub_ob_right_aft.evaluate(pt_ob_right_aft_bot_parametric))
-pylon_point_on_wing.append(wing_pylon_ora)
-wing_pylon_mra = wing.project(rotor_hub_mid_right_aft.evaluate(pt_mid_right_aft_bot_parametric))
-pylon_point_on_wing.append(wing_pylon_mra)
-wing_pylon_ira = wing.project(rotor_hub_ib_right_aft.evaluate(pt_ib_right_aft_bot_parametric))
-pylon_point_on_wing.append(wing_pylon_ira)
+# for i, val in enumerate(values):
+#     chord_change_amount = val
+#     wing_chord_stretch_coefficients = wing_chord_stretch_coefficients.set(csdl.slice[0], wing_chord_stretch_coefficients.value[0] + chord_change_amount)
+#     wing_chord_stretch_b_spline = lfs.Function(name='wing_chord_stretch_b_spline', space=linear_b_spline_curve_3_dof_space, 
+#                                                coefficients=wing_chord_stretch_coefficients)
+#     sectional_wing_chord_stretch = wing_chord_stretch_b_spline.evaluate(wing_section_parametric_coordinates)
+#     wing_sectional_parameters = lg.VolumeSectionalParameterizationInputs(
+#         stretches={0: sectional_wing_chord_stretch},
+#         translations={1: sectional_wing_wingspan_stretch, 0: sectional_wing_translation_x, 2: sectional_wing_translation_z, 0: sectional_wing_sweep},
+#         rotations={1: sectional_wing_twist}
+#     )
+#     wing_ffd_block_coefficients = wing_ffd_block_sectional_parameterization.evaluate(wing_sectional_parameters, plot=False)
+#     wing_coefficients = wing_ffd_block.evaluate(wing_ffd_block_coefficients, plot=False)
+#     wing.set_coefficients(wing_coefficients)
+#     geometry.plot(camera={'pos':(15,wingspan.value[0]*1.25,-12), 'focal_point':(-fuselage_length/2,0,0), 'distance':0,'viewup':(0,0,-1)}, screenshot=f'{i}_wiskgen_chord.png',title=f'Chord Change: {chord_change_amount:.3f} m')
 
 
+# print('After ffd: Wing Axis Translation (m): ', wing_axis.translation.value)
+# print('After ffd: Wing Axis Rotation (deg): ', np.rad2deg(wing_axis.euler_angles_vector.value))
 
-for i in range(len(pylon_points)):
-    pylon_connection = geometry.evaluate(pylon_points[i]) - geometry.evaluate(pylon_point_on_wing[i])
+aero_force_vector_in_wing = Vector(vector=aero_force, axis=wing_axis)
+aero_moment_vector_in_wing = Vector(vector=aero_moment, axis=wing_axis)
+aero_force_moment_in_wing = ForcesMoments(force=aero_force_vector_in_wing, moment=aero_moment_vector_in_wing)
+aero_force_moment_in_body = aero_force_moment_in_wing.rotate_to_axis(fd_axis)
+aero_force_in_body = aero_force_moment_in_body.F
+aero_moment_in_body = aero_force_moment_in_body.M
 
-    parameterization_design_parameters.add_variable(computed_value=pylon_connection, desired_value=pylon_connection.value)
-############################################################################################################
+# print("After ffd: Aero force vector in wing axis:", aero_force_vector_in_wing.vector.value)
+# print("After ffd: Aero moment vector in wing axis:", aero_moment_vector_in_wing.vector.value)
+# print("After ffd: Aero force vector in body axis:", aero_force_in_body.vector.value)
+# print("After ffd: Aero moment vector in body axis:", aero_moment_in_body.vector.value)
 
 
-Aircraft = Component(name='Aircraft', geometry=geometry)
+def define_heirarchy():
+    """
+    Defines the hierarchical structure of an aircraft and its components.
+    The function creates an aircraft component and adds various subcomponents to it, including wings, tails, fuselage,
+    landing gears, propulsion systems, and pylons. It also connects certain components geometrically.
+    Returns:
+        tuple: A tuple containing the Aircraft component and its configuration.
+    """
+    Aircraft = Component(name='Aircraft', geometry=geometry)
+    
+    # Wing, Tails, Fuselage
+    Wing = Component(name='Wing',geometry=wing)
+    HorizTail = Component(name='Horizontal Tail',geometry=h_tail)
+    VertTail = Component(name='Vertical Tail',geometry=v_tail)
+    Fuselage = Component(name='Fuselage',geometry=fuselage)
+    Aircraft.add_subcomponent(Wing)
+    Aircraft.add_subcomponent(HorizTail)
+    Aircraft.add_subcomponent(VertTail)
+    Aircraft.add_subcomponent(Fuselage)
+    # Control Surfaces
+    OB_Left_Aileron = Component(name='OB Left Aileron', geometry=ob_left_aileron)
+    Mid_Left_Flap = Component(name='Mid Left Flap', geometry=mid_left_flap)
+    IB_Left_Flap = Component(name='IB Left Flap', geometry=ib_left_flap)
+    OB_Right_Aileron = Component(name='OB Right Aileron', geometry=ob_right_aileron)
+    Mid_Right_Flap = Component(name='Mid Right Flap', geometry=mid_right_flap)
+    IB_Right_Flap = Component(name='IB Right Flap', geometry=ib_right_flap)
 
-# Wing, Tails, Fuselage
-Wing = Component(name='Wing',geometry=wing)
-HorizTail = Component(name='Horizontal Tail',geometry=h_tail)
-VertTail = Component(name='Vertical Tail',geometry=v_tail)
-Fuselage = Component(name='Fuselage',geometry=fuselage)
-Aircraft.add_subcomponent(Wing)
-Aircraft.add_subcomponent(HorizTail)
-Aircraft.add_subcomponent(VertTail)
-Aircraft.add_subcomponent(Fuselage)
-# Control Surfaces
-OB_Left_Aileron = Component(name='OB Left Aileron', geometry=ob_left_aileron)
-Mid_Left_Flap = Component(name='Mid Left Flap', geometry=mid_left_flap)
-IB_Left_Flap = Component(name='IB Left Flap', geometry=ib_left_flap)
-OB_Right_Aileron = Component(name='OB Right Aileron', geometry=ob_right_aileron)
-Mid_Right_Flap = Component(name='Mid Right Flap', geometry=mid_right_flap)
-IB_Right_Flap = Component(name='IB Right Flap', geometry=ib_right_flap)
+    Wing.add_subcomponent(OB_Left_Aileron)
+    Wing.add_subcomponent(Mid_Left_Flap)
+    Wing.add_subcomponent(IB_Left_Flap)
+    Wing.add_subcomponent(OB_Right_Aileron)
+    Wing.add_subcomponent(Mid_Right_Flap)
+    Wing.add_subcomponent(IB_Right_Flap)
 
-Wing.add_subcomponent(OB_Left_Aileron)
-Wing.add_subcomponent(Mid_Left_Flap)
-Wing.add_subcomponent(IB_Left_Flap)
-Wing.add_subcomponent(OB_Right_Aileron)
-Wing.add_subcomponent(Mid_Right_Flap)
-Wing.add_subcomponent(IB_Right_Flap)
+    # Landing Gears
+    # Landing Gear Components
+    Landing_Gear = Component(name='Landing Gear')
+    Fwd_Landing_Gear_Pylon = Component(name='Forward Landing Gear Pylon', geometry=fwd_landing_gear_pylon)
+    Aft_Landing_Gear_Pylon = Component(name='Aft Landing Gear Pylon', geometry=aft_landing_gear_pylon)
+    Base_Landing_Gear = Component(name='Base Landing Gear', geometry=base_landing_gear)
+    Landing_Gear.add_subcomponent(Fwd_Landing_Gear_Pylon)
+    Landing_Gear.add_subcomponent(Aft_Landing_Gear_Pylon)
+    Landing_Gear.add_subcomponent(Base_Landing_Gear)
+    Aircraft.add_subcomponent(Landing_Gear)
+    # Propulsion and Pylons
+    Propulsion = Component(name='Propulsion')
+    LPC_Propulsion = Component(name='Lift+Cruise Propulsion (FWD)')
+    Propulsion.add_subcomponent(LPC_Propulsion)
+    Motor_ob_left_fwd = Component(name='Motor Outboard Left FWD', geometry=rotor_hub_ob_left_fwd)
+    Motor_mid_left_fwd = Component(name='Motor Middle Left FWD', geometry=rotor_hub_mid_left_fwd)
+    Motor_ib_left_fwd = Component(name='Motor Inboard Left FWD', geometry=rotor_hub_ib_left_fwd)
+    Motor_ob_right_fwd = Component(name='Motor Outboard Right FWD', geometry=rotor_hub_ob_right_fwd)
+    Motor_mid_right_fwd = Component(name='Motor Middle Right FWD', geometry=rotor_hub_mid_right_fwd)
+    Motor_ib_right_fwd = Component(name='Motor Inboard Right FWD', geometry=rotor_hub_ib_right_fwd)
+    LPC_Propulsion.add_subcomponent(Motor_ob_left_fwd)
+    LPC_Propulsion.add_subcomponent(Motor_mid_left_fwd)
+    LPC_Propulsion.add_subcomponent(Motor_ib_left_fwd)
+    LPC_Propulsion.add_subcomponent(Motor_ob_right_fwd)
+    LPC_Propulsion.add_subcomponent(Motor_mid_right_fwd)
+    LPC_Propulsion.add_subcomponent(Motor_ib_right_fwd)
+    LIFT_Propulsion = Component(name='Lift Only Propulsion (AFT)')
+    Propulsion.add_subcomponent(LIFT_Propulsion)
+    Motor_ob_left_aft = Component(name='Motor Outboard Left AFT', geometry=rotor_hub_ob_left_aft)
+    Motor_mid_left_aft = Component(name='Motor Middle Left AFT', geometry=rotor_hub_mid_left_aft)
+    Motor_ib_left_aft = Component(name='Motor Inboard Left AFT', geometry=rotor_hub_ib_left_aft)
+    Motor_ob_right_aft = Component(name='Motor Outboard Right AFT', geometry=rotor_hub_ob_right_aft)
+    Motor_mid_right_aft = Component(name='Motor Middle Right AFT', geometry=rotor_hub_mid_right_aft)
+    Motor_ib_right_aft = Component(name='Motor Inboard Right AFT', geometry=rotor_hub_ib_right_aft)
+    LIFT_Propulsion.add_subcomponent(Motor_ob_left_aft)
+    LIFT_Propulsion.add_subcomponent(Motor_mid_left_aft)
+    LIFT_Propulsion.add_subcomponent(Motor_ib_left_aft)
+    LIFT_Propulsion.add_subcomponent(Motor_ob_right_aft)
+    LIFT_Propulsion.add_subcomponent(Motor_mid_right_aft)
+    LIFT_Propulsion.add_subcomponent(Motor_ib_right_aft)
+    Supports = Component(name='Prop Pylons')
+    Pylon_Outboard_Left = Component(name='Pylon Outboard Left', geometry=pylon_ob_left)
+    Pylon_Outboard_Right = Component(name='Pylon Outboard Right', geometry=pylon_ob_right)
+    Pylon_Middle_Left = Component(name='Pylon Middle Left', geometry=pylon_mid_left)
+    Pylon_Middle_Right = Component(name='Pylon Middle Right', geometry=pylon_mid_right)
+    Pylon_Inboard_Left = Component(name='Pylon Inboard Left', geometry=pylon_ib_left)
+    Pylon_Inboard_Right = Component(name='Pylon Inboard Right', geometry=pylon_ib_right)
+    Supports.add_subcomponent(Pylon_Outboard_Left)
+    Supports.add_subcomponent(Pylon_Outboard_Right)
+    Supports.add_subcomponent(Pylon_Middle_Left)
+    Supports.add_subcomponent(Pylon_Middle_Right)
+    Supports.add_subcomponent(Pylon_Inboard_Left)
+    Supports.add_subcomponent(Pylon_Inboard_Right)
+    Propulsion.add_subcomponent(Supports)
+    Aircraft.add_subcomponent(Propulsion)
 
-# Landing Gears
-# Landing Gear Components
-Landing_Gear = Component(name='Landing Gear')
-Fwd_Landing_Gear_Pylon = Component(name='Forward Landing Gear Pylon', geometry=fwd_landing_gear_pylon)
-Aft_Landing_Gear_Pylon = Component(name='Aft Landing Gear Pylon', geometry=aft_landing_gear_pylon)
-Base_Landing_Gear = Component(name='Base Landing Gear', geometry=base_landing_gear)
-Landing_Gear.add_subcomponent(Fwd_Landing_Gear_Pylon)
-Landing_Gear.add_subcomponent(Aft_Landing_Gear_Pylon)
-Landing_Gear.add_subcomponent(Base_Landing_Gear)
-Aircraft.add_subcomponent(Landing_Gear)
-# Propulsion and Pylons
-Propulsion = Component(name='Propulsion')
-LPC_Propulsion = Component(name='Lift+Cruise Propulsion (FWD)')
-Propulsion.add_subcomponent(LPC_Propulsion)
-Motor_ob_left_fwd = Component(name='Motor Outboard Left FWD', geometry=rotor_hub_ob_left_fwd)
-Motor_mid_left_fwd = Component(name='Motor Middle Left FWD', geometry=rotor_hub_mid_left_fwd)
-Motor_ib_left_fwd = Component(name='Motor Inboard Left FWD', geometry=rotor_hub_ib_left_fwd)
-Motor_ob_right_fwd = Component(name='Motor Outboard Right FWD', geometry=rotor_hub_ob_right_fwd)
-Motor_mid_right_fwd = Component(name='Motor Middle Right FWD', geometry=rotor_hub_mid_right_fwd)
-Motor_ib_right_fwd = Component(name='Motor Inboard Right FWD', geometry=rotor_hub_ib_right_fwd)
-LPC_Propulsion.add_subcomponent(Motor_ob_left_fwd)
-LPC_Propulsion.add_subcomponent(Motor_mid_left_fwd)
-LPC_Propulsion.add_subcomponent(Motor_ib_left_fwd)
-LPC_Propulsion.add_subcomponent(Motor_ob_right_fwd)
-LPC_Propulsion.add_subcomponent(Motor_mid_right_fwd)
-LPC_Propulsion.add_subcomponent(Motor_ib_right_fwd)
-LIFT_Propulsion = Component(name='Lift Only Propulsion (AFT)')
-Propulsion.add_subcomponent(LIFT_Propulsion)
-Motor_ob_left_aft = Component(name='Motor Outboard Left AFT', geometry=rotor_hub_ob_left_aft)
-Motor_mid_left_aft = Component(name='Motor Middle Left AFT', geometry=rotor_hub_mid_left_aft)
-Motor_ib_left_aft = Component(name='Motor Inboard Left AFT', geometry=rotor_hub_ib_left_aft)
-Motor_ob_right_aft = Component(name='Motor Outboard Right AFT', geometry=rotor_hub_ob_right_aft)
-Motor_mid_right_aft = Component(name='Motor Middle Right AFT', geometry=rotor_hub_mid_right_aft)
-Motor_ib_right_aft = Component(name='Motor Inboard Right AFT', geometry=rotor_hub_ib_right_aft)
-LIFT_Propulsion.add_subcomponent(Motor_ob_left_aft)
-LIFT_Propulsion.add_subcomponent(Motor_mid_left_aft)
-LIFT_Propulsion.add_subcomponent(Motor_ib_left_aft)
-LIFT_Propulsion.add_subcomponent(Motor_ob_right_aft)
-LIFT_Propulsion.add_subcomponent(Motor_mid_right_aft)
-LIFT_Propulsion.add_subcomponent(Motor_ib_right_aft)
-Supports = Component(name='Prop Pylons')
-Pylon_Outboard_Left = Component(name='Pylon Outboard Left', geometry=pylon_ob_left)
-Pylon_Outboard_Right = Component(name='Pylon Outboard Right', geometry=pylon_ob_right)
-Pylon_Middle_Left = Component(name='Pylon Middle Left', geometry=pylon_mid_left)
-Pylon_Middle_Right = Component(name='Pylon Middle Right', geometry=pylon_mid_right)
-Pylon_Inboard_Left = Component(name='Pylon Inboard Left', geometry=pylon_ib_left)
-Pylon_Inboard_Right = Component(name='Pylon Inboard Right', geometry=pylon_ib_right)
-Supports.add_subcomponent(Pylon_Outboard_Left)
-Supports.add_subcomponent(Pylon_Outboard_Right)
-Supports.add_subcomponent(Pylon_Middle_Left)
-Supports.add_subcomponent(Pylon_Middle_Right)
-Supports.add_subcomponent(Pylon_Inboard_Left)
-Supports.add_subcomponent(Pylon_Inboard_Right)
-Propulsion.add_subcomponent(Supports)
-Aircraft.add_subcomponent(Propulsion)
+    config = Configuration(system=Aircraft)
+    airplane = Component(name='Airplane', geometry=geometry)
+    config2=Configuration(system=airplane)
+    config.connect_component_geometries(Fuselage,Wing,connection_point=wing_root_qc)
+    config.connect_component_geometries(Fuselage,HorizTail,connection_point=htail_root_te_guess)
+    config.connect_component_geometries(Fuselage,VertTail,connection_point=vtail_root_te_guess)
+    config.connect_component_geometries(Wing, OB_Left_Aileron, connection_point=ob_left_aileron_root_le)
+    config.connect_component_geometries(Wing, Mid_Left_Flap, connection_point=mid_left_flap_root_le)
+    config.connect_component_geometries(Wing, IB_Left_Flap, connection_point=ib_left_flap_root_le)
+    config.connect_component_geometries(Wing, OB_Right_Aileron, connection_point=ob_right_aileron_root_le)
+    config.connect_component_geometries(Wing, Mid_Right_Flap, connection_point=mid_right_flap_root_le)
+    config.connect_component_geometries(Wing, IB_Right_Flap, connection_point=ib_right_flap_root_le)
+    
+    # config2.connect_component_geometries(Wing,Pylon_Inboard_Left,connection_point=geometry.evaluate(wing.project()))
+    # config.connect_component_geometries(Motor_ib_left_aft,Pylon_Inboard_Left,connection_point=rotor_hub_ib_left_aft.evaluate(pt_ib_left_aft_bot_parametric))
+    # config.connect_component_geometries(Motor_mid_left_aft,Pylon_Middle_Left,connection_point=rotor_hub_mid_left_aft.evaluate(pt_mid_left_aft_bot_parametric))
+    # config.connect_component_geometries(Motor_ob_left_aft,Pylon_Outboard_Left,connection_point=rotor_hub_ob_left_aft.evaluate(pt_ob_left_aft_bot_parametric))
+    # config.connect_component_geometries(Motor_ib_right_aft,Pylon_Inboard_Right,connection_point=rotor_hub_ib_right_aft.evaluate(pt_ib_right_aft_bot_parametric))
+    # config.connect_component_geometries(Motor_mid_right_aft,Pylon_Middle_Right,connection_point=rotor_hub_mid_right_aft.evaluate(pt_mid_right_aft_bot_parametric))
+    # config.connect_component_geometries(Motor_ob_right_aft,Pylon_Outboard_Right,connection_point=rotor_hub_ob_right_aft.evaluate(pt_ob_right_aft_bot_parametric))
+    # config.connect_component_geometries(Motor_ib_left_fwd,Pylon_Inboard_Left,connection_point=rotor_hub_ib_left_fwd.evaluate(pt_ib_left_fwd_bot_parametric))
+    # config.connect_component_geometries(Motor_mid_left_fwd,Pylon_Middle_Left,connection_point=rotor_hub_mid_left_fwd.evaluate(pt_mid_left_fwd_bot_parametric))
+    # config.connect_component_geometries(Motor_ob_left_fwd,Pylon_Outboard_Left,connection_point=rotor_hub_ob_left_fwd.evaluate(pt_ob_left_fwd_bot_parametric))
+    # config.connect_component_geometries(Motor_ib_right_fwd,Pylon_Inboard_Right,connection_point=rotor_hub_ib_right_fwd.evaluate(pt_ib_right_fwd_bot_parametric))
+    # config.connect_component_geometries(Motor_mid_right_fwd,Pylon_Middle_Right,connection_point=rotor_hub_mid_right_fwd.evaluate(pt_mid_right_fwd_bot_parametric))
+    # config.connect_component_geometries(Motor_ob_right_fwd,Pylon_Outboard_Right,connection_point=rotor_hub_ob_right_fwd.evaluate(pt_ob_right_fwd_bot_parametric))
 
-config = Configuration(system=Aircraft)
+    return Aircraft, config, config2
 
+Aircraft, config, config2 = define_heirarchy()
 
 
 
 # config2.system.geometry.plot(camera={'pos':(15,wingspan.value[0]*1.25,-12), 'focal_point':(-fuselage_length/2,0,0), 'distance':0,'viewup':(0,0,-1)},screenshot='wiskgen6.png')
-print("Before Evaluation parameterization_design_params (my geo variables)\n: ",parameterization_design_parameters)
-config.system.geometry.plot(camera={'pos':(15,15,-12), 'focal_point':(-fuselage_length/2,0,0), 'distance':0,'viewup':(0,0,-1)})
+
+config.system.geometry.plot(camera={'pos':(15,wingspan.value[0]*1.25,-12), 'focal_point':(-fuselage_length/2,0,0), 'distance':0,'viewup':(0,0,-1)})
 parameterization_solver.evaluate(parameterization_design_parameters)
 # config.setup_geometry(plot=True)
-config.system.geometry.plot(color='red',camera={'pos':(15,15,-12), 'focal_point':(-fuselage_length/2,0,0), 'distance':0,'viewup':(0,0,-1)})
-print("After Evaluation parameterization_design_params (my geo variables)\n: ",parameterization_design_parameters)
+config.system.geometry.plot(color='red',camera={'pos':(15,wingspan.value[0]*1.25,-12), 'focal_point':(-fuselage_length/2,0,0), 'distance':0,'viewup':(0,0,-1)})
+
 # config2.system.geometry.plot.show()
 # parameterization_solver.evaluate(parameterization_design_parameters)
 # geometry.plot(color='Red')
