@@ -1,18 +1,29 @@
+import time
 import lsdo_function_spaces as lfs
 import csdl_alpha as csdl
 import numpy as np
-from dataclasses import dataclass
-from flight_simulator import ureg, REPO_ROOT_FOLDER
-from typing import Union
+import matplotlib.pyplot as plt
+import lsdo_geo as lg
+from flight_simulator.utils.import_geometry import import_geometry
+from flight_simulator import REPO_ROOT_FOLDER, ureg, Q_
+from flight_simulator.core.vehicle.component import Component
+from flight_simulator.core.dynamics.aircraft_states import AircaftStates
+from flight_simulator.core.loads.mass_properties import MassProperties, MassMI
 from flight_simulator.core.dynamics.axis import Axis, ValidOrigins
 from flight_simulator.core.dynamics.axis_lsdogeo import AxisLsdoGeo
-from flight_simulator.core.loads.forces_moments import ForcesMoments, Vector
-from flight_simulator.utils.import_geometry import import_geometry
+from typing import Union, List
+from dataclasses import dataclass
+from flight_simulator.core.loads.forces_moments import Vector, ForcesMoments
 from flight_simulator.utils.euler_rotations import build_rotation_matrix
-from flight_simulator.core.component import Component, Configuration
-from flight_simulator.core.vehicle_control_system import VehicleControlSystem, ControlSurface, PropulsiveControl
-import lsdo_geo as lg
-import vedo
+from flight_simulator.core.vehicle.aircraft_control_system import AircraftControlSystem
+from flight_simulator.core.vehicle.models.propulsion.propulsion_model import PropCurve, AircraftPropulsion
+from flight_simulator.core.vehicle.models.aerodynamics.aerodynamic_model import LiftModel, AircraftAerodynamics
+from flight_simulator.core.vehicle.components.wing import Wing as WingComp
+from flight_simulator.core.vehicle.components.fuselage import Fuselage as FuseComp
+from flight_simulator.core.vehicle.components.aircraft import Aircraft as AircraftComp
+from flight_simulator.core.vehicle.components.rotor import Rotor as RotorComp
+from lsdo_geo.core.parameterization.parameterization_solver import ParameterizationSolver, GeometricVariables
+
 
 lfs.num_workers = 1
 
@@ -42,6 +53,11 @@ def define_base_geometry():
     ob_right_aileron = geometry.declare_component(function_search_names=['OB_AILERON, 0'], name='ob_right_aileron')
     mid_right_flap = geometry.declare_component(function_search_names=['MID_FLAP, 0'], name='mid_right_flap')
     ib_right_flap = geometry.declare_component(function_search_names=['IB_FLAP, 0'], name='ib_right_flap')
+    wingALL = geometry.declare_component(function_search_names=['Wing','OB_AILERON, 1','MID_FLAP, 1','IB_FLAP, 1','OB_AILERON, 0','MID_FLAP, 0','IB_FLAP, 0',
+                                                                'OB_SUPPORT_L','MID_SUPPORT_L','IB_SUPPORT_L',
+                                                                'OB_SUPPORT_R','MID_SUPPORT_R','IB_SUPPORT_R',
+                                                                'ROTOR_HUB_OB_FWD_L','ROTOR_HUB_MID_FWD_L','ROTOR_HUB_IB_FWD_L','ROTOR_HUB_OB_FWD_R','ROTOR_HUB_MID_FWD_R','ROTOR_HUB_IB_FWD_R',
+                                                                'ROTOR_HUB_OB_AFT_L','ROTOR_HUB_MID_AFT_L','ROTOR_HUB_IB_AFT_L','ROTOR_HUB_OB_AFT_R','ROTOR_HUB_MID_AFT_R','ROTOR_HUB_IB_AFT_R',], name='CompleteWing')
     ## Tail(s)
     h_tail = geometry.declare_component(function_search_names=['HTail'], name='h_tail')
     v_tail = geometry.declare_component(function_search_names=['VTail'], name='v_tail')
@@ -51,6 +67,8 @@ def define_base_geometry():
     fwd_landing_gear_pylon = geometry.declare_component(function_search_names=['FWD_LG'], name='fwd_landing_gear_pylon')
     aft_landing_gear_pylon = geometry.declare_component(function_search_names=['AFT_LG'], name='aft_landing_gear_pylon')
     base_landing_gear = geometry.declare_component(function_search_names=['LG_BASE'], name='base_landing_gear')
+
+    fuselageALL = geometry.declare_component(function_search_names=['Fuselage','FWD_LG','AFT_LG','LG_BASE'], name='CompleteFuselage')
     # Pylons for Propulsors
     pylon_ob_left = geometry.declare_component(function_search_names=['OB_SUPPORT_L'], name='pylon_ob_left')
     pylon_mid_left = geometry.declare_component(function_search_names=['MID_SUPPORT_L'], name='pylon_mid_left')
@@ -77,31 +95,56 @@ def define_base_geometry():
            pylon_ob_left, pylon_mid_left, pylon_ib_left, pylon_ob_right, pylon_mid_right, pylon_ib_right, \
            rotor_hub_ob_left_fwd, rotor_hub_mid_left_fwd, rotor_hub_ib_left_fwd, rotor_hub_ob_right_fwd, rotor_hub_mid_right_fwd, rotor_hub_ib_right_fwd, \
            rotor_hub_ob_left_aft, rotor_hub_mid_left_aft, rotor_hub_ib_left_aft, rotor_hub_ob_right_aft, rotor_hub_mid_right_aft, rotor_hub_ib_right_aft, \
-           ob_left_aileron, mid_left_flap, ib_left_flap, ob_right_aileron, mid_right_flap, ib_right_flap
+           ob_left_aileron, mid_left_flap, ib_left_flap, ob_right_aileron, mid_right_flap, ib_right_flap, wingALL, fuselageALL
 
 geometry, wing, h_tail, v_tail, fuselage, fwd_landing_gear_pylon, aft_landing_gear_pylon, base_landing_gear, \
 pylon_ob_left, pylon_mid_left, pylon_ib_left, pylon_ob_right, pylon_mid_right, pylon_ib_right, \
 rotor_hub_ob_left_fwd, rotor_hub_mid_left_fwd, rotor_hub_ib_left_fwd, rotor_hub_ob_right_fwd, rotor_hub_mid_right_fwd, rotor_hub_ib_right_fwd, \
 rotor_hub_ob_left_aft, rotor_hub_mid_left_aft, rotor_hub_ib_left_aft, rotor_hub_ob_right_aft, rotor_hub_mid_right_aft, rotor_hub_ib_right_aft, \
-ob_left_aileron, mid_left_flap, ib_left_flap, ob_right_aileron, mid_right_flap, ib_right_flap = define_base_geometry()
+ob_left_aileron, mid_left_flap, ib_left_flap, ob_right_aileron, mid_right_flap, ib_right_flap, wingALL, fuselageALL = define_base_geometry()
 
 
 # Wing info
-wing_root_le_guess = np.array([-8, 0, -5.41])*ft2m
+wing_root_le_guess = np.array([-8, 0, -5.5])*ft2m
 wing_root_le_parametric = wing.project(wing_root_le_guess, plot=plot_flag)
 wing_root_le = geometry.evaluate(wing_root_le_parametric)
 
-wing_root_te_guess = np.array([-16, 0, -5.7])*ft2m
+wing_tip_left_le_guess = np.array([-8, -25, -5.5])*ft2m
+wing_tip_left_le_parametric = wing.project(wing_tip_left_le_guess,plot=plot_flag)
+wing_tip_left_le = geometry.evaluate(wing_tip_left_le_parametric)
+
+wing_tip_right_le_guess = np.array([-8, 25, -5.5])*ft2m
+wing_tip_right_le_parametric = wing.project(wing_tip_right_le_guess,plot=plot_flag)
+wing_tip_right_le = geometry.evaluate(wing_tip_right_le_parametric)
+
+wing_root_te_guess = np.array([-13.1234, 0, -5.41])*ft2m
 wing_root_te_parametric = wing.project(wing_root_te_guess, plot=plot_flag)
 wing_root_te = geometry.evaluate(wing_root_te_parametric)
 
-wing_root_qc = wing_root_le + 1/4*(wing_root_te - wing_root_le)
+wing_tip_left_te_parametric = wing.project(np.array([-12.4672, -25, -5.41])*ft2m,plot=plot_flag)
+wing_tip_right_te_parametric = wing.project(np.array([-12.4672, 25, -5.41])*ft2m,plot=plot_flag)
+wing_tip_left_te = geometry.evaluate(wing_tip_left_te_parametric)
+wing_tip_right_te = geometry.evaluate(wing_tip_right_te_parametric)
 
-wing_tip_left_le_guess = np.array([-10, -26, -5.5])*ft2m
-wing_tip_left_le_parametric = wing.project(wing_tip_left_le_guess,plot=plot_flag)
 
-wing_tip_right_le_guess = np.array([-10, 26, -5.5])*ft2m
-wing_tip_right_le_parametric = wing.project(wing_tip_right_le_guess,plot=plot_flag)
+
+wing_root_qc_parametric = geometry.project(np.array([-8+(0.25*(-13.1234+8)), 0., -5.5])*ft2m, plot=plot_flag)
+wing_tip_right_qc_parametric = geometry.project(np.array([-8+(0.25*(-13.1234+8)), 25., -5.5])*ft2m, plot=plot_flag)
+wing_tip_left_qc_parametric = geometry.project(np.array([-8+(0.25*(-13.1234+8)), -25., -5.5])*ft2m, plot=plot_flag)
+
+
+
+wing_parametric_geometry = [
+    wing_tip_left_le_parametric,
+    wing_tip_right_le_parametric,
+    wing_root_le_parametric,
+    wing_tip_left_te_parametric,
+    wing_tip_right_te_parametric,
+    wing_root_te_parametric,
+    wing_root_qc_parametric,
+    wing_tip_right_qc_parametric,
+    wing_tip_left_qc_parametric
+]
 
 wingspan = csdl.norm(
     geometry.evaluate(wing_tip_left_le_parametric) - geometry.evaluate(wing_tip_right_le_parametric)
@@ -189,19 +232,41 @@ ib_right_flap_tip_te = geometry.evaluate(ib_right_flap_tip_te_parametric)
 
 
 # Horizontal Tail Info
-htail_root_le_guess = np.array([-23, 0, -3.7])*ft2m
+htail_root_le_guess = np.array([-24.032152, 0, -3.7])*ft2m
 htail_root_le_parametric = h_tail.project(htail_root_le_guess, plot=plot_flag)
 htail_root_le = geometry.evaluate(htail_root_le_parametric)
 
-htail_root_te_guess = np.array([-28, 0, -3.8])*ft2m
+htail_root_te_guess = np.array([-27.312992, 0, -3.8])*ft2m
 htail_root_te_parametric = h_tail.project(htail_root_te_guess, plot=plot_flag)
 htail_root_te = geometry.evaluate(htail_root_te_parametric)
 
-htail_tip_left_le_guess = np.array([-25, -7, -3.7])*ft2m
+htail_tip_left_le_guess = np.array([-24.6063, -6.56168, -3.7])*ft2m
 htail_tip_left_le_parametric = h_tail.project(htail_tip_left_le_guess,plot=plot_flag)
 
-htail_tip_right_le_guess = np.array([-25, 7, -3.7])*ft2m
+htail_tip_right_le_guess = np.array([-24.6063, 6.56168, -3.7])*ft2m
 htail_tip_right_le_parametric = h_tail.project(htail_tip_right_le_guess,plot=plot_flag)
+
+htail_tip_left_te_parametric = h_tail.project(np.array([-27, -6.56168, -3.7])*ft2m,plot=plot_flag)
+htail_tip_right_te_parametric = h_tail.project(np.array([-27, 6.56168, -3.7])*ft2m,plot=plot_flag)
+
+ht_qc_center_parametric = h_tail.project(np.array([-24.032152+(0.25*(-27.312992+24.032152)), 0, -3.7])*ft2m,plot=plot_flag)
+
+ht_qc_tip_right_parametric = h_tail.project(np.array([-24.6063+(0.25*(-27+24.6063)), 6.56168, -3.7])*ft2m,plot=plot_flag)
+ht_qc_tip_left_parametric = h_tail.project(np.array([-24.6063+(0.25*(-27+24.6063)), -6.56168, -3.7])*ft2m,plot=plot_flag)
+
+
+
+ht_parametric_geometry = [
+    htail_tip_left_le_parametric,
+    htail_tip_right_le_parametric,
+    htail_root_le_parametric,
+    htail_tip_left_te_parametric,
+    htail_tip_right_te_parametric,
+    htail_root_te_parametric,
+    ht_qc_center_parametric,
+    ht_qc_tip_right_parametric,
+    ht_qc_tip_left_parametric
+]
 
 htail_span = csdl.norm(
     geometry.evaluate(htail_tip_left_le_parametric) - geometry.evaluate(htail_tip_right_le_parametric)
@@ -224,11 +289,26 @@ vtail_tip_le_parametric = v_tail.project(vtail_tip_le_guess, plot=plot_flag)
 vtail_tip_te_guess = np.array([-29.8, 0, -10.25])*ft2m
 vtail_tip_te_parametric = v_tail.project(vtail_tip_te_guess, plot=plot_flag)
 
+vt_qc_base_parametric = v_tail.project(np.array([-28.4, 0, -3.4])*ft2m,plot=False)
+vt_qc_center_parametric = v_tail.project(np.array([-28.4, 0, -6.8])*ft2m,plot=False)
+vt_qc_tip_parametric = v_tail.project(np.array([-29.8, 0, -10.25])*ft2m,plot=False)
+
 vtail_span = csdl.norm(
     vtail_root_te - geometry.evaluate(vtail_tip_te_parametric)
 )
 # print('Vertical Tail Span: ',vtail_span.value)
 # print('Vertical Tail Span (ft): ',vtail_span.value /ft2m)
+
+## Fuselage Region Info
+fuselage_nose_guess = np.array([0, 0, 0])*ft2m
+fuselage_rear_guess = np.array([-28, 0, -3.5])*ft2m
+fuselage_nose_pts_parametric = fuselage.project(fuselage_nose_guess, grid_search_density_parameter=20, plot=plot_flag)
+fuselage_nose = geometry.evaluate(fuselage_nose_pts_parametric)
+fuselage_rear_pts_parametric = fuselage.project(fuselage_rear_guess, plot=plot_flag)
+fuselage_rear = geometry.evaluate(fuselage_rear_pts_parametric)
+fuselage_tail_te_center_parametric = fuselage.project(np.array([-27.312992, 0, -3.8])*ft2m, plot=False)
+fuselage_wing_qc_center_parametric = fuselage.project(np.array([-8+(0.25*(-13.1234+8)), 0., -5.5])*ft2m, plot=False)
+
 
 
 # Propeller Region Info
@@ -1067,7 +1147,7 @@ ib_right_aft_moment_in_body = ib_right_aft_force_moment_in_body.M
 # # # region Fuselage setup
 
 
-fuselage_ffd_block = lg.construct_ffd_block_around_entities(name='fuselage_ffd_block', entities=fuselage, num_coefficients=(2,2,2), degree=(1,1,1))
+# fuselage_ffd_block = lg.construct_ffd_block_around_entities(name='fuselage_ffd_block', entities=fuselage, num_coefficients=(2,2,2), degree=(1,1,1))
 # fuselage_ffd_block_sectional_parameterization = lg.VolumeSectionalParameterization(name='fuselage_sectional_parameterization',
 #                                                                             parameterized_points=fuselage_ffd_block.coefficients,
 #                                                                             principal_parametric_dimension=0)
@@ -1085,8 +1165,8 @@ fuselage_ffd_block = lg.construct_ffd_block_around_entities(name='fuselage_ffd_b
 
 # parameterization_solver.add_parameter(parameter=fuselage_stretch_coefficients)
 
-fuselage_tailing_point=fuselage.project(fuselage_ffd_block.evaluate(parametric_coordinates=np.array([0., 0.5, 0.5])))
-fuselage_leading_point=fuselage.project(fuselage_ffd_block.evaluate(parametric_coordinates=np.array([1., 0.5, 0.5])))
+# fuselage_tailing_point=fuselage.project(fuselage_ffd_block.evaluate(parametric_coordinates=np.array([0., 0.5, 0.5])))
+# fuselage_leading_point=fuselage.project(fuselage_ffd_block.evaluate(parametric_coordinates=np.array([1., 0.5, 0.5])))
 
 # fuselage_length = np.linalg.norm(fuselage.evaluate(fuselage_tailing_point).value - fuselage.evaluate(fuselage_leading_point).value)
 
@@ -1109,12 +1189,12 @@ fuselage_leading_point=fuselage.project(fuselage_ffd_block.evaluate(parametric_c
 # fuselage.set_coefficients(coefficients=fuselage_coefficients)
 
 # config2.system.geometry.plot()
-camera_position = tuple = (0, 0, 1)
-camera_focal_point = tuple = (0, 0, 0)
-camera_viewup = tuple = (0, 1, 0)
+# camera_position = tuple = (0, 0, 1)
+# camera_focal_point = tuple = (0, 0, 0)
+# camera_viewup = tuple = (0, 1, 0)
 # These values are used to set the camera position and focal point. These are kinda good to just mess around with and decide how you prefer to see the aircraft
 
-values = np.linspace(-0.1, 0.1, 20)
+# values = np.linspace(-0.1, 0.1, 20)
 
 # for i, val in enumerate(values):
 #     span_change_amount = val
@@ -1166,193 +1246,115 @@ aero_moment_in_body = aero_force_moment_in_body.M
 # print("After ffd: Aero force vector in body axis:", aero_force_in_body.vector.value)
 # print("After ffd: Aero moment vector in body axis:", aero_moment_in_body.vector.value)
 
-from flight_simulator.core.vehicle.components.wing import Wing as WingComp
-from flight_simulator.core.vehicle.components.fuselage import Fuselage as FuseComp
-from flight_simulator.core.vehicle.components.aircraft import Aircraft as AircraftComp
-from flight_simulator.core.vehicle.components.rotor import Rotor as RotorComp
 
 
-def define_heirarchy():
-    """
-    Defines the hierarchical structure of an aircraft and its components.
-    The function creates an aircraft component and adds various subcomponents to it, including wings, tails, fuselage,
-    landing gears, propulsion systems, and pylons. It also connects certain components geometrically.
-    Returns:
-        tuple: A tuple containing the Aircraft component and its configuration.
-    """
 
-    Aircraft = AircraftComp(geometry=geometry, compute_surface_area_flag=False)
+"""
+Defines the hierarchical structure of an aircraft and its components.
+The function creates an aircraft component and adds various subcomponents to it, including wings, tails, fuselage,
+landing gears, propulsion systems, and pylons. It also connects certain components geometrically.
+Returns:
+    tuple: A tuple containing the Aircraft component and its configuration.
+"""
+parameterization_solver = ParameterizationSolver()
+ffd_geometric_variables = GeometricVariables()
 
-    config = Configuration(system=Aircraft)
-
-    # Airframe = Component(name='Airframe')
-    # Aircraft.add_subcomponent(Airframe)
-
-    fuselagelength = csdl.Variable(name="fuselage_length", shape=(1, ), value=csdl.norm(fuselage.evaluate(fuselage_tailing_point).value - fuselage.evaluate(fuselage_leading_point).value).value)
-
-    Fuselage = FuseComp(
-        length=fuselagelength, geometry=fuselage, skip_ffd=False)
-    Aircraft.add_subcomponent(Fuselage)
+Aircraft = AircraftComp(geometry=geometry, compute_surface_area_flag=False,
+                        parameterization_solver=parameterization_solver,
+                        ffd_geometric_variables=ffd_geometric_variables)
 
 
-   
-    # wingAR = wingspan.value[0]**2/S
-    # wing_AR = csdl.Variable(name="wing_AR", shape=(1, ), value=wingAR)
-    wing_S_ref = csdl.Variable(name="wing_S_ref", shape=(1, ), value=1e3)
-    wingAR = wingspan.value[0]**2/wing_S_ref.value[0]
-    wing_AR = csdl.Variable(name="wing_AR", shape=(1, ), value=wingAR)
-    # wing_span = csdl.Variable(name="wingspan", shape=(1, ), value=csdl.norm(
-    #     geometry.evaluate(wing_tip_left_le_parametric) - geometry.evaluate(wing_tip_right_le_parametric)
-    # ).value)
-    wing_span = wingspan
-    Wing = WingComp(span=wing_span,S_ref=wing_S_ref,
-                                        geometry=wing,
-                                        tight_fit_ffd=False, orientation='horizontal', name='WingComp')
-    
-    Aircraft.add_subcomponent(Wing)
-
-    left_ib_flap_span = csdl.norm(geometry.evaluate(ib_left_flap_tip_le_parametric) - geometry.evaluate(ib_right_flap_root_le_parametric)).value
-    left_ib_flap_chord = csdl.norm(geometry.evaluate(ib_left_flap_tip_le_parametric) - geometry.evaluate(ib_left_flap_root_le_parametric)).value
-    ib_flapArea=left_ib_flap_span*left_ib_flap_chord
-    ib_flapAR = left_ib_flap_span**2/ib_flapArea
-    ib_flap_AR = csdl.Variable(name="ib_flap_AR", shape=(1, ), value=ib_flapAR)
-    ib_flap_S_ref = csdl.Variable(name="ib_flap_S_ref", shape=(1, ), value=ib_flapArea)
-    flap_actuation_angle = 50
-    
-    left_ib_flap_center = (geometry.evaluate(ib_left_flap_root_le_parametric) + geometry.evaluate(ib_left_flap_tip_le_parametric))/2
-    right_ib_flap_center = (geometry.evaluate(ib_right_flap_root_le_parametric) + geometry.evaluate(ib_right_flap_tip_le_parametric))/2    
-
-    IBFlapsLeft = WingComp(AR=ib_flap_AR, S_ref=ib_flap_S_ref,
-                                        geometry=ib_left_flap,tight_fit_ffd=False, orientation="horizontal", name='Inboard Left Flap',
-                                        actuate_angle=flap_actuation_angle, actuate_axis_location=0.)
-
-    Wing.add_subcomponent(IBFlapsLeft)
-    config.connect_component_geometries(Wing, IBFlapsLeft, connection_point=left_ib_flap_center.value)
-
-    IBFlapsRight = WingComp(AR=ib_flap_AR, S_ref=ib_flap_S_ref,
-                                        geometry=ib_right_flap,tight_fit_ffd=False, orientation="horizontal", name='Inboard Right Flap',
-                                        actuate_angle=flap_actuation_angle, actuate_axis_location=0.)
-    Wing.add_subcomponent(IBFlapsRight)
-    config.connect_component_geometries(Wing, IBFlapsRight, connection_point=right_ib_flap_center.value)
-
-    left_mid_flap_span = csdl.norm(geometry.evaluate(mid_left_flap_tip_le_parametric) - geometry.evaluate(mid_right_flap_root_le_parametric)).value
-    left_mid_flap_chord = csdl.norm(geometry.evaluate(mid_left_flap_tip_le_parametric) - geometry.evaluate(mid_left_flap_root_le_parametric)).value
-    mid_flapArea = left_mid_flap_span * left_mid_flap_chord
-    mid_flapAR = left_mid_flap_span**2 / mid_flapArea
-    mid_flap_AR = csdl.Variable(name="mid_flap_AR", shape=(1, ), value=mid_flapAR)
-    mid_flap_S_ref = csdl.Variable(name="mid_flap_S_ref", shape=(1, ), value=mid_flapArea)
-    
-    left_mid_flap_center = (geometry.evaluate(mid_left_flap_root_le_parametric) + geometry.evaluate(mid_left_flap_tip_le_parametric)) / 2
-    right_mid_flap_center = (geometry.evaluate(mid_right_flap_root_le_parametric) + geometry.evaluate(mid_right_flap_tip_le_parametric)) / 2
-
-    MidFlapsLeft = WingComp(AR=mid_flap_AR, S_ref=mid_flap_S_ref,
-                                        geometry=mid_left_flap, tight_fit_ffd=False, orientation="horizontal", name='Mid Left Flap',
-                                        actuate_angle=flap_actuation_angle, actuate_axis_location=0.)
-
-    Wing.add_subcomponent(MidFlapsLeft)
-    config.connect_component_geometries(Wing, MidFlapsLeft, connection_point=left_mid_flap_center.value)
-
-    MidFlapsRight = WingComp(AR=mid_flap_AR, S_ref=mid_flap_S_ref,
-                                        geometry=mid_right_flap, tight_fit_ffd=False, orientation="horizontal", name='Mid Right Flap',
-                                        actuate_angle=flap_actuation_angle, actuate_axis_location=0.)
-    Wing.add_subcomponent(MidFlapsRight)
-    config.connect_component_geometries(Wing, MidFlapsRight, connection_point=right_mid_flap_center.value)
-
-    left_ob_aileron_span = csdl.norm(geometry.evaluate(ob_left_aileron_tip_le_parametric) - geometry.evaluate(ob_right_aileron_root_le_parametric)).value
-    left_ob_aileron_chord = csdl.norm(geometry.evaluate(ob_left_aileron_tip_le_parametric) - geometry.evaluate(ob_left_aileron_root_le_parametric)).value
-    ob_aileronArea = left_ob_aileron_span * left_ob_aileron_chord
-    ob_aileronAR = left_ob_aileron_span**2 / ob_aileronArea
-    ob_aileron_AR = csdl.Variable(name="ob_aileron_AR", shape=(1, ), value=ob_aileronAR)
-    ob_aileron_S_ref = csdl.Variable(name="ob_aileron_S_ref", shape=(1, ), value=ob_aileronArea)
-    
-    left_ob_aileron_center = (geometry.evaluate(ob_left_aileron_root_le_parametric) + geometry.evaluate(ob_left_aileron_tip_le_parametric)) / 2
-    right_ob_aileron_center = (geometry.evaluate(ob_right_aileron_root_le_parametric) + geometry.evaluate(ob_right_aileron_tip_le_parametric)) / 2
-
-    OBAileronLeft = WingComp(AR=ob_aileron_AR, S_ref=ob_aileron_S_ref,
-                                        geometry=ob_left_aileron, tight_fit_ffd=False, orientation="horizontal", name='OB Left Aileron',
-                                        actuate_angle=flap_actuation_angle, actuate_axis_location=0.)
-
-    Wing.add_subcomponent(OBAileronLeft)
-    config.connect_component_geometries(Wing, OBAileronLeft, connection_point=left_ob_aileron_center.value)
-
-    OBAileronRight = WingComp(AR=ob_aileron_AR, S_ref=ob_aileron_S_ref,
-                                        geometry=ob_right_aileron, tight_fit_ffd=False, orientation="horizontal", name='OB Right Aileron',
-                                        actuate_angle=flap_actuation_angle, actuate_axis_location=0.)
-    Wing.add_subcomponent(OBAileronRight)
-    config.connect_component_geometries(Wing, OBAileronRight, connection_point=right_ob_aileron_center.value)
-    config.connect_component_geometries(Fuselage, Wing, connection_point=wing_root_qc)
 
 
-    htail_span = csdl.norm(
-        geometry.evaluate(htail_tip_left_le_parametric) - geometry.evaluate(htail_tip_right_le_parametric)
-    ).value
-    htail_chord = csdl.norm(
-        geometry.evaluate(htail_root_te_parametric) - geometry.evaluate(htail_root_le_parametric)
-    ).value
-    htail_area = htail_span * htail_chord
-    htail_AR = htail_span**2 / htail_area
-    htail_AR_var = csdl.Variable(name="htail_AR", shape=(1, ), value=htail_AR)
-    htail_S_ref = csdl.Variable(name="htail_S_ref", shape=(1, ), value=htail_area)
-    Htail = WingComp(AR=htail_AR_var, S_ref=htail_S_ref,
-                    geometry=h_tail, tight_fit_ffd=False, orientation='horizontal', name='Horizontal Tail')
-    Aircraft.add_subcomponent(Htail)
-    config.connect_component_geometries(Fuselage, Htail, connection_point=htail_root_le.value)
-    
-    vtail_span = csdl.norm(
-        geometry.evaluate(vtail_tip_le_parametric) - geometry.evaluate(vtail_root_le_parametric)
-    ).value
-    vtail_chord = csdl.norm(
-        geometry.evaluate(vtail_root_te_parametric) - geometry.evaluate(vtail_root_le_parametric)
-    ).value
-    vtail_area = vtail_span * vtail_chord
-    vtail_AR = vtail_span**2 / vtail_area
-    vtail_AR_var = csdl.Variable(name="vtail_AR", shape=(1, ), value=vtail_AR)
-    vtail_S_ref = csdl.Variable(name="vtail_S_ref", shape=(1, ), value=vtail_area)
+Fuselage = FuseComp(
+    length=csdl.Variable(name="fuselage_length", shape=(1, ), value=8.45774445),
+    max_height=csdl.Variable(name="fuselage_height", shape=(1, ), value=1.81445358),
+    max_width=csdl.Variable(name="fuselage_width", shape=(1, ), value=1.43509484), 
+    geometry=fuselageALL, skip_ffd=False,
+    parameterization_solver=parameterization_solver,
+    ffd_geometric_variables=ffd_geometric_variables)
 
-    Vtail = WingComp(AR=vtail_AR_var, S_ref=vtail_S_ref,
-                    geometry=v_tail, tight_fit_ffd=False, orientation='vertical', name='Vertical Tail')
-
-    Aircraft.add_subcomponent(Vtail)
-    config.connect_component_geometries(Fuselage, Vtail, connection_point=vtail_root_le.value)
+Aircraft.add_subcomponent(Fuselage)
 
 
-    run_ffd = True
-    debug = False
-    plot_parameters = {
-    'camera': {
-        'pos': (15, 17, -12),
-        'focal_point': (-fuselagelength.value[0] / 2, 0, 0),
-        'distance': 0,
-        'viewup': (0, 0, -1)
-    },
-    'screenshot': f'wiskgenspan_{wingspan.value[0]}_AR_SOMETHINGIDK.png',
-    'title': f'Wisk Gen 6\nSpan: {wing_span.value[0]:.2f} m\nAR: {wing_AR.value[0]:.2f}\nWing Area S: {wing_S_ref.value[0]:.2f} m^2'
-    }
-    # config.system.geometry.plot(show=True, **plot_parameters)
-    
-    # if run_ffd:
-    #     if debug:
-    #         config.setup_geometry(plot=True,plot_parameters=plot_parameters)
-    #     else:
-    #         config.setup_geometry(plot=True,recorder=recorder,plot_parameters=plot_parameters)
-    # else:
-    #     if debug:
-    #         pass
-    #     else:
-    #         recorder.inline=False
-        
-
-    BaseConfig = config
-    return Aircraft, BaseConfig, plot_parameters
 
 
-# variances = np.linspace(-0.1, 0.1, 5)
+ob_left_aileron.rotate(ob_left_aileron_root_le, np.array([0., 1., 0.]), angles=np.deg2rad(30))
+mid_left_flap.rotate(mid_left_flap_root_le, np.array([0., 1., 0.]), angles=np.deg2rad(30))
+ib_left_flap.rotate(ib_left_flap_root_le, np.array([0., 1., 0.]), angles=np.deg2rad(30))
+ob_right_aileron.rotate(ob_right_aileron_root_le, np.array([0., 1., 0.]), angles=np.deg2rad(30))
+mid_right_flap.rotate(mid_right_flap_root_le, np.array([0., 1., 0.]), angles=np.deg2rad(30))
+ib_right_flap.rotate(ib_right_flap_root_le, np.array([0., 1., 0.]), angles=np.deg2rad(30))
 
-# for i, variance in enumerate(variances):
-#     Aircraft, BaseConfig = define_heirarchy(i, variance)
 
-Aircraft, BaseConfig, plot_parameters = define_heirarchy()
 
-BaseConfig.setup_geometry(plot=True,recorder=recorder,plot_parameters=plot_parameters)
+Wing = WingComp(AR=csdl.Variable(name="wing_AR", shape=(1, ), value=12),
+                span=csdl.Variable(name="wingspan", shape=(1, ), value=14.68462375),
+                sweep=csdl.Variable(name="wing_sweep", shape=(1, ), value=0),
+                dihedral=csdl.Variable(name="wing_dihedral", shape=(1, ), value=0),
+                geometry=wingALL,
+                parametric_geometry=wing_parametric_geometry,
+                tight_fit_ffd=False, 
+                orientation='horizontal', 
+                name='Wing', parameterization_solver=parameterization_solver, 
+                ffd_geometric_variables=ffd_geometric_variables
+                )
+
+Aircraft.add_subcomponent(Wing)
+
+wing_qc_fuse_connection = geometry.evaluate(wing_root_qc_parametric) - geometry.evaluate(fuselage_wing_qc_center_parametric)
+parameterization_solver.add_variable(computed_value=wing_qc_fuse_connection, desired_value=wing_qc_fuse_connection.value)
+
+
+
+
+HorTail = WingComp(AR=csdl.Variable(name="HT_AR", shape=(1, ), value=4), 
+                   span=csdl.Variable(name="HT_span", shape=(1, ), value=3.93820952), 
+                   sweep=csdl.Variable(name="HT_sweep", shape=(1, ), value=0),
+                   geometry=h_tail, parametric_geometry=ht_parametric_geometry,
+                   tight_fit_ffd=False, skip_ffd=False,
+                   name='Horizontal Tail', orientation='horizontal', 
+                   parameterization_solver=parameterization_solver,
+                   ffd_geometric_variables=ffd_geometric_variables)
+Aircraft.add_subcomponent(HorTail)
+
+
+tail_moment_arm_computed = csdl.norm(geometry.evaluate(ht_qc_center_parametric) - geometry.evaluate(wing_root_qc_parametric))
+h_tail_fuselage_connection = geometry.evaluate(htail_root_te_parametric) - geometry.evaluate(fuselage_tail_te_center_parametric)
+# parameterization_solver.add_variable(computed_value=tail_moment_arm_computed, desired_value=tail_moment_arm_computed.value)
+parameterization_solver.add_variable(computed_value=h_tail_fuselage_connection, desired_value=h_tail_fuselage_connection.value)
+
+
+
+
+# vt_AR= csdl.Variable(name="VT_AR", shape=(1, ), value=1.998)
+# VT_span = csdl.Variable(name="VT_span", shape=(1, ), value=2.3761728)
+# VT_actuation_angle = csdl.Variable(name="VT_actuation_angle", shape=(1, ), value=0)
+# VT_sweep = csdl.Variable(name="VT_sweep", shape=(1, ), value=-40)
+
+
+# VertTail = WingComp(AR=vt_AR, span=VT_span, sweep=VT_sweep,
+#                     geometry=vtALL, parametric_geometry=vt_parametric_geometry,
+#                     tight_fit_ffd=False, 
+#                     name='Vertical Tail', orientation='vertical',
+#                     parameterization_solver=parameterization_solver,
+#                     ffd_geometric_variables=ffd_geometric_variables)
+# Aircraft.add_subcomponent(VertTail)
+
+vtail_fuselage_connection = geometry.evaluate(fuselage_rear_pts_parametric) - geometry.evaluate(vt_qc_base_parametric)
+# print('VTail Fuselage Connection: ', vtail_fuselage_connection.value)
+parameterization_solver.add_variable(computed_value=vtail_fuselage_connection, desired_value=vtail_fuselage_connection.value)
+
+
+parameterization_solver.evaluate(ffd_geometric_variables)
+geometry.plot(camera=dict(pos=(12, 15, -12),  # Camera position 
+                         focal_point=(-Fuselage.parameters.length.value/2, 0, 0),  # Point camera looks at
+                         viewup=(0, 0, -1)),    # Camera up direction
+                         title= f'Wisk Gen 6 Geometry\nWing Span: {Wing.parameters.span.value[0]:.2f} m\nWing AR: {Wing.parameters.AR.value[0]:.2f}\nWing Area S: {Wing.parameters.S_ref.value[0]:.2f} m^2\nWing Sweep: {Wing.parameters.sweep.value[0]:.2f} deg\nFuselage Length: {Fuselage.parameters.length.value[0]:.2f} m\nFuselage Height: {Fuselage.parameters.max_height.value[0]:.2f} m\nFuselage Width: {Fuselage.parameters.max_width.value[0]:.2f} m',
+                         screenshot= REPO_ROOT_FOLDER / 'examples'/ 'advanced_examples' / 'NatesWisk'/ 'images' / f'Wisk_{Wing.parameters.span.value[0]}_AR_{Wing.parameters.AR.value[0]}_S_ref_{Wing.parameters.S_ref.value[0]}_sweep_{Wing.parameters.sweep.value[0]}.png')
+
+
+
+
 
 recorder.stop()
