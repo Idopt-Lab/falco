@@ -223,6 +223,33 @@ class Wing(Component):
             wing_qc_tip_parametric = parametric_geometry[8]
 
 
+        if actuate_angle is not None:
+            if actuate_axis_location is None:
+                axis_location = 0.25
+            else:
+                axis_location = actuate_axis_location
+            
+            if self._orientation == "horizontal":
+                LE_center = geometry.evaluate(wing_le_center_parametric)
+                TE_center = geometry.evaluate(wing_te_center_parametric)
+                actuation_center = csdl.linear_combination(
+                    LE_center, TE_center, 1, np.array([1 -axis_location]), np.array([axis_location])
+                ).flatten()
+                var = csdl.Variable(shape=(3, ), value=np.array([0., 1., 0.])) 
+            else:
+                LE_root = geometry.evaluate(wing_le_base_parametric)
+                TE_root = geometry.evaluate(wing_te_base_parametric)
+                actuation_center = csdl.linear_combination(
+                    LE_root, TE_root, 1, np.array([1 -axis_location]), np.array([axis_location])).flatten()
+                var = csdl.Variable(shape=(3, ), value=np.array([0., 0., 1.]))
+
+            axis_origin = actuation_center - var
+            axis_vector = actuation_center + var - axis_origin
+ 
+ 
+            # Rotate the component about the axis
+            geometry.rotate(axis_origin=axis_origin, axis_vector=axis_vector / csdl.norm(axis_vector), angles=angle)
+        
 
         if self._orientation == "horizontal":
             num_coefficients = (3,11,3)
