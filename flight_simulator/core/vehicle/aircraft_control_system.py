@@ -1,9 +1,9 @@
-from flight_simulator.core.vehicle_control_system import VehicleControlSystem, ControlSurface, PropulsiveControl
 from dataclasses import dataclass
 import csdl_alpha as csdl
 import numpy as np
 from flight_simulator import ureg, Q_
 from typing import List, Union
+from flight_simulator.core.vehicle.vehicle_control_system import VehicleControlSystem, ControlSurface, PropulsiveControl
 
 
 
