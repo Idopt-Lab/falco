@@ -89,12 +89,14 @@ class Fuselage(Component):
                 max_height = csdl.Variable(shape=(1, ), value=max_height)
             if not isinstance(max_width, csdl.Variable):
                 max_width = csdl.Variable(shape=(1, ), value=max_width)
+            f = length/csdl.maximum(max_height, max_width)
+            FF = 1 + 60/f**3 + f/400
+            self.parameters.S_wet = self.quantities.surface_area
 
 
 
 
-        # Set the wetted area
-        self.parameters.S_wet = self.quantities.surface_area
+
 
         
         # Automatically make the FFD block upon instantiation 
@@ -241,6 +243,6 @@ class Fuselage(Component):
             ffd_geometric_variables.add_variable(fuselage_geometric_qts.width, width_outer_dv)
 
 
-        print('Computed Fuselage Length',fuselage_geometric_qts.length.value)
-        print('Computed Fuselage Width',fuselage_geometric_qts.width.value)
-        print('Computed Fuselage Height',fuselage_geometric_qts.height.value)
+        # print('Computed Fuselage Length',fuselage_geometric_qts.length.value)
+        # print('Computed Fuselage Width',fuselage_geometric_qts.width.value)
+        # print('Computed Fuselage Height',fuselage_geometric_qts.height.value)
