@@ -220,5 +220,5 @@ class AircraftAerodynamics(Loads):
             ax.legend(loc='best', fontsize=6)
             ax.tick_params(labelsize=8)
 
-        plt.tight_layout()
+        # plt.tight_layout()
         return fig, (ax_cl, ax_cd, ax_polar, ax_lift_v, ax_drag_v, ax_lift_a, ax_drag_a)
