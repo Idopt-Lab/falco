@@ -153,7 +153,7 @@ class AircraftAerodynamics(Loads):
                 ref_alpha = float(self.lift_model.incidence.value)  # 2 degrees reference angle
                 
                 for v in velocities:
-                    density = self.states.atmospheric_states.density.value
+                    density = self.atmospheric_states.density.value
                     CL = 2 * np.pi * ref_alpha
                     CD = self.lift_model.CD0.value + (1/(e * AR * np.pi)) * CL**2
                     
@@ -169,7 +169,7 @@ class AircraftAerodynamics(Loads):
                 alpha_drags = []
                 
                 for alpha in alphas:
-                    density = self.states.atmospheric_states.density.value
+                    density = self.atmospheric_states.density.value
                     CL = 2 * np.pi * alpha
                     CD = self.lift_model.CD0.value + (1/(e * AR * np.pi)) * CL**2
                     
