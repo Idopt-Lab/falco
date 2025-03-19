@@ -655,10 +655,11 @@ def axes_create():
     # OpenVSP Model Axis
     openvsp_axis = Axis(
         name='OpenVSP Axis',
-        x = np.array([0, ]) * ureg.foot,
-        y = np.array([0, ])* ureg.foot,
-        z = np.array([0, ])* ureg.foot,
+        x = np.array([0, ]) * ureg.meter,
+        y = np.array([0, ])* ureg.meter,
+        z = np.array([0, ])* ureg.meter,
         origin=ValidOrigins.OpenVSP.value
+
     )
     
     wing_axis = AxisLsdoGeo(
@@ -666,9 +667,9 @@ def axes_create():
     geometry=wing,
     parametric_coords=wing_le_center_parametric,
     sequence=np.array([3, 2, 1]),
-    phi=np.array([0, ]) * ureg.degree,
-    theta=np.array([0, ]) * ureg.degree,
-    psi=np.array([0, ]) * ureg.degree,
+    phi=Q_(0, 'deg'),
+    theta=Q_(0, 'deg'),
+    psi=Q_(0, 'deg'),
     reference=openvsp_axis,
     origin=ValidOrigins.OpenVSP.value
     )
@@ -681,9 +682,9 @@ def axes_create():
     geometry=flapL,
     parametric_coords=left_flap_le_left_parametric,
     sequence=np.array([3, 2, 1]),
-    phi=np.array([0, ]) * ureg.degree,
-    theta=np.array([0, ]) * ureg.degree,
-    psi=np.array([0, ]) * ureg.degree,
+    phi=Q_(0, 'deg'),
+    theta=Q_(0, 'deg'),
+    psi=Q_(0, 'deg'),
     reference=openvsp_axis,
     origin=ValidOrigins.OpenVSP.value
     )
@@ -693,9 +694,9 @@ def axes_create():
     geometry=flapR,
     parametric_coords=right_flap_le_left_parametric,
     sequence=np.array([3, 2, 1]),
-    phi=np.array([0, ]) * ureg.degree,
-    theta=np.array([0, ]) * ureg.degree,
-    psi=np.array([0, ]) * ureg.degree,
+    phi=Q_(0, 'deg'),
+    theta=Q_(0, 'deg'),
+    psi=Q_(0, 'deg'),
     reference=openvsp_axis,
     origin=ValidOrigins.OpenVSP.value
     )
@@ -705,9 +706,9 @@ def axes_create():
     geometry=aileronL,
     parametric_coords=left_aileron_le_left_parametric,
     sequence=np.array([3, 2, 1]),
-    phi=np.array([0, ]) * ureg.degree,
-    theta=np.array([0, ]) * ureg.degree,
-    psi=np.array([0, ]) * ureg.degree,
+    phi=Q_(0, 'deg'),
+    theta=Q_(0, 'deg'),
+    psi=Q_(0, 'deg'),
     reference=openvsp_axis,
     origin=ValidOrigins.OpenVSP.value
     )
@@ -717,30 +718,23 @@ def axes_create():
     geometry=aileronR,
     parametric_coords=right_aileron_le_left_parametric,
     sequence=np.array([3, 2, 1]),
-    phi=np.array([0, ]) * ureg.degree,
-    theta=np.array([0, ]) * ureg.degree,
-    psi=np.array([0, ]) * ureg.degree,
+    phi=Q_(0, 'deg'),
+    theta=Q_(0, 'deg'),
+    psi=Q_(0, 'deg'),
     reference=openvsp_axis,
     origin=ValidOrigins.OpenVSP.value
     )
 
     ## Tail Region Axis
 
-
-    # ht_incidence = csdl.Variable(shape=(1, ), value=np.deg2rad(0), name='HT incidence')
-    # trimTab_deflection = csdl.Variable(shape=(1, ), value=np.deg2rad(0), name='Trim Tab Deflection')
-
-    # h_tail.rotate(ht_le_center, np.array([0., 1., 0.]), angles=ht_incidence)
-    # trimTab.rotate(ht_le_center, np.array([0., 1., 0.]), angles=ht_incidence)
-
     ht_tail_axis = AxisLsdoGeo(
         name='Horizontal Tail Axis',
         geometry=h_tail,
         parametric_coords=ht_le_center_parametric,
         sequence=np.array([3, 2, 1]),
-        phi = np.array([0, ]) * ureg.degree,
-        theta=np.array([0, ]) * ureg.degree,
-        psi=np.array([0, ]) * ureg.degree,
+        phi=Q_(0, 'deg'),
+        theta=Q_(0, 'deg'),
+        psi=Q_(0, 'deg'),
         reference=openvsp_axis,
         origin=ValidOrigins.OpenVSP.value
     )
@@ -752,34 +746,25 @@ def axes_create():
         geometry=trimTab,
         parametric_coords=trimTab_le_center_parametric,
         sequence=np.array([3, 2, 1]),
-        phi = np.array([0, ]) * ureg.degree,
-        theta=np.array([0, ]) * ureg.degree,
-        psi=np.array([0, ]) * ureg.degree,
+        phi=Q_(0, 'deg'),
+        theta=Q_(0, 'deg'),
+        psi=Q_(0, 'deg'),
         reference=ht_tail_axis,
         origin=ValidOrigins.OpenVSP.value
     )
 
-    # trimTab.rotate(trimTab_le_center, np.array([0.,1.,0.]),angles=trimTab_deflection)
-
-
     # print('Trim Tab axis translation (ft): ', trimTab_axis.translation.value)
     # print('Trim Tab axis rotation (deg): ', np.rad2deg(trimTab_axis.euler_angles_vector.value))
     # geometry.plot()
-
-
-
-    # rudder_incidence = csdl.Variable(shape=(1, ), value=np.deg2rad(0), name='VT incidence')
-    # rudder.rotate(rudder_le_mid, np.array([0., 0., 1.]), angles=rudder_incidence)
-
 
     vt_tail_axis = AxisLsdoGeo(
         name='Vertical Tail Axis',
         geometry=rudder,
         parametric_coords=rudder_le_mid_parametric,
         sequence=np.array([3, 2, 1]),
-        phi=np.array([0, ]) * ureg.degree,
-        theta=np.array([0, ]) * ureg.degree,
-        psi=np.array([0, ]) * ureg.degree,
+        phi=Q_(0, 'deg'),
+        theta=Q_(0, 'deg'),
+        psi=Q_(0, 'deg'),
         reference=openvsp_axis,
         origin=ValidOrigins.OpenVSP.value
     )
@@ -794,9 +779,9 @@ def axes_create():
         geometry=spinner1,
         parametric_coords=M1_disk_on_wing,
         sequence=np.array([3,2,1]),
-        phi=np.array([0, ]) * ureg.degree,
-        theta=np.array([0, ]) * ureg.degree,
-        psi=np.array([0, ]) * ureg.degree,
+        phi=Q_(0, 'deg'),
+        theta=Q_(0, 'deg'),
+        psi=Q_(0, 'deg'),
         reference=openvsp_axis,
         origin=ValidOrigins.OpenVSP.value
     )
@@ -808,9 +793,9 @@ def axes_create():
         geometry=spinner2,
         parametric_coords=M2_disk_on_wing,
         sequence=np.array([3,2,1]),
-        phi=np.array([0, ]) * ureg.degree,
-        theta=np.array([0, ]) * ureg.degree,
-        psi=np.array([0, ]) * ureg.degree,
+        phi=Q_(0, 'deg'),
+        theta=Q_(0, 'deg'),
+        psi=Q_(0, 'deg'),
         reference=openvsp_axis,
         origin=ValidOrigins.OpenVSP.value
     )
@@ -822,9 +807,9 @@ def axes_create():
         geometry=spinner3,
         parametric_coords=M3_disk_on_wing,
         sequence=np.array([3,2,1]),
-        phi=np.array([0, ]) * ureg.degree,
-        theta=np.array([0, ]) * ureg.degree,
-        psi=np.array([0, ]) * ureg.degree,
+        phi=Q_(0, 'deg'),
+        theta=Q_(0, 'deg'),
+        psi=Q_(0, 'deg'),
         reference=openvsp_axis,
         origin=ValidOrigins.OpenVSP.value
     )
@@ -834,9 +819,9 @@ def axes_create():
         geometry=spinner4,
         parametric_coords=M4_disk_on_wing,
         sequence=np.array([3,2,1]),
-        phi=np.array([0, ]) * ureg.degree,
-        theta=np.array([0, ]) * ureg.degree,
-        psi=np.array([0, ]) * ureg.degree,
+        phi=Q_(0, 'deg'),
+        theta=Q_(0, 'deg'),
+        psi=Q_(0, 'deg'),
         reference=openvsp_axis,
         origin=ValidOrigins.OpenVSP.value
     )
@@ -846,9 +831,9 @@ def axes_create():
         geometry=spinner5,
         parametric_coords=M5_disk_on_wing,
         sequence=np.array([3,2,1]),
-        phi=np.array([0, ]) * ureg.degree,
-        theta=np.array([0, ]) * ureg.degree,
-        psi=np.array([0, ]) * ureg.degree,
+        phi=Q_(0, 'deg'),
+        theta=Q_(0, 'deg'),
+        psi=Q_(0, 'deg'),
         reference=openvsp_axis,
         origin=ValidOrigins.OpenVSP.value
     )
@@ -858,9 +843,9 @@ def axes_create():
         geometry=spinner6,
         parametric_coords=M6_disk_on_wing,
         sequence=np.array([3,2,1]),
-        phi=np.array([0, ]) * ureg.degree,
-        theta=np.array([0, ]) * ureg.degree,
-        psi=np.array([0, ]) * ureg.degree,
+        phi=Q_(0, 'deg'),
+        theta=Q_(0, 'deg'),
+        psi=Q_(0, 'deg'),
         reference=openvsp_axis,
         origin=ValidOrigins.OpenVSP.value
     )
@@ -870,9 +855,9 @@ def axes_create():
         geometry=spinner7,
         parametric_coords=M7_disk_on_wing,
         sequence=np.array([3,2,1]),
-        phi=np.array([0, ]) * ureg.degree,
-        theta=np.array([0, ]) * ureg.degree,
-        psi=np.array([0, ]) * ureg.degree,
+        phi=Q_(0, 'deg'),
+        theta=Q_(0, 'deg'),
+        psi=Q_(0, 'deg'),
         reference=openvsp_axis,
         origin=ValidOrigins.OpenVSP.value
     )
@@ -882,9 +867,9 @@ def axes_create():
         geometry=spinner8,
         parametric_coords=M8_disk_on_wing,
         sequence=np.array([3,2,1]),
-        phi=np.array([0, ]) * ureg.degree,
-        theta=np.array([0, ]) * ureg.degree,
-        psi=np.array([0, ]) * ureg.degree,
+        phi=Q_(0, 'deg'),
+        theta=Q_(0, 'deg'),
+        psi=Q_(0, 'deg'),
         reference=openvsp_axis,
         origin=ValidOrigins.OpenVSP.value
     )
@@ -894,9 +879,9 @@ def axes_create():
         geometry=spinner9,
         parametric_coords=M9_disk_on_wing,
         sequence=np.array([3,2,1]),
-        phi=np.array([0, ]) * ureg.degree,
-        theta=np.array([0, ]) * ureg.degree,
-        psi=np.array([0, ]) * ureg.degree,
+        phi=Q_(0, 'deg'),
+        theta=Q_(0, 'deg'),
+        psi=Q_(0, 'deg'),
         reference=openvsp_axis,
         origin=ValidOrigins.OpenVSP.value
     )
@@ -906,9 +891,9 @@ def axes_create():
         geometry=spinner10,
         parametric_coords=M10_disk_on_wing,
         sequence=np.array([3,2,1]),
-        phi=np.array([0, ]) * ureg.degree,
-        theta=np.array([0, ]) * ureg.degree,
-        psi=np.array([0, ]) * ureg.degree,
+        phi=Q_(0, 'deg'),
+        theta=Q_(0, 'deg'),
+        psi=Q_(0, 'deg'),
         reference=openvsp_axis,
         origin=ValidOrigins.OpenVSP.value
     )
@@ -918,9 +903,9 @@ def axes_create():
         geometry=spinner11,
         parametric_coords=M11_disk_on_wing,
         sequence=np.array([3,2,1]),
-        phi=np.array([0, ]) * ureg.degree,
-        theta=np.array([0, ]) * ureg.degree,
-        psi=np.array([0, ]) * ureg.degree,
+        phi=Q_(0, 'deg'),
+        theta=Q_(0, 'deg'),
+        psi=Q_(0, 'deg'),
         reference=openvsp_axis,
         origin=ValidOrigins.OpenVSP.value
     )
@@ -930,9 +915,9 @@ def axes_create():
         geometry=spinner12,
         parametric_coords=M12_disk_on_wing,
         sequence=np.array([3,2,1]),
-        phi=np.array([0, ]) * ureg.degree,
-        theta=np.array([0, ]) * ureg.degree,
-        psi=np.array([0, ]) * ureg.degree,
+        phi=Q_(0, 'deg'),
+        theta=Q_(0, 'deg'),
+        psi=Q_(0, 'deg'),
         reference=openvsp_axis,
         origin=ValidOrigins.OpenVSP.value
     )
@@ -942,22 +927,15 @@ def axes_create():
     HL_motor_axes = [M1_axis, M2_axis, M3_axis, M4_axis, M5_axis, M6_axis, M7_axis, M8_axis, M9_axis, M10_axis, M11_axis, M12_axis]
     # Cruise Motor Region
 
-    @dataclass
-    class CruiseMotorRotation(csdl.VariableGroup):
-        cant : Union[csdl.Variable, ureg.Quantity] = np.array([0, ]) * ureg.degree
-        pitch : Union[csdl.Variable, np.ndarray, ureg.Quantity] = csdl.Variable(value=np.deg2rad(0), name='CruiseMotorPitchAngle')
-        yaw : Union[csdl.Variable, ureg.Quantity] = np.array([0, ]) * ureg.degree
-    cruise_spinner_rotation = CruiseMotorRotation()
-    # cruise_spinner.rotate(cruise_motor_base, np.array([0., 1., 0.]), angles=cruise_spinner_rotation.pitch)
 
     cruise_motor1_axis = AxisLsdoGeo(
         name= 'Cruise Motor 1 Axis',
         geometry=cruise_spinner1,
         parametric_coords=cruise_motor1_tip_parametric,
         sequence=np.array([3,2,1]),
-        phi=cruise_spinner_rotation.cant,
-        theta=cruise_spinner_rotation.pitch,
-        psi=cruise_spinner_rotation.yaw,
+        phi=Q_(0, 'deg'),
+        theta=Q_(0, 'deg'),
+        psi=Q_(0, 'deg'),
         reference=openvsp_axis,
         origin=ValidOrigins.OpenVSP.value
     )
@@ -969,9 +947,9 @@ def axes_create():
         geometry=cruise_spinner2,
         parametric_coords=cruise_motor2_tip_parametric,
         sequence=np.array([3,2,1]),
-        phi=cruise_spinner_rotation.cant,
-        theta=cruise_spinner_rotation.pitch,
-        psi=cruise_spinner_rotation.yaw,
+        phi=Q_(0, 'deg'),
+        theta=Q_(0, 'deg'),
+        psi=Q_(0, 'deg'),
         reference=openvsp_axis,
         origin=ValidOrigins.OpenVSP.value
     )
@@ -982,20 +960,17 @@ def axes_create():
 
     inertial_axis = Axis(
         name='Inertial Axis',
-        x=np.array([0, ]) * ureg.meter,
-        y=np.array([0, ]) * ureg.meter,
-        z=np.array([0, ]) * ureg.meter,
         origin=ValidOrigins.Inertial.value
     )
 
     fd_axis = Axis(
         name='Flight Dynamics Body Fixed Axis',
-        x = np.array([0, ]) * ureg.meter,
-        y = np.array([0, ]) * ureg.meter,
-        z = np.array([0, ]) * ureg.meter,
-        phi=csdl.Variable(shape=(1, ), value=np.array([np.deg2rad(0.), ]), name='phi'),
-        theta=csdl.Variable(shape=(1, ), value=np.array([np.deg2rad(0.), ]), name='theta'),
-        psi=csdl.Variable(shape=(1, ), value=np.array([np.deg2rad(0.), ]), name='psi'),
+        x=Q_(0, 'm'),
+        y=Q_(0, 'm'),
+        z=Q_(0, 'm'),
+        phi=Q_(0, 'deg'),
+        theta=Q_(0, 'deg'),
+        psi=Q_(0, 'deg'),
         sequence=np.array([3, 2, 1]),
         reference=inertial_axis,
         origin=ValidOrigins.Inertial.value
@@ -1004,51 +979,26 @@ def axes_create():
 
 
 
-    # Aircraft Wind Axis
-    @dataclass
-    class WindAxisRotations(csdl.VariableGroup):
-        mu : Union[csdl.Variable, ureg.Quantity] = np.array([0, ]) * ureg.degree # bank
-        gamma : Union[csdl.Variable, np.ndarray, ureg.Quantity] = csdl.Variable(value=np.deg2rad(2), name='Flight path angle')
-        xi : Union[csdl.Variable, ureg.Quantity] = np.array([0, ]) * ureg.degree  # Heading
-    wind_axis_rotations = WindAxisRotations()
-
     wind_axis = Axis(
         name='Wind Axis',
-        x = np.array([0, ]) * ureg.meter,
-        y = np.array([0, ]) * ureg.meter,
-        z = np.array([0, ]) * ureg.meter,
-        phi=wind_axis_rotations.mu,
-        theta=wind_axis_rotations.gamma,
-        psi=wind_axis_rotations.xi,
+        x=Q_(0, 'm'),
+        y=Q_(0, 'm'),
+        z=Q_(0, 'm'),
+        phi=Q_(0, 'deg'),
+        theta=Q_(0, 'deg'),
+        psi=Q_(0, 'deg'),
         sequence=np.array([3, 2, 1]),
         reference=inertial_axis,
         origin=ValidOrigins.Inertial.value
     )
     # print('Wind axis angles (deg)', np.rad2deg(wind_axis.euler_angles_vector.value))
 
+
     return openvsp_axis, wing_axis, ht_tail_axis, trimTab_axis, vt_tail_axis, HL_motor_axes, cruise_motor_axes, inertial_axis, fd_axis, wind_axis, geometry, left_flap_axis, right_flap_axis, left_aileron_axis, right_aileron_axis
 
 openvsp_axis, wing_axis, ht_tail_axis, trimTab_axis, vt_tail_axis, HL_motor_axes, cruise_motor_axes, inertial_axis, fd_axis, wind_axis,geometry,left_flap_axis, right_flap_axis, left_aileron_axis, right_aileron_axis = axes_create()
 
 
-
-
-velocity_vector_in_wind = Vector(vector=csdl.Variable(shape=(3,), value=np.array([-1, 0, 0]), name='wind_vector'), axis=wind_axis)
-# print('Unit wind vector in wind axis: ', velocity_vector_in_wind.vector.value)
-
-R_wind_to_inertial = build_rotation_matrix(wind_axis.euler_angles_vector, np.array([3, 2, 1]))
-wind_vector_in_inertial =  Vector(csdl.matvec(R_wind_to_inertial, velocity_vector_in_wind.vector), axis=inertial_axis)
-# print('Unit wind vector in inertial axis: ', wind_vector_in_inertial.vector.value)
-
-R_body_to_inertial = build_rotation_matrix(fd_axis.euler_angles_vector, np.array([3, 2, 1]))
-wind_vector_in_body =  Vector(csdl.matvec(csdl.transpose(R_body_to_inertial), wind_vector_in_inertial.vector), axis=fd_axis)
-# print('Unit wind vector in body axis: ', wind_vector_in_body.vector.value)
-
-R_wing_to_openvsp = build_rotation_matrix(wing_axis.euler_angles_vector, np.array([3, 2, 1]))
-wind_vector_in_wing =  Vector(csdl.matvec(csdl.transpose(R_wing_to_openvsp), wind_vector_in_body.vector), axis=wing_axis)
-# print('Unit wind vector in wing axis: ', wind_vector_in_wing.vector.value)
-# alpha = csdl.arctan(wind_vector_in_wing.vector[2]/wind_vector_in_wing.vector.value[0])
-# print('Effective angle of attack (deg): ', np.rad2deg(alpha.value))
 
 
 ### FORCES AND MOMENTS MODELLING
@@ -1081,21 +1031,30 @@ incidence_x57 = csdl.Variable(shape=(1,), value=2*np.pi/180) # Wing incidence an
 
 
 
+print(f"Translation: {wing_axis.translation_from_origin.x.value}, {wing_axis.translation_from_origin.y.value}, {wing_axis.translation_from_origin.z.value}")
+print(f"Euler angles: {wing_axis.euler_angles_vector.value}")
+
+
+
+
 ## Aerodynamic Forces - from Modification IV
+x_57_wing_state = AircaftStates(
+    axis=wing_axis,u=Q_(67, 'mph'))
 
 
 x57_lift_model = LiftModel(AR=AR_x57, e=e_x57, CD0=CD0_x57, S=S_x57, incidence=incidence_x57)
-x57_aero = AircraftAerodynamics(states=x_57_states, controls=x57_controls, lift_model=x57_lift_model)
+x57_aero = AircraftAerodynamics(states=x_57_wing_state, controls=x57_controls, lift_model=x57_lift_model)
 aero_loads1 = x57_aero.get_FM_refPoint()
-aero_loads2 = aero_loads1.rotate_to_axis(wing_axis)
+aero_loads2 = aero_loads1.rotate_to_axis(fd_axis)
 
-print('\nAerodynamic Forces and Moments:')
-print('-' * 40)
-print(f'Forces in Flight Dynamics Axis: [{aero_loads1.F.vector.value[0]:.2f}, {aero_loads1.F.vector.value[1]:.2f}, {aero_loads1.F.vector.value[2]:.2f}] N')
-print(f'Moments in Flight Dynamics Axis: [{aero_loads1.M.vector.value[0]:.2f}, {aero_loads1.M.vector.value[1]:.2f}, {aero_loads1.M.vector.value[2]:.2f}] N⋅m')
-print(f'Forces in Wing Axis: [{aero_loads2.F.vector.value[0]:.2f}, {aero_loads2.F.vector.value[1]:.2f}, {aero_loads2.F.vector.value[2]:.2f}] N')
-print(f'Moments in Wing Axis: [{aero_loads2.M.vector.value[0]:.2f}, {aero_loads2.M.vector.value[1]:.2f}, {aero_loads2.M.vector.value[2]:.2f}] N⋅m')
-print('-' * 40)
+# print('\nAerodynamic Forces and Moments:')
+# print('-' * 40)
+# print(f'Forces in Wing Axis: [{aero_loads1.F.vector.value[0]:.2f}, {aero_loads1.F.vector.value[1]:.2f}, {aero_loads1.F.vector.value[2]:.2f}] N')
+# print(f'Moments in Wing Axis: [{aero_loads1.M.vector.value[0]:.2f}, {aero_loads1.M.vector.value[1]:.2f}, {aero_loads1.M.vector.value[2]:.2f}] N⋅m')
+# print(f'Forces in Flight Dynamics Axis: [{aero_loads2.F.vector.value[0]:.2f}, {aero_loads2.F.vector.value[1]:.2f}, {aero_loads2.F.vector.value[2]:.2f}] N')
+# print(f'Moments in Flight Dynamics Axis: [{aero_loads2.M.vector.value[0]:.2f}, {aero_loads2.M.vector.value[1]:.2f}, {aero_loads2.M.vector.value[2]:.2f}] N⋅m')
+# print('-' * 40)
+
 
 # x57_aero.plot_aerodynamics(
 #     velocity_range=(20, 100),
@@ -1111,41 +1070,79 @@ print('-' * 40)
 # Rotor Forces
 
 
-x57_prop_curve = PropCurve()
-x57_propulsion = AircraftPropulsion(states=x_57_states, controls=x57_controls, radius=radius_x57, prop_curve=x57_prop_curve)
-prop_loads = x57_propulsion.get_FM_refPoint()
+HL_motor_states = []
+HL_motor_props = []
+HL_prop_loads_list = []
+HL_prop_loads2_list = []
 
-
-print('High Lift Propulsive Forces and Moments:')
-print('-' * 40)
-print(f'Prop Forces in Flight Dynamics Axis: [{prop_loads.F.vector.value[0]:.2f}, {prop_loads.F.vector.value[1]:.2f}, {prop_loads.F.vector.value[2]:.2f}] N')
-print(f'Prop Moments in Flight Dynamics Axis: [{prop_loads.M.vector.value[0]:.2f}, {prop_loads.M.vector.value[1]:.2f}, {prop_loads.M.vector.value[2]:.2f}] N⋅m')
-print('-' * 20)
-
-HL_props1 = []
-HL_props2 = []
-for i, HL_motor_axes in enumerate(HL_motor_axes, start=1):
-    HL_prop2 = prop_loads.rotate_to_axis(HL_motor_axes)
-    HL_props1.append(prop_loads)
-    HL_props2.append(HL_prop2)
-    print(f'Prop Force in HL Motor {i} Axis: [{HL_prop2.F.vector.value[0]:.2f}, {HL_prop2.F.vector.value[1]:.2f}, {HL_prop2.F.vector.value[2]:.2f}] N')
-    print(f'Prop Moment in HL Motor {i} Axis: [{HL_prop2.M.vector.value[0]:.2f}, {HL_prop2.M.vector.value[1]:.2f}, {HL_prop2.M.vector.value[2]:.2f}] N⋅m')
-    print('-' * 20)
+for i, motor_axis in enumerate(HL_motor_axes):
+    motor_state = AircaftStates(
+        axis=motor_axis,
+        u=Q_(67, 'mph')
+    )
+    HL_motor_states.append(motor_state)
     
-print('-' * 40)
-print('Cruise Propulsive Forces and Moments:')
-print('-' * 40)
-cruise_props1 = []
-cruise_props2 = []
-for i, cruise_motor_axis in enumerate(cruise_motor_axes, start=1):
-    cruise_prop2 = prop_loads.rotate_to_axis(cruise_motor_axis)
-    cruise_props1.append(prop_loads)
-    cruise_props2.append(cruise_prop2)
-    print(f'Prop Force in Cruise Motor {i} Axis: [{cruise_prop2.F.vector.value[0]:.2f}, {cruise_prop2.F.vector.value[1]:.2f}, {cruise_prop2.F.vector.value[2]:.2f}] N')
-    print(f'Prop Moment in Cruise Motor {i} Axis: [{cruise_prop2.M.vector.value[0]:.2f}, {cruise_prop2.M.vector.value[1]:.2f}, {cruise_prop2.M.vector.value[2]:.2f}] N⋅m')
-    print('-' * 20)
+    prop_curve = PropCurve()
+    
+    motor_prop = AircraftPropulsion(
+        states=motor_state,
+        controls=x57_controls, 
+        radius=radius_x57, 
+        prop_curve=prop_curve
+    )
+    HL_motor_props.append(motor_prop)
+    
+    prop_load = motor_prop.get_FM_refPoint()
+    HL_prop_loads_list.append(prop_load)
+    prop_load2 = prop_load.rotate_to_axis(fd_axis)
+    HL_prop_loads2_list.append(prop_load2)
+    
+    # print(f'Motor {i+1} Forces and Moments:')
+    # print('-' * 40)
+    # print(f'Forces in Motor {i+1} Axis: [{prop_load.F.vector.value[0]:.2f}, {prop_load.F.vector.value[1]:.2f}, {prop_load.F.vector.value[2]:.2f}] N')
+    # print(f'Moments in Motor {i+1} Axis: [{prop_load.M.vector.value[0]:.2f}, {prop_load.M.vector.value[1]:.2f}, {prop_load.M.vector.value[2]:.2f}] N⋅m')
+    # print(f'Forces in Flight Dynamics Axis: [{prop_load2.F.vector.value[0]:.2f}, {prop_load2.F.vector.value[1]:.2f}, {prop_load2.F.vector.value[2]:.2f}] N')
+    # print(f'Moments in Flight Dynamics Axis: [{prop_load2.M.vector.value[0]:.2f}, {prop_load2.M.vector.value[1]:.2f}, {prop_load2.M.vector.value[2]:.2f}] N⋅m')
+    # print('-' * 40)
 
-print('-' * 40)
+
+
+# Cruise Motor Forces
+cruise_motor_states = []
+cruise_motor_props = []
+cruise_prop_loads_list = []
+cruise_prop_loads2_list = []
+
+for i, cruise_motor_axis in enumerate(cruise_motor_axes):
+    cruise_motor_state = AircaftStates(
+        axis=cruise_motor_axis,
+        u=Q_(67, 'mph')
+    )
+    cruise_motor_states.append(cruise_motor_state)
+    
+    cruise_prop_curve = PropCurve()
+    
+    cruise_motor_prop = AircraftPropulsion(
+        states=cruise_motor_state,
+        controls=x57_controls, 
+        radius=radius_x57,
+        prop_curve=cruise_prop_curve
+    )
+    cruise_motor_props.append(cruise_motor_prop)
+    
+    cruise_prop_load = cruise_motor_prop.get_FM_refPoint()
+    cruise_prop_loads_list.append(cruise_prop_load)
+    cruise_prop_load2 = cruise_prop_load.rotate_to_axis(fd_axis)
+    cruise_prop_loads2_list.append(cruise_prop_load2)
+    
+    # print(f'Cruise Motor {i+1} Forces and Moments:')
+    # print('-' * 40)
+    # print(f'Forces in Cruise Motor {i+1} Axis: [{cruise_prop_load.F.vector.value[0]:.2f}, {cruise_prop_load.F.vector.value[1]:.2f}, {cruise_prop_load.F.vector.value[2]:.2f}] N')
+    # print(f'Moments in Cruise Motor {i+1} Axis: [{cruise_prop_load.M.vector.value[0]:.2f}, {cruise_prop_load.M.vector.value[1]:.2f}, {cruise_prop_load.M.vector.value[2]:.2f}] N⋅m')
+    # print(f'Forces in Flight Dynamics Axis: [{cruise_prop_load2.F.vector.value[0]:.2f}, {cruise_prop_load2.F.vector.value[1]:.2f}, {cruise_prop_load2.F.vector.value[2]:.2f}] N')
+    # print(f'Moments in Flight Dynamics Axis: [{cruise_prop_load2.M.vector.value[0]:.2f}, {cruise_prop_load2.M.vector.value[1]:.2f}, {cruise_prop_load2.M.vector.value[2]:.2f}] N⋅m')
+    # print('-' * 40)
+
 
 
 # x57_propulsion.plot_propulsion(
@@ -1156,13 +1153,47 @@ print('-' * 40)
 #     labels=['Low Power', 'Medium Power', 'High Power'],
 # )
 
-# plt.show()
+plt.show()
 
 
 thrust_axis = cruise_motor1_tip - cruise_motor1_base
 # print('Thrust Axis: ', thrust_axis.value)
 
 
+
+
+total_prop_forces = np.zeros(3)
+total_prop_moments = np.zeros(3)
+
+print("\nSum of High-Lift Propeller Loads:")
+print('-' * 40)
+for i, prop_load in enumerate(HL_prop_loads2_list):
+    total_prop_forces += prop_load.F.vector.value
+    total_prop_moments += prop_load.M.vector.value
+
+print("\nSum of Cruise Propeller Loads:")
+print('-' * 40)
+for i, cruise_load in enumerate(cruise_prop_loads2_list):
+    total_prop_forces += cruise_load.F.vector.value
+    total_prop_moments += cruise_load.M.vector.value
+
+aero_forces = aero_loads2.F.vector.value
+aero_moments = aero_loads2.M.vector.value
+
+total_forces = aero_forces + total_prop_forces
+total_moments = aero_moments + total_prop_moments
+
+print('\nTotal Aircraft Loads in Flight Dynamics Axis:')
+print('-' * 40)
+print('Forces:')
+print(f'Aerodynamic Forces: [{aero_forces[0]:.2f}, {aero_forces[1]:.2f}, {aero_forces[2]:.2f}] N')
+print(f'Total Propulsive Forces: [{total_prop_forces[0]:.2f}, {total_prop_forces[1]:.2f}, {total_prop_forces[2]:.2f}] N')
+print(f'Total Forces: [{total_forces[0]:.2f}, {total_forces[1]:.2f}, {total_forces[2]:.2f}] N')
+print('\nMoments:')
+print(f'Aerodynamic Moments: [{aero_moments[0]:.2f}, {aero_moments[1]:.2f}, {aero_moments[2]:.2f}] N⋅m')
+print(f'Total Propulsive Moments: [{total_prop_moments[0]:.2f}, {total_prop_moments[1]:.2f}, {total_prop_moments[2]:.2f}] N⋅m')
+print(f'Total Moments: [{total_moments[0]:.2f}, {total_moments[1]:.2f}, {total_moments[2]:.2f}] N⋅m')
+print('-' * 40)
 
 
 parameterization_solver = ParameterizationSolver()
