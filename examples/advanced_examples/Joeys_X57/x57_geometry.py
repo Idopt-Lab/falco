@@ -652,77 +652,82 @@ wing_on_cruise_motor2_parametric = cruise_spinner1.project(wing_le_right_guess, 
 
 def axes_create():
 
+    inertial_axis = Axis(
+        name='Inertial Axis',
+        origin=ValidOrigins.Inertial.value
+    )
+
     # OpenVSP Model Axis
     openvsp_axis = Axis(
         name='OpenVSP Axis',
-        x = np.array([0, ]) * ureg.meter,
-        y = np.array([0, ])* ureg.meter,
-        z = np.array([0, ])* ureg.meter,
+        x=Q_(0, 'm'),
+        y=Q_(0, 'm'),
+        z=Q_(0, 'm'),
         origin=ValidOrigins.OpenVSP.value
 
     )
     
     wing_axis = AxisLsdoGeo(
-    name='Wing Axis',
-    geometry=wing,
-    parametric_coords=wing_le_center_parametric,
-    sequence=np.array([3, 2, 1]),
-    phi=Q_(0, 'deg'),
-    theta=Q_(0, 'deg'),
-    psi=Q_(0, 'deg'),
-    reference=openvsp_axis,
-    origin=ValidOrigins.OpenVSP.value
+        name='Wing Axis',
+        geometry=wing,
+        parametric_coords=wing_le_center_parametric,
+        sequence=np.array([3, 2, 1]),
+        phi=Q_(0, 'deg'),
+        theta=Q_(0, 'deg'),
+        psi=Q_(0, 'deg'),
+        reference=openvsp_axis,
+        origin=ValidOrigins.OpenVSP.value
     )
     # print('Wing axis translation (ft): ', wing_axis.translation.value)
     # print('Wing axis rotation (deg): ', np.rad2deg(wing_axis.euler_angles_vector.value))
     # geometry.plot()
 
     left_flap_axis = AxisLsdoGeo(
-    name='Left Flap Axis',
-    geometry=flapL,
-    parametric_coords=left_flap_le_left_parametric,
-    sequence=np.array([3, 2, 1]),
-    phi=Q_(0, 'deg'),
-    theta=Q_(0, 'deg'),
-    psi=Q_(0, 'deg'),
-    reference=openvsp_axis,
-    origin=ValidOrigins.OpenVSP.value
+        name='Left Flap Axis',
+        geometry=flapL,
+        parametric_coords=left_flap_le_left_parametric,
+        sequence=np.array([3, 2, 1]),
+        phi=Q_(0, 'deg'),
+        theta=Q_(0, 'deg'),
+        psi=Q_(0, 'deg'),
+        reference=openvsp_axis,
+        origin=ValidOrigins.OpenVSP.value
     )
 
     right_flap_axis = AxisLsdoGeo(
-    name='Right Flap Axis',
-    geometry=flapR,
-    parametric_coords=right_flap_le_left_parametric,
-    sequence=np.array([3, 2, 1]),
-    phi=Q_(0, 'deg'),
-    theta=Q_(0, 'deg'),
-    psi=Q_(0, 'deg'),
-    reference=openvsp_axis,
-    origin=ValidOrigins.OpenVSP.value
+        name='Right Flap Axis',
+        geometry=flapR,
+        parametric_coords=right_flap_le_left_parametric,
+        sequence=np.array([3, 2, 1]),
+        phi=Q_(0, 'deg'),
+        theta=Q_(0, 'deg'),
+        psi=Q_(0, 'deg'),
+        reference=openvsp_axis,
+        origin=ValidOrigins.OpenVSP.value
     )
 
     left_aileron_axis = AxisLsdoGeo(
-    name='Left Aileron Axis',
-    geometry=aileronL,
-    parametric_coords=left_aileron_le_left_parametric,
-    sequence=np.array([3, 2, 1]),
-    phi=Q_(0, 'deg'),
-    theta=Q_(0, 'deg'),
-    psi=Q_(0, 'deg'),
-    reference=openvsp_axis,
-    origin=ValidOrigins.OpenVSP.value
+        name='Left Aileron Axis',
+        geometry=aileronL,
+        parametric_coords=left_aileron_le_left_parametric,
+        sequence=np.array([3, 2, 1]),
+        phi=Q_(0, 'deg'),
+        theta=Q_(0, 'deg'),
+        psi=Q_(0, 'deg'),
+        reference=openvsp_axis,
+        origin=ValidOrigins.OpenVSP.value
     )
 
     right_aileron_axis = AxisLsdoGeo(
-    name='Right Aileron Axis',
-    geometry=aileronR,
-    parametric_coords=right_aileron_le_left_parametric,
-    sequence=np.array([3, 2, 1]),
-    phi=Q_(0, 'deg'),
-    theta=Q_(0, 'deg'),
-    psi=Q_(0, 'deg'),
-    reference=openvsp_axis,
-    origin=ValidOrigins.OpenVSP.value
+        name='Right Aileron Axis',
+        geometry=aileronR,
+        parametric_coords=right_aileron_le_left_parametric,
+        sequence=np.array([3, 2, 1]),
+        phi=Q_(0, 'deg'),
+        theta=Q_(0, 'deg'),
+        psi=Q_(0, 'deg'),
+        reference=openvsp_axis,
+        origin=ValidOrigins.OpenVSP.value
     )
 
     ## Tail Region Axis
@@ -958,10 +963,6 @@ def axes_create():
 
     cruise_motor_axes = [cruise_motor1_axis, cruise_motor2_axis]
 
-    inertial_axis = Axis(
-        name='Inertial Axis',
-        origin=ValidOrigins.Inertial.value
-    )
 
     fd_axis = Axis(
         name='Flight Dynamics Body Fixed Axis',
@@ -1031,8 +1032,11 @@ incidence_x57 = csdl.Variable(shape=(1,), value=2*np.pi/180) # Wing incidence an
 
 
 
-print(f"Translation: {wing_axis.translation_from_origin.x.value}, {wing_axis.translation_from_origin.y.value}, {wing_axis.translation_from_origin.z.value}")
-print(f"Euler angles: {wing_axis.euler_angles_vector.value}")
+print(f"Wing Axis Translation: {wing_axis.translation_from_origin.x.value}, {wing_axis.translation_from_origin.y.value}, {wing_axis.translation_from_origin.z.value}")
+print(f"Wing Axis Euler angles: {wing_axis.euler_angles_vector.value}")
+
+print(f"FD Axis Translation: {fd_axis.translation_from_origin.x.value}, {fd_axis.translation_from_origin.y.value}, {fd_axis.translation_from_origin.z.value}")
+print(f"FD Axis Euler angles: {fd_axis.euler_angles_vector.value}")
 
 
 
@@ -1047,13 +1051,13 @@ x57_aero = AircraftAerodynamics(states=x_57_wing_state, controls=x57_controls, l
 aero_loads1 = x57_aero.get_FM_refPoint()
 aero_loads2 = aero_loads1.rotate_to_axis(fd_axis)
 
-# print('\nAerodynamic Forces and Moments:')
-# print('-' * 40)
-# print(f'Forces in Wing Axis: [{aero_loads1.F.vector.value[0]:.2f}, {aero_loads1.F.vector.value[1]:.2f}, {aero_loads1.F.vector.value[2]:.2f}] N')
-# print(f'Moments in Wing Axis: [{aero_loads1.M.vector.value[0]:.2f}, {aero_loads1.M.vector.value[1]:.2f}, {aero_loads1.M.vector.value[2]:.2f}] N⋅m')
-# print(f'Forces in Flight Dynamics Axis: [{aero_loads2.F.vector.value[0]:.2f}, {aero_loads2.F.vector.value[1]:.2f}, {aero_loads2.F.vector.value[2]:.2f}] N')
-# print(f'Moments in Flight Dynamics Axis: [{aero_loads2.M.vector.value[0]:.2f}, {aero_loads2.M.vector.value[1]:.2f}, {aero_loads2.M.vector.value[2]:.2f}] N⋅m')
-# print('-' * 40)
+print('\nAerodynamic Forces and Moments:')
+print('-' * 40)
+print(f'Forces in Wing Axis: [{aero_loads1.F.vector.value[0]:.2f}, {aero_loads1.F.vector.value[1]:.2f}, {aero_loads1.F.vector.value[2]:.2f}] N')
+print(f'Moments in Wing Axis: [{aero_loads1.M.vector.value[0]:.2f}, {aero_loads1.M.vector.value[1]:.2f}, {aero_loads1.M.vector.value[2]:.2f}] N⋅m')
+print(f'Forces in Flight Dynamics Axis: [{aero_loads2.F.vector.value[0]:.2f}, {aero_loads2.F.vector.value[1]:.2f}, {aero_loads2.F.vector.value[2]:.2f}] N')
+print(f'Moments in Flight Dynamics Axis: [{aero_loads2.M.vector.value[0]:.2f}, {aero_loads2.M.vector.value[1]:.2f}, {aero_loads2.M.vector.value[2]:.2f}] N⋅m')
+print('-' * 40)
 
 
 # x57_aero.plot_aerodynamics(
