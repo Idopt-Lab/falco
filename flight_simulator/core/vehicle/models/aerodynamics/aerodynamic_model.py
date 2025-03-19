@@ -59,13 +59,19 @@ class LiftModel(csdl.CustomExplicitOperation):
 
 class AircraftAerodynamics(Loads):
 
-    def __init__(self, states, controls, lift_model:LiftModel):
+    def __init__(self, states, controls, lift_model:LiftModel, atmospheric_states:csdl.VariableGroup=None):
         super().__init__(states=states, controls=controls)
         self.lift_model = lift_model
+        
+        if atmospheric_states is None:
+            raise Exception("Atmospheric Conditions/states are not provided.")
+        else:
+            self.atmospheric_states = atmospheric_states
+
 
 
     def get_FM_refPoint(self):
-            density = self.states.atmospheric_states.density
+            density = self.atmospheric_states.density
             velocity = self.states.VTAS
             axis = self.states.axis
             theta = self.states.states.theta
@@ -76,10 +82,10 @@ class AircraftAerodynamics(Loads):
             L = 0.5*density*velocity**2*self.lift_model.S*CL
             D = 0.5*density*velocity**2*self.lift_model.S*CD
 
-            force_vector = Vector(vector=csdl.concatenate((-D,
-                                                        csdl.Variable(shape=(1,), value=0.),
-                                                        -L),
-                                                        axis=0), axis=axis)
+            aero_force = csdl.Variable(shape=(3,), value=0.)
+            aero_force = aero_force.set(csdl.slice[0], -D)
+            aero_force = aero_force.set(csdl.slice[2], -L)
+            force_vector = Vector(vector=aero_force, axis=axis)
 
             moment_vector = Vector(vector=csdl.Variable(shape=(3,), value=0.), axis=axis)
             loads = ForcesMoments(force=force_vector, moment=moment_vector)

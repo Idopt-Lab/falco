@@ -1045,9 +1045,9 @@ print(f"FD Axis Euler angles: {fd_axis.euler_angles_vector.value}")
 x_57_wing_state = AircaftStates(
     axis=wing_axis,u=Q_(67, 'mph'))
 
-
+atmospheric_states = x_57_states.atmospheric_states
 x57_lift_model = LiftModel(AR=AR_x57, e=e_x57, CD0=CD0_x57, S=S_x57, incidence=incidence_x57)
-x57_aero = AircraftAerodynamics(states=x_57_wing_state, controls=x57_controls, lift_model=x57_lift_model)
+x57_aero = AircraftAerodynamics(states=x_57_wing_state, controls=x57_controls, lift_model=x57_lift_model,atmospheric_states=atmospheric_states)
 aero_loads1 = x57_aero.get_FM_refPoint()
 aero_loads2 = aero_loads1.rotate_to_axis(fd_axis)
 
