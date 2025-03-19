@@ -10,7 +10,7 @@ from flight_simulator.core.dynamics.axis import Axis, ValidOrigins
 from flight_simulator.core.dynamics.axis_lsdogeo import AxisLsdoGeo
 from flight_simulator.core.loads.forces_moments import Vector, ForcesMoments
 from flight_simulator.utils.import_geometry import import_geometry
-from flight_simulator.core.dynamics.aircraft_states import AircaftStates
+from flight_simulator.core.dynamics.aircraft_states import AircraftStates
 from flight_simulator.utils.euler_rotations import build_rotation_matrix
 
 plot_flag = True
@@ -150,7 +150,7 @@ inertial_axis = Axis(
 # endregion
 
 # region Aircraft FD Axis
-ac_states = AircaftStates()
+ac_states = AircraftStates()
 ac_states.phi = csdl.Variable(shape=(1, ), value=np.array([np.deg2rad(0.), ]), name='phi')
 ac_states.theta = csdl.Variable(shape=(1, ), value=np.array([np.deg2rad(4.), ]), name='theta')
 ac_states.psi = csdl.Variable(shape=(1, ), value=np.array([np.deg2rad(0.), ]), name='psi')

@@ -7,7 +7,7 @@ import lsdo_geo as lg
 from flight_simulator.utils.import_geometry import import_geometry
 from flight_simulator import REPO_ROOT_FOLDER, ureg, Q_
 from flight_simulator.core.vehicle.component import Component
-from flight_simulator.core.dynamics.aircraft_states import AircaftStates
+from flight_simulator.core.dynamics.aircraft_states import AircraftStates
 from flight_simulator.core.loads.mass_properties import MassProperties, MassMI
 from flight_simulator.core.dynamics.axis import Axis, ValidOrigins
 from flight_simulator.core.dynamics.axis_lsdogeo import AxisLsdoGeo
@@ -1005,7 +1005,7 @@ openvsp_axis, wing_axis, ht_tail_axis, trimTab_axis, vt_tail_axis, HL_motor_axes
 ### FORCES AND MOMENTS MODELLING
 
 
-x_57_states = AircaftStates(axis=fd_axis,u=Q_(67, 'mph')) # stall speed
+x_57_states = AircraftStates(axis=fd_axis,u=Q_(67, 'mph')) # stall speed
 x_57_mi = MassMI(axis=fd_axis,
                  Ixx=Q_(4314.08, 'kg*(m*m)'),
                  Ixy=Q_(-232.85, 'kg*(m*m)'),
@@ -1033,7 +1033,7 @@ incidence_x57 = csdl.Variable(shape=(1,), value=2*np.pi/180) # Wing incidence an
 
 
 ## Aerodynamic Forces - from Modification IV
-x_57_wing_state = AircaftStates(
+x_57_wing_state = AircraftStates(
     axis=wing_axis,u=Q_(67, 'mph'))
 
 atmospheric_states = x_57_states.atmospheric_states
@@ -1071,7 +1071,7 @@ HL_prop_loads_list = []
 HL_prop_loads2_list = []
 
 for i, motor_axis in enumerate(HL_motor_axes):
-    motor_state = AircaftStates(
+    motor_state = AircraftStates(
         axis=motor_axis,
         u=Q_(67, 'mph')
     )
@@ -1109,7 +1109,7 @@ cruise_prop_loads_list = []
 cruise_prop_loads2_list = []
 
 for i, cruise_motor_axis in enumerate(cruise_motor_axes):
-    cruise_motor_state = AircaftStates(
+    cruise_motor_state = AircraftStates(
         axis=cruise_motor_axis,
         u=Q_(67, 'mph')
     )

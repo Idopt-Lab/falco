@@ -9,7 +9,7 @@ from scipy.interpolate import Akima1DInterpolator
 from flight_simulator.core.loads.loads import Loads
 from flight_simulator.core.loads.forces_moments import Vector, ForcesMoments
 from flight_simulator.core.dynamics.axis import Axis, ValidOrigins
-from flight_simulator.core.dynamics.aircraft_states import AircaftStates
+from flight_simulator.core.dynamics.aircraft_states import AircraftStates
 from flight_simulator.core.vehicle.aircraft_control_system import AircraftControlSystem
 
 class LiftModel(csdl.CustomExplicitOperation):

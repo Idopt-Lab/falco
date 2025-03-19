@@ -84,7 +84,7 @@ class MassSpringDamperState(RigidBodyStates):
 
 
 @dataclass
-class AircaftStates:
+class AircraftStates:
 
     @dataclass
     class States6dof(csdl.VariableGroup):
@@ -115,7 +115,7 @@ class AircaftStates:
             self.add_check('y', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
             self.add_check('z', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
 
-        def _check_pamaeters(self, name, value):
+        def _check_parameters(self, name, value):
             if self._metadata[name]['type'] is not None:
                 if type(value) not in self._metadata[name]['type']:
                     raise ValueError(f"Variable {name} must be of type {self._metadata[name]['type']}.")
@@ -142,7 +142,7 @@ class AircaftStates:
             self.add_check('Vwy', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
             self.add_check('Vwz', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
 
-        def _check_pamaeters(self, name, value):
+        def _check_parameters(self, name, value):
             if self._metadata[name]['type'] is not None:
                 if type(value) not in self._metadata[name]['type']:
                     raise ValueError(f"Variable {name} must be of type {self._metadata[name]['type']}.")
@@ -172,7 +172,7 @@ class AircaftStates:
                  ):
         self.axis = axis
         self.atm = NRLMSIS2.Atmosphere()
-        
+
         self.atmospheric_states = self.atm.evaluate(-self.axis.translation_from_origin.z) # TODO: Re-evaluate this (We are designing for a negative z-axis based on our coordinate system, but NRLMSIS2 is expecting a positive z-axis)
 
 
