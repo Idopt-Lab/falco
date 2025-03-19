@@ -1032,15 +1032,6 @@ incidence_x57 = csdl.Variable(shape=(1,), value=2*np.pi/180) # Wing incidence an
 
 
 
-print(f"Wing Axis Translation: {wing_axis.translation_from_origin.x.value}, {wing_axis.translation_from_origin.y.value}, {wing_axis.translation_from_origin.z.value}")
-print(f"Wing Axis Euler angles: {wing_axis.euler_angles_vector.value}")
-
-print(f"FD Axis Translation: {fd_axis.translation_from_origin.x.value}, {fd_axis.translation_from_origin.y.value}, {fd_axis.translation_from_origin.z.value}")
-print(f"FD Axis Euler angles: {fd_axis.euler_angles_vector.value}")
-
-
-
-
 ## Aerodynamic Forces - from Modification IV
 x_57_wing_state = AircaftStates(
     axis=wing_axis,u=Q_(67, 'mph'))
@@ -1060,12 +1051,12 @@ print(f'Moments in Flight Dynamics Axis: [{aero_loads2.M.vector.value[0]:.2f}, {
 print('-' * 40)
 
 
-# x57_aero.plot_aerodynamics(
-#     velocity_range=(20, 100),
-#     alpha_range=(-5, 15),
-#     AR_values=[15],
-#     e_values=[0.75, 0.85, 0.95]
-# )
+x57_aero.plot_aerodynamics(
+    velocity_range=(20, 100),
+    alpha_range=(-5, 15),
+    AR_values=[15],
+    e_values=[0.75, 0.85, 0.95]
+)
 
 
 
@@ -1101,13 +1092,13 @@ for i, motor_axis in enumerate(HL_motor_axes):
     prop_load2 = prop_load.rotate_to_axis(fd_axis)
     HL_prop_loads2_list.append(prop_load2)
     
-    # print(f'Motor {i+1} Forces and Moments:')
-    # print('-' * 40)
-    # print(f'Forces in Motor {i+1} Axis: [{prop_load.F.vector.value[0]:.2f}, {prop_load.F.vector.value[1]:.2f}, {prop_load.F.vector.value[2]:.2f}] N')
-    # print(f'Moments in Motor {i+1} Axis: [{prop_load.M.vector.value[0]:.2f}, {prop_load.M.vector.value[1]:.2f}, {prop_load.M.vector.value[2]:.2f}] N⋅m')
-    # print(f'Forces in Flight Dynamics Axis: [{prop_load2.F.vector.value[0]:.2f}, {prop_load2.F.vector.value[1]:.2f}, {prop_load2.F.vector.value[2]:.2f}] N')
-    # print(f'Moments in Flight Dynamics Axis: [{prop_load2.M.vector.value[0]:.2f}, {prop_load2.M.vector.value[1]:.2f}, {prop_load2.M.vector.value[2]:.2f}] N⋅m')
-    # print('-' * 40)
+    print(f'Motor {i+1} Forces and Moments:')
+    print('-' * 40)
+    print(f'Forces in Motor {i+1} Axis: [{prop_load.F.vector.value[0]:.2f}, {prop_load.F.vector.value[1]:.2f}, {prop_load.F.vector.value[2]:.2f}] N')
+    print(f'Moments in Motor {i+1} Axis: [{prop_load.M.vector.value[0]:.2f}, {prop_load.M.vector.value[1]:.2f}, {prop_load.M.vector.value[2]:.2f}] N⋅m')
+    print(f'Forces in Flight Dynamics Axis: [{prop_load2.F.vector.value[0]:.2f}, {prop_load2.F.vector.value[1]:.2f}, {prop_load2.F.vector.value[2]:.2f}] N')
+    print(f'Moments in Flight Dynamics Axis: [{prop_load2.M.vector.value[0]:.2f}, {prop_load2.M.vector.value[1]:.2f}, {prop_load2.M.vector.value[2]:.2f}] N⋅m')
+    print('-' * 40)
 
 
 
@@ -1139,23 +1130,26 @@ for i, cruise_motor_axis in enumerate(cruise_motor_axes):
     cruise_prop_load2 = cruise_prop_load.rotate_to_axis(fd_axis)
     cruise_prop_loads2_list.append(cruise_prop_load2)
     
-    # print(f'Cruise Motor {i+1} Forces and Moments:')
-    # print('-' * 40)
-    # print(f'Forces in Cruise Motor {i+1} Axis: [{cruise_prop_load.F.vector.value[0]:.2f}, {cruise_prop_load.F.vector.value[1]:.2f}, {cruise_prop_load.F.vector.value[2]:.2f}] N')
-    # print(f'Moments in Cruise Motor {i+1} Axis: [{cruise_prop_load.M.vector.value[0]:.2f}, {cruise_prop_load.M.vector.value[1]:.2f}, {cruise_prop_load.M.vector.value[2]:.2f}] N⋅m')
-    # print(f'Forces in Flight Dynamics Axis: [{cruise_prop_load2.F.vector.value[0]:.2f}, {cruise_prop_load2.F.vector.value[1]:.2f}, {cruise_prop_load2.F.vector.value[2]:.2f}] N')
-    # print(f'Moments in Flight Dynamics Axis: [{cruise_prop_load2.M.vector.value[0]:.2f}, {cruise_prop_load2.M.vector.value[1]:.2f}, {cruise_prop_load2.M.vector.value[2]:.2f}] N⋅m')
-    # print('-' * 40)
+    print(f'Cruise Motor {i+1} Forces and Moments:')
+    print('-' * 40)
+    print(f'Forces in Cruise Motor {i+1} Axis: [{cruise_prop_load.F.vector.value[0]:.2f}, {cruise_prop_load.F.vector.value[1]:.2f}, {cruise_prop_load.F.vector.value[2]:.2f}] N')
+    print(f'Moments in Cruise Motor {i+1} Axis: [{cruise_prop_load.M.vector.value[0]:.2f}, {cruise_prop_load.M.vector.value[1]:.2f}, {cruise_prop_load.M.vector.value[2]:.2f}] N⋅m')
+    print(f'Forces in Flight Dynamics Axis: [{cruise_prop_load2.F.vector.value[0]:.2f}, {cruise_prop_load2.F.vector.value[1]:.2f}, {cruise_prop_load2.F.vector.value[2]:.2f}] N')
+    print(f'Moments in Flight Dynamics Axis: [{cruise_prop_load2.M.vector.value[0]:.2f}, {cruise_prop_load2.M.vector.value[1]:.2f}, {cruise_prop_load2.M.vector.value[2]:.2f}] N⋅m')
+    print('-' * 40)
 
 
 
-# x57_propulsion.plot_propulsion(
-#     velocity_range=(0, 150),
-#     ref_velocities=[50, 75, 80],  # Compare different reference velocities
-#     ref_throttles=[0.3, 0.5, 0.7],  # Compare different throttle settings
-#     rpm_ranges=[(1000, 2500), (1200, 2700), (800, 2300)],  # Compare different RPM ranges
-#     labels=['Low Power', 'Medium Power', 'High Power'],
-# )
+HL_motor_props[0].plot_propulsion(
+    velocity_range=(0, 200),
+    # ref_velocities=[50, 75, 80],  # Compare different reference velocities
+    # ref_throttles=[0.3, 0.5, 0.7],  # Compare different throttle settings
+    rpm_ranges=[(1000,4702)],  # Compare different RPM ranges
+    radius_values=[1*ft2m, 2*ft2m, 3*ft2m],  # Different radii in meters (2ft, 3ft, 4ft)
+    ref_throttles=[1.0, 1.0, 1.0],  # Different throttle settings (30%, 60%, 100%)
+    labels=['2ft', '3ft', '4ft'],  # Custom labels for each configuration
+    title='High-Lift Motor 1'
+)
 
 plt.show()
 
@@ -1169,14 +1163,12 @@ thrust_axis = cruise_motor1_tip - cruise_motor1_base
 total_prop_forces = np.zeros(3)
 total_prop_moments = np.zeros(3)
 
-print("\nSum of High-Lift Propeller Loads:")
-print('-' * 40)
+
 for i, prop_load in enumerate(HL_prop_loads2_list):
     total_prop_forces += prop_load.F.vector.value
     total_prop_moments += prop_load.M.vector.value
 
-print("\nSum of Cruise Propeller Loads:")
-print('-' * 40)
+
 for i, cruise_load in enumerate(cruise_prop_loads2_list):
     total_prop_forces += cruise_load.F.vector.value
     total_prop_moments += cruise_load.M.vector.value

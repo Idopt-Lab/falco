@@ -19,15 +19,11 @@ class PropCurve(csdl.CustomExplicitOperation):
     def __init__(self):
         super().__init__()
 
-        # Obtained with JavaProp
+        # Obtained Mod-IV Propeller Data from CFD database
         J_data = np.array(
-            [0.0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.76, 0.77, 0.78,
-             0.79, 0.8, 0.81, 0.82, 0.83, 0.84, 0.85, 0.86, 0.87, 0.88, 0.89, 0.9, 0.91, 0.92, 0.93, 0.94])
+            [0.5490,0.5966,0.6860,0.8250,1.0521,1.4595,1.6098])
         Ct_data = np.array(
-            [0.102122, 0.11097, 0.107621, 0.105191, 0.102446, 0.09947, 0.096775, 0.094706, 0.092341, 0.088912, 0.083878,
-             0.076336, 0.066669, 0.056342, 0.045688, 0.034716, 0.032492, 0.030253, 0.028001, 0.025735, 0.023453,
-             0.021159, 0.018852, 0.016529, 0.014194, 0.011843, 0.009479, 0.0071, 0.004686, 0.002278, -0.0002, -0.002638,
-             -0.005145, -0.007641, -0.010188])
+            [0.3125,0.3058,0.2848,0.2473,0.1788,0.0366,-0.0198])
         self.ct = Akima1DInterpolator(J_data, Ct_data, method="akima")
         self.ct_derivative = Akima1DInterpolator.derivative(self.ct)
 
@@ -110,14 +106,16 @@ class AircraftPropulsion(Loads):
                    velocity_range=(20, 100),
                    throttle_range=(0, 1),
                    ref_velocities=[67],
-                   ref_throttles=[0.5],
+                   ref_throttles=[1.],
                    num_points=100,
                    rpm_ranges=[(1000, 2500)],
+                   radius_values = None,
                    figsize=(12, 12),
                    labels=None,
                    colors=None,
                    styles=None,
-                   save_path=None):
+                   save_path=None,
+                   title=None):
             """
             Plot comprehensive propulsion system characteristics with multiple configurations.
             
@@ -149,9 +147,13 @@ class AircraftPropulsion(Loads):
                 Path to save the figure
             """
             # Set default styles if not provided
-            n_configs = max(len(ref_velocities), len(ref_throttles), len(rpm_ranges))
+        
+            if radius_values is None:
+                radius_values = [self.radius.value]
+
+            n_configs = max(len(ref_velocities), len(ref_throttles), len(rpm_ranges), len(radius_values))
             if labels is None:
-                labels = [f'Config {i+1}' for i in range(n_configs)]
+                labels = [f'R={r:.2f}m' for r in radius_values]
             if colors is None:
                 colors = plt.cm.viridis(np.linspace(0, 1, n_configs))
             if styles is None:
@@ -159,7 +161,11 @@ class AircraftPropulsion(Loads):
 
             # Create subplots
             fig = plt.figure(figsize=figsize)
-            gs = plt.GridSpec(3, 2, figure=fig)
+
+            if title:
+                fig.suptitle(f'{title} Propulsion Characteristics', fontsize=16, y=0.95)
+
+            gs = plt.GridSpec(3, 2, figure=fig, hspace=0.5)
             
             # Create axes
             ax_ct = fig.add_subplot(gs[0, :])
@@ -187,6 +193,7 @@ class AircraftPropulsion(Loads):
                 ref_throttle = ref_throttles[min(i, len(ref_throttles)-1)]
                 ref_velocity = ref_velocities[min(i, len(ref_velocities)-1)]
                 min_RPM, max_RPM = rpm_ranges[min(i, len(rpm_ranges)-1)]
+                current_radius = radius_values[min(i, len(radius_values)-1)]
                 label = labels[i]
                 color = colors[i]
                 style = styles[i]
@@ -198,9 +205,9 @@ class AircraftPropulsion(Loads):
                     v_ms = v * 0.44704  # mph to m/s
                     rpm = min_RPM + (max_RPM - min_RPM) * ref_throttle
                     omega = (rpm * 2 * np.pi) / 60.0
-                    J = (np.pi * v_ms) / (omega * self.radius.value)
+                    J = (np.pi * v_ms) / (omega * current_radius)
                     ct = self.prop_curve.ct(J)
-                    T = (2 / np.pi)**2 * density * (omega * self.radius.value)**2 * ct
+                    T = (2 / np.pi)**2 * density * (omega * current_radius)**2 * ct
                     
                     thrust_vs_velocity.append(T)
                     advance_ratios.append(J)
@@ -212,18 +219,18 @@ class AircraftPropulsion(Loads):
                     ref_velocity_ms = ref_velocity * 0.44704
                     rpm = min_RPM + (max_RPM - min_RPM) * t
                     omega = (rpm * 2 * np.pi) / 60.0
-                    J = (np.pi * ref_velocity_ms) / (omega * self.radius.value)
+                    J = (np.pi * ref_velocity_ms) / (omega * current_radius)
                     ct = self.prop_curve.ct(J)
-                    T = (2 / np.pi)**2 * density * (omega * self.radius.value)**2 * ct
+                    T = (2 / np.pi)**2 * density * (omega * current_radius)**2 * ct
                     
                     thrust_vs_throttle.append(T)
                     rpms.append(rpm)
 
                 # Plot results for this configuration
                 ax_thrust_v.plot(velocities, thrust_vs_velocity, color=color, ls=style, 
-                                label=f'{label} (τ={ref_throttle:.1f})')
+                                label=f'{label} τ={ref_throttle:.1f}')
                 ax_advance.plot(velocities, advance_ratios, color=color, ls=style, 
-                            label=f'{label} (τ={ref_throttle:.1f})')
+                            label=f'{label} τ={ref_throttle:.1f}')
                 ax_thrust_t.plot(throttles, thrust_vs_throttle, color=color, ls=style, 
                                 label=f'{label} (V={ref_velocity}mph)')
                 ax_rpm.plot(throttles, rpms, color=color, ls=style, 
@@ -250,7 +257,7 @@ class AircraftPropulsion(Loads):
             ax_rpm.set_ylabel('RPM')
             ax_rpm.set_title('RPM vs Throttle')
 
-            plt.tight_layout()
+            # plt.tight_layout()
             
             if save_path:
                 plt.savefig(save_path, bbox_inches='tight', dpi=300)
