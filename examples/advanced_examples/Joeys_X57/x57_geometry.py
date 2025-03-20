@@ -968,7 +968,7 @@ def axes_create():
         name='Flight Dynamics Body Fixed Axis',
         x=Q_(0, 'm'),
         y=Q_(0, 'm'),
-        z=Q_(-8000*ft2m, 'm'),
+        z=Q_(0, 'm'),
         phi=Q_(0, 'deg'),
         theta=Q_(0, 'deg'),
         psi=Q_(0, 'deg'),
