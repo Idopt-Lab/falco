@@ -112,8 +112,9 @@ class Component:
         graph.render(file_name, directory=filepath, format=file_format, view=show)
 
     def _setup_geometry(self, parameterization_solver, ffd_geometric_variables, plot: bool = False):
-
-        rigid_body_translation = csdl.ImplicitVariable(name=f'{self._name}_rigid_body_translation', shape=(3,), value=0.)
+        if not hasattr(self, 'geometry') or self.geometry is None:
+            return
+        rigid_body_translation = csdl.ImplicitVariable(shape=(3,), value=0., name=f'{self._name}_rigid_body_translation')
 
         for function in self.geometry.functions.values():
             if function.name == "rigid_body_translation":
@@ -121,7 +122,7 @@ class Component:
                 function.coefficients = function.coefficients + csdl.expand(rigid_body_translation, shape, action="k->ijk")
 
 
-        parameterization_solver.add_parameter(rigid_body_translation, cost=1e-4)
+        parameterization_solver.add_parameter(rigid_body_translation, cost=0.001)
 
 
     

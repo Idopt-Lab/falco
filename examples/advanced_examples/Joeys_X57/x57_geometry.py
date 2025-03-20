@@ -131,7 +131,6 @@ total_HL_motor_components = [M1_components, M2_components, M3_components, M4_com
 total_prop_sys_components = [M1_components, M2_components, M3_components, M4_components, M5_components, M6_components, M7_components, M8_components, M9_components, M10_components, M11_components, M12_components, CM1_components, CM2_components]
 
 
-# geometry.plot()
 
 # Wing Region Info
 wing_le_left_guess = np.array([-12.356, -16, -5.5])*ft2m
@@ -176,7 +175,6 @@ wing_parametric_geometry = [
 ]
 
 wingspan = np.linalg.norm(wing_le_left.value - wing_le_right.value)
-# print('Wingspan: ', wingspan)
 
 ## ADD CONTROL SURFACE INFO PROJECTIONS HERE
 
@@ -210,10 +208,7 @@ left_aileron_qc_tip_right_parametric = aileronL.project(np.array([-13.85+(0.25*(
 left_aileron_qc_tip_left_parametric = aileronL.project(np.array([-13.85+(0.25*(-14.25+13.85)), -15.15, -7.5])*ft2m, plot=False)
 
 left_aileron_span = np.linalg.norm(left_aileron_le_left.value - left_aileron_le_right.value)
-# print('Left Aileron Span: ', left_aileron_span)
-
 left_aileron_chord = np.linalg.norm(left_aileron_le_center[0].value - left_aileron_te_center[0].value)
-# print('Left Aileron Chord: ', left_aileron_chord)
 
 left_aileron_parametric_geometry = [
     left_aileron_le_left_parametric,
@@ -270,10 +265,7 @@ right_aileron_parametric_geometry = [
 
 
 right_aileron_span = np.linalg.norm(right_aileron_le_left.value - right_aileron_le_right.value)
-# print('Right Aileron Span: ', right_aileron_span)
-
 right_aileron_chord = np.linalg.norm(right_aileron_le_center[0].value - right_aileron_te_center[0].value)
-# print('Right Aileron Chord: ', right_aileron_chord)
 
 left_flap_le_left_guess = np.array([-13.85, -11.5, -7.5])*ft2m
 left_flap_le_left_parametric = flapL.project(left_flap_le_left_guess, plot=False)
@@ -317,9 +309,7 @@ left_flap_parametric_geometry = [
 ]
 
 left_flap_span = np.linalg.norm(left_flap_le_left.value - left_flap_le_right.value)
-# print('Left Flap Span: ', left_flap_span)
 left_flap_chord = np.linalg.norm(left_flap_le_center[0].value - left_flap_te_center[0].value)
-# print('Left Flap Chord: ', left_flap_chord)
 
 
 right_flap_le_left_guess = np.array([-13.85, 0.6, -7.5])*ft2m
@@ -364,9 +354,7 @@ right_flap_parametric_geometry = [
 ]
 
 right_flap_span = np.linalg.norm(right_flap_le_left.value - right_flap_le_right.value)
-# print('Right Flap Span: ', right_flap_span)
 right_flap_chord = np.linalg.norm(right_flap_le_center[0].value - right_flap_te_center[0].value)
-# print('Right Flap Chord: ', right_flap_chord)
 
 # HT Region Info
 ht_le_left_parametric = h_tail.project(np.array([-26.5, -5.25, -5.5])*ft2m, plot=False)
@@ -406,12 +394,8 @@ ht_parametric_geometry = [
     ht_qc_tip_right_parametric,
     ht_qc_tip_left_parametric
 ]
-
-
 ht_span = np.linalg.norm(ht_le_left.value - ht_le_right.value)
-# print('Horizontal Tail Span: ', ht_span)
 ht_chord = np.linalg.norm(ht_le_center[0].value - ht_te_center[0].value)
-# print('Horizontal Tail Chord: ', ht_chord)
 
 trimTab_le_left_parametric = trimTab.project(np.array([-29.4, -3.3, -5.5])*ft2m, plot=False)
 trimTab_le_right_parametric = trimTab.project(np.array([-29.4, 3.3, -5.5])*ft2m, plot=False)
@@ -445,10 +429,8 @@ trimTab_parametric_geometry = [
 
 
 trim_tab_span = np.linalg.norm(trimTab_le_left.value - trimTab_le_right.value)
-# print('Trim Tab Span: ', trim_tab_span)
 
 trimTab_chord = np.linalg.norm(trimTab_le_center[0].value - trimTab_te_center[0].value)
-# print('Trim Tab Chord: ', trimTab_chord)
 
 # VT Region Info
 vt_le_base_parametric = vertTail.project(np.array([-23, 0, -5.5])*ft2m, plot=False)
@@ -471,10 +453,8 @@ vt_qc_tip_parametric = vertTail.project(np.array([-27.33 + (0.25*(-28.7+23)), 0.
 
 
 vt_span = np.linalg.norm(vt_te_base.value - vt_te_tip.value)
-# print('Vertical Tail Span: ', vt_span)
 
 vt_chord = np.linalg.norm(vt_le_mid.value - vt_te_mid.value)
-# print('Vertical Tail Chord: ', vt_chord)
 
 rudder_le_base_parametric = rudder.project(np.array([-23, 0, -5.5])*ft2m, plot=False)
 rudder_le_base = geometry.evaluate(rudder_le_base_parametric)
@@ -488,9 +468,7 @@ rudder_te_tip_parametric = rudder.project(np.array([-30.4, 0, -11.])*ft2m, plot=
 
 
 rudder_span = np.linalg.norm(rudder_le_base.value - rudder_le_tip.value)
-# print('Rudder Span: ', rudder_span)
 rudder_chord = np.linalg.norm(rudder_le_mid.value - rudder_le_tip.value)
-# print('Rudder Chord: ', rudder_chord)
 
 vt_parametric_geometry = [
     vt_le_base_parametric,
@@ -531,56 +509,43 @@ M6_disk_pt = np.array([-11.6, -4, -7.659])*ft2m
 
 M1_disk_on_wing = spinner1.project(M1_disk_pt, plot=False)
 M1_disk = geometry.evaluate(M1_disk_on_wing)
-# print('From aircraft, Left Outermost Disk (ft): ', M1_disk.value)
 
 M2_disk_on_wing = spinner2.project(M2_disk_pt, plot=False)
 M2_disk = geometry.evaluate(M2_disk_on_wing)
-# print('From aircraft, Left Outer Disk (ft): ', M2_disk.value)
 
 M3_disk_on_wing = spinner3.project(M3_disk_pt, plot=False)
 M3_disk = geometry.evaluate(M3_disk_on_wing)
-# print('From aircraft, Left Inner Disk (ft): ', M3_disk.value)
 
 M4_disk_on_wing = spinner4.project(M4_disk_pt, plot=False)
 M4_disk = geometry.evaluate(M4_disk_on_wing)
-# print('From aircraft, Left Innermost Disk (ft): ', M4_disk.value)
 
 M5_disk_on_wing = spinner5.project(M5_disk_pt, plot=False)
 M5_disk = geometry.evaluate(M5_disk_on_wing)
-# print('From aircraft, Left Disk (ft): ', M5_disk.value)
 
 M6_disk_on_wing = spinner6.project(M6_disk_pt, plot=False)
 M6_disk = geometry.evaluate(M6_disk_on_wing)
-# print('From aircraft, Right Disk (ft): ', M6_disk.value)
 
 M7_disk_on_wing = spinner7.project(M7_disk_pt, plot=False)
 M7_disk = geometry.evaluate(M7_disk_on_wing)
-# print('From aircraft, Right Disk (ft): ', M7_disk.value)
 
 M8_disk_on_wing = spinner8.project(M8_disk_pt, plot=False)
 M8_disk = geometry.evaluate(M8_disk_on_wing)
-# print('From aircraft, Right Disk (ft): ', M8_disk.value)
 
 M9_disk_on_wing = spinner9.project(M9_disk_pt, plot=False)
 M9_disk = geometry.evaluate(M9_disk_on_wing)
-# print('From aircraft, Right Innermost Disk (ft): ', M9_disk.value)
 
 M10_disk_on_wing = spinner10.project(M10_disk_pt, plot=False)
 M10_disk = geometry.evaluate(M10_disk_on_wing)
-# print('From aircraft, Right Inner Disk (ft): ', M10_disk.value)
 
 M11_disk_on_wing = spinner11.project(M11_disk_pt, plot=False)
 M11_disk = geometry.evaluate(M11_disk_on_wing)
-# print('From aircraft, Right Outer Disk (ft): ', M11_disk.value)
 
 M12_disk_on_wing = spinner12.project(M12_disk_pt, plot=False)
 M12_disk = geometry.evaluate(M12_disk_on_wing)
-# print('From aircraft, Right Outermost Disk (ft): ', M12_disk.value)
 
 MotorDisks = [M1_disk, M2_disk, M3_disk, M4_disk, M5_disk, M6_disk, M7_disk, M8_disk, M9_disk, M10_disk, M11_disk, M12_disk]
 
 
-# Define pylon connection points
 M1_pylon_pt = np.array([-12.5, -14, -7.355])*ft2m 
 M2_pylon_pt = np.array([-12.35, -12, -7.355])*ft2m
 M3_pylon_pt = np.array([-12.2, -10, -7.659])*ft2m
@@ -594,7 +559,6 @@ M10_pylon_pt = np.array([-12.2, 10, -7.659])*ft2m
 M11_pylon_pt = np.array([-12.35, 12, -7.355])*ft2m
 M12_pylon_pt = np.array([-12.5, 14, -7.355])*ft2m
 
-# Project pylon points onto their respective components
 M1_pylon_on_wing = pylon1.project(M1_pylon_pt, plot=False)
 M2_pylon_on_wing = pylon2.project(M2_pylon_pt, plot=False)
 M3_pylon_on_wing = pylon3.project(M3_pylon_pt, plot=False)
@@ -622,23 +586,19 @@ fuselage_rear = geometry.evaluate(fuselage_rear_pts_parametric)
 cruise_motor1_tip_guess = np.array([-13, -15.83, -5.5])*ft2m
 cruise_motor1_tip_parametric = cruise_spinner1.project(cruise_motor1_tip_guess, plot=False)
 cruise_motor1_tip = geometry.evaluate(cruise_motor1_tip_parametric)
-# print('From aircraft, cruise motor hub tip (ft): ', cruise_motor_tip.value)
 
 cruise_motor1_base_guess = cruise_motor1_tip + np.array([-1.67, 0, 0])*ft2m
 cruise_motor1_base_parametric = cruise_spinner1.project(cruise_motor1_base_guess, plot=False)
 cruise_motor1_base= geometry.evaluate(cruise_motor1_base_parametric)
-# print('From aircraft, cruise motor hub base (ft): ', cruise_motor_base.value)
 
 # For Cruise Motor 2 Hub Region
 cruise_motor2_tip_guess = np.array([-13, 15.83, -5.5])*ft2m
 cruise_motor2_tip_parametric = cruise_spinner2.project(cruise_motor2_tip_guess, plot=False)
 cruise_motor2_tip = geometry.evaluate(cruise_motor1_tip_parametric)
-# print('From aircraft, cruise motor hub tip (ft): ', cruise_motor_tip.value)
 
 cruise_motor2_base_guess = cruise_motor2_tip + np.array([-1.67, 0, 0])*ft2m
 cruise_motor2_base_parametric = cruise_spinner2.project(cruise_motor2_base_guess, plot=False)
 cruise_motor2_base= geometry.evaluate(cruise_motor2_base_parametric)
-# print('From aircraft, cruise motor hub base (ft): ', cruise_motor_base.value)
 
 wing_on_cruise_motor1_parametric = cruise_spinner2.project(wing_le_left_guess, plot=False)
 wing_on_cruise_motor2_parametric = cruise_spinner1.project(wing_le_right_guess, plot=False)
@@ -678,9 +638,7 @@ def axes_create():
         reference=openvsp_axis,
         origin=ValidOrigins.OpenVSP.value
     )
-    # print('Wing axis translation (ft): ', wing_axis.translation.value)
-    # print('Wing axis rotation (deg): ', np.rad2deg(wing_axis.euler_angles_vector.value))
-    # geometry.plot()
+
 
     left_flap_axis = AxisLsdoGeo(
         name='Left Flap Axis',
@@ -743,8 +701,7 @@ def axes_create():
         reference=openvsp_axis,
         origin=ValidOrigins.OpenVSP.value
     )
-    # print('HT axis translation (ft): ', ht_tail_axis.translation.value)
-    # print('HT axis rotation (deg): ', np.rad2deg(ht_tail_axis.euler_angles_vector.value))
+
 
     trimTab_axis = AxisLsdoGeo(
         name='Trim Tab Axis',
@@ -758,9 +715,6 @@ def axes_create():
         origin=ValidOrigins.OpenVSP.value
     )
 
-    # print('Trim Tab axis translation (ft): ', trimTab_axis.translation.value)
-    # print('Trim Tab axis rotation (deg): ', np.rad2deg(trimTab_axis.euler_angles_vector.value))
-    # geometry.plot()
 
     vt_tail_axis = AxisLsdoGeo(
         name='Vertical Tail Axis',
@@ -773,9 +727,6 @@ def axes_create():
         reference=openvsp_axis,
         origin=ValidOrigins.OpenVSP.value
     )
-    # print('VT axis translation (ft): ', vt_tail_axis.translation.value)
-    # print('VT axis rotation (deg): ', np.rad2deg(vt_tail_axis.euler_angles_vector.value))
-    # geometry.plot()
 
     ## Distributed Propulsion Motors Axes
 
@@ -790,8 +741,7 @@ def axes_create():
         reference=openvsp_axis,
         origin=ValidOrigins.OpenVSP.value
     )
-    # print('Left Outermost motor axis translation (ft): ', l_om_axis.translation.value)
-    # print('Left Outermost motor axis rotation (deg): ', np.rad2deg(l_om_axis.euler_angles_vector.value))
+
 
     M2_axis = AxisLsdoGeo(
         name= 'Motor 2 Axis',
@@ -804,8 +754,7 @@ def axes_create():
         reference=openvsp_axis,
         origin=ValidOrigins.OpenVSP.value
     )
-    # print('Left Outer motor axis translation (ft): ', l_o_axis.translation.value)
-    # print('Left Outer motor axis rotation (deg): ', np.rad2deg(l_o_axis.euler_angles_vector.value))
+
 
     M3_axis = AxisLsdoGeo(
         name= 'Motor 3 Axis',
@@ -926,8 +875,6 @@ def axes_create():
         reference=openvsp_axis,
         origin=ValidOrigins.OpenVSP.value
     )
-    # print('Right Outermost motor axis translation (ft): ', r_om_axis.translation.value)
-    # print('Right Outermost motor axis rotation (deg): ', np.rad2deg(r_om_axis.euler_angles_vector.value))
 
     HL_motor_axes = [M1_axis, M2_axis, M3_axis, M4_axis, M5_axis, M6_axis, M7_axis, M8_axis, M9_axis, M10_axis, M11_axis, M12_axis]
     # Cruise Motor Region
@@ -944,8 +891,6 @@ def axes_create():
         reference=openvsp_axis,
         origin=ValidOrigins.OpenVSP.value
     )
-    # print('Cruise motor axis translation (ft): ', cruise_motor_axis.translation.value)
-    # print('Cruise motor axis rotation (deg): ', np.rad2deg(cruise_motor_axis.euler_angles_vector.value))
 
     cruise_motor2_axis = AxisLsdoGeo(
         name= 'Cruise Motor 2 Axis',
@@ -958,8 +903,6 @@ def axes_create():
         reference=openvsp_axis,
         origin=ValidOrigins.OpenVSP.value
     )
-    # print('Cruise motor axis translation (ft): ', cruise_motor_axis.translation.value)
-    # print('Cruise motor axis rotation (deg): ', np.rad2deg(cruise_motor_axis.euler_angles_vector.value))
 
     cruise_motor_axes = [cruise_motor1_axis, cruise_motor2_axis]
 
@@ -976,9 +919,6 @@ def axes_create():
         reference=inertial_axis,
         origin=ValidOrigins.Inertial.value
     )
-    # print('Body-fixed angles (deg)', np.rad2deg(fd_axis.euler_angles_vector.value))
-
-
 
     wind_axis = Axis(
         name='Wind Axis',
@@ -992,8 +932,6 @@ def axes_create():
         reference=inertial_axis,
         origin=ValidOrigins.Inertial.value
     )
-    # print('Wind axis angles (deg)', np.rad2deg(wind_axis.euler_angles_vector.value))
-
 
     return openvsp_axis, wing_axis, ht_tail_axis, trimTab_axis, vt_tail_axis, HL_motor_axes, cruise_motor_axes, inertial_axis, fd_axis, wind_axis, geometry, left_flap_axis, right_flap_axis, left_aileron_axis, right_aileron_axis
 
@@ -1005,7 +943,7 @@ openvsp_axis, wing_axis, ht_tail_axis, trimTab_axis, vt_tail_axis, HL_motor_axes
 ### FORCES AND MOMENTS MODELLING
 
 
-x_57_states = AircraftStates(axis=fd_axis,u=Q_(166.193182, 'mph')) # stall speed
+x_57_states = AircraftStates(axis=fd_axis,u=Q_(67, 'mph')) # stall speed
 x_57_mi = MassMI(axis=fd_axis,
                  Ixx=Q_(4314.08, 'kg*(m*m)'),
                  Ixy=Q_(-232.85, 'kg*(m*m)'),
@@ -1023,8 +961,8 @@ x57_mass_properties = MassProperties(mass=Q_(1360.77, 'kg'),
 x57_controls = AircraftControlSystem(engine_count=12,symmetrical=True)
 x57_aircraft = Component(name='X-57')
 x57_aircraft.quantities.mass_properties = x57_mass_properties
-HL_radius_x57 = csdl.Variable(shape=(1,), value=2*ft2m) # HL propeller radius in meters
-cruise_radius_x57 = csdl.Variable(shape=(1,), value=5*ft2m) # cruise propeller radius in meters
+HL_radius_x57 = csdl.Variable(shape=(1,), value=1.89/2) # HL propeller radius in ft
+cruise_radius_x57 = csdl.Variable(shape=(1,), value=5/2) # cruise propeller radius in ft
 
 e_x57 = csdl.Variable(shape=(1,), value=0.87) # Oswald efficiency factor
 CD0_x57 = csdl.Variable(shape=(1,), value=0.001) # Zero-lift drag coefficient
@@ -1037,7 +975,7 @@ incidence_x57 = csdl.Variable(shape=(1,), value=2*np.pi/180) # Wing incidence an
 
 ## Aerodynamic Forces - from Modification IV
 x_57_wing_state = AircraftStates(
-    axis=wing_axis,u=Q_(166.193182, 'mph'))
+    axis=wing_axis,u=Q_(67, 'mph'))
 
 atmospheric_states = x_57_states.atmospheric_states
 x57_lift_model = LiftModel(AR=AR_x57, e=e_x57, CD0=CD0_x57, S=S_x57, incidence=incidence_x57)
@@ -1055,7 +993,7 @@ print('-' * 40)
 
 
 x57_aero.plot_aerodynamics(
-    velocity_range=(20, 100),
+    velocity_range=(20, 200),
     alpha_range=(-5, 15),
     AR_values=[15],
     e_values=[0.75, 0.85, 0.95]
@@ -1076,7 +1014,7 @@ HL_prop_loads2_list = []
 for i, motor_axis in enumerate(HL_motor_axes):
     motor_state = AircraftStates(
         axis=motor_axis,
-        u=Q_(166.193182, 'mph')
+        u=Q_(67, 'mph') 
     )
     HL_motor_states.append(motor_state)
     
@@ -1114,7 +1052,7 @@ cruise_prop_loads2_list = []
 for i, cruise_motor_axis in enumerate(cruise_motor_axes):
     cruise_motor_state = AircraftStates(
         axis=cruise_motor_axis,
-        u=Q_(166.193182, 'mph')
+        u=Q_(67, 'mph')
     )
     cruise_motor_states.append(cruise_motor_state)
     
@@ -1144,28 +1082,24 @@ for i, cruise_motor_axis in enumerate(cruise_motor_axes):
 
 
 HL_motor_props[1].plot_propulsion(
-    velocity_range=(0, 200),
-    # ref_velocities=[50, 75, 80],  # Compare different reference velocities
-    # ref_throttles=[0.3, 0.5, 0.7],  # Compare different throttle settings
-    rpm_ranges=[(1000,4702)],  # Compare different RPM ranges
-    radius_values=[1*ft2m, 2*ft2m, 3*ft2m],  # Different radii in meters (1ft, 2ft, 3ft)
+    velocity_range=(0, 100), # Compare different velocity ranges in mph
+    ref_velocities=[50, 75, 80],  # Compare different reference velocities
+    rpm_ranges=[(3428,4702)],  # Compare different RPM ranges
+    radius_values=[0.5, 1, 1.5],  # Different radii in ft
     ref_throttles=[1.0, 1.0, 1.0],  # Different throttle settings
-    labels=['1ft', '2ft', '3ft'],  # Custom labels for each configuration
     title=f'High-Lift Motor {1}'
 )
 
 
 cruise_motor_props[1].plot_propulsion(
-    velocity_range=(0, 200),
-    # ref_velocities=[50, 75, 80],  # Compare different reference velocities
-    # ref_throttles=[0.3, 0.5, 0.7],  # Compare different throttle settings
-    rpm_ranges=[(1000,2250)],  # Compare different RPM ranges
-    radius_values=[4*ft2m, 5*ft2m, 6*ft2m],  # Different radii in meters (4ft, 5ft, 6ft)
+    velocity_range=(0, 100), # Compare different velocity ranges in mph
+    ref_velocities=[50, 75, 80],  # Compare different reference velocities
+    rpm_ranges=[(1150,2250)],  # Compare different RPM ranges
+    radius_values=[2, 2.5, 3],  # Different radii in ft
     ref_throttles=[1.0, 1.0, 1.0],  # Different throttle settings
-    labels=['4ft', '5ft', '6ft'],  # Custom labels for each configuration
     title=f'Cruise Motor {1}'
 )
-# plt.show()
+plt.show()
 
 
 thrust_axis = cruise_motor1_tip - cruise_motor1_base
@@ -1265,13 +1199,8 @@ Wing = WingComp(AR=wing_AR,
                 )
 
 Aircraft.add_subcomponent(Wing)
-# wing_le_fuse_connection = geometry.evaluate(wing_le_center_parametric) - geometry.evaluate(fuselage_wing_le_center_parametric)
-# wing_te_fuse_connection = geometry.evaluate(wing_te_center_parametric) - geometry.evaluate(fuselage_wing_te_center_parametric)
 wing_qc_fuse_connection = geometry.evaluate(wing_qc_center_parametric) - geometry.evaluate(fuselage_wing_qc_center_parametric)
-# print("wing_fuse_connection: ", wing_fuse_connection.value)
-# parameterization_solver.add_variable(computed_value=wing_le_fuse_connection, desired_value=wing_le_fuse_connection.value)
 parameterization_solver.add_variable(computed_value=wing_qc_fuse_connection, desired_value=wing_qc_fuse_connection.value)
-# parameterization_solver.add_variable(computed_value=wing_te_fuse_connection, desired_value=wing_te_fuse_connection.value)
 
 
 
@@ -1292,8 +1221,6 @@ Aircraft.add_subcomponent(HorTail)
 
 tail_moment_arm_computed = csdl.norm(geometry.evaluate(ht_qc_center_parametric) - geometry.evaluate(wing_qc_center_parametric))
 h_tail_fuselage_connection = geometry.evaluate(ht_te_center_parametric) - geometry.evaluate(fuselage_tail_te_center_parametric)
-# print('Tail Moment Arm: ', tail_moment_arm_computed.value)
-# print('Tail Fuselage Connection: ', h_tail_fuselage_connection.value)
 # parameterization_solver.add_variable(computed_value=tail_moment_arm_computed, desired_value=tail_moment_arm_computed.value)
 parameterization_solver.add_variable(computed_value=h_tail_fuselage_connection, desired_value=h_tail_fuselage_connection.value)
 
@@ -1314,12 +1241,10 @@ VT_sweep = csdl.Variable(name="VT_sweep", shape=(1, ), value=-40)
 # Aircraft.add_subcomponent(VertTail)
 
 vtail_fuselage_connection = geometry.evaluate(fuselage_rear_pts_parametric) - geometry.evaluate(vt_qc_base_parametric)
-# print('VTail Fuselage Connection: ', vtail_fuselage_connection.value)
 parameterization_solver.add_variable(computed_value=vtail_fuselage_connection, desired_value=vtail_fuselage_connection.value)
 
 
 
-# geometry.plot()
 parameterization_solver.evaluate(ffd_geometric_variables)
 geometry.plot(camera=dict(pos=(12, 15, -12),  # Camera position 
                          focal_point=(-Fuselage.parameters.length.value/2, 0, 0),  # Point camera looks at
