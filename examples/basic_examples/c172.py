@@ -10,7 +10,7 @@ from flight_simulator.core.loads.loads import Loads
 from flight_simulator.core.vehicle.vehicle_control_system import (
     VehicleControlSystem, ControlSurface, PropulsiveControl)
 from flight_simulator.core.dynamics.axis import Axis, ValidOrigins
-from flight_simulator.core.dynamics.aircraft_states import AircaftStates
+from flight_simulator.core.dynamics.aircraft_states import AircraftStates
 from flight_simulator.core.loads.mass_properties import MassProperties, MassMI
 from flight_simulator.core.vehicle.component import Component, ComponentQuantities, ComponentParameters
 from typing import Union
@@ -51,7 +51,7 @@ fd_axis = Axis(
 # endregion
 
 # region Aircraft States
-c172_states = AircaftStates(axis=fd_axis, u=Q_(125, 'mph'))
+c172_states = AircraftStates(axis=fd_axis, u=Q_(125, 'mph'))
 # endregion
 
 # Create a Mass Properties object with given values

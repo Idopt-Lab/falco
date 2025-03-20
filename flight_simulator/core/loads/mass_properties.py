@@ -29,7 +29,7 @@ class MassMI:
             self.add_check('Ixz', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
             self.add_check('Iyz', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
 
-        def _check_pamaeters(self, name, value):
+        def _check_parameters(self, name, value):
             if self._metadata[name]['type'] is not None:
                 if type(value) not in self._metadata[name]['type']:
                     raise ValueError(f"Variable {name} must be of type {self._metadata[name]['type']}.")

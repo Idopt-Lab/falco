@@ -9,7 +9,7 @@ from scipy.interpolate import Akima1DInterpolator
 from flight_simulator.core.loads.loads import Loads
 from flight_simulator.core.loads.forces_moments import Vector, ForcesMoments
 from flight_simulator.core.dynamics.axis import Axis, ValidOrigins
-from flight_simulator.core.dynamics.aircraft_states import AircaftStates
+from flight_simulator.core.dynamics.aircraft_states import AircraftStates
 from flight_simulator.core.vehicle.aircraft_control_system import AircraftControlSystem
 
 class LiftModel(csdl.CustomExplicitOperation):
@@ -59,27 +59,33 @@ class LiftModel(csdl.CustomExplicitOperation):
 
 class AircraftAerodynamics(Loads):
 
-    def __init__(self, states, controls, lift_model:LiftModel):
+    def __init__(self, states, controls, lift_model:LiftModel, atmospheric_states:csdl.VariableGroup=None):
         super().__init__(states=states, controls=controls)
         self.lift_model = lift_model
+        
+        if atmospheric_states is None:
+            raise Exception("Atmospheric Conditions/states are not provided.")
+        else:
+            self.atmospheric_states = atmospheric_states
+
 
 
     def get_FM_refPoint(self):
-            density = self.states.atmospheric_states.density
+            density = self.atmospheric_states.density
             velocity = self.states.VTAS
             axis = self.states.axis
             theta = self.states.states.theta
             alpha = theta + self.lift_model.incidence
 
-            CL = 2*np.pi*alpha
-            CD = self.lift_model.CD0 + (1/(self.lift_model.e*self.lift_model.AR*np.pi))*CL**2
+            CL = 2*np.pi*alpha+0.4 # Add 0.4 for lift polar offset compared to CFD data (guesstimate)
+            CD = self.lift_model.CD0 + (1/(self.lift_model.e*self.lift_model.AR*np.pi))*CL**2 + 0.04 # Add 0.04 for drag polar offset compared to CFD data (guesstimate)
             L = 0.5*density*velocity**2*self.lift_model.S*CL
             D = 0.5*density*velocity**2*self.lift_model.S*CD
 
-            force_vector = Vector(vector=csdl.concatenate((-D,
-                                                        csdl.Variable(shape=(1,), value=0.),
-                                                        -L),
-                                                        axis=0), axis=axis)
+            aero_force = csdl.Variable(shape=(3,), value=0.)
+            aero_force = aero_force.set(csdl.slice[0], -D)
+            aero_force = aero_force.set(csdl.slice[2], -L)
+            force_vector = Vector(vector=aero_force, axis=axis)
 
             moment_vector = Vector(vector=csdl.Variable(shape=(3,), value=0.), axis=axis)
             loads = ForcesMoments(force=force_vector, moment=moment_vector)
@@ -138,8 +144,8 @@ class AircraftAerodynamics(Loads):
         for AR in AR_values:
             for e in e_values:
                 # Calculate coefficients
-                CLs = 2 * np.pi * alphas
-                CDs = self.lift_model.CD0.value + (1/(e * AR * np.pi)) * CLs**2
+                CLs = 2 * np.pi * alphas + 0.4 # Add 0.4 for lift polar offset compared to CFD data (guesstimate)
+                CDs = self.lift_model.CD0.value + (1/(e * AR * np.pi)) * CLs**2 + 0.04 # Add 0.04 for drag polar offset compared to CFD data (guesstimate)
                 
                 # Velocity sweep calculations
                 lift_forces = []
@@ -147,8 +153,8 @@ class AircraftAerodynamics(Loads):
                 ref_alpha = float(self.lift_model.incidence.value)  # 2 degrees reference angle
                 
                 for v in velocities:
-                    density = self.states.atmospheric_states.density.value
-                    CL = 2 * np.pi * ref_alpha
+                    density = self.atmospheric_states.density.value
+                    CL = 2 * np.pi * ref_alpha+0.2
                     CD = self.lift_model.CD0.value + (1/(e * AR * np.pi)) * CL**2
                     
                     L = 0.5 * density * v**2 * self.lift_model.S.value * CL
@@ -163,7 +169,7 @@ class AircraftAerodynamics(Loads):
                 alpha_drags = []
                 
                 for alpha in alphas:
-                    density = self.states.atmospheric_states.density.value
+                    density = self.atmospheric_states.density.value
                     CL = 2 * np.pi * alpha
                     CD = self.lift_model.CD0.value + (1/(e * AR * np.pi)) * CL**2
                     
@@ -179,9 +185,9 @@ class AircraftAerodynamics(Loads):
                 ax_cl.plot(np.degrees(alphas), CLs, '-', color=colors[color_idx], label=label)
                 ax_cd.plot(np.degrees(alphas), CDs, '-', color=colors[color_idx], label=label)
                 ax_polar.plot(CDs, CLs, '-', color=colors[color_idx], label=label)
-                ax_lift_v.plot(velocities, lift_forces, '-', color=colors[color_idx], label=label)
+                ax_lift_v.plot(velocities, np.array(lift_forces) / np.array(drag_forces), '-', color=colors[color_idx], label=label)
                 ax_drag_v.plot(velocities, drag_forces, '-', color=colors[color_idx], label=label)
-                ax_lift_a.plot(np.degrees(alphas), alpha_lifts, '-', color=colors[color_idx], label=label)
+                ax_lift_a.plot(np.degrees(alphas), np.array(alpha_lifts)/np.array(alpha_drags), '-', color=colors[color_idx], label=label)
                 ax_drag_a.plot(np.degrees(alphas), alpha_drags, '-', color=colors[color_idx], label=label)
                 
                 # Add alpha annotations on drag polar
@@ -204,13 +210,13 @@ class AircraftAerodynamics(Loads):
         ax_polar.set(xlabel='Drag Coefficient (CD)', ylabel='Lift Coefficient (CL)',
                     title='Drag Polar')
         
-        ax_lift_v.set(xlabel='Velocity (mph)', ylabel='Force (N)',
-                    title=f'Lift Force vs Velocity (α = {np.degrees(ref_alpha):.1f}°)')
+        ax_lift_v.set(xlabel='Velocity (mph)', ylabel='L/D Ratio',
+                    title=f'Lift/Drag vs Velocity (α = {np.degrees(ref_alpha):.1f}°)')
         ax_drag_v.set(xlabel='Velocity (mph)', ylabel='Force (N)',
                     title=f'Drag Force vs Velocity (α = {np.degrees(ref_alpha):.1f}°)')
         
-        ax_lift_a.set(xlabel='Angle of Attack (degrees)', ylabel='Force (N)',
-                    title=f'Lift Force vs Alpha (V = {ref_velocity} mph)')
+        ax_lift_a.set(xlabel='Angle of Attack (degrees)', ylabel='L/D Ratio',
+                    title=f'Lift/Drag vs Alpha (V = {ref_velocity} mph)')
         ax_drag_a.set(xlabel='Angle of Attack (degrees)', ylabel='Force (N)',
                     title=f'Drag Force vs Alpha (V = {ref_velocity} mph)')
 
@@ -220,5 +226,5 @@ class AircraftAerodynamics(Loads):
             ax.legend(loc='best', fontsize=6)
             ax.tick_params(labelsize=8)
 
-        plt.tight_layout()
+        # plt.tight_layout()
         return fig, (ax_cl, ax_cd, ax_polar, ax_lift_v, ax_drag_v, ax_lift_a, ax_drag_a)

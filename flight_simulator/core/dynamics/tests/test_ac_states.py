@@ -4,14 +4,14 @@ import csdl_alpha as csdl
 import numpy as np
 
 from flight_simulator.core.dynamics.axis import Axis, ValidOrigins
-from flight_simulator.core.dynamics.aircraft_states import AircaftStates
+from flight_simulator.core.dynamics.aircraft_states import AircraftStates
 
 
 class AxisTests(TestCase):
     def setUp(self):
         recorder = csdl.Recorder(inline=True)
         recorder.start()
-        self.ac_states = AircaftStates()
+        self.ac_states = AircraftStates()
 
     def test_create_ac_states_object(self):
         self.ac_states.phi = csdl.Variable(shape=(1,), value=np.array([np.deg2rad(0.), ]), name='phi')
