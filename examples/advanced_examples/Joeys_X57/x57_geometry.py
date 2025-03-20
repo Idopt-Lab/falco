@@ -1025,6 +1025,7 @@ x57_aircraft = Component(name='X-57')
 x57_aircraft.quantities.mass_properties = x57_mass_properties
 HL_radius_x57 = csdl.Variable(shape=(1,), value=2*ft2m) # HL propeller radius in meters
 cruise_radius_x57 = csdl.Variable(shape=(1,), value=5*ft2m) # cruise propeller radius in meters
+
 e_x57 = csdl.Variable(shape=(1,), value=0.87) # Oswald efficiency factor
 CD0_x57 = csdl.Variable(shape=(1,), value=0.001) # Zero-lift drag coefficient
 S_x57 = csdl.Variable(shape=(1,), value=66.667*(ft2m**2)) # Wing area in m^2
@@ -1079,12 +1080,12 @@ for i, motor_axis in enumerate(HL_motor_axes):
     )
     HL_motor_states.append(motor_state)
     
-    prop_curve = PropCurve()
+    prop_curve = HLPropCurve()
     
     motor_prop = AircraftPropulsion(
         states=motor_state,
         controls=x57_controls, 
-        radius=radius_x57, 
+        radius=HL_radius_x57, 
         prop_curve=prop_curve
     )
     HL_motor_props.append(motor_prop)
@@ -1117,12 +1118,12 @@ for i, cruise_motor_axis in enumerate(cruise_motor_axes):
     )
     cruise_motor_states.append(cruise_motor_state)
     
-    cruise_prop_curve = PropCurve()
+    cruise_prop_curve = CruisePropCurve()
     
     cruise_motor_prop = AircraftPropulsion(
         states=cruise_motor_state,
         controls=x57_controls, 
-        radius=radius_x57,
+        radius=cruise_radius_x57,
         prop_curve=cruise_prop_curve
     )
     cruise_motor_props.append(cruise_motor_prop)
@@ -1142,18 +1143,29 @@ for i, cruise_motor_axis in enumerate(cruise_motor_axes):
 
 
 
-HL_motor_props[0].plot_propulsion(
+HL_motor_props[1].plot_propulsion(
     velocity_range=(0, 200),
     # ref_velocities=[50, 75, 80],  # Compare different reference velocities
     # ref_throttles=[0.3, 0.5, 0.7],  # Compare different throttle settings
     rpm_ranges=[(1000,4702)],  # Compare different RPM ranges
-    radius_values=[1*ft2m, 2*ft2m, 3*ft2m],  # Different radii in meters (2ft, 3ft, 4ft)
-    ref_throttles=[1.0, 1.0, 1.0],  # Different throttle settings (30%, 60%, 100%)
-    labels=['2ft', '3ft', '4ft'],  # Custom labels for each configuration
-    title='High-Lift Motor 1'
+    radius_values=[1*ft2m, 2*ft2m, 3*ft2m],  # Different radii in meters (1ft, 2ft, 3ft)
+    ref_throttles=[1.0, 1.0, 1.0],  # Different throttle settings
+    labels=['1ft', '2ft', '3ft'],  # Custom labels for each configuration
+    title=f'High-Lift Motor {1}'
 )
 
-plt.show()
+
+cruise_motor_props[1].plot_propulsion(
+    velocity_range=(0, 200),
+    # ref_velocities=[50, 75, 80],  # Compare different reference velocities
+    # ref_throttles=[0.3, 0.5, 0.7],  # Compare different throttle settings
+    rpm_ranges=[(1000,2250)],  # Compare different RPM ranges
+    radius_values=[4*ft2m, 5*ft2m, 6*ft2m],  # Different radii in meters (4ft, 5ft, 6ft)
+    ref_throttles=[1.0, 1.0, 1.0],  # Different throttle settings
+    labels=['4ft', '5ft', '6ft'],  # Custom labels for each configuration
+    title=f'Cruise Motor {1}'
+)
+# plt.show()
 
 
 thrust_axis = cruise_motor1_tip - cruise_motor1_base
@@ -1193,6 +1205,13 @@ print(f'Total Propulsive Moments: [{total_prop_moments[0]:.2f}, {total_prop_mome
 print(f'Total Moments: [{total_moments[0]:.2f}, {total_moments[1]:.2f}, {total_moments[2]:.2f}] N⋅m')
 print('-' * 40)
 
+
+
+
+
+
+
+## Aircraft Component Creation
 
 parameterization_solver = ParameterizationSolver()
 ffd_geometric_variables = GeometricVariables()
