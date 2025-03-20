@@ -185,9 +185,9 @@ class AircraftAerodynamics(Loads):
                 ax_cl.plot(np.degrees(alphas), CLs, '-', color=colors[color_idx], label=label)
                 ax_cd.plot(np.degrees(alphas), CDs, '-', color=colors[color_idx], label=label)
                 ax_polar.plot(CDs, CLs, '-', color=colors[color_idx], label=label)
-                ax_lift_v.plot(velocities, lift_forces, '-', color=colors[color_idx], label=label)
+                ax_lift_v.plot(velocities, np.array(lift_forces) / np.array(drag_forces), '-', color=colors[color_idx], label=label)
                 ax_drag_v.plot(velocities, drag_forces, '-', color=colors[color_idx], label=label)
-                ax_lift_a.plot(np.degrees(alphas), alpha_lifts, '-', color=colors[color_idx], label=label)
+                ax_lift_a.plot(np.degrees(alphas), np.array(alpha_lifts)/np.array(alpha_drags), '-', color=colors[color_idx], label=label)
                 ax_drag_a.plot(np.degrees(alphas), alpha_drags, '-', color=colors[color_idx], label=label)
                 
                 # Add alpha annotations on drag polar
@@ -210,13 +210,13 @@ class AircraftAerodynamics(Loads):
         ax_polar.set(xlabel='Drag Coefficient (CD)', ylabel='Lift Coefficient (CL)',
                     title='Drag Polar')
         
-        ax_lift_v.set(xlabel='Velocity (mph)', ylabel='Force (N)',
-                    title=f'Lift Force vs Velocity (α = {np.degrees(ref_alpha):.1f}°)')
+        ax_lift_v.set(xlabel='Velocity (mph)', ylabel='L/D Ratio',
+                    title=f'Lift/Drag vs Velocity (α = {np.degrees(ref_alpha):.1f}°)')
         ax_drag_v.set(xlabel='Velocity (mph)', ylabel='Force (N)',
                     title=f'Drag Force vs Velocity (α = {np.degrees(ref_alpha):.1f}°)')
         
-        ax_lift_a.set(xlabel='Angle of Attack (degrees)', ylabel='Force (N)',
-                    title=f'Lift Force vs Alpha (V = {ref_velocity} mph)')
+        ax_lift_a.set(xlabel='Angle of Attack (degrees)', ylabel='L/D Ratio',
+                    title=f'Lift/Drag vs Alpha (V = {ref_velocity} mph)')
         ax_drag_a.set(xlabel='Angle of Attack (degrees)', ylabel='Force (N)',
                     title=f'Drag Force vs Alpha (V = {ref_velocity} mph)')
 
