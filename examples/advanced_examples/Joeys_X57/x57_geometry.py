@@ -968,7 +968,7 @@ def axes_create():
         name='Flight Dynamics Body Fixed Axis',
         x=Q_(0, 'm'),
         y=Q_(0, 'm'),
-        z=Q_(0, 'm'),
+        z=Q_(-8000*ft2m, 'm'),
         phi=Q_(0, 'deg'),
         theta=Q_(0, 'deg'),
         psi=Q_(0, 'deg'),
@@ -1005,7 +1005,7 @@ openvsp_axis, wing_axis, ht_tail_axis, trimTab_axis, vt_tail_axis, HL_motor_axes
 ### FORCES AND MOMENTS MODELLING
 
 
-x_57_states = AircraftStates(axis=fd_axis,u=Q_(166.193182, 'mph')) # stall speed
+x_57_states = AircraftStates(axis=fd_axis,u=Q_(172, 'mph')) # stall speed
 x_57_mi = MassMI(axis=fd_axis,
                  Ixx=Q_(4314.08, 'kg*(m*m)'),
                  Ixy=Q_(-232.85, 'kg*(m*m)'),
@@ -1037,7 +1037,7 @@ incidence_x57 = csdl.Variable(shape=(1,), value=2*np.pi/180) # Wing incidence an
 
 ## Aerodynamic Forces - from Modification IV
 x_57_wing_state = AircraftStates(
-    axis=wing_axis,u=Q_(166.193182, 'mph'))
+    axis=wing_axis,u=Q_(172, 'mph'))
 
 atmospheric_states = x_57_states.atmospheric_states
 x57_lift_model = LiftModel(AR=AR_x57, e=e_x57, CD0=CD0_x57, S=S_x57, incidence=incidence_x57)
@@ -1055,7 +1055,7 @@ print('-' * 40)
 
 
 x57_aero.plot_aerodynamics(
-    velocity_range=(20, 100),
+    velocity_range=(20, 200),
     alpha_range=(-5, 15),
     AR_values=[15],
     e_values=[0.75, 0.85, 0.95]
@@ -1076,7 +1076,7 @@ HL_prop_loads2_list = []
 for i, motor_axis in enumerate(HL_motor_axes):
     motor_state = AircraftStates(
         axis=motor_axis,
-        u=Q_(166.193182, 'mph')
+        u=Q_(172, 'mph')
     )
     HL_motor_states.append(motor_state)
     
@@ -1114,7 +1114,7 @@ cruise_prop_loads2_list = []
 for i, cruise_motor_axis in enumerate(cruise_motor_axes):
     cruise_motor_state = AircraftStates(
         axis=cruise_motor_axis,
-        u=Q_(166.193182, 'mph')
+        u=Q_(172, 'mph')
     )
     cruise_motor_states.append(cruise_motor_state)
     
@@ -1165,7 +1165,7 @@ cruise_motor_props[1].plot_propulsion(
     labels=['4ft', '5ft', '6ft'],  # Custom labels for each configuration
     title=f'Cruise Motor {1}'
 )
-# plt.show()
+plt.show()
 
 
 thrust_axis = cruise_motor1_tip - cruise_motor1_base
