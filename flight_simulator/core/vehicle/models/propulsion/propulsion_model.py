@@ -14,7 +14,7 @@ from flight_simulator.core.vehicle.aircraft_control_system import AircraftContro
 
 
 
-class PropCurve(csdl.CustomExplicitOperation):
+class HLPropCurve(csdl.CustomExplicitOperation):
 
     def __init__(self):
         super().__init__()
@@ -26,6 +26,48 @@ class PropCurve(csdl.CustomExplicitOperation):
             [0.3125,0.3058,0.2848,0.2473,0.1788,0.0366,-0.0198])
         self.ct = Akima1DInterpolator(J_data, Ct_data, method="akima")
         self.ct_derivative = Akima1DInterpolator.derivative(self.ct)
+        # self.min_RPM = np.min([3545, 4661, 4702, 4379, 3962, 3428, 3451])
+        # self.max_RPM = np.max([3545, 4661, 4702, 4379, 3962, 3428, 3451])
+        self.min_RPM = 1000
+        self.max_RPM = 2500
+    # def evaluate(self, inputs: csdl.VariableGroup):
+    def evaluate(self, advance_ratio: csdl.Variable):
+        # assign method inputs to input dictionary
+        self.declare_input('advance_ratio', advance_ratio)
+
+        # declare output variables
+        ct = self.create_output('ct', advance_ratio.shape)
+
+        # construct output of the model
+        outputs = csdl.VariableGroup()
+        outputs.ct = ct
+
+        return outputs
+
+    def compute(self, input_vals, output_vals):
+        advance_ratio = input_vals['advance_ratio']
+        output_vals['ct'] = self.ct(advance_ratio)
+
+    def compute_derivatives(self, input_vals, outputs_vals, derivatives):
+        advance_ratio = input_vals['advance_ratio']
+        derivatives['ct', 'advance_ratio'] = np.diag(self.ct_derivative(advance_ratio))
+
+
+
+class CruisePropCurve(csdl.CustomExplicitOperation):
+
+    def __init__(self):
+        super().__init__()
+
+        # Obtained Mod-IV Propeller Data from CFD database
+        J_data = np.array(
+            [0.1,0.4,0.6,0.8,1.0,1.2,1.3,1.4,1.6,1.8])
+        Ct_data = np.array(
+            [0.1831,0.1673,0.1422,0.1003,0.0479,-0.0085,-0.0366,-0.0057,0.0030,-0.0504])
+        self.ct = Akima1DInterpolator(J_data, Ct_data, method="akima")
+        self.ct_derivative = Akima1DInterpolator.derivative(self.ct)
+        self.min_RPM = 1000
+        self.max_RPM = 2250
 
     # def evaluate(self, inputs: csdl.VariableGroup):
     def evaluate(self, advance_ratio: csdl.Variable):
@@ -49,12 +91,11 @@ class PropCurve(csdl.CustomExplicitOperation):
         advance_ratio = input_vals['advance_ratio']
         derivatives['ct', 'advance_ratio'] = np.diag(self.ct_derivative(advance_ratio))
 
-    
 
 
 class AircraftPropulsion(Loads):
 
-    def __init__(self, states, controls, radius:Union[ureg.Quantity, csdl.Variable], prop_curve:PropCurve):
+    def __init__(self, states, controls, radius:Union[ureg.Quantity, csdl.Variable], prop_curve:Union[HLPropCurve, CruisePropCurve], **kwargs):
         super().__init__(states=states, controls=controls)
         self.prop_curve = prop_curve
 
@@ -75,17 +116,21 @@ class AircraftPropulsion(Loads):
 
 
         # Compute RPM
-        min_RPM = 1000
-        max_RPM = 2500
+        min_RPM = self.prop_curve.min_RPM
+        max_RPM = self.prop_curve.max_RPM
         rpm = min_RPM + (max_RPM - min_RPM) * throttle
         omega_RAD = (rpm * 2 * np.pi) / 60.0  # rad/s
+
+
 
 
         # Compute advance ratio
         J = (np.pi * velocity) / (omega_RAD * self.radius)  # non-dimensional
 
+
         # Compute Ct
         ct = self.prop_curve.evaluate(advance_ratio=J).ct
+
 
         # Compute Thrust
         T =  (2 / np.pi) ** 2 * density * (omega_RAD * self.radius) ** 2 * ct  # N
