@@ -77,8 +77,8 @@ class AircraftAerodynamics(Loads):
             theta = self.states.states.theta
             alpha = theta + self.lift_model.incidence
 
-            CL = 2*np.pi*alpha
-            CD = self.lift_model.CD0 + (1/(self.lift_model.e*self.lift_model.AR*np.pi))*CL**2
+            CL = 2*np.pi*alpha+0.4 # Add 0.4 for lift polar offset compared to CFD data (guesstimate)
+            CD = self.lift_model.CD0 + (1/(self.lift_model.e*self.lift_model.AR*np.pi))*CL**2 + 0.04 # Add 0.04 for drag polar offset compared to CFD data (guesstimate)
             L = 0.5*density*velocity**2*self.lift_model.S*CL
             D = 0.5*density*velocity**2*self.lift_model.S*CD
 
@@ -144,8 +144,8 @@ class AircraftAerodynamics(Loads):
         for AR in AR_values:
             for e in e_values:
                 # Calculate coefficients
-                CLs = 2 * np.pi * alphas
-                CDs = self.lift_model.CD0.value + (1/(e * AR * np.pi)) * CLs**2
+                CLs = 2 * np.pi * alphas + 0.4 # Add 0.4 for lift polar offset compared to CFD data (guesstimate)
+                CDs = self.lift_model.CD0.value + (1/(e * AR * np.pi)) * CLs**2 + 0.04 # Add 0.04 for drag polar offset compared to CFD data (guesstimate)
                 
                 # Velocity sweep calculations
                 lift_forces = []
@@ -154,7 +154,7 @@ class AircraftAerodynamics(Loads):
                 
                 for v in velocities:
                     density = self.atmospheric_states.density.value
-                    CL = 2 * np.pi * ref_alpha
+                    CL = 2 * np.pi * ref_alpha+0.2
                     CD = self.lift_model.CD0.value + (1/(e * AR * np.pi)) * CL**2
                     
                     L = 0.5 * density * v**2 * self.lift_model.S.value * CL

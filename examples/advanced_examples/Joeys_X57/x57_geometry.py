@@ -1005,7 +1005,7 @@ openvsp_axis, wing_axis, ht_tail_axis, trimTab_axis, vt_tail_axis, HL_motor_axes
 ### FORCES AND MOMENTS MODELLING
 
 
-x_57_states = AircraftStates(axis=fd_axis,u=Q_(67, 'mph')) # stall speed
+x_57_states = AircraftStates(axis=fd_axis,u=Q_(166.193182, 'mph')) # stall speed
 x_57_mi = MassMI(axis=fd_axis,
                  Ixx=Q_(4314.08, 'kg*(m*m)'),
                  Ixy=Q_(-232.85, 'kg*(m*m)'),
@@ -1024,17 +1024,18 @@ x57_controls = AircraftControlSystem(engine_count=12,symmetrical=True)
 x57_aircraft = Component(name='X-57')
 x57_aircraft.quantities.mass_properties = x57_mass_properties
 radius_x57 = csdl.Variable(shape=(1,), value=1.2192/2) # propeller radius in meters, 2 ft
-AR_x57 = csdl.Variable(shape=(1,), value=15) # Aspect ratio of the wing
 e_x57 = csdl.Variable(shape=(1,), value=0.87) # Oswald efficiency factor
 CD0_x57 = csdl.Variable(shape=(1,), value=0.001) # Zero-lift drag coefficient
-S_x57 = csdl.Variable(shape=(1,), value=6.22) # Wing area in m^2
+S_x57 = csdl.Variable(shape=(1,), value=66.667*(ft2m**2)) # Wing area in m^2
+b_x57 = csdl.Variable(shape=(1,), value=31.623*ft2m) # Wing span in meters
+AR_x57 = b_x57**2/S_x57 # Aspect ratio of the wing
 incidence_x57 = csdl.Variable(shape=(1,), value=2*np.pi/180) # Wing incidence angle in radians
 
 
 
 ## Aerodynamic Forces - from Modification IV
 x_57_wing_state = AircraftStates(
-    axis=wing_axis,u=Q_(67, 'mph'))
+    axis=wing_axis,u=Q_(166.193182, 'mph'))
 
 atmospheric_states = x_57_states.atmospheric_states
 x57_lift_model = LiftModel(AR=AR_x57, e=e_x57, CD0=CD0_x57, S=S_x57, incidence=incidence_x57)
@@ -1073,7 +1074,7 @@ HL_prop_loads2_list = []
 for i, motor_axis in enumerate(HL_motor_axes):
     motor_state = AircraftStates(
         axis=motor_axis,
-        u=Q_(67, 'mph')
+        u=Q_(166.193182, 'mph')
     )
     HL_motor_states.append(motor_state)
     
@@ -1111,7 +1112,7 @@ cruise_prop_loads2_list = []
 for i, cruise_motor_axis in enumerate(cruise_motor_axes):
     cruise_motor_state = AircraftStates(
         axis=cruise_motor_axis,
-        u=Q_(67, 'mph')
+        u=Q_(166.193182, 'mph')
     )
     cruise_motor_states.append(cruise_motor_state)
     
