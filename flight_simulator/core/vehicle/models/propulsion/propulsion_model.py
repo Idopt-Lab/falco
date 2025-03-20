@@ -26,10 +26,8 @@ class HLPropCurve(csdl.CustomExplicitOperation):
             [0.3125,0.3058,0.2848,0.2473,0.1788,0.0366,-0.0198])
         self.ct = Akima1DInterpolator(J_data, Ct_data, method="akima")
         self.ct_derivative = Akima1DInterpolator.derivative(self.ct)
-        # self.min_RPM = np.min([3545, 4661, 4702, 4379, 3962, 3428, 3451])
-        # self.max_RPM = np.max([3545, 4661, 4702, 4379, 3962, 3428, 3451])
-        self.min_RPM = 1000
-        self.max_RPM = 2500
+        self.min_RPM = np.min([3545, 4661, 4702, 4379, 3962, 3428, 3451])
+        self.max_RPM = np.max([3545, 4661, 4702, 4379, 3962, 3428, 3451])
     # def evaluate(self, inputs: csdl.VariableGroup):
     def evaluate(self, advance_ratio: csdl.Variable):
         # assign method inputs to input dictionary
@@ -66,7 +64,7 @@ class CruisePropCurve(csdl.CustomExplicitOperation):
             [0.1831,0.1673,0.1422,0.1003,0.0479,-0.0085,-0.0366,-0.0057,0.0030,-0.0504])
         self.ct = Akima1DInterpolator(J_data, Ct_data, method="akima")
         self.ct_derivative = Akima1DInterpolator.derivative(self.ct)
-        self.min_RPM = 1000
+        self.min_RPM = 1150
         self.max_RPM = 2250
 
     # def evaluate(self, inputs: csdl.VariableGroup):
@@ -100,7 +98,7 @@ class AircraftPropulsion(Loads):
         self.prop_curve = prop_curve
 
         if radius is None:
-            self.radius = csdl.Variable(name='radius', shape=(1,), value=1.2192/2) # prop diameter in ft is 4 ft = 1.2192 m
+            self.radius = csdl.Variable(name='radius', shape=(1,), value=1.2192/2) 
         elif isinstance(radius, ureg.Quantity):
             self.radius = csdl.Variable(name='radius', shape=(1,), value=radius.to_base_units())
         else:
@@ -110,8 +108,9 @@ class AircraftPropulsion(Loads):
 
     def get_FM_refPoint(self):
         throttle = self.controls.u[6]
-        density = self.states.atmospheric_states.density
-        velocity = self.states.VTAS
+        density = self.states.atmospheric_states.density * 0.00194032  # kg/m^3 to slugs/ft^3
+
+        velocity = self.states.VTAS * 3.281  # m/s to ft/s
         axis = self.states.axis
 
 
@@ -122,18 +121,15 @@ class AircraftPropulsion(Loads):
         omega_RAD = (rpm * 2 * np.pi) / 60.0  # rad/s
 
 
-
-
         # Compute advance ratio
         J = (np.pi * velocity) / (omega_RAD * self.radius)  # non-dimensional
-
 
         # Compute Ct
         ct = self.prop_curve.evaluate(advance_ratio=J).ct
 
-
         # Compute Thrust
-        T =  (2 / np.pi) ** 2 * density * (omega_RAD * self.radius) ** 2 * ct  # N
+        T = ct * density * (rpm/60)**2 * ((self.radius*2)**4) * 4.44822 # lbf to N
+    
 
 
         force_vector = Vector(vector=csdl.concatenate((T,
@@ -198,7 +194,7 @@ class AircraftPropulsion(Loads):
 
             n_configs = max(len(ref_velocities), len(ref_throttles), len(rpm_ranges), len(radius_values))
             if labels is None:
-                labels = [f'R={r:.2f}m' for r in radius_values]
+                labels = [f'R={r:.2f} ft' for r in radius_values]
             if colors is None:
                 colors = plt.cm.viridis(np.linspace(0, 1, n_configs))
             if styles is None:
@@ -231,13 +227,13 @@ class AircraftPropulsion(Loads):
 
             velocities = np.linspace(velocity_range[0], velocity_range[1], num_points)
             throttles = np.linspace(throttle_range[0], throttle_range[1], num_points)
-            density = self.states.atmospheric_states.density.value
-
+            density = self.states.atmospheric_states.density.value * 0.00194032
+            min_RPM = self.prop_curve.min_RPM
+            max_RPM = self.prop_curve.max_RPM
             # Plot multiple configurations
             for i in range(n_configs):
                 ref_throttle = ref_throttles[min(i, len(ref_throttles)-1)]
                 ref_velocity = ref_velocities[min(i, len(ref_velocities)-1)]
-                min_RPM, max_RPM = rpm_ranges[min(i, len(rpm_ranges)-1)]
                 current_radius = radius_values[min(i, len(radius_values)-1)]
                 label = labels[i]
                 color = colors[i]
@@ -247,12 +243,13 @@ class AircraftPropulsion(Loads):
                 thrust_vs_velocity = []
                 advance_ratios = []
                 for v in velocities:
-                    v_ms = v * 0.44704  # mph to m/s
+                    v_fps = v * 1.46667  # mph to ft/s
                     rpm = min_RPM + (max_RPM - min_RPM) * ref_throttle
                     omega = (rpm * 2 * np.pi) / 60.0
-                    J = (np.pi * v_ms) / (omega * current_radius)
+                    J = (np.pi * v_fps) / (omega * current_radius)
                     ct = self.prop_curve.ct(J)
-                    T = (2 / np.pi)**2 * density * (omega * current_radius)**2 * ct
+                    T = ct * density * (rpm/60)**2 * ((current_radius*2)**4) * 4.44822  # lbf to N
+
                     
                     thrust_vs_velocity.append(T)
                     advance_ratios.append(J)
@@ -261,13 +258,12 @@ class AircraftPropulsion(Loads):
                 thrust_vs_throttle = []
                 rpms = []
                 for t in throttles:
-                    ref_velocity_ms = ref_velocity * 0.44704
+                    ref_velocity_fps = ref_velocity * 1.46667  # mph to ft/s
                     rpm = min_RPM + (max_RPM - min_RPM) * t
                     omega = (rpm * 2 * np.pi) / 60.0
-                    J = (np.pi * ref_velocity_ms) / (omega * current_radius)
+                    J = (np.pi * ref_velocity_fps) / (omega * current_radius)
                     ct = self.prop_curve.ct(J)
-                    T = (2 / np.pi)**2 * density * (omega * current_radius)**2 * ct
-                    
+                    T = ct * density * (rpm/60)**2 * ((current_radius*2)**4) * 4.44822  # lbf to N
                     thrust_vs_throttle.append(T)
                     rpms.append(rpm)
 
