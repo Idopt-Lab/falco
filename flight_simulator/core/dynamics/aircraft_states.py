@@ -84,7 +84,7 @@ class MassSpringDamperState(RigidBodyStates):
 
 
 @dataclass
-class AircaftStates:
+class AircraftStates:
 
     @dataclass
     class States6dof(csdl.VariableGroup):
@@ -115,7 +115,7 @@ class AircaftStates:
             self.add_check('y', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
             self.add_check('z', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
 
-        def _check_pamaeters(self, name, value):
+        def _check_parameters(self, name, value):
             if self._metadata[name]['type'] is not None:
                 if type(value) not in self._metadata[name]['type']:
                     raise ValueError(f"Variable {name} must be of type {self._metadata[name]['type']}.")
@@ -142,7 +142,7 @@ class AircaftStates:
             self.add_check('Vwy', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
             self.add_check('Vwz', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
 
-        def _check_pamaeters(self, name, value):
+        def _check_parameters(self, name, value):
             if self._metadata[name]['type'] is not None:
                 if type(value) not in self._metadata[name]['type']:
                     raise ValueError(f"Variable {name} must be of type {self._metadata[name]['type']}.")
@@ -172,7 +172,9 @@ class AircaftStates:
                  ):
         self.axis = axis
         self.atm = NRLMSIS2.Atmosphere()
-        self.atmospheric_states = self.atm.evaluate(self.axis.translation_from_origin.z)
+
+        self.atmospheric_states = self.atm.evaluate(-self.axis.translation_from_origin.z) # TODO: Re-evaluate this (We are designing for a negative z-axis based on our coordinate system, but NRLMSIS2 is expecting a positive z-axis)
+
 
         self.states = self.States6dof(
             u=u, v=v, w=w,
@@ -248,24 +250,24 @@ class AircaftStates:
 
 
 
-if __name__ == "__main__":
-    recorder = csdl.Recorder(inline=True)
-    recorder.start()
+# if __name__ == "__main__":
+#     recorder = csdl.Recorder(inline=True)
+#     recorder.start()
 
-    inertial_axis = Axis(
-        name='Inertial Axis',
-        origin=ValidOrigins.Inertial.value
-    )
+#     inertial_axis = Axis(
+#         name='Inertial Axis',
+#         origin=ValidOrigins.Inertial.value
+#     )
 
-    axis = Axis(name='Reference Axis',
-                x=np.array([10, ]) * ureg.meter,
-                y=np.array([0, ]) * ureg.meter,
-                z=np.array([0, ]) * ureg.meter,
-                phi=np.array([0, ]) * ureg.degree,
-                theta=np.array([5, ]) * ureg.degree,
-                psi=np.array([0, ]) * ureg.degree,
-                reference=inertial_axis,
-                origin=ValidOrigins.Inertial.value)
+#     axis = Axis(name='Reference Axis',
+#                 x=np.array([10, ]) * ureg.meter,
+#                 y=np.array([0, ]) * ureg.meter,
+#                 z=np.array([0, ]) * ureg.meter,
+#                 phi=np.array([0, ]) * ureg.degree,
+#                 theta=np.array([5, ]) * ureg.degree,
+#                 psi=np.array([0, ]) * ureg.degree,
+#                 reference=inertial_axis,
+#                 origin=ValidOrigins.Inertial.value)
 
-    aircraft_states = AircaftStates(axis=axis, u=Q_(10, 'm/s'))
-    pass
+#     aircraft_states = AircaftStates(axis=axis, u=Q_(10, 'm/s'))
+#     pass
