@@ -16,7 +16,7 @@ from dataclasses import dataclass
 from flight_simulator.core.loads.forces_moments import Vector, ForcesMoments
 from flight_simulator.utils.euler_rotations import build_rotation_matrix
 from flight_simulator.core.vehicle.aircraft_control_system import AircraftControlSystem
-from flight_simulator.core.vehicle.models.propulsion.propulsion_model import PropCurve, AircraftPropulsion
+from flight_simulator.core.vehicle.models.propulsion.propulsion_model import HLPropCurve, CruisePropCurve, AircraftPropulsion
 from flight_simulator.core.vehicle.models.aerodynamics.aerodynamic_model import LiftModel, AircraftAerodynamics
 from flight_simulator.core.vehicle.components.wing import Wing as WingComp
 from flight_simulator.core.vehicle.components.fuselage import Fuselage as FuseComp
@@ -1023,7 +1023,8 @@ x57_mass_properties = MassProperties(mass=Q_(1360.77, 'kg'),
 x57_controls = AircraftControlSystem(engine_count=12,symmetrical=True)
 x57_aircraft = Component(name='X-57')
 x57_aircraft.quantities.mass_properties = x57_mass_properties
-radius_x57 = csdl.Variable(shape=(1,), value=1.2192/2) # propeller radius in meters, 2 ft
+HL_radius_x57 = csdl.Variable(shape=(1,), value=2*ft2m) # HL propeller radius in meters
+cruise_radius_x57 = csdl.Variable(shape=(1,), value=5*ft2m) # cruise propeller radius in meters
 e_x57 = csdl.Variable(shape=(1,), value=0.87) # Oswald efficiency factor
 CD0_x57 = csdl.Variable(shape=(1,), value=0.001) # Zero-lift drag coefficient
 S_x57 = csdl.Variable(shape=(1,), value=66.667*(ft2m**2)) # Wing area in m^2
