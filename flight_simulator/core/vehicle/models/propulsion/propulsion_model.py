@@ -12,7 +12,7 @@ from flight_simulator.core.dynamics.axis import Axis, ValidOrigins
 from flight_simulator.core.dynamics.aircraft_states import AircraftStates
 from flight_simulator.core.vehicle.aircraft_control_system import AircraftControlSystem
 
-
+# TODO: Account for Torque
 
 class HLPropCurve(csdl.CustomExplicitOperation):
 
@@ -99,7 +99,7 @@ class AircraftPropulsion(Loads):
         self.prop_axis = prop_axis
 
         if radius is None:
-            self.radius = csdl.Variable(name='radius', shape=(1,), value=1.2192/2) 
+            self.radius = csdl.Variable(name='radius', shape=(1,), value=1.89/2) 
         elif isinstance(radius, ureg.Quantity):
             self.radius = csdl.Variable(name='radius', shape=(1,), value=radius.to_base_units())
         else:
