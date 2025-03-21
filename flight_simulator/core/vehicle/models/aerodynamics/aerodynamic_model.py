@@ -59,6 +59,8 @@ class LiftModel(csdl.CustomExplicitOperation):
 
 class AircraftAerodynamics(Loads):
 
+    # TODO: Improve aerodynamic model to include more complex aerodynamic effects
+
     def __init__(self, wing_axis, fd_state, controls, lift_model:LiftModel):
         super().__init__(states=fd_state, controls=controls)
         self.lift_model = lift_model
