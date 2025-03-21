@@ -229,6 +229,8 @@ class Component:
         total_forces = aero_forces + prop_forces + grav_forces
         total_moments = aero_moments + prop_moments + grav_moments
         # print(total_forces, total_moments)
+
+      
         
         return total_forces, total_moments
     

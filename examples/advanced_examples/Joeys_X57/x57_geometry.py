@@ -1065,13 +1065,13 @@ Aircraft.add_subcomponent(Battery)
 LandingGear = Component(name='Landing Gear')
 Aircraft.add_subcomponent(LandingGear)
 
-parameterization_solver.evaluate(ffd_geometric_variables)
-geometry.plot(camera=dict(pos=(12, 15, -12),  # Camera position 
-                         focal_point=(-Fuselage.parameters.length.value/2, 0, 0),  # Point camera looks at
-                         viewup=(0, 0, -1)),    # Camera up direction
-                         title= f'X-57 Maxwell Aircraft Geometry\nWing Span: {Wing.parameters.span.value[0]:.2f} m\nWing AR: {Wing.parameters.AR.value[0]:.2f}\nWing Area S: {Wing.parameters.S_ref.value[0]:.2f} m^2\nWing Sweep: {Wing.parameters.sweep.value[0]:.2f} deg',
-                        #  title=f'X-57 Maxwell Aircraft Geometry\nFuselage Length: {Fuselage.parameters.length.value[0]:.2f} m\nFuselage Height: {Fuselage.parameters.max_height.value[0]:.2f} m\nFuselage Width: {Fuselage.parameters.max_width.value[0]:.2f} m',
-                         screenshot= REPO_ROOT_FOLDER / 'examples'/ 'advanced_examples' / 'Joeys_X57'/ 'images' / f'x_57_{Wing.parameters.span.value[0]}_AR_{Wing.parameters.AR.value[0]}_S_ref_{Wing.parameters.S_ref.value[0]}_sweep_{Wing.parameters.sweep.value[0]}.png')
+# parameterization_solver.evaluate(ffd_geometric_variables)
+# geometry.plot(camera=dict(pos=(12, 15, -12),  # Camera position 
+#                          focal_point=(-Fuselage.parameters.length.value/2, 0, 0),  # Point camera looks at
+#                          viewup=(0, 0, -1)),    # Camera up direction
+#                          title= f'X-57 Maxwell Aircraft Geometry\nWing Span: {Wing.parameters.span.value[0]:.2f} m\nWing AR: {Wing.parameters.AR.value[0]:.2f}\nWing Area S: {Wing.parameters.S_ref.value[0]:.2f} m^2\nWing Sweep: {Wing.parameters.sweep.value[0]:.2f} deg',
+#                         #  title=f'X-57 Maxwell Aircraft Geometry\nFuselage Length: {Fuselage.parameters.length.value[0]:.2f} m\nFuselage Height: {Fuselage.parameters.max_height.value[0]:.2f} m\nFuselage Width: {Fuselage.parameters.max_width.value[0]:.2f} m',
+#                          screenshot= REPO_ROOT_FOLDER / 'examples'/ 'advanced_examples' / 'Joeys_X57'/ 'images' / f'x_57_{Wing.parameters.span.value[0]}_AR_{Wing.parameters.AR.value[0]}_S_ref_{Wing.parameters.S_ref.value[0]}_sweep_{Wing.parameters.sweep.value[0]}.png')
 
 
 
@@ -1111,15 +1111,6 @@ incidence_x57 = csdl.Variable(shape=(1,), value=2*np.pi/180) # Wing incidence an
 
 
 ## Aerodynamic Forces - from Modification IV
-
-aero_force_list = []
-aero_moment_list = []
-wings_aero = []
-
-
-
-
-
 
 lift_models = []
 for comp in Aircraft.comps.values():
@@ -1252,5 +1243,7 @@ print('Total Aircraft Forces:')
 print(complete_forces, 'N')
 print('Total Aircraft Moments:')
 print(complete_moments, 'N*m')
+
+
 
 recorder.stop()
