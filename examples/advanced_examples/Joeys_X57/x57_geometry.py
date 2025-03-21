@@ -1239,9 +1239,9 @@ for i, cruise_motor in enumerate(cruise_motors):
 
 complete_forces = np.sum(all_forces, axis=0)
 complete_moments = np.sum(all_moments, axis=0)
-print('Total Aircraft Forces:')
+print('Total Aircraft Forces in FD Axis:')
 print(complete_forces, 'N')
-print('Total Aircraft Moments:')
+print('Total Aircraft Moments in FD Axis:')
 print(complete_moments, 'N*m')
 
 
