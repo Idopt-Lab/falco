@@ -59,37 +59,50 @@ class LiftModel(csdl.CustomExplicitOperation):
 
 class AircraftAerodynamics(Loads):
 
-    def __init__(self, states, controls, lift_model:LiftModel, atmospheric_states:csdl.VariableGroup=None):
-        super().__init__(states=states, controls=controls)
+    def __init__(self, wing_axis, fd_state, controls, lift_model:LiftModel):
+        super().__init__(states=fd_state, controls=controls)
         self.lift_model = lift_model
+        self.wing_axis = wing_axis
         
-        if atmospheric_states is None:
-            raise Exception("Atmospheric Conditions/states are not provided.")
-        else:
-            self.atmospheric_states = atmospheric_states
 
+    def get_FM_refPoint(self, x_bar, u_bar):
+            """
+            Compute forces and moments about the reference point.
 
+            Parameters
+            ----------
+            x_bar : csdl.VariableGroup
+                Flight-dynamic state (x̄) which should include:
+                - density
+                - VTAS
+                - states.theta
+            u_bar : csdl.Variable or csdl.VariableGroup
+                Control input (ū) [currently not used in the aerodynamics calculation]
 
-    def get_FM_refPoint(self):
-            density = self.atmospheric_states.density
-            velocity = self.states.VTAS
-            axis = self.states.axis
-            theta = self.states.states.theta
+            Returns
+            -------
+            loads : ForcesMoments
+                Computed forces and moments about the reference point.
+            """
+            density = x_bar.atmospheric_states.density
+            velocity = x_bar.VTAS
+            theta = x_bar.states.theta
             alpha = theta + self.lift_model.incidence
 
-            CL = 2*np.pi*alpha+0.4 # Add 0.4 for lift polar offset compared to CFD data (guesstimate)
-            CD = self.lift_model.CD0 + (1/(self.lift_model.e*self.lift_model.AR*np.pi))*CL**2 + 0.04 # Add 0.04 for drag polar offset compared to CFD data (guesstimate)
-            L = 0.5*density*velocity**2*self.lift_model.S*CL
-            D = 0.5*density*velocity**2*self.lift_model.S*CD
+            CL = 2*np.pi*alpha + 0.4  # Lift coefficient with offset (guesstimate)
+            CD = self.lift_model.CD0 + (1 / (self.lift_model.e * self.lift_model.AR * np.pi)) * CL**2 + 0.04  # Drag coefficient with offset (guesstimate)
+            L = 0.5 * density * velocity**2 * self.lift_model.S * CL
+            D = 0.5 * density * velocity**2 * self.lift_model.S * CD
 
             aero_force = csdl.Variable(shape=(3,), value=0.)
             aero_force = aero_force.set(csdl.slice[0], -D)
             aero_force = aero_force.set(csdl.slice[2], -L)
-            force_vector = Vector(vector=aero_force, axis=axis)
+            force_vector = Vector(vector=aero_force, axis=self.wing_axis)
 
-            moment_vector = Vector(vector=csdl.Variable(shape=(3,), value=0.), axis=axis)
+            moment_vector = Vector(vector=csdl.Variable(shape=(3,), value=0.), axis=self.wing_axis)
             loads = ForcesMoments(force=force_vector, moment=moment_vector)
             return loads
+
     
 
     def plot_aerodynamics(self, 
@@ -153,7 +166,7 @@ class AircraftAerodynamics(Loads):
                 ref_alpha = float(self.lift_model.incidence.value)  # 2 degrees reference angle
                 
                 for v in velocities:
-                    density = self.atmospheric_states.density.value
+                    density = self.states.atmospheric_states.density.value
                     CL = 2 * np.pi * ref_alpha+0.2
                     CD = self.lift_model.CD0.value + (1/(e * AR * np.pi)) * CL**2
                     
@@ -169,7 +182,7 @@ class AircraftAerodynamics(Loads):
                 alpha_drags = []
                 
                 for alpha in alphas:
-                    density = self.atmospheric_states.density.value
+                    density = self.states.atmospheric_states.density.value
                     CL = 2 * np.pi * alpha
                     CD = self.lift_model.CD0.value + (1/(e * AR * np.pi)) * CL**2
                     

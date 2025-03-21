@@ -3,6 +3,7 @@ from pathlib import Path
 from flight_simulator.core.loads.mass_properties import MassProperties
 from lsdo_geo import Geometry
 from lsdo_function_spaces import FunctionSet
+from flight_simulator import ureg, Q_
 from typing import Union, List
 import numpy as np
 from lsdo_geo.core.parameterization.free_form_deformation_functions import construct_ffd_block_around_entities
@@ -13,13 +14,24 @@ from dataclasses import dataclass
 import time
 import warnings
 import copy
-
+from flight_simulator.core.loads.mass_properties import MassProperties, MassMI
+from flight_simulator.core.dynamics.axis import Axis, ValidOrigins
+from flight_simulator.core.loads.forces_moments import Vector, ForcesMoments
+from flight_simulator.core.vehicle.models.propulsion.propulsion_model import HLPropCurve, CruisePropCurve, AircraftPropulsion
+from flight_simulator.core.vehicle.models.aerodynamics.aerodynamic_model import LiftModel, AircraftAerodynamics
+from flight_simulator.core.vehicle.models.mass_properties.mass_prop_model import GravityLoads
 
 class ComponentQuantities:
     def __init__(self, mass_properties: MassProperties = None) -> None:
         self._mass_properties = mass_properties
         self.surface_mesh = []
         self.surface_area = None
+
+        if mass_properties is None:
+            default_axis = Axis(name="Default Axis", origin=ValidOrigins.Inertial.value)
+            default_inertia = MassMI(axis=default_axis)
+            default_cg = Vector(vector=Q_(np.zeros(3), 'm'), axis=default_axis)
+            self.mass_properties = MassProperties(cg=default_cg, inertia=default_inertia)
 
     @property
     def mass_properties(self):
@@ -38,9 +50,14 @@ class ComponentParameters:
 
 
 class Component:
-    def __init__(self, name: str, geometry: Union[FunctionSet, None] = None, compute_surface_area_flag: bool = False, parameterization_solver: ParameterizationSolver=None, ffd_geometric_variables: GeometricVariables=None, **kwargs) -> None:
+    def __init__(self, name: str, geometry: Union[FunctionSet, None] = None, 
+                compute_surface_area_flag: bool = False, 
+                parameterization_solver: ParameterizationSolver=None, 
+                ffd_geometric_variables: GeometricVariables=None, do_prop_model=False, prop_axis=None, **kwargs) -> None:
         self._name = name
         self.parent = None
+        self.do_prop_model = do_prop_model
+        self.prop_axis = prop_axis
         self.comps = {}
         self.geometry: Union[FunctionSet, Geometry, None] = geometry
         self.compute_surface_area_flag = compute_surface_area_flag
@@ -125,8 +142,96 @@ class Component:
         parameterization_solver.add_parameter(rigid_body_translation, cost=0.001)
 
 
+    def compute_aero_loads(self, fd_state, controls, fd_axis, lift_model):
+        """
+        Compute aerodynamic loads (forces and moments) for this component 
+        if an aerodynamic model is attached.
+        Returns:
+            forces (np.array): Aerodynamic forces vector.
+            moments (np.array): Aerodynamic moments vector.
+        """
+        if not hasattr(self, "do_lift_model"):
+            return np.zeros(3), np.zeros(3)
+
+        aero = AircraftAerodynamics(
+            fd_state=fd_state,
+            wing_axis=self.wing_axis,  
+            controls=controls,
+            lift_model=lift_model
+        )
+
+        # Compute aerodynamic loads using the aero model
+        fm = aero.get_FM_refPoint(fd_state, controls)
+        fm_rotated = fm.rotate_to_axis(fd_axis)
+        # print(fm_rotated.F.vector.value, fm_rotated.M.vector.value)
+        return fm_rotated.F.vector.value, fm_rotated.M.vector.value
     
 
+    def compute_propulsion_loads(self, fd_state, controls, fd_axis, radius, prop_curve):
+        """
+        Compute propulsion loads (forces and moments) for this component if it 
+        has propulsion capabilities.
+        Returns:
+            forces (np.array): Propulsion forces vector.
+            moments (np.array): Propulsion moments vector.
+        """
+       
+        motor_prop = AircraftPropulsion(
+            prop_axis=self.prop_axis,
+            fd_state=fd_state,
+            controls=controls,
+            radius=radius,
+            prop_curve=prop_curve
+        )
+        fm = motor_prop.get_FM_refPoint(fd_state, controls)
+        fm_rotated = fm.rotate_to_axis(fd_axis)
+        # print(fm_rotated.F.vector.value, fm_rotated.M.vector.value)
+        return fm_rotated.F.vector.value, fm_rotated.M.vector.value
+
+    def compute_gravity_loads(self, load_axis, fd_state, controls):
+        """
+        Compute gravity loads (forces and moments) for this component.
+        Returns:
+            forces (np.array): Gravity forces vector.
+            moments (np.array): Gravity moments vector.
+        """
+        gravity_load = GravityLoads(fd_state=fd_state, load_axis=load_axis, controls=controls, component=self)
+        fm = gravity_load.get_FM_refPoint(fd_state, controls)
+        # print(fm.F.vector.value, fm.M.vector.value)
+        return fm.F.vector.value, fm.M.vector.value
+    
+    def compute_total_loads(self, fd_state, controls, fd_axis, load_axis, lift_model=None, radius=None, prop_curve=None):
+        """
+        Compute the total loads (forces and moments) for this component by summing the
+        aerodynamic, propulsion, and gravity loads.
+        Returns:
+            total_forces (np.array): Sum of forces from all loads.
+            total_moments (np.array): Sum of moments from all loads.
+        """
+        # Get aerodynamic loads only if a lift model is provided and the component uses one
+        if getattr(self, 'do_lift_model', True) and (lift_model is not None):
+            aero_forces, aero_moments = self.compute_aero_loads(fd_state, controls, fd_axis, lift_model)
+        else:
+            aero_forces = np.zeros(3)
+            aero_moments = np.zeros(3)
+            
+        # Get propulsion loads only if radius and prop_curve are provided and the component uses propulsion
+        if (hasattr(self, 'prop_axis') and (self.prop_axis is not None)) and (radius is not None) and (prop_curve is not None):
+            prop_forces, prop_moments = self.compute_propulsion_loads(fd_state, controls, fd_axis, radius, prop_curve)
+        else:
+            prop_forces = np.zeros(3)
+            prop_moments = np.zeros(3)
+
+        # Get loads from gravity model
+        grav_forces, grav_moments = self.compute_gravity_loads(load_axis, fd_state, controls)
+        
+        # Sum the forces and moments
+        total_forces = aero_forces + prop_forces + grav_forces
+        total_moments = aero_moments + prop_moments + grav_moments
+        # print(total_forces, total_moments)
+        
+        return total_forces, total_moments
+    
     def _compute_surface_area(self, geometry: Geometry, plot_flag: bool = False):
         parametric_mesh_grid_num = 10
         surfaces = geometry.functions

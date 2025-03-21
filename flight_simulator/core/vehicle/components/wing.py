@@ -94,10 +94,14 @@ class Wing(Component):
         orientation: str = "horizontal",
         parameterization_solver = None,
         ffd_geometric_variables = None,
+        do_lift_model = False,
+        wing_axis = None,
         **kwargs
     ) -> None:
         parameterization_solver = parameterization_solver
         ffd_geometric_variables = ffd_geometric_variables
+        self.do_lift_model = do_lift_model
+        self.wing_axis = wing_axis
         kwargs["do_not_remake_ffd_block"] = True
         super().__init__(geometry=geometry, **kwargs)
         

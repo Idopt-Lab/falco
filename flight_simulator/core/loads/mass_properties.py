@@ -6,7 +6,7 @@ from flight_simulator import ureg, Q_
 from flight_simulator.core.loads.loads import Loads
 from flight_simulator.core.dynamics.axis import Axis
 from flight_simulator.core.dynamics.axis_lsdogeo import AxisLsdoGeo
-from flight_simulator.core.loads.forces_moments import Vector
+from flight_simulator.core.loads.forces_moments import Vector, ForcesMoments
 from flight_simulator.core.dynamics.axis import Axis, ValidOrigins
 
 
@@ -93,47 +93,6 @@ class MassProperties:
 
         self.cg_vector = cg
         self.inertia_tensor = inertia
-
-
-class GravityLoads(Loads):
-
-    # TODO: Implement this class
-
-    def get_FM_refPoint(self):
-        """Use vehicle state and control objects to generate an estimate
-        of gravity forces and moments about a reference point."""
-        # Gravity FM
-        g = states_obj.atmosphere_properties['g']
-        FD_body_fixed_axis = states_obj.return_fd_bodyfixed_axis()
-
-        Rbc = np.array([self.cg.x.magnitude,
-                        self.cg.y.magnitude,
-                        self.cg.z.magnitude])
-
-        m = self.mass
-        th = states_obj.Theta
-        ph = states_obj.Phi
-
-        Fxg = -m * g * np.sin(th)
-        Fyg = m * g * np.cos(th) * np.sin(ph)
-        Fzg = m * g * np.cos(th) * np.cos(ph)
-
-        Rbsksym = np.array([[0, -Rbc[2], Rbc[1]],
-                            [Rbc[2], 0, -Rbc[0]],
-                            [-Rbc[1], Rbc[0], 0]])
-        Mgrav = np.dot(Rbsksym, np.array([Fxg.magnitude,
-                                          Fyg.magnitude,
-                                          Fzg.magnitude]))
-        Mgrav = Mgrav * ureg.newton * ureg.meter
-
-        F_FD_BodyFixed = Vector(x=Fxg,
-                                y=Fyg,
-                                z=Fzg, axis=FD_body_fixed_axis)
-        M_FD_BodyFixed = Vector(x=Mgrav[0],
-                                y=Mgrav[1],
-                                z=Mgrav[2], axis=FD_body_fixed_axis)
-        FM_grav_FDbodyfixed = ForcesMoments(F=F_FD_BodyFixed, M=M_FD_BodyFixed)
-        return FM_grav_FDbodyfixed
 
 
 

@@ -93,9 +93,10 @@ class CruisePropCurve(csdl.CustomExplicitOperation):
 
 class AircraftPropulsion(Loads):
 
-    def __init__(self, states, controls, radius:Union[ureg.Quantity, csdl.Variable], prop_curve:Union[HLPropCurve, CruisePropCurve], **kwargs):
-        super().__init__(states=states, controls=controls)
+    def __init__(self, prop_axis, fd_state, controls, radius:Union[ureg.Quantity, csdl.Variable], prop_curve:Union[HLPropCurve, CruisePropCurve], **kwargs):
+        super().__init__(states=fd_state, controls=controls)
         self.prop_curve = prop_curve
+        self.prop_axis = prop_axis
 
         if radius is None:
             self.radius = csdl.Variable(name='radius', shape=(1,), value=1.2192/2) 
@@ -106,12 +107,30 @@ class AircraftPropulsion(Loads):
 
 
 
-    def get_FM_refPoint(self):
-        throttle = self.controls.u[6]
-        density = self.states.atmospheric_states.density * 0.00194032  # kg/m^3 to slugs/ft^3
+    def get_FM_refPoint(self, x_bar, u_bar):
+        """
+        Compute forces and moments about the reference point.
 
-        velocity = self.states.VTAS * 3.281  # m/s to ft/s
-        axis = self.states.axis
+        Parameters
+        ----------
+        x_bar : csdl.VariableGroup
+            Flight-dynamic state (x̄) which should include:
+            - density
+            - VTAS
+            - states.theta
+        u_bar : csdl.Variable or csdl.VariableGroup
+            Control input (ū) which should include:
+            - throttle
+
+        Returns
+        -------
+        loads : ForcesMoments
+            Computed forces and moments about the reference point.
+        """
+
+        throttle = u_bar.u[6]
+        density = x_bar.atmospheric_states.density * 0.00194032  # kg/m^3 to slugs/ft^3
+        velocity = x_bar.VTAS * 3.281  # m/s to ft/s
 
 
         # Compute RPM
@@ -135,15 +154,15 @@ class AircraftPropulsion(Loads):
         force_vector = Vector(vector=csdl.concatenate((T,
                                                        csdl.Variable(shape=(1,), value=0.),
                                                        csdl.Variable(shape=(1,), value=0.)),
-                                                      axis=0), axis=axis)
+                                                      axis=0), axis=self.prop_axis)
 
-        moment_vector = Vector(vector=csdl.Variable(shape=(3,), value=0.), axis=axis)
+        moment_vector = Vector(vector=csdl.Variable(shape=(3,), value=0.), axis=self.prop_axis)
         loads = ForcesMoments(force=force_vector, moment=moment_vector)
         return loads
 
 
     def plot_propulsion(self, 
-                   J_range=(0, 1),
+                   J_range=None,
                    velocity_range=(20, 100),
                    throttle_range=(0, 1),
                    ref_velocities=[67],
@@ -191,6 +210,27 @@ class AircraftPropulsion(Loads):
         
             if radius_values is None:
                 radius_values = [self.radius.value]
+
+            if J_range is None:
+                min_RPM = self.prop_curve.min_RPM
+                max_RPM = self.prop_curve.max_RPM
+
+                # Convert velocity_range from mph to ft/s
+                v_fps_min = velocity_range[0] * 1.46667
+                v_fps_max = velocity_range[1] * 1.46667
+
+                min_radius = min(radius_values)
+                max_radius = max(radius_values)
+
+                # Use the highest RPM (max_RPM) with largest radius to get the lowest J,
+                # and the lowest RPM (min_RPM) with smallest radius for the highest J.
+                omega_max = (max_RPM * 2 * np.pi) / 60.0
+                omega_min = (min_RPM * 2 * np.pi) / 60.0
+
+                computed_min_J = (np.pi * v_fps_min) / (omega_max * max_radius)
+                computed_max_J = (np.pi * v_fps_max) / (omega_min * min_radius)
+                J_range = (computed_min_J, computed_max_J)
+
 
             n_configs = max(len(ref_velocities), len(ref_throttles), len(rpm_ranges), len(radius_values))
             if labels is None:
