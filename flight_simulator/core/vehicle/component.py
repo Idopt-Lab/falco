@@ -26,6 +26,19 @@ class ComponentQuantities:
         self._mass_properties = mass_properties
         self.surface_mesh = []
         self.surface_area = None
+        self.aero_forces = None
+        self.aero_moments = None
+        self.prop_forces = None
+        self.prop_moments = None
+        self.grav_forces = None
+        self.grav_moments = None
+        self.total_forces = None
+        self.total_moments = None
+        self.lift_model = None
+        self.prop_radius = None
+        self.prop_curve = None
+        self.prop_axis = None
+        self.wing_axis = None
 
         if mass_properties is None:
             default_axis = Axis(name="Default Axis", origin=ValidOrigins.Inertial.value)
@@ -53,11 +66,9 @@ class Component:
     def __init__(self, name: str, geometry: Union[FunctionSet, None] = None, 
                 compute_surface_area_flag: bool = False, 
                 parameterization_solver: ParameterizationSolver=None, 
-                ffd_geometric_variables: GeometricVariables=None, do_prop_model=False, prop_axis=None, **kwargs) -> None:
+                ffd_geometric_variables: GeometricVariables=None, **kwargs) -> None:
         self._name = name
         self.parent = None
-        self.do_prop_model = do_prop_model
-        self.prop_axis = prop_axis
         self.comps = {}
         self.geometry: Union[FunctionSet, Geometry, None] = geometry
         self.compute_surface_area_flag = compute_surface_area_flag
@@ -142,7 +153,7 @@ class Component:
         parameterization_solver.add_parameter(rigid_body_translation, cost=0.001)
 
 
-    def compute_aero_loads(self, fd_state, controls, fd_axis, lift_model):
+    def compute_aero_loads(self, fd_state, controls, fd_axis):
         """
         Compute aerodynamic loads (forces and moments) for this component 
         if an aerodynamic model is attached.
@@ -150,24 +161,23 @@ class Component:
             forces (np.array): Aerodynamic forces vector.
             moments (np.array): Aerodynamic moments vector.
         """
-        if not hasattr(self, "do_lift_model"):
-            return np.zeros(3), np.zeros(3)
-
         aero = AircraftAerodynamics(
             fd_state=fd_state,
-            wing_axis=self.wing_axis,  
+            wing_axis=self.quantities.wing_axis,  
             controls=controls,
-            lift_model=lift_model
+            lift_model=self.quantities.lift_model
         )
 
         # Compute aerodynamic loads using the aero model
-        fm = aero.get_FM_refPoint(fd_state, controls)
+        fm = aero.get_FM_refPoint(x_bar=fd_state, u_bar=controls)
         fm_rotated = fm.rotate_to_axis(fd_axis)
+        self.quantities.aero_forces = fm_rotated.F.vector.value
+        self.quantities.aero_moments = fm_rotated.M.vector.value
         # print(fm_rotated.F.vector.value, fm_rotated.M.vector.value)
         return fm_rotated.F.vector.value, fm_rotated.M.vector.value
     
 
-    def compute_propulsion_loads(self, fd_state, controls, fd_axis, radius, prop_curve):
+    def compute_propulsion_loads(self, fd_state, controls, fd_axis):
         """
         Compute propulsion loads (forces and moments) for this component if it 
         has propulsion capabilities.
@@ -177,30 +187,34 @@ class Component:
         """
        
         motor_prop = AircraftPropulsion(
-            prop_axis=self.prop_axis,
+            prop_axis=self.quantities.prop_axis,
             fd_state=fd_state,
             controls=controls,
-            radius=radius,
-            prop_curve=prop_curve
+            radius=self.quantities.prop_radius,
+            prop_curve=copy.deepcopy(self.quantities.prop_curve)
         )
-        fm = motor_prop.get_FM_refPoint(fd_state, controls)
+        fm = motor_prop.get_FM_refPoint(x_bar=fd_state, u_bar=controls)
         fm_rotated = fm.rotate_to_axis(fd_axis)
+        self.quantities.prop_forces = fm_rotated.F.vector.value
+        self.quantities.prop_moments = fm_rotated.M.vector.value
         # print(fm_rotated.F.vector.value, fm_rotated.M.vector.value)
         return fm_rotated.F.vector.value, fm_rotated.M.vector.value
 
-    def compute_gravity_loads(self, load_axis, fd_state, controls):
+    def compute_gravity_loads(self, fd_axis, fd_state, controls):
         """
         Compute gravity loads (forces and moments) for this component.
         Returns:
             forces (np.array): Gravity forces vector.
             moments (np.array): Gravity moments vector.
         """
-        gravity_load = GravityLoads(fd_state=fd_state, load_axis=load_axis, controls=controls, component=self)
-        fm = gravity_load.get_FM_refPoint(fd_state, controls)
+        gravity_load = GravityLoads(fd_state=fd_state, fd_axis=fd_axis, controls=controls, component=self)
+        fm = gravity_load.get_FM_refPoint(x_bar=fd_state, u_bar=controls)
+        self.quantities.grav_forces = fm.F.vector.value
+        self.quantities.grav_moments = fm.M.vector.value
         # print(fm.F.vector.value, fm.M.vector.value)
         return fm.F.vector.value, fm.M.vector.value
     
-    def compute_total_loads(self, fd_state, controls, fd_axis, load_axis, lift_model=None, radius=None, prop_curve=None):
+    def compute_total_loads(self, fd_state, controls, fd_axis):
         """
         Compute the total loads (forces and moments) for this component by summing the
         aerodynamic, propulsion, and gravity loads.
@@ -209,28 +223,30 @@ class Component:
             total_moments (np.array): Sum of moments from all loads.
         """
         # Get aerodynamic loads only if a lift model is provided and the component uses one
-        if getattr(self, 'do_lift_model', True) and (lift_model is not None):
-            aero_forces, aero_moments = self.compute_aero_loads(fd_state, controls, fd_axis, lift_model)
+        if self.quantities.lift_model is not None:
+            aero_forces, aero_moments = self.compute_aero_loads(fd_state, controls, fd_axis)
         else:
             aero_forces = np.zeros(3)
             aero_moments = np.zeros(3)
             
         # Get propulsion loads only if radius and prop_curve are provided and the component uses propulsion
-        if (hasattr(self, 'prop_axis') and (self.prop_axis is not None)) and (radius is not None) and (prop_curve is not None):
-            prop_forces, prop_moments = self.compute_propulsion_loads(fd_state, controls, fd_axis, radius, prop_curve)
+        if self.quantities.prop_curve is not None:
+            prop_forces, prop_moments = self.compute_propulsion_loads(fd_state, controls, fd_axis)
         else:
             prop_forces = np.zeros(3)
             prop_moments = np.zeros(3)
 
         # Get loads from gravity model
-        grav_forces, grav_moments = self.compute_gravity_loads(load_axis, fd_state, controls)
+        grav_forces, grav_moments = self.compute_gravity_loads(fd_axis, fd_state, controls)
         
         # Sum the forces and moments
         total_forces = aero_forces + prop_forces + grav_forces
         total_moments = aero_moments + prop_moments + grav_moments
+
         # print(total_forces, total_moments)
 
-      
+        self.quantities.total_forces = total_forces
+        self.quantities.total_moments = total_moments
         
         return total_forces, total_moments
     

@@ -13,12 +13,12 @@ from flight_simulator.core.dynamics.axis import Axis, ValidOrigins
 
 class GravityLoads(Loads):
 
-    def __init__(self, load_axis, fd_state, controls, component):
+    def __init__(self, fd_axis, fd_state, controls, component):
         super().__init__(states=fd_state, controls=controls)
 
         # Store the states and mass properties
         self.states = fd_state
-        self.load_axis = load_axis
+        self.load_axis = fd_axis
         self.cg = component.quantities.mass_properties.cg_vector
         self.mass = component.quantities.mass_properties.mass
 

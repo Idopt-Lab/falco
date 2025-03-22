@@ -4,6 +4,7 @@ import csdl_alpha as csdl
 import numpy as np
 import matplotlib.pyplot as plt
 import lsdo_geo as lg
+import copy
 from flight_simulator.utils.import_geometry import import_geometry
 from flight_simulator import REPO_ROOT_FOLDER, ureg, Q_
 from flight_simulator.core.vehicle.component import Component
@@ -24,6 +25,7 @@ from flight_simulator.core.vehicle.components.wing import Wing as WingComp
 from flight_simulator.core.vehicle.components.fuselage import Fuselage as FuseComp
 from flight_simulator.core.vehicle.components.aircraft import Aircraft as AircraftComp
 from flight_simulator.core.vehicle.components.rotor import Rotor as RotorComp
+from flight_simulator.core.vehicle.conditions import aircraft_conditions
 from lsdo_geo.core.parameterization.parameterization_solver import ParameterizationSolver, GeometricVariables
 
 lfs.num_workers = 1
@@ -994,9 +996,7 @@ Wing = WingComp(AR=wing_AR,
                 tight_fit_ffd=False, 
                 orientation='horizontal', 
                 name='Wing', parameterization_solver=parameterization_solver, 
-                ffd_geometric_variables=ffd_geometric_variables,
-                do_lift_model=True,
-                wing_axis=wing_axis,
+                ffd_geometric_variables=ffd_geometric_variables
                 )
 
 Aircraft.add_subcomponent(Wing)
@@ -1017,9 +1017,7 @@ HorTail = WingComp(AR=HorTail_AR, span=HT_span, sweep=HT_sweep,
                    tight_fit_ffd=False, skip_ffd=False,
                    name='Horizontal Tail', orientation='horizontal', 
                    parameterization_solver=parameterization_solver,
-                   ffd_geometric_variables=ffd_geometric_variables,
-                   do_lift_model=True,
-                   wing_axis=ht_tail_axis)
+                   ffd_geometric_variables=ffd_geometric_variables)
 Aircraft.add_subcomponent(HorTail)
 
 
@@ -1041,7 +1039,7 @@ VT_sweep = csdl.Variable(name="VT_sweep", shape=(1, ), value=-40)
 #                     tight_fit_ffd=False, 
 #                     name='Vertical Tail', orientation='vertical',
 #                     parameterization_solver=parameterization_solver,
-#                     ffd_geometric_variables=ffd_geometric_variables,do_lift_model=False,wing_axis=vt_tail_axis)
+#                     ffd_geometric_variables=ffd_geometric_variables)
 # Aircraft.add_subcomponent(VertTail)
 
 vtail_fuselage_connection = geometry.evaluate(fuselage_rear_pts_parametric) - geometry.evaluate(vt_qc_base_parametric)
@@ -1049,13 +1047,13 @@ parameterization_solver.add_variable(computed_value=vtail_fuselage_connection, d
 
 lift_rotors = []
 for i in range(1, 13):
-    HL_motor = Component(name=f'HL Motor {i}', prop_axis=HL_motor_axes[i-1], do_prop_model=True)
+    HL_motor = Component(name=f'HL Motor {i}')
     lift_rotors.append(HL_motor)
     Aircraft.add_subcomponent(HL_motor)
 
 cruise_motors = []
 for i in range(1, 3):
-    cruise_motor = Component(name=f'Cruise Motor {i}',prop_axis=cruise_motor_axes[i-1], do_prop_model=True)
+    cruise_motor = Component(name=f'Cruise Motor {i}')
     cruise_motors.append(cruise_motor)
     Aircraft.add_subcomponent(cruise_motor)
 
@@ -1114,7 +1112,7 @@ incidence_x57 = csdl.Variable(shape=(1,), value=2*np.pi/180) # Wing incidence an
 
 lift_models = []
 for comp in Aircraft.comps.values():
-    if isinstance(comp, WingComp) and getattr(comp, 'do_lift_model', True):
+    if isinstance(comp, WingComp):
         # Build the lift model with the wing's parameters
         lift_model = LiftModel(
             AR=comp.parameters.AR,
@@ -1126,82 +1124,34 @@ for comp in Aircraft.comps.values():
         lift_models.append(lift_model)
     
 
-# wings_aero[0].plot_aerodynamics(
-#     velocity_range=(20, 200),
-#     alpha_range=(-5, 15),
-#     AR_values=[15],
-#     e_values=[0.75, 0.85, 0.95]
-# )
-
-
-
-
-
-# # # Rotor Forces
-
-
-
-# HL_motor_props[1].plot_propulsion(
-#     J_range=(0, 1.6), # Compare different advance ratios
-#     velocity_range=(0, 200), # Compare different velocity ranges in mph
-#     ref_velocities=[50, 75, 80],  # Compare different reference velocities
-#     rpm_ranges=[(3428,4702)],  # Compare different RPM ranges
-#     radius_values=[0.5, 1, 1.5],  # Different radii in ft
-#     ref_throttles=[1.0, 1.0, 1.0],  # Different throttle settings
-#     title=f'High-Lift Motor {1}'
-# )
-
-
-# cruise_motor_props[1].plot_propulsion(
-#     J_range=(0, 1.8), # Compare different advance ratios
-#     velocity_range=(0, 200), # Compare different velocity ranges in mph
-#     ref_velocities=[50, 75, 80],  # Compare different reference velocities
-#     rpm_ranges=[(1150,2250)],  # Compare different RPM ranges
-#     radius_values=[2, 2.5, 3],  # Different radii in ft
-#     ref_throttles=[1.0, 1.0, 1.0],  # Different throttle settings
-#     title=f'Cruise Motor {1}'
-# )
-# # plt.show()
-
-
-all_forces = []
-all_moments = []
-
 Wing.quantities.mass_properties.mass = Q_(152.88, 'kg')
 Wing.quantities.mass_properties.cg_vector = Vector(vector=Q_(np.array([0, 0, 0]), 'm'), axis=fd_axis)
-wf, wm = Wing.compute_total_loads(fd_state=x_57_states, load_axis=wing_axis, controls=x57_controls, lift_model=lift_models[0], fd_axis=fd_axis)
-all_forces.append(wf)
-all_moments.append(wm)
+Wing.quantities.wing_axis = wing_axis
+Wing.quantities.lift_model = lift_models[0]
+
 
 Fuselage.quantities.mass_properties.mass = Q_(235.87, 'kg')
 Fuselage.quantities.mass_properties.cg_vector = Vector(vector=Q_(np.array([0, 0, 0]), 'm'), axis=fd_axis)
-ff, fm = Fuselage.compute_total_loads(fd_state=x_57_states, load_axis=openvsp_axis, controls=x57_controls, fd_axis=fd_axis)
-all_forces.append(ff)
-all_moments.append(fm)
+
 
 HorTail.quantities.mass_properties.mass = Q_(27.3/2, 'kg')
 HorTail.quantities.mass_properties.cg_vector = Vector(vector=Q_(np.array([0, 0, 0]), 'm'), axis=fd_axis)
-hf, hm = HorTail.compute_total_loads(fd_state=x_57_states, load_axis=ht_tail_axis, controls=x57_controls, lift_model=lift_models[1], fd_axis=fd_axis)
-all_forces.append(hf)
-all_moments.append(hm)
+HorTail.quantities.wing_axis = ht_tail_axis
+HorTail.quantities.lift_model = lift_models[1]
+
 
 
 # VertTail.quantities.mass_properties.mass = Q_(27.3/2, 'kg')
 # VertTail.quantities.mass_properties.cg_vector = Vector(vector=Q_(np.array([0, 0, 0]), 'm'), axis=fd_axis)
-# VertTail.compute_total_loads(fd_state=x_57_states, load_axis=vt_tail_axis, controls=x57_controls, fd_axis=fd_axis)
 
 
 Battery.quantities.mass_properties.mass = Q_(390.08, 'kg')
 Battery.quantities.mass_properties.cg_vector = Vector(vector=Q_(np.array([0, 0, 0]), 'm'), axis=fd_axis)
-bf, bm = Battery.compute_total_loads(fd_state=x_57_states, load_axis=openvsp_axis, controls=x57_controls, fd_axis=fd_axis)
-all_forces.append(bf)
-all_moments.append(bm)
+
 
 LandingGear.quantities.mass_properties.mass = Q_(61.15, 'kg')
 LandingGear.quantities.mass_properties.cg_vector = Vector(vector=Q_(np.array([0, 0, 0]), 'm'), axis=fd_axis)
-lfg, lgm = LandingGear.compute_total_loads(fd_state=x_57_states, load_axis=openvsp_axis, controls=x57_controls, fd_axis=fd_axis)
-all_forces.append(lfg)
-all_moments.append(lgm)
+
 
 HL_motor_cgs = [
     [-15.39, -34.98, -4.2],
@@ -1221,9 +1171,10 @@ HL_motor_cgs = [
 for i, HL_motor in enumerate(lift_rotors):
     HL_motor.quantities.mass_properties.mass = Q_(81.65/12, 'kg')
     HL_motor.quantities.mass_properties.cg_vector = Vector(vector=Q_(np.array(HL_motor_cgs[i]), 'in'), axis=fd_axis)
-    HLf, HLm = HL_motor.compute_total_loads(fd_state=x_57_states, load_axis=HL_motor_axes[i-1], controls=x57_controls, radius=HL_radius_x57, prop_curve=HLPropCurve(), fd_axis=fd_axis)
-    all_forces.append(HLf)
-    all_moments.append(HLm)
+    HL_motor.quantities.prop_axis = HL_motor_axes[i]
+    HL_motor.quantities.radius = HL_radius_x57
+    HL_motor.quantities.prop_curve = HLPropCurve()
+
 
 cruise_motor_cgs = [
     [-13.01, -189.74, -0.958],
@@ -1233,17 +1184,50 @@ cruise_motor_cgs = [
 for i, cruise_motor in enumerate(cruise_motors):
     cruise_motor.quantities.mass_properties.mass = Q_(106.14/2, 'kg')
     cruise_motor.quantities.mass_properties.cg_vector = Vector(vector=Q_(np.array(cruise_motor_cgs[i]), 'in'), axis=fd_axis)
-    cmf, cmm = cruise_motor.compute_total_loads(fd_state=x_57_states, load_axis=cruise_motor_axes[i-1], controls=x57_controls, radius=cruise_radius_x57, prop_curve=CruisePropCurve(), fd_axis=fd_axis)          
-    all_forces.append(cmf)
-    all_moments.append(cmm)
+    cruise_motor.quantities.prop_axis = cruise_motor_axes[i]
+    cruise_motor.quantities.radius = cruise_radius_x57
+    cruise_motor.quantities.prop_curve = CruisePropCurve()
 
-complete_forces = np.sum(all_forces, axis=0)
-complete_moments = np.sum(all_moments, axis=0)
-print('Total Aircraft Forces in FD Axis:')
-print(complete_forces, 'N')
-print('Total Aircraft Moments in FD Axis:')
-print(complete_moments, 'N*m')
 
+
+cruiseCondition = aircraft_conditions.CruiseCondition(
+    fd_axis=fd_axis,
+    controls=x57_controls,
+    component = Aircraft,
+    altitude=Q_(0, 'ft'),
+    range=Q_(70, 'km'),
+    speed=Q_(67, 'mph'),
+    pitch_angle=Q_(0,'rad'))
+
+force, moment = cruiseCondition.assemble_forces_moments(print_output=True)
+
+
+# climbCondition = aircraft_conditions.ClimbCondition(
+#     fd_axis=fd_axis,
+#     controls=x57_controls,
+#     component=Aircraft,
+#     initial_altitude=Q_(2000, 'ft'),
+#     final_altitude=Q_(1000, 'ft'),
+#     pitch_angle=Q_(2.69268269,'rad'),
+#     fligth_path_angle=Q_(0, 'rad'),
+#     speed=Q_(67, 'mph'))
+
+# force, moment = climbCondition.assemble_forces_moments(print_output=True)
+
+
+# hoverCondition = aircraft_conditions.HoverCondition(
+#     fd_axis=fd_axis,
+#     controls=x57_controls,
+#     component=Aircraft,
+#     altitude=Q_(100, 'ft'),
+#     time=Q_(120,'s'))
+
+# force, moment = hoverCondition.assemble_forces_moments()
+
+
+# TODO: 
+# 1. Add more conditions
+# 2. Create EoM Models
 
 
 recorder.stop()
