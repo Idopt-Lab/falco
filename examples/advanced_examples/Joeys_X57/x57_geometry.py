@@ -1172,7 +1172,7 @@ for i, HL_motor in enumerate(lift_rotors):
     HL_motor.quantities.mass_properties.mass = Q_(81.65/12, 'kg')
     HL_motor.quantities.mass_properties.cg_vector = Vector(vector=Q_(np.array(HL_motor_cgs[i]), 'in'), axis=fd_axis)
     HL_motor.quantities.prop_axis = HL_motor_axes[i]
-    HL_motor.quantities.radius = HL_radius_x57
+    HL_motor.quantities.prop_radius = HL_radius_x57
     HL_motor.quantities.prop_curve = HLPropCurve()
 
 
@@ -1185,7 +1185,7 @@ for i, cruise_motor in enumerate(cruise_motors):
     cruise_motor.quantities.mass_properties.mass = Q_(106.14/2, 'kg')
     cruise_motor.quantities.mass_properties.cg_vector = Vector(vector=Q_(np.array(cruise_motor_cgs[i]), 'in'), axis=fd_axis)
     cruise_motor.quantities.prop_axis = cruise_motor_axes[i]
-    cruise_motor.quantities.radius = cruise_radius_x57
+    cruise_motor.quantities.prop_radius = cruise_radius_x57
     cruise_motor.quantities.prop_curve = CruisePropCurve()
 
 
