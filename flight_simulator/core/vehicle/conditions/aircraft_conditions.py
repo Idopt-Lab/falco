@@ -169,7 +169,7 @@ class AircraftCondition(Condition):
             total_forces += forces
             total_moments += moments
         if print_output:
-            print('Aircraft Condition:', self.__class__.__name__)
+            print('Aircraft Condition:', self.__class__.__name__, 'in the Flight Dynamics Axis:')
             print('u:', self.quantities.ac_states.states.u.value, 'm/s')
             print('v:', self.quantities.ac_states.states.v.value, 'm/s')
             print('w:', self.quantities.ac_states.states.w.value, 'm/s')
