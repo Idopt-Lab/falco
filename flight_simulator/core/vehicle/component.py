@@ -232,6 +232,8 @@ class Component:
         # Get propulsion loads only if radius and prop_curve are provided and the component uses propulsion
         if self.quantities.prop_curve is not None:
             prop_forces, prop_moments = self.compute_propulsion_loads(fd_state, controls, fd_axis)
+            prop_forces = np.nan_to_num(prop_forces, nan=0.0)
+            prop_moments = np.nan_to_num(prop_moments, nan=0.0)
         else:
             prop_forces = np.zeros(3)
             prop_moments = np.zeros(3)
