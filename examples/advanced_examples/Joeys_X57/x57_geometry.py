@@ -1220,7 +1220,7 @@ hoverCondition = aircraft_conditions.HoverCondition(
     fd_axis=fd_axis,
     controls=x57_controls,
     component=Aircraft,
-    altitude=Q_(100, 'ft'),
+    altitude=Q_(1000, 'ft'),
     time=Q_(120,'s'))
 
 force, moment = hoverCondition.assemble_forces_moments(print_output=True)
