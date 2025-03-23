@@ -191,7 +191,7 @@ class Component:
             fd_state=fd_state,
             controls=controls,
             radius=self.quantities.prop_radius,
-            prop_curve=copy.deepcopy(self.quantities.prop_curve)
+            prop_curve=self.quantities.prop_curve
         )
         fm = motor_prop.get_FM_refPoint(x_bar=fd_state, u_bar=controls)
         fm_rotated = fm.rotate_to_axis(fd_axis)

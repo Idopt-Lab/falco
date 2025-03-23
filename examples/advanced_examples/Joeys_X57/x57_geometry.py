@@ -31,6 +31,7 @@ from lsdo_geo.core.parameterization.parameterization_solver import Parameterizat
 lfs.num_workers = 1
 
 debug = False
+do_geo_param = False
 recorder = csdl.Recorder(inline=True, expand_ops=True, debug=debug)
 
 recorder.start()
@@ -1034,13 +1035,13 @@ VT_actuation_angle = csdl.Variable(name="VT_actuation_angle", shape=(1, ), value
 VT_sweep = csdl.Variable(name="VT_sweep", shape=(1, ), value=-40)
 
 
-# VertTail = WingComp(AR=vt_AR, span=VT_span, sweep=VT_sweep,
-#                     geometry=vtALL, parametric_geometry=vt_parametric_geometry,
-#                     tight_fit_ffd=False, 
-#                     name='Vertical Tail', orientation='vertical',
-#                     parameterization_solver=parameterization_solver,
-#                     ffd_geometric_variables=ffd_geometric_variables)
-# Aircraft.add_subcomponent(VertTail)
+VertTail = WingComp(AR=vt_AR, span=VT_span, sweep=VT_sweep,
+                    geometry=vtALL, parametric_geometry=vt_parametric_geometry,
+                    tight_fit_ffd=False, 
+                    name='Vertical Tail', orientation='vertical',
+                    parameterization_solver=parameterization_solver,
+                    ffd_geometric_variables=ffd_geometric_variables)
+Aircraft.add_subcomponent(VertTail)
 
 vtail_fuselage_connection = geometry.evaluate(fuselage_rear_pts_parametric) - geometry.evaluate(vt_qc_base_parametric)
 parameterization_solver.add_variable(computed_value=vtail_fuselage_connection, desired_value=vtail_fuselage_connection.value)
@@ -1063,13 +1064,14 @@ Aircraft.add_subcomponent(Battery)
 LandingGear = Component(name='Landing Gear')
 Aircraft.add_subcomponent(LandingGear)
 
-# parameterization_solver.evaluate(ffd_geometric_variables)
-# geometry.plot(camera=dict(pos=(12, 15, -12),  # Camera position 
-#                          focal_point=(-Fuselage.parameters.length.value/2, 0, 0),  # Point camera looks at
-#                          viewup=(0, 0, -1)),    # Camera up direction
-#                          title= f'X-57 Maxwell Aircraft Geometry\nWing Span: {Wing.parameters.span.value[0]:.2f} m\nWing AR: {Wing.parameters.AR.value[0]:.2f}\nWing Area S: {Wing.parameters.S_ref.value[0]:.2f} m^2\nWing Sweep: {Wing.parameters.sweep.value[0]:.2f} deg',
-#                         #  title=f'X-57 Maxwell Aircraft Geometry\nFuselage Length: {Fuselage.parameters.length.value[0]:.2f} m\nFuselage Height: {Fuselage.parameters.max_height.value[0]:.2f} m\nFuselage Width: {Fuselage.parameters.max_width.value[0]:.2f} m',
-#                          screenshot= REPO_ROOT_FOLDER / 'examples'/ 'advanced_examples' / 'Joeys_X57'/ 'images' / f'x_57_{Wing.parameters.span.value[0]}_AR_{Wing.parameters.AR.value[0]}_S_ref_{Wing.parameters.S_ref.value[0]}_sweep_{Wing.parameters.sweep.value[0]}.png')
+if do_geo_param is True:
+    parameterization_solver.evaluate(ffd_geometric_variables)
+    geometry.plot(camera=dict(pos=(12, 15, -12),  # Camera position 
+                            focal_point=(-Fuselage.parameters.length.value/2, 0, 0),  # Point camera looks at
+                            viewup=(0, 0, -1)),    # Camera up direction
+                            title= f'X-57 Maxwell Aircraft Geometry\nWing Span: {Wing.parameters.span.value[0]:.2f} m\nWing AR: {Wing.parameters.AR.value[0]:.2f}\nWing Area S: {Wing.parameters.S_ref.value[0]:.2f} m^2\nWing Sweep: {Wing.parameters.sweep.value[0]:.2f} deg',
+                            #  title=f'X-57 Maxwell Aircraft Geometry\nFuselage Length: {Fuselage.parameters.length.value[0]:.2f} m\nFuselage Height: {Fuselage.parameters.max_height.value[0]:.2f} m\nFuselage Width: {Fuselage.parameters.max_width.value[0]:.2f} m',
+                            screenshot= REPO_ROOT_FOLDER / 'examples'/ 'advanced_examples' / 'Joeys_X57'/ 'images' / f'x_57_{Wing.parameters.span.value[0]}_AR_{Wing.parameters.AR.value[0]}_S_ref_{Wing.parameters.S_ref.value[0]}_sweep_{Wing.parameters.sweep.value[0]}.png')
 
 
 
@@ -1077,7 +1079,7 @@ Aircraft.add_subcomponent(LandingGear)
 ### FORCES AND MOMENTS MODELLING
 
 
-x_57_states = AircraftStates(axis=fd_axis,u=Q_(67, 'mph')) # stall speed
+x_57_states = AircraftStates(axis=fd_axis,u=Q_(120, 'mph')) # stall speed
 x_57_mi = MassMI(axis=fd_axis,
                  Ixx=Q_(4314.08, 'kg*(m*m)'),
                  Ixy=Q_(-232.85, 'kg*(m*m)'),
@@ -1140,9 +1142,8 @@ HorTail.quantities.wing_axis = ht_tail_axis
 HorTail.quantities.lift_model = lift_models[1]
 
 
-
-# VertTail.quantities.mass_properties.mass = Q_(27.3/2, 'kg')
-# VertTail.quantities.mass_properties.cg_vector = Vector(vector=Q_(np.array([0, 0, 0]), 'm'), axis=fd_axis)
+VertTail.quantities.mass_properties.mass = Q_(27.3/2, 'kg')
+VertTail.quantities.mass_properties.cg_vector = Vector(vector=Q_(np.array([0, 0, 0]), 'm'), axis=fd_axis)
 
 
 Battery.quantities.mass_properties.mass = Q_(390.08, 'kg')
@@ -1194,7 +1195,7 @@ cruiseCondition = aircraft_conditions.CruiseCondition(
     fd_axis=fd_axis,
     controls=x57_controls,
     component = Aircraft,
-    altitude=Q_(0, 'ft'),
+    altitude=Q_(2500, 'ft'),
     range=Q_(70, 'km'),
     speed=Q_(67, 'mph'),
     pitch_angle=Q_(0,'rad'))
@@ -1222,7 +1223,7 @@ force, moment = cruiseCondition.assemble_forces_moments(print_output=True)
 #     altitude=Q_(100, 'ft'),
 #     time=Q_(120,'s'))
 
-# force, moment = hoverCondition.assemble_forces_moments()
+# force, moment = hoverCondition.assemble_forces_moments(print_output=True)
 
 
 # TODO: 

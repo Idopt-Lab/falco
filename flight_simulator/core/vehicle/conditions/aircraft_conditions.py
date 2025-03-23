@@ -135,7 +135,6 @@ class AircraftCondition(Condition):
                  p: Union[ureg.Quantity, csdl.Variable]=Q_(0, 'rad/s'),
                  q: Union[ureg.Quantity, csdl.Variable]=Q_(0, 'rad/s'),
                  r: Union[ureg.Quantity, csdl.Variable]=Q_(0, 'rad/s'),
-                 atmos_model=NRLMSIS2.Atmosphere(),
                  component = None,
                 controls = None) -> None:
         self.axis = fd_axis
@@ -148,8 +147,7 @@ class AircraftCondition(Condition):
             p=p, q=q, r=r,
         )
           
-        
-        self.quantities.ac_states_atmos = atmos_model.evaluate(self.quantities.ac_states.axis.translation_from_origin.z)
+        self.quantities.ac_states_atmos = self.quantities.ac_states.atm.evaluate(self.quantities.ac_states.axis.translation_from_origin.z)
 
         if self.component is not None:
             self.assemble_forces_moments()
@@ -179,7 +177,7 @@ class AircraftCondition(Condition):
             print('q:', self.quantities.ac_states.states.q.value,  'rad/s')
             print('r:', self.quantities.ac_states.states.r.value, 'rad/s')
             print('Altitude:', self.quantities.ac_states.axis.translation_from_origin.z.value, 'm')
-            print('Atmospheric Density:', self.quantities.ac_states.atmospheric_states.density.value, 'kg/m^3')
+            print('Atmospheric Density:', self.quantities.ac_states_atmos.density.value, 'kg/m^3')
             print("Total Forces: ", total_forces.value, 'N')
             print("Total Moments: ", total_moments.value, 'N*m')
         return total_forces, total_moments
@@ -217,7 +215,6 @@ class CruiseCondition(AircraftCondition):
                  speed : Union[ureg.Quantity, csdl.Variable]=Q_(0, 'm/s'),
                  mach_number : Union[ureg.Quantity, csdl.Variable]=Q_(0, 'dimensionless'),
                  time : Union[ureg.Quantity, csdl.Variable]=Q_(0, 's'),
-                 atmos_model = NRLMSIS2.Atmosphere(),
                  component = None,
                  controls = None
                  ):
@@ -233,7 +230,9 @@ class CruiseCondition(AircraftCondition):
             time=time,
         )
         self.quantities = AircraftStateQuantities()
-        self._atmos_model = atmos_model
+
+
+        self._atmos_model = NRLMSIS2.Atmosphere()  
         self.axis = fd_axis
         self.component = component
         self.controls = controls
@@ -262,6 +261,7 @@ class CruiseCondition(AircraftCondition):
 
             # set z to altitude and evaluate atmosphere model
             z = self.parameters.altitude
+            self.axis.translation_from_origin.z = z
             atmos_states = self._atmos_model.evaluate(z)
 
 
@@ -328,7 +328,6 @@ class ClimbCondition(AircraftCondition):
                  time : Union[ureg.Quantity, csdl.Variable]=Q_(0, 's'),
                  climb_gradient : Union[ureg.Quantity, csdl.Variable]=Q_(0, 'm/s'),
                  rate_of_climb : Union[ureg.Quantity, csdl.Variable]=Q_(0, 'm/s'),
-                 atmos_model = NRLMSIS2.Atmosphere(),
                  component = None,
                  controls = None
                  ) -> None:
@@ -346,7 +345,7 @@ class ClimbCondition(AircraftCondition):
             climb_gradient=climb_gradient,
         )
         self.quantities = AircraftStateQuantities()
-        self._atmos_model = atmos_model
+        self._atmos_model = NRLMSIS2.Atmosphere()  
         self.axis = fd_axis
         self.component = component
         self.controls = controls
@@ -382,6 +381,8 @@ class ClimbCondition(AircraftCondition):
             gamma = self.parameters.flight_path_angle
 
             # Compute atmospheric states for mean altitude
+            self.axis.translation_from_origin.z = h_mean
+
             atmos_states = self._atmos_model.evaluate(altitude=h_mean)
 
             # Compute speed from mach number or time or set V = speed
@@ -436,8 +437,7 @@ class HoverCondition(AircraftCondition):
     def __init__(self,
                  fd_axis: Union[Axis, AxisLsdoGeo],
                  altitude : Union[ureg.Quantity, csdl.Variable]=Q_(0, 'm'),
-                 time : Union[ureg.Quantity, csdl.Variable]=Q_(0, 's'), 
-                 atmos_model=NRLMSIS2.Atmosphere(),
+                 time : Union[ureg.Quantity, csdl.Variable]=Q_(0, 's'),
                  component = None,
                  controls = None
                  ) -> None:
@@ -447,7 +447,7 @@ class HoverCondition(AircraftCondition):
             time=time,
         )
         self.quantities = AircraftStateQuantities()
-        self._atmos_model = atmos_model
+        self._atmos_model = NRLMSIS2.Atmosphere()  
         self.axis = fd_axis
         self.component = component
         self.controls = controls
@@ -465,7 +465,8 @@ class HoverCondition(AircraftCondition):
         # All aircraft states except z will be zero
         u = v = w = p = q = r = csdl.Variable(value=0.)
         z = hover_parameters.altitude
-
+        self.axis.translation_from_origin.z = z
+        
         # Evaluate atmospheric states
         atmos_states = self._atmos_model.evaluate(z)
 
