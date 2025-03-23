@@ -1207,8 +1207,8 @@ climbCondition = aircraft_conditions.ClimbCondition(
     fd_axis=fd_axis,
     controls=x57_controls,
     component=Aircraft,
-    initial_altitude=Q_(2000, 'ft'),
-    final_altitude=Q_(1000, 'ft'),
+    initial_altitude=Q_(1000, 'ft'),
+    final_altitude=Q_(2000, 'ft'),
     pitch_angle=Q_(2.69268269,'rad'),
     fligth_path_angle=Q_(0, 'rad'),
     speed=Q_(67, 'mph'))
@@ -1220,7 +1220,7 @@ hoverCondition = aircraft_conditions.HoverCondition(
     fd_axis=fd_axis,
     controls=x57_controls,
     component=Aircraft,
-    altitude=Q_(1000, 'ft'),
+    altitude=Q_(100, 'ft'),
     time=Q_(120,'s'))
 
 force, moment = hoverCondition.assemble_forces_moments(print_output=True)
