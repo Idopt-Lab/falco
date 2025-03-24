@@ -155,19 +155,34 @@ class AircraftCondition(Condition):
     def assemble_forces_moments(self,print_output: bool = False):
         total_forces = csdl.Variable(value=0., shape=(3,))
         total_moments = csdl.Variable(value=0., shape=(3,))
+        total_mass = csdl.Variable(value=0., shape=(1,))
+        total_cg = csdl.Variable(value=0., shape=(3,))  # Summation of center-of-gravities
+        total_inertia = csdl.Variable(value=0., shape=(3, 3))
+
         if hasattr(self.component, "comps") and self.component.comps:
             for sub_comp in self.component.comps.values():
                 forces, moments = sub_comp.compute_total_loads(fd_state=self.quantities.ac_states,
                                                                 controls=self.controls,
                                                                 fd_axis=self.axis)
+                inertia = self.component.compute_inertia()
                 total_forces += forces
                 total_moments += moments
+                total_inertia += inertia
+                total_cg += sub_comp.quantities.mass_properties.cg_vector.vector
+                total_mass += sub_comp.quantities.mass_properties.mass.magnitude
+            self.component.quantities.mass_properties.cg_vector.vector = total_cg
+            self.component.quantities.mass_properties.mass = total_mass
         else:
             forces, moments = self.component.compute_total_loads(fd_state=self.quantities.ac_states,
                                                                 controls=self.controls,
                                                                     fd_axis=self.axis)
+            inertia = self.component.compute_inertia()
             total_forces += forces
             total_moments += moments
+            total_inertia += inertia
+            total_cg += self.component.quantities.mass_properties.cg_vector.vector
+            total_mass += self.component.quantities.mass_properties.mass.magnitude
+
         if print_output:
             print('Aircraft Condition:', self.__class__.__name__, 'in the Flight Dynamics Axis:')
             print('u:', self.quantities.ac_states.states.u.value, 'm/s')
@@ -180,6 +195,9 @@ class AircraftCondition(Condition):
             print('Atmospheric Density:', self.quantities.ac_states_atmos.density.value, 'kg/m^3')
             print("Total Forces: ", total_forces.value, 'N')
             print("Total Moments: ", total_moments.value, 'N*m')
+            print("Total Center of Gravity: ", total_cg.value, 'm')
+            print("Total Mass: ", total_mass.value, 'kg')
+            print("Total Inertia: ", self.component.quantities.mass_properties.inertia_tensor.value, 'kg*m^2')
         return total_forces, total_moments
     
     

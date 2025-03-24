@@ -252,6 +252,47 @@ class Component:
         
         return total_forces, total_moments
     
+    def compute_inertia(self):
+        """
+        Compute the inertia of this component.
+        Returns:
+            inertia (np.array): Inertia tensor of the component.
+        """
+        cg = self.quantities.mass_properties.cg_vector.vector
+        mass = self.quantities.mass_properties.mass.value
+
+        x= cg[0].value
+        y= cg[1].value
+        z= cg[2].value
+
+
+        inertia = np.zeros((3, 3))
+
+        Ixx = inertia[0,0] + mass * (y**2 + z**2)
+        Iyy = inertia[1,1] + mass * (x**2 + z**2)
+        Izz = inertia[2,2] + mass * (x**2 + y**2)
+        Ixy = inertia[0,1] - mass * x * y
+        Ixz = inertia[0,2] - mass * x * z
+        Iyz = inertia[1,2] - mass * y * z
+        Iyx = Ixy
+        Izx = Ixz
+        Izy = Iyz
+
+        inertia = csdl.Variable(shape=(3, 3), value=0.)
+        inertia = inertia.set(csdl.slice[0, 0], Ixx)
+        inertia = inertia.set(csdl.slice[0, 1], Ixy)
+        inertia = inertia.set(csdl.slice[0, 2], Ixz)
+        inertia = inertia.set(csdl.slice[1, 0], Iyx)
+        inertia = inertia.set(csdl.slice[1, 1], Iyy)
+        inertia = inertia.set(csdl.slice[1, 2], Iyz)
+        inertia = inertia.set(csdl.slice[2, 0], Izx)
+        inertia = inertia.set(csdl.slice[2, 1], Izy)
+        inertia = inertia.set(csdl.slice[2, 2], Izz)
+
+        self.quantities.mass_properties.inertia_tensor = inertia
+        
+        return inertia
+    
     def _compute_surface_area(self, geometry: Geometry, plot_flag: bool = False):
         parametric_mesh_grid_num = 10
         surfaces = geometry.functions

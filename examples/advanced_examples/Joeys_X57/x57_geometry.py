@@ -19,6 +19,7 @@ from flight_simulator.utils.euler_rotations import build_rotation_matrix
 from flight_simulator.core.vehicle.aircraft_control_system import AircraftControlSystem
 from flight_simulator.core.vehicle.models.propulsion.propulsion_model import HLPropCurve, CruisePropCurve, AircraftPropulsion
 from flight_simulator.core.vehicle.models.aerodynamics.aerodynamic_model import LiftModel, AircraftAerodynamics
+from flight_simulator.core.vehicle.models.equations_of_motion.eom_model import SixDoFModel
 from flight_simulator.core.vehicle.models.mass_properties.mass_prop_model import GravityLoads
 from flight_simulator.core.vehicle.models.weights.weights_model import StructuralWeights
 from flight_simulator.core.vehicle.components.wing import Wing as WingComp
@@ -1200,7 +1201,7 @@ cruiseCondition = aircraft_conditions.CruiseCondition(
     speed=Q_(67, 'mph'),
     pitch_angle=Q_(0,'rad'))
 
-force, moment = cruiseCondition.assemble_forces_moments(print_output=True)
+total_forces_cruise, total_moments_cruise = cruiseCondition.assemble_forces_moments(print_output=True)
 
 
 climbCondition = aircraft_conditions.ClimbCondition(
@@ -1213,7 +1214,7 @@ climbCondition = aircraft_conditions.ClimbCondition(
     fligth_path_angle=Q_(0, 'rad'),
     speed=Q_(67, 'mph'))
 
-force, moment = climbCondition.assemble_forces_moments(print_output=True)
+total_forces_climb, total_moments_climb = climbCondition.assemble_forces_moments(print_output=True)
 
 
 hoverCondition = aircraft_conditions.HoverCondition(
@@ -1223,12 +1224,36 @@ hoverCondition = aircraft_conditions.HoverCondition(
     altitude=Q_(100, 'ft'),
     time=Q_(120,'s'))
 
-force, moment = hoverCondition.assemble_forces_moments(print_output=True)
+total_forces_hover, total_moments_hover = hoverCondition.assemble_forces_moments(print_output=True)
 
 
 # TODO: 
 # 1. Add more conditions
 # 2. Create EoM Models
+
+eom_model = SixDoFModel()
+
+level_cruise = eom_model.evaluate(
+    total_forces=total_forces_cruise,
+    total_moments=total_moments_cruise,
+    ac_states=cruiseCondition.quantities.ac_states,
+    ac_mass_properties=cruiseCondition.component.quantities.mass_properties
+)
+
+accel_climb = eom_model.evaluate(
+    total_forces=total_forces_climb,
+    total_moments=total_moments_climb,
+    ac_states=climbCondition.quantities.ac_states,
+    ac_mass_properties=climbCondition.component.quantities.mass_properties
+)
+
+level_hover = eom_model.evaluate(
+    total_forces=total_forces_hover,
+    total_moments=total_moments_hover,
+    ac_states=hoverCondition.quantities.ac_states,
+    ac_mass_properties=hoverCondition.component.quantities.mass_properties
+)
+
 
 
 recorder.stop()

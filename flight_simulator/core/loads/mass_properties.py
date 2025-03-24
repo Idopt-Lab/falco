@@ -77,7 +77,8 @@ class MassMI:
 
 class MassProperties:
     def __init__(self,
-                 cg: Vector, inertia: MassMI,
+                 cg: Vector, 
+                 inertia: MassMI,
                  mass: Union[ureg.Quantity, csdl.Variable] = Q_(0, 'kg')):
 
         assert cg.axis.name == inertia.axis.name
