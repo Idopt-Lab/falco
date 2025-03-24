@@ -186,6 +186,7 @@ class AircraftCondition(Condition):
                 total_mass += sub_comp.quantities.mass_properties.mass.magnitude
             self.component.quantities.mass_properties.cg_vector.vector = total_cg
             self.component.quantities.mass_properties.mass = total_mass
+            self.component.quantities.mass_properties.inertia_tensor.inertia_tensor = total_inertia
         else:
             forces, moments = self.component.compute_total_loads(
                 fd_state=self.quantities.ac_states,
@@ -221,7 +222,7 @@ class AircraftCondition(Condition):
 
     def perform_linear_stability_analysis(self, total_forces, total_moments, ac_states, mass_properties, print_output: bool = False) -> TrimStabilityMetrics:
         m = mass_properties.mass
-        iyy = mass_properties.inertia_tensor.value[1, 1]
+        iyy = mass_properties.inertia_tensor.inertia_tensor.value[1, 1]
         if len(total_forces.shape) == 1:
             total_forces = csdl.reshape(total_forces, shape=(1, 3))
             total_moments = csdl.reshape(total_moments, shape=(1, 3))
