@@ -259,7 +259,7 @@ class Component:
             inertia (np.array): Inertia tensor of the component.
         """
         cg = self.quantities.mass_properties.cg_vector.vector
-        mass = self.quantities.mass_properties.mass.value
+        mass = self.quantities.mass_properties.mass.magnitude
 
         x= cg[0].value
         y= cg[1].value

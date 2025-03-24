@@ -1198,10 +1198,10 @@ cruiseCondition = aircraft_conditions.CruiseCondition(
     component = Aircraft,
     altitude=Q_(2500, 'ft'),
     range=Q_(70, 'km'),
-    speed=Q_(67, 'mph'),
+    speed=Q_(120, 'mph'),
     pitch_angle=Q_(0,'rad'))
 
-total_forces_cruise, total_moments_cruise = cruiseCondition.assemble_forces_moments(print_output=True)
+total_forces_cruise, total_moments_cruise = cruiseCondition.assemble_forces_moments(print_output=False)
 
 
 climbCondition = aircraft_conditions.ClimbCondition(
@@ -1211,10 +1211,10 @@ climbCondition = aircraft_conditions.ClimbCondition(
     initial_altitude=Q_(1000, 'ft'),
     final_altitude=Q_(2000, 'ft'),
     pitch_angle=Q_(2.69268269,'rad'),
-    fligth_path_angle=Q_(0, 'rad'),
+    flight_path_angle=Q_(0, 'rad'),
     speed=Q_(67, 'mph'))
 
-total_forces_climb, total_moments_climb = climbCondition.assemble_forces_moments(print_output=True)
+total_forces_climb, total_moments_climb = climbCondition.assemble_forces_moments(print_output=False)
 
 
 hoverCondition = aircraft_conditions.HoverCondition(
@@ -1224,35 +1224,19 @@ hoverCondition = aircraft_conditions.HoverCondition(
     altitude=Q_(100, 'ft'),
     time=Q_(120,'s'))
 
-total_forces_hover, total_moments_hover = hoverCondition.assemble_forces_moments(print_output=True)
+total_forces_hover, total_moments_hover = hoverCondition.assemble_forces_moments(print_output=False)
 
 
 # TODO: 
 # 1. Add more conditions
 # 2. Create EoM Models
 
-eom_model = SixDoFModel()
 
-level_cruise = eom_model.evaluate(
-    total_forces=total_forces_cruise,
-    total_moments=total_moments_cruise,
-    ac_states=cruiseCondition.quantities.ac_states,
-    ac_mass_properties=cruiseCondition.component.quantities.mass_properties
-)
+level_cruise = cruiseCondition.compute_eom_model(print_output=False)
 
-accel_climb = eom_model.evaluate(
-    total_forces=total_forces_climb,
-    total_moments=total_moments_climb,
-    ac_states=climbCondition.quantities.ac_states,
-    ac_mass_properties=climbCondition.component.quantities.mass_properties
-)
+accel_climb = climbCondition.compute_eom_model(print_output=False)
 
-level_hover = eom_model.evaluate(
-    total_forces=total_forces_hover,
-    total_moments=total_moments_hover,
-    ac_states=hoverCondition.quantities.ac_states,
-    ac_mass_properties=hoverCondition.component.quantities.mass_properties
-)
+level_hover = hoverCondition.compute_eom_model(print_output=False)
 
 
 # Trim Stability

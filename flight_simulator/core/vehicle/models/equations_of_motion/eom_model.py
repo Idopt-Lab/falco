@@ -46,7 +46,7 @@ class SixDoFModel:
         # Get mass, cg, I and decompose into components
         m = ac_mass_properties.mass.value
         cg_vector =  ac_mass_properties.cg_vector
-        inertia_tensor = ac_mass_properties.inertia_tensor
+        inertia_tensor = ac_mass_properties.inertia_tensor.inertia_tensor
 
         cgx = cg_vector.vector[0].value
         cgy = cg_vector.vector[1].value
