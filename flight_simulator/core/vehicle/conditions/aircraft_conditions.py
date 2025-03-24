@@ -144,6 +144,7 @@ class AircraftCondition(Condition):
 
         if self.component is not None:
             self.total_forces, self.total_moments = self.assemble_forces_moments()
+            self.ac_eom_model = self.compute_eom_model()
 
     def compute_eom_model(self, print_output: bool = False):
         eom_model = SixDoFModel()
@@ -428,7 +429,7 @@ class CruiseCondition(AircraftCondition):
         self.quantities.ac_states_atmos = atmos_states
         if self.component is not None:
             self.total_forces, self.total_moments = self.assemble_forces_moments()
-            # self.ac_eom_model = self.compute_eom_model()
+            self.ac_eom_model = self.compute_eom_model()
 
 
 
@@ -513,7 +514,7 @@ class ClimbCondition(AircraftCondition):
         self.quantities.ac_states_atmos = atmos_states
         if self.component is not None:
             self.total_forces, self.total_moments = self.assemble_forces_moments()
-            # self.ac_eom_model = self.compute_eom_model()
+            self.ac_eom_model = self.compute_eom_model()
 
 
 
@@ -553,5 +554,5 @@ class HoverCondition(AircraftCondition):
         self.quantities.ac_states_atmos = atmos_states
         if self.component is not None:
             self.total_forces, self.total_moments = self.assemble_forces_moments()
-            # self.ac_eom_model = self.compute_eom_model()
+            self.ac_eom_model = self.compute_eom_model()
 
