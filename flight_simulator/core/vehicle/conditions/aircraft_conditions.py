@@ -3,6 +3,7 @@ from flight_simulator.core.dynamics.aircraft_states import AircraftStates
 from flight_simulator.core.loads.forces_moments import Vector, ForcesMoments
 from flight_simulator.core.dynamics.axis import Axis, ValidOrigins
 from flight_simulator.core.dynamics.axis_lsdogeo import AxisLsdoGeo
+from flight_simulator.core.dynamics.trim_stability import TrimStabilityMetrics
 from flight_simulator.utils.euler_rotations import build_rotation_matrix
 from typing import Union, List, Tuple
 import csdl_alpha as csdl
@@ -184,6 +185,7 @@ class AircraftCondition(Condition):
             total_mass += self.component.quantities.mass_properties.mass.magnitude
 
         if print_output:
+            print('-----------------------------------') 
             print('Aircraft Condition:', self.__class__.__name__, 'in the Flight Dynamics Axis:')
             print('u:', self.quantities.ac_states.states.u.value, 'm/s')
             print('v:', self.quantities.ac_states.states.v.value, 'm/s')
@@ -198,7 +200,174 @@ class AircraftCondition(Condition):
             print("Total Center of Gravity: ", total_cg.value, 'm')
             print("Total Mass: ", total_mass.value, 'kg')
             print("Total Inertia: ", self.component.quantities.mass_properties.inertia_tensor.value, 'kg*m^2')
+            print('-----------------------------------') 
+
         return total_forces, total_moments
+    
+    def perform_linear_stability_analysis(self, total_forces, total_moments, ac_states, mass_properties, print_output: bool = False) -> TrimStabilityMetrics:
+        m = mass_properties.mass
+        iyy = mass_properties.inertia_tensor.value[1, 1]
+
+        if len(total_forces.shape) == 1:
+            total_forces = csdl.reshape(total_forces, shape=(1, 3))
+            total_moments = csdl.reshape(total_moments, shape=(1, 3))
+
+        num_nodes = total_forces.shape[0]
+        g0=9.81
+
+
+
+        for i in range(num_nodes):
+            A_mat = csdl.Variable(shape=(4, 4),value=0.)
+
+            u = ac_states.states.u
+            w = ac_states.states.w
+            q = ac_states.states.q
+            theta = ac_states.states.theta
+
+            X = total_forces[i,0]
+            Y = total_forces[i,1]
+            Z = total_forces[i,2]
+            L = total_moments[i,0]
+            M = total_moments[i,1]
+            N = total_moments[i,2]
+
+            X_u = csdl.derivative(ofs=X, wrts=u)
+            X_w = csdl.derivative(ofs=X, wrts=w)
+            X_q = csdl.derivative(ofs=X, wrts=q)
+            Z_u = csdl.derivative(ofs=Z, wrts=u)
+            Z_w = csdl.derivative(ofs=Z, wrts=w)
+            Z_q = csdl.derivative(ofs=Z, wrts=q)
+            M_u = csdl.derivative(ofs=M, wrts=u)
+            M_w = csdl.derivative(ofs=M, wrts=w)
+            M_q = csdl.derivative(ofs=M, wrts=q)
+
+            A_mat = A_mat.set(csdl.slice[0,0], X_u / m)
+            A_mat = A_mat.set(csdl.slice[0,1], X_w / m)
+            A_mat = A_mat.set(csdl.slice[0,3], -g0*csdl.cos(theta))
+
+
+            A_mat = A_mat.set(csdl.slice[1, 0], Z_u / m)
+            A_mat = A_mat.set(csdl.slice[1, 1], Z_w / m)
+            A_mat = A_mat.set(csdl.slice[1, 2], (Z_q + m * u) / m)
+            A_mat = A_mat.set(csdl.slice[1, 3], -g0 * csdl.sin(theta))
+
+            A_mat = A_mat.set(csdl.slice[2, 0], M_u / iyy)
+            A_mat = A_mat.set(csdl.slice[2, 1], M_w / iyy)
+            A_mat = A_mat.set(csdl.slice[2, 2], M_q / iyy)
+
+            A_mat = A_mat.set(csdl.slice[3, 2], 1.)
+
+        eig_val_operation = EigValOperation()
+        eig_real, eig_imag = eig_val_operation.evaluate(A_mat)
+        
+        #short period
+        lambda_sp_real = eig_real[0]
+        lambda_sp_imag = eig_imag[0]
+        sp_omega_n = ((lambda_sp_real**2 + lambda_sp_imag**2) + 1e-10)**0.5
+        sp_damping_ratio = -lambda_sp_real / sp_omega_n
+        sp_time_2_double = np.log(2) / (lambda_sp_real**2 + 1e-10)**0.5
+
+        #phugoid
+        lambda_phugoid_real = eig_real[1]
+        lambda_phugoid_imag = eig_imag[1]
+        phugoid_omega_n = ((lambda_phugoid_real**2 + lambda_phugoid_imag**2) + 1e-10)**0.5
+        phugoid_damping_ratio = -lambda_phugoid_real / phugoid_omega_n
+        phugoid_time_2_double = np.log(2) / (lambda_phugoid_real**2 + 1e-10)**0.5
+
+        long_stability_metrics = TrimStabilityMetrics(
+            A_mat_long=A_mat,
+            real_eig_short_period=lambda_sp_real,
+            imag_eig_short_period=lambda_sp_imag,
+            nat_freq_short_period=sp_omega_n,
+            damping_ratio_short_period=sp_damping_ratio,
+            time_2_double_short_period=sp_time_2_double,
+            real_eig_phugoid=lambda_phugoid_real,
+            imag_eig_phugoid=lambda_phugoid_imag,
+            nat_freq_phugoid=phugoid_omega_n,
+            damping_ratio_phugoid=phugoid_damping_ratio,
+            time_2_double_phugoid=phugoid_time_2_double
+        )
+
+        if print_output is True:
+            print('-----------------------------------') 
+            print('Londitudinal Stability Metrics for :', self.__class__.__name__, 'in the Flight Dynamics Axis:')
+            print('Longitudinal Stability A Matrix: ',long_stability_metrics.A_mat_long.value)
+            print('Short Period Real Eigenvalue: ',long_stability_metrics.real_eig_short_period.value)
+            print('Short Period Imaginary Eigenvalue: ',long_stability_metrics.imag_eig_short_period.value)
+            print('Short Period Natural Frequency: ',long_stability_metrics.nat_freq_short_period.value)
+            print('Short Period Damping Ratio: ',long_stability_metrics.damping_ratio_short_period.value)
+            print('Short Period Time to Double: ',long_stability_metrics.time_2_double_short_period.value)
+            print('Phugoid Real Eigenvalue: ',long_stability_metrics.real_eig_phugoid.value)
+            print('Phugoid Imaginary Eigenvalue: ',long_stability_metrics.imag_eig_phugoid.value)
+            print('Phugoid Natural Frequency: ',long_stability_metrics.nat_freq_phugoid.value)
+            print('Phugoid Damping Ratio: ',long_stability_metrics.damping_ratio_phugoid.value)
+            print('Phugoid Time to Double: ',long_stability_metrics.time_2_double_phugoid.value)
+            print('-----------------------------------') 
+
+
+        return long_stability_metrics
+
+
+
+class EigValOperation(csdl.CustomExplicitOperation):
+    def __init__(self):
+        super().__init__()
+
+    def evaluate(self, mat):
+        shape = mat.shape
+        size = shape[0]
+
+        self.declare_input("mat", mat)
+        eig_real = self.create_output("eig_vals_real", shape=(size, ))
+        eig_imag = self.create_output("eig_vals_imag", shape=(size, ))
+
+        self.declare_derivative_parameters("eig_vals_real", "mat")
+        self.declare_derivative_parameters("eig_vals_imag", "mat")
+
+        return eig_real, eig_imag
+    
+    def compute(self, inputs, outputs):
+        mat = inputs["mat"]
+
+        eig_vals, eig_vecs = np.linalg.eig(mat)
+    
+        idx = np.abs(eig_vals).argsort()[::-1]
+        eig_vals = eig_vals[idx]
+        eig_vecs = eig_vecs[:, idx]
+
+        outputs['eig_vals_real'] = np.real(eig_vals)
+        outputs['eig_vals_imag'] = np.imag(eig_vals)
+
+    def compute_derivatives(self, inputs, outputs, derivatives):
+        mat = inputs["mat"]
+        size = mat.shape[0]
+
+        eig_vals, eig_vecs = np.linalg.eig(mat)
+        idx = np.abs(eig_vals).argsort()[::-1]
+        eig_vals = eig_vals[idx]
+        eig_vecs = eig_vecs[:, idx]
+
+        # v inverse transpose
+        v_inv_T = (np.linalg.inv(eig_vecs)).T
+
+        # preallocate Jacobian: n outputs, n^2 inputs
+        temp_r = np.zeros((size, size*size))
+        temp_i = np.zeros((size, size*size))
+
+        for j in range(len(eig_vals)):
+            # dA/dw(j,:) = v(:,j)*(v^-T)(:j)
+            partial = np.outer(eig_vecs[:, j], v_inv_T[:, j]).flatten(order='F')
+            # Note that the order of flattening matters, hence argument in flatten()
+
+            # Set jacobian rows
+            temp_r[j, :] = np.real(partial)
+            temp_i[j, :] = np.imag(partial)
+
+        # Set Jacobian
+        derivatives['eig_vals_real', 'mat'] = temp_r
+        derivatives['eig_vals_imag', 'mat'] = temp_i
+
     
     
 

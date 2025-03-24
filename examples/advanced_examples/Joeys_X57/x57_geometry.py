@@ -1255,5 +1255,31 @@ level_hover = eom_model.evaluate(
 )
 
 
+# Trim Stability
+
+cruise_long_stabiliy = cruiseCondition.perform_linear_stability_analysis(
+    total_forces=total_forces_cruise,
+    total_moments=total_moments_cruise,
+    ac_states=cruiseCondition.quantities.ac_states,
+    mass_properties=cruiseCondition.component.quantities.mass_properties,
+    print_output=True
+)
+
+climb_long_stabiliy = climbCondition.perform_linear_stability_analysis(
+    total_forces=total_forces_climb,
+    total_moments=total_moments_climb,
+    ac_states=climbCondition.quantities.ac_states,
+    mass_properties=climbCondition.component.quantities.mass_properties,
+    print_output=True
+)
+
+hover_long_stabiliy = hoverCondition.perform_linear_stability_analysis(
+    total_forces=total_forces_hover,
+    total_moments=total_moments_hover,
+    ac_states=hoverCondition.quantities.ac_states,
+    mass_properties=hoverCondition.component.quantities.mass_properties,
+    print_output=True
+)
+
 
 recorder.stop()
