@@ -5,20 +5,13 @@ import numpy as np
 from flight_simulator import ureg, Q_
 
 
-class StructuralWeights:
-    def __init__(self, states, cg, mass, design_weight, atmospheric_states:csdl.VariableGroup=None)->None:
-
-        self.states = states
-        self.cg = cg
-        self.mass = mass
+class WeightsModel:
+    def __init__(self, 
+                 design_weight : Union[float, int, csdl.Variable],
+                 dynamic_pressure : Union[float, int, csdl.Variable],
+                 )->None:
         self.design_gross_weight = design_weight
-        self.velocity = self.states.VTAS
-
-        if atmospheric_states is None:
-            raise Exception("Atmospheric Conditions/states are not provided.")
-        else:
-            self.atmospheric_states = atmospheric_states
-            self.dynamic_pressure = 0.5 * self.atmospheric_states.density * self.velocity**2
+        self.dynamic_pressure = dynamic_pressure
 
 
     def evaluate_wing_weight(
@@ -27,7 +20,7 @@ class StructuralWeights:
         batt_weight : Union[float, int, csdl.Variable],
         AR : Union[float, int, csdl.Variable],
         sweep : Union[float, int, csdl.Variable],
-        taper_ratio : Union[float, int, csdl.Variable],
+        taper_ratio : Union[float, int, csdl.Variable] = 1.,
         thickness_to_chord : Union[float, int, csdl.Variable]=0.12,
         nz : Union[float, int, csdl.Variable] = 3.75,
     ):
@@ -140,5 +133,21 @@ class StructuralWeights:
             self.S_ref**0.873 * (AR / csdl.cos(self.sweep_c4)**2)**0.357 / ((100 * thickness_to_chord) / csdl.cos(self.sweep_c4))**0.49
         
         return W_v_tail
+    
+
+
+class WeightsSolverModel:
+    def evaluate(self, gross_weight_guess : csdl.ImplicitVariable, *component_weights):
+        csdl.check_parameter(gross_weight_guess, "gross_weight_guess", types=(csdl.ImplicitVariable, csdl.Variable))
+        gross_weight = csdl.Variable(shape=(1, ), value=0)
+
+        for weight in component_weights:
+            gross_weight =  gross_weight +  weight
+
+        weight_residual = gross_weight_guess - gross_weight
+
+        solver = csdl.nonlinear_solvers.Newton()
+        solver.add_state(gross_weight_guess, weight_residual)
+        solver.run()
         
     

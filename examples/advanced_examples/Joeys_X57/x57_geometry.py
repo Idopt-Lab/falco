@@ -20,8 +20,7 @@ from flight_simulator.core.vehicle.aircraft_control_system import AircraftContro
 from flight_simulator.core.vehicle.models.propulsion.propulsion_model import HLPropCurve, CruisePropCurve, AircraftPropulsion
 from flight_simulator.core.vehicle.models.aerodynamics.aerodynamic_model import LiftModel, AircraftAerodynamics
 from flight_simulator.core.vehicle.models.equations_of_motion.eom_model import SixDoFModel
-from flight_simulator.core.vehicle.models.mass_properties.mass_prop_model import GravityLoads
-from flight_simulator.core.vehicle.models.weights.weights_model import StructuralWeights
+from flight_simulator.core.vehicle.models.weights.weights_model import WeightsModel
 from flight_simulator.core.vehicle.components.wing import Wing as WingComp
 from flight_simulator.core.vehicle.components.fuselage import Fuselage as FuseComp
 from flight_simulator.core.vehicle.components.aircraft import Aircraft as AircraftComp
@@ -1202,6 +1201,9 @@ cruiseCondition = aircraft_conditions.CruiseCondition(
     pitch_angle=Q_(0,'rad'))
 
 total_forces_cruise, total_moments_cruise = cruiseCondition.assemble_forces_moments(print_output=False)
+level_cruise = cruiseCondition.compute_eom_model(print_output=False)
+cruise_long_stabiliy = cruiseCondition.perform_linear_stability_analysis(print_output=False)
+
 
 
 climbCondition = aircraft_conditions.ClimbCondition(
@@ -1210,11 +1212,14 @@ climbCondition = aircraft_conditions.ClimbCondition(
     component=Aircraft,
     initial_altitude=Q_(1000, 'ft'),
     final_altitude=Q_(2000, 'ft'),
-    pitch_angle=Q_(2.69268269,'rad'),
+    pitch_angle=Q_(0,'rad'),
     flight_path_angle=Q_(0, 'rad'),
     speed=Q_(67, 'mph'))
 
 total_forces_climb, total_moments_climb = climbCondition.assemble_forces_moments(print_output=False)
+accel_climb = climbCondition.compute_eom_model(print_output=False)
+climb_long_stabiliy = climbCondition.perform_linear_stability_analysis(print_output=False)
+
 
 
 hoverCondition = aircraft_conditions.HoverCondition(
@@ -1225,45 +1230,72 @@ hoverCondition = aircraft_conditions.HoverCondition(
     time=Q_(120,'s'))
 
 total_forces_hover, total_moments_hover = hoverCondition.assemble_forces_moments(print_output=False)
+level_hover = hoverCondition.compute_eom_model(print_output=False)
+hover_long_stabiliy = hoverCondition.perform_linear_stability_analysis(print_output=False)
+
+
+descentCondition = aircraft_conditions.ClimbCondition(
+    fd_axis=fd_axis,
+    controls=x57_controls,
+    component=Aircraft,
+    initial_altitude=Q_(1000, 'ft'),
+    final_altitude=Q_(300, 'ft'),
+    pitch_angle=Q_(0,'rad'),
+    flight_path_angle=Q_(-3, 'rad'),
+    speed=Q_(67, 'mph'))
+
+total_forces_descent, total_moments_descent = descentCondition.assemble_forces_moments(print_output=False)
+accel_descent = descentCondition.compute_eom_model(print_output=False)
+descent_long_stabiliy = descentCondition.perform_linear_stability_analysis(print_output=False)
+
+
+minus_1g = aircraft_conditions.ClimbCondition(
+    fd_axis=fd_axis,
+    controls=x57_controls,
+    component=Aircraft,
+    initial_altitude=Q_(1000, 'ft'),
+    final_altitude=Q_(300, 'ft'),
+    pitch_angle=Q_(-12,'rad'),
+    flight_path_angle=Q_(-1, 'rad'),
+    speed=Q_(67, 'mph'))
+
+total_forces_minus_1g, total_moments_minus_1g = minus_1g.assemble_forces_moments(print_output=False)
+accel_minus_1g = minus_1g.compute_eom_model(print_output=False)
+minus_1g_long_stabiliy = minus_1g.perform_linear_stability_analysis(print_output=False)
+
+
+
+
+
 
 
 # TODO: 
 # 1. Add more conditions
-# 2. Create EoM Models
+# 2. Refine Trim Stability - improving current Trim Model
+# 3. Refine Aero Loads - improving current Lift Model
+# 4. Set up Optimization Problem to trim airplane
+# 5. Set up Weights Modelling - will play into overall weight optimization
+# 6. Set up Optimization Problem to
+#   a. Minimize induced drag
+#   b. Minimize total drag
+#   c. Maximize L/D
+#   d. Minimize empty weight
+# 7. Run Optimization Problem to Maximize Range
 
 
-level_cruise = cruiseCondition.compute_eom_model(print_output=False)
-
-accel_climb = climbCondition.compute_eom_model(print_output=False)
-
-level_hover = hoverCondition.compute_eom_model(print_output=False)
 
 
-# Trim Stability
 
-cruise_long_stabiliy = cruiseCondition.perform_linear_stability_analysis(
-    total_forces=total_forces_cruise,
-    total_moments=total_moments_cruise,
-    ac_states=cruiseCondition.quantities.ac_states,
-    mass_properties=cruiseCondition.component.quantities.mass_properties,
-    print_output=True
-)
+x57_weights_model = WeightsModel(design_weight=1360,dynamic_pressure=0.5)
+wing_weight_model = x57_weights_model.evaluate_wing_weight(S_ref=Wing.parameters.S_ref, AR=Wing.parameters.AR, sweep=Wing.parameters.sweep, 
+                                                           taper_ratio=Wing.parameters.taper_ratio,batt_weight=Battery.quantities.mass_properties.mass)
 
-climb_long_stabiliy = climbCondition.perform_linear_stability_analysis(
-    total_forces=total_forces_climb,
-    total_moments=total_moments_climb,
-    ac_states=climbCondition.quantities.ac_states,
-    mass_properties=climbCondition.component.quantities.mass_properties,
-    print_output=True
-)
+print(f'Wing Weight: {wing_weight_model.value} kg')
 
-hover_long_stabiliy = hoverCondition.perform_linear_stability_analysis(
-    total_forces=total_forces_hover,
-    total_moments=total_moments_hover,
-    ac_states=hoverCondition.quantities.ac_states,
-    mass_properties=hoverCondition.component.quantities.mass_properties,
-    print_output=True
-)
+
+
+
+
 
 
 recorder.stop()

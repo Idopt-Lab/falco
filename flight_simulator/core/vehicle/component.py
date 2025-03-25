@@ -14,12 +14,12 @@ from dataclasses import dataclass
 import time
 import warnings
 import copy
-from flight_simulator.core.loads.mass_properties import MassProperties, MassMI
+from flight_simulator.core.loads.mass_properties import MassProperties, MassMI, GravityLoads
 from flight_simulator.core.dynamics.axis import Axis, ValidOrigins
 from flight_simulator.core.loads.forces_moments import Vector, ForcesMoments
 from flight_simulator.core.vehicle.models.propulsion.propulsion_model import HLPropCurve, CruisePropCurve, AircraftPropulsion
 from flight_simulator.core.vehicle.models.aerodynamics.aerodynamic_model import LiftModel, AircraftAerodynamics
-from flight_simulator.core.vehicle.models.mass_properties.mass_prop_model import GravityLoads
+
 
 class ComponentQuantities:
     def __init__(self, mass_properties: MassProperties = None) -> None:

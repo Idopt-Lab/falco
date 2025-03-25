@@ -158,6 +158,7 @@ class Wing(Component):
 
         if taper_ratio is None:
             taper_ratio = 1
+        self.parameters.taper_ratio = taper_ratio
         if AR is not None and S_ref is not None:
             span = (AR * S_ref)**0.5
             self.parameters.span = span

@@ -21,6 +21,7 @@ class AircraftStateQuantities(csdl.VariableGroup):
     ac_states: AircraftStates = None
     ac_states_atmos: NRLMSIS2.Atmosphere = None
     ac_eom_model = None
+    stability_analysis = None
     total_forces = None
     total_moments = None
 
@@ -142,36 +143,33 @@ class AircraftCondition(Condition):
         self.quantities.ac_states_atmos = self.quantities.ac_states.atm.evaluate(
             self.quantities.ac_states.axis.translation_from_origin.z)
 
-        if self.component is not None:
-            self.total_forces, self.total_moments = self.assemble_forces_moments()
-            self.ac_eom_model = self.compute_eom_model()
 
     def compute_eom_model(self, print_output: bool = False):
         eom_model = SixDoFModel()
-        self.ac_eom_model = eom_model.evaluate(
-            total_forces=self.total_forces,
-            total_moments=self.total_moments,
+        self.quantities.ac_eom_model = eom_model.evaluate(
+            total_forces=self.quantities.total_forces,
+            total_moments=self.quantities.total_moments,
             ac_states=self.quantities.ac_states,
             ac_mass_properties=self.component.quantities.mass_properties
         )
         if print_output:
             print('-----------------------------------')
             print('Aircraft Condition:', self.__class__.__name__, 'in the Flight Dynamics Axis:')
-            print('dp_dt:', self.ac_eom_model.dp_dt.value, 'rad/s^2')
-            print('dq_dt:', self.ac_eom_model.dq_dt.value, 'rad/s^2')
-            print('dr_dt:', self.ac_eom_model.dr_dt.value, 'rad/s^2')
-            print('du_dt:', self.ac_eom_model.du_dt.value, 'm/s^2')
-            print('dv_dt:', self.ac_eom_model.dv_dt.value, 'm/s^2')
-            print('dw_dt:', self.ac_eom_model.dw_dt.value, 'm/s^2')
-            print('accel_norm:', self.ac_eom_model.accel_norm.value, 'm/s^2')
+            print('dp_dt:', self.quantities.ac_eom_model.dp_dt.value, 'rad/s^2')
+            print('dq_dt:', self.quantities.ac_eom_model.dq_dt.value, 'rad/s^2')
+            print('dr_dt:', self.quantities.ac_eom_model.dr_dt.value, 'rad/s^2')
+            print('du_dt:', self.quantities.ac_eom_model.du_dt.value, 'm/s^2')
+            print('dv_dt:', self.quantities.ac_eom_model.dv_dt.value, 'm/s^2')
+            print('dw_dt:', self.quantities.ac_eom_model.dw_dt.value, 'm/s^2')
+            print('accel_norm:', self.quantities.ac_eom_model.accel_norm.value, 'm/s^2')
             print('-----------------------------------')
-        return self.ac_eom_model
+        return self.quantities.ac_eom_model
 
     def assemble_forces_moments(self, print_output: bool = False):
         total_forces = csdl.Variable(value=0., shape=(3,))
         total_moments = csdl.Variable(value=0., shape=(3,))
         total_mass = csdl.Variable(value=0., shape=(1,))
-        total_cg = csdl.Variable(value=0., shape=(3,))  # Sum of center-of-gravities
+        total_cg = csdl.Variable(value=0., shape=(3,))  
         total_inertia = csdl.Variable(value=0., shape=(3, 3))
         if hasattr(self.component, "comps") and self.component.comps:
             for sub_comp in self.component.comps.values():
@@ -217,18 +215,21 @@ class AircraftCondition(Condition):
             print("Total Moments:", total_moments.value, 'N*m')
             print("Total Center of Gravity:", total_cg.value, 'm')
             print("Total Mass:", total_mass.value, 'kg')
-            print("Total Inertia:", self.component.quantities.mass_properties.inertia_tensor.value, 'kg*m^2')
+            print("Total Inertia:", self.component.quantities.mass_properties.inertia_tensor.inertia_tensor.value, 'kg*m^2')
             print('-----------------------------------')
         return total_forces, total_moments
 
-    def perform_linear_stability_analysis(self, total_forces, total_moments, ac_states, mass_properties, print_output: bool = False) -> TrimStabilityMetrics:
-        m = mass_properties.mass
-        iyy = mass_properties.inertia_tensor.inertia_tensor.value[1, 1]
+    def perform_linear_stability_analysis(self, print_output: bool = False) -> TrimStabilityMetrics:
+        m = self.component.quantities.mass_properties.mass
+        iyy = self.component.quantities.mass_properties.inertia_tensor.inertia_tensor.value[1, 1]
+        total_forces = self.component.quantities.total_forces
+        total_moments = self.component.quantities.total_moments
         if len(total_forces.shape) == 1:
-            total_forces = csdl.reshape(total_forces, shape=(1, 3))
-            total_moments = csdl.reshape(total_moments, shape=(1, 3))
+            total_forces = csdl.reshape(self.component.quantities.total_forces, shape=(1, 3))
+            total_moments = csdl.reshape(self.component.quantities.total_moments, shape=(1, 3))
         num_nodes = total_forces.shape[0]
         g0 = 9.81
+        ac_states = self.quantities.ac_states
         for i in range(num_nodes):
             A_mat = csdl.Variable(shape=(4, 4), value=0.)
             u = ac_states.states.u
@@ -263,19 +264,21 @@ class AircraftCondition(Condition):
             A_mat = A_mat.set(csdl.slice[3, 2], 1.)
         eig_val_operation = EigValOperation()
         eig_real, eig_imag = eig_val_operation.evaluate(A_mat)
+        
         # Short period
         lambda_sp_real = eig_real[0]
         lambda_sp_imag = eig_imag[0]
         sp_omega_n = ((lambda_sp_real ** 2 + lambda_sp_imag ** 2) + 1e-10) ** 0.5
         sp_damping_ratio = -lambda_sp_real / sp_omega_n
         sp_time_2_double = np.log(2) / ((lambda_sp_real ** 2 + 1e-10) ** 0.5)
+
         # Phugoid
         lambda_phugoid_real = eig_real[1]
         lambda_phugoid_imag = eig_imag[1]
         phugoid_omega_n = ((lambda_phugoid_real ** 2 + lambda_phugoid_imag ** 2) + 1e-10) ** 0.5
         phugoid_damping_ratio = -lambda_phugoid_real / phugoid_omega_n
         phugoid_time_2_double = np.log(2) / ((lambda_phugoid_real ** 2 + 1e-10) ** 0.5)
-        long_stability_metrics = TrimStabilityMetrics(
+        self.quantities.stability_analysis = TrimStabilityMetrics(
             A_mat_long=A_mat,
             real_eig_short_period=lambda_sp_real,
             imag_eig_short_period=lambda_sp_imag,
@@ -291,19 +294,19 @@ class AircraftCondition(Condition):
         if print_output:
             print('-----------------------------------')
             print('Longitudinal Stability Metrics for:', self.__class__.__name__, 'in the Flight Dynamics Axis:')
-            print('A Matrix:', long_stability_metrics.A_mat_long.value)
-            print('Short Period Real Eigenvalue:', long_stability_metrics.real_eig_short_period.value)
-            print('Short Period Imaginary Eigenvalue:', long_stability_metrics.imag_eig_short_period.value)
-            print('Short Period Natural Frequency:', long_stability_metrics.nat_freq_short_period.value)
-            print('Short Period Damping Ratio:', long_stability_metrics.damping_ratio_short_period.value)
-            print('Short Period Time to Double:', long_stability_metrics.time_2_double_short_period.value)
-            print('Phugoid Real Eigenvalue:', long_stability_metrics.real_eig_phugoid.value)
-            print('Phugoid Imaginary Eigenvalue:', long_stability_metrics.imag_eig_phugoid.value)
-            print('Phugoid Natural Frequency:', long_stability_metrics.nat_freq_phugoid.value)
-            print('Phugoid Damping Ratio:', long_stability_metrics.damping_ratio_phugoid.value)
-            print('Phugoid Time to Double:', long_stability_metrics.time_2_double_phugoid.value)
+            print('A Matrix:', self.quantities.stability_analysis.A_mat_long.value)
+            print('Short Period Real Eigenvalue:', self.quantities.stability_analysis.real_eig_short_period.value)
+            print('Short Period Imaginary Eigenvalue:', self.quantities.stability_analysis.imag_eig_short_period.value)
+            print('Short Period Natural Frequency:', self.quantities.stability_analysis.nat_freq_short_period.value)
+            print('Short Period Damping Ratio:', self.quantities.stability_analysis.damping_ratio_short_period.value)
+            print('Short Period Time to Double:', self.quantities.stability_analysis.time_2_double_short_period.value)
+            print('Phugoid Real Eigenvalue:', self.quantities.stability_analysis.real_eig_phugoid.value)
+            print('Phugoid Imaginary Eigenvalue:', self.quantities.stability_analysis.imag_eig_phugoid.value)
+            print('Phugoid Natural Frequency:', self.quantities.stability_analysis.nat_freq_phugoid.value)
+            print('Phugoid Damping Ratio:', self.quantities.stability_analysis.damping_ratio_phugoid.value)
+            print('Phugoid Time to Double:', self.quantities.stability_analysis.time_2_double_phugoid.value)
             print('-----------------------------------')
-        return long_stability_metrics
+        return self.quantities.stability_analysis
 
 
 class EigValOperation(csdl.CustomExplicitOperation):
@@ -428,8 +431,9 @@ class CruiseCondition(AircraftCondition):
             u=u, v=v, w=w, p=p, q=q, r=r, axis=self.axis)
         self.quantities.ac_states_atmos = atmos_states
         if self.component is not None:
-            self.total_forces, self.total_moments = self.assemble_forces_moments()
-            self.ac_eom_model = self.compute_eom_model()
+            self.quantities.total_forces, self.quantities.total_moments = self.assemble_forces_moments()
+            self.quantities.ac_eom_model = self.compute_eom_model()
+            self.quantities.stability_analysis = self.perform_linear_stability_analysis()
 
 
 
@@ -513,8 +517,9 @@ class ClimbCondition(AircraftCondition):
             u=u, v=v, w=w, p=p, q=q, r=r, axis=self.axis)
         self.quantities.ac_states_atmos = atmos_states
         if self.component is not None:
-            self.total_forces, self.total_moments = self.assemble_forces_moments()
-            self.ac_eom_model = self.compute_eom_model()
+            self.quantities.total_forces, self.quantities.total_moments = self.assemble_forces_moments()
+            self.quantities.ac_eom_model = self.compute_eom_model()
+            self.quantities.stability_analysis = self.perform_linear_stability_analysis()
 
 
 
@@ -553,6 +558,7 @@ class HoverCondition(AircraftCondition):
             u=u, v=v, w=w, p=p, q=q, r=r, axis=self.axis)
         self.quantities.ac_states_atmos = atmos_states
         if self.component is not None:
-            self.total_forces, self.total_moments = self.assemble_forces_moments()
-            self.ac_eom_model = self.compute_eom_model()
+            self.quantities.total_forces, self.quantities.total_moments = self.assemble_forces_moments()
+            self.quantities.ac_eom_model = self.compute_eom_model()
+            self.quantities.stability_analysis = self.perform_linear_stability_analysis()
 
