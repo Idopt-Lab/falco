@@ -1126,31 +1126,31 @@ for comp in Aircraft.comps.values():
         lift_models.append(lift_model)
     
 Wing.quantities.mass_properties.mass = Q_(152.88, 'kg')
-Wing.quantities.mass_properties.cg_vector = Vector(vector=Q_(np.array([0, 0, 0]), 'm'), axis=fd_axis)
+Wing.quantities.mass_properties.cg_vector = Vector(vector=Q_(wing_le_center.value + np.array([0, 0, 0]), 'm'), axis=fd_axis)
 Wing.quantities.wing_axis = wing_axis
 Wing.quantities.lift_model = lift_models[0]
 
 
 Fuselage.quantities.mass_properties.mass = Q_(235.87, 'kg')
-Fuselage.quantities.mass_properties.cg_vector =  Vector(vector=Q_(np.array([0, 0, 0]), 'm'), axis=fd_axis)
+Fuselage.quantities.mass_properties.cg_vector =  Vector(vector=Q_(wing_le_center.value + np.array([0, 0, 0]), 'm'), axis=fd_axis)
 
 
 HorTail.quantities.mass_properties.mass = Q_(27.3/2, 'kg')
-HorTail.quantities.mass_properties.cg_vector = Vector(vector=Q_(np.array([0, 0, 0]), 'm'), axis=fd_axis)
+HorTail.quantities.mass_properties.cg_vector = Vector(vector=Q_(ht_le_center.value + np.array([0, 0, 0]), 'm'), axis=fd_axis)
 HorTail.quantities.wing_axis = ht_tail_axis
 HorTail.quantities.lift_model = lift_models[1]
 
 
 VertTail.quantities.mass_properties.mass = Q_(27.3/2, 'kg')
-VertTail.quantities.mass_properties.cg_vector = Vector(vector=Q_(np.array([0, 0, 0]), 'm'), axis=fd_axis)
+VertTail.quantities.mass_properties.cg_vector = Vector(vector=Q_(vt_le_mid.value + np.array([0, 0, 0]), 'm'), axis=fd_axis)
 
 
 Battery.quantities.mass_properties.mass = Q_(390.08, 'kg')
-Battery.quantities.mass_properties.cg_vector = Vector(vector=Q_(np.array([0, 0, 0]), 'm'), axis=fd_axis)
+Battery.quantities.mass_properties.cg_vector = Vector(vector=Q_(wing_le_center.value + np.array([0, 0, 0]), 'm'), axis=fd_axis)
 
 
 LandingGear.quantities.mass_properties.mass = Q_(61.15, 'kg')
-LandingGear.quantities.mass_properties.cg_vector = Vector(vector=Q_(np.array([0, 0, 0]), 'm'), axis=fd_axis)
+LandingGear.quantities.mass_properties.cg_vector = Vector(vector=Q_(wing_le_center.value + np.array([0, 0, 0]), 'm'), axis=fd_axis)
 
 
 
