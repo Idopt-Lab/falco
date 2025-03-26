@@ -182,7 +182,7 @@ class AircraftCondition(Condition):
                 total_moments += moments
                 total_inertia += inertia
                 mass = sub_comp.quantities.mass_properties.mass.magnitude
-                total_cg += sub_comp.quantities.mass_properties.cg_vector.vector * mass
+                total_cg += sub_comp.quantities.mass_properties.cg_vector.vector
                 total_mass += mass
             self.component.quantities.mass_properties.cg_vector.vector = total_cg / total_mass
             self.component.quantities.mass_properties.mass = total_mass
@@ -197,7 +197,7 @@ class AircraftCondition(Condition):
             total_moments += moments
             total_inertia += inertia
             mass = self.component.quantities.mass_properties.mass.magnitude
-            total_cg += self.component.quantities.mass_properties.cg_vector.vector * mass
+            total_cg += self.component.quantities.mass_properties.cg_vector.vector
             total_mass += mass
             self.component.quantities.mass_properties.cg_vector.vector = total_cg / total_mass
             self.component.quantities.mass_properties.mass = total_mass
