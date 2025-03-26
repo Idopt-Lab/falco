@@ -1199,8 +1199,8 @@ cruiseCondition = aircraft_conditions.CruiseCondition(
     pitch_angle=Q_(0,'rad'))
 
 total_forces_cruise, total_moments_cruise = cruiseCondition.assemble_forces_moments(print_output=True)
-level_cruise = cruiseCondition.compute_eom_model(print_output=False)
-cruise_long_stabiliy = cruiseCondition.perform_linear_stability_analysis(print_output=False)
+level_cruise = cruiseCondition.compute_eom_model(print_output=True)
+cruise_long_stabiliy = cruiseCondition.perform_linear_stability_analysis(print_output=True)
 
 
 
@@ -1296,9 +1296,7 @@ weights_solver.evaluate(x57_weights_model.design_gross_weight, wing_mass, fusela
 
 
 
-from flight_simulator.core.vehicle.models.mission.AviaryAnalysis import AviaryAnalysis
 
-testAviaryAnalysis = AviaryAnalysis(airframe=Aircraft)
                                     
 
 
