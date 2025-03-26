@@ -1153,7 +1153,6 @@ LandingGear.quantities.mass_properties.mass = Q_(61.15, 'kg')
 LandingGear.quantities.mass_properties.cg_vector = Vector(vector=Q_(wing_le_center.value + np.array([0, 0, 0]), 'm'), axis=fd_axis)
 
 
-
 HL_motor_cgs = [
     [-15.39, -34.98, -4.2],
     [-13.42, -57.66, -4.2],
@@ -1299,8 +1298,8 @@ weights_solver.evaluate(x57_weights_model.design_gross_weight, wing_mass, fusela
 
 from flight_simulator.core.vehicle.models.mission.AviaryAnalysis import AviaryAnalysis
 
-testAviaryAnalysis = AviaryAnalysis(aircraft_data_file_path = REPO_ROOT_FOLDER / 'examples'/ 'advanced_examples' / 'Joeys_X57',
-                                    aircraft_data_file_name='aircraft_for_bench_FwFm.csv')
+testAviaryAnalysis = AviaryAnalysis(airframe=Aircraft)
+                                    
 
 
 
