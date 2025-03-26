@@ -20,7 +20,7 @@ from flight_simulator.core.vehicle.aircraft_control_system import AircraftContro
 from flight_simulator.core.vehicle.models.propulsion.propulsion_model import HLPropCurve, CruisePropCurve, AircraftPropulsion
 from flight_simulator.core.vehicle.models.aerodynamics.aerodynamic_model import LiftModel, AircraftAerodynamics
 from flight_simulator.core.vehicle.models.equations_of_motion.eom_model import SixDoFModel
-from flight_simulator.core.vehicle.models.weights.weights_model import WeightsModel
+from flight_simulator.core.vehicle.models.weights.weights_model import WeightsModel, WeightsSolverModel
 from flight_simulator.core.vehicle.components.wing import Wing as WingComp
 from flight_simulator.core.vehicle.components.fuselage import Fuselage as FuseComp
 from flight_simulator.core.vehicle.components.aircraft import Aircraft as AircraftComp
@@ -1125,7 +1125,6 @@ for comp in Aircraft.comps.values():
         )
         lift_models.append(lift_model)
     
-
 Wing.quantities.mass_properties.mass = Q_(152.88, 'kg')
 Wing.quantities.mass_properties.cg_vector = Vector(vector=Q_(np.array([0, 0, 0]), 'm'), axis=fd_axis)
 Wing.quantities.wing_axis = wing_axis
@@ -1133,7 +1132,7 @@ Wing.quantities.lift_model = lift_models[0]
 
 
 Fuselage.quantities.mass_properties.mass = Q_(235.87, 'kg')
-Fuselage.quantities.mass_properties.cg_vector = Vector(vector=Q_(np.array([0, 0, 0]), 'm'), axis=fd_axis)
+Fuselage.quantities.mass_properties.cg_vector =  Vector(vector=Q_(np.array([0, 0, 0]), 'm'), axis=fd_axis)
 
 
 HorTail.quantities.mass_properties.mass = Q_(27.3/2, 'kg')
@@ -1152,6 +1151,7 @@ Battery.quantities.mass_properties.cg_vector = Vector(vector=Q_(np.array([0, 0, 
 
 LandingGear.quantities.mass_properties.mass = Q_(61.15, 'kg')
 LandingGear.quantities.mass_properties.cg_vector = Vector(vector=Q_(np.array([0, 0, 0]), 'm'), axis=fd_axis)
+
 
 
 HL_motor_cgs = [
@@ -1176,7 +1176,6 @@ for i, HL_motor in enumerate(lift_rotors):
     HL_motor.quantities.prop_radius = HL_radius_x57
     HL_motor.quantities.prop_curve = HLPropCurve()
 
-
 cruise_motor_cgs = [
     [-13.01, -189.74, -0.958],
     [-13.01,  189.74, -0.958],
@@ -1197,71 +1196,71 @@ cruiseCondition = aircraft_conditions.CruiseCondition(
     component = Aircraft,
     altitude=Q_(2500, 'ft'),
     range=Q_(70, 'km'),
-    speed=Q_(120, 'mph'),
+    speed=Q_(67, 'mph'),
     pitch_angle=Q_(0,'rad'))
 
-total_forces_cruise, total_moments_cruise = cruiseCondition.assemble_forces_moments(print_output=False)
+total_forces_cruise, total_moments_cruise = cruiseCondition.assemble_forces_moments(print_output=True)
 level_cruise = cruiseCondition.compute_eom_model(print_output=False)
 cruise_long_stabiliy = cruiseCondition.perform_linear_stability_analysis(print_output=False)
 
 
 
-climbCondition = aircraft_conditions.ClimbCondition(
-    fd_axis=fd_axis,
-    controls=x57_controls,
-    component=Aircraft,
-    initial_altitude=Q_(1000, 'ft'),
-    final_altitude=Q_(2000, 'ft'),
-    pitch_angle=Q_(0,'rad'),
-    flight_path_angle=Q_(0, 'rad'),
-    speed=Q_(67, 'mph'))
+# climbCondition = aircraft_conditions.ClimbCondition(
+#     fd_axis=fd_axis,
+#     controls=x57_controls,
+#     component=Aircraft,
+#     initial_altitude=Q_(1000, 'ft'),
+#     final_altitude=Q_(2000, 'ft'),
+#     pitch_angle=Q_(0,'rad'),
+#     flight_path_angle=Q_(0, 'rad'),
+#     speed=Q_(67, 'mph'))
 
-total_forces_climb, total_moments_climb = climbCondition.assemble_forces_moments(print_output=False)
-accel_climb = climbCondition.compute_eom_model(print_output=False)
-climb_long_stabiliy = climbCondition.perform_linear_stability_analysis(print_output=False)
-
-
-
-hoverCondition = aircraft_conditions.HoverCondition(
-    fd_axis=fd_axis,
-    controls=x57_controls,
-    component=Aircraft,
-    altitude=Q_(100, 'ft'),
-    time=Q_(120,'s'))
-
-total_forces_hover, total_moments_hover = hoverCondition.assemble_forces_moments(print_output=False)
-level_hover = hoverCondition.compute_eom_model(print_output=False)
-hover_long_stabiliy = hoverCondition.perform_linear_stability_analysis(print_output=False)
+# total_forces_climb, total_moments_climb = climbCondition.assemble_forces_moments(print_output=False)
+# accel_climb = climbCondition.compute_eom_model(print_output=False)
+# climb_long_stabiliy = climbCondition.perform_linear_stability_analysis(print_output=False)
 
 
-descentCondition = aircraft_conditions.ClimbCondition(
-    fd_axis=fd_axis,
-    controls=x57_controls,
-    component=Aircraft,
-    initial_altitude=Q_(1000, 'ft'),
-    final_altitude=Q_(300, 'ft'),
-    pitch_angle=Q_(0,'rad'),
-    flight_path_angle=Q_(-3, 'rad'),
-    speed=Q_(67, 'mph'))
 
-total_forces_descent, total_moments_descent = descentCondition.assemble_forces_moments(print_output=False)
-accel_descent = descentCondition.compute_eom_model(print_output=False)
-descent_long_stabiliy = descentCondition.perform_linear_stability_analysis(print_output=False)
+# hoverCondition = aircraft_conditions.HoverCondition(
+#     fd_axis=fd_axis,
+#     controls=x57_controls,
+#     component=Aircraft,
+#     altitude=Q_(100, 'ft'),
+#     time=Q_(120,'s'))
+
+# total_forces_hover, total_moments_hover = hoverCondition.assemble_forces_moments(print_output=False)
+# level_hover = hoverCondition.compute_eom_model(print_output=False)
+# hover_long_stabiliy = hoverCondition.perform_linear_stability_analysis(print_output=False)
 
 
-minus_1g = aircraft_conditions.ClimbCondition(
-    fd_axis=fd_axis,
-    controls=x57_controls,
-    component=Aircraft,
-    initial_altitude=Q_(1000, 'ft'),
-    final_altitude=Q_(300, 'ft'),
-    pitch_angle=Q_(-12,'rad'),
-    flight_path_angle=Q_(-1, 'rad'),
-    speed=Q_(67, 'mph'))
+# descentCondition = aircraft_conditions.ClimbCondition(
+#     fd_axis=fd_axis,
+#     controls=x57_controls,
+#     component=Aircraft,
+#     initial_altitude=Q_(1000, 'ft'),
+#     final_altitude=Q_(300, 'ft'),
+#     pitch_angle=Q_(0,'rad'),
+#     flight_path_angle=Q_(-3, 'rad'),
+#     speed=Q_(67, 'mph'))
 
-total_forces_minus_1g, total_moments_minus_1g = minus_1g.assemble_forces_moments(print_output=False)
-accel_minus_1g = minus_1g.compute_eom_model(print_output=False)
-minus_1g_long_stabiliy = minus_1g.perform_linear_stability_analysis(print_output=False)
+# total_forces_descent, total_moments_descent = descentCondition.assemble_forces_moments(print_output=False)
+# accel_descent = descentCondition.compute_eom_model(print_output=False)
+# descent_long_stabiliy = descentCondition.perform_linear_stability_analysis(print_output=False)
+
+
+# minus_1g = aircraft_conditions.ClimbCondition(
+#     fd_axis=fd_axis,
+#     controls=x57_controls,
+#     component=Aircraft,
+#     initial_altitude=Q_(1000, 'ft'),
+#     final_altitude=Q_(300, 'ft'),
+#     pitch_angle=Q_(-12,'rad'),
+#     flight_path_angle=Q_(-1, 'rad'),
+#     speed=Q_(67, 'mph'))
+
+# total_forces_minus_1g, total_moments_minus_1g = minus_1g.assemble_forces_moments(print_output=False)
+# accel_minus_1g = minus_1g.compute_eom_model(print_output=False)
+# minus_1g_long_stabiliy = minus_1g.perform_linear_stability_analysis(print_output=False)
 
 
 
@@ -1284,13 +1283,16 @@ minus_1g_long_stabiliy = minus_1g.perform_linear_stability_analysis(print_output
 
 
 
+# x57_weights_model = WeightsModel(design_weight=Q_(1360.77, 'kg'),dynamic_pressure=Q_(0.5, 'kg*m/s**2'))
+# wing_mass = x57_weights_model.evaluate_wing_weight(S_ref=Wing.parameters.S_ref, AR=Wing.parameters.AR, sweep=Wing.parameters.sweep, 
+#                                                            taper_ratio=Wing.parameters.taper_ratio)
+# fuselage_mass = x57_weights_model.evaluate_fuselage_weight(fuselage_length=Fuselage.parameters.length, fuselage_height=Fuselage.parameters.max_height,fuselage_width=Fuselage.parameters.max_width)
+# ht_mass = x57_weights_model.evaluate_horizontal_tail_weight(S_ref=HorTail.parameters.S_ref)
+# vt_mass = x57_weights_model.evaluate_vertical_tail_weight(S_ref=VertTail.parameters.S_ref, AR=VertTail.parameters.AR, sweep_c4=VertTail.parameters.sweep)
+# weights_solver = WeightsSolverModel()
+# weights_solver.evaluate(x57_weights_model.design_gross_weight, wing_mass, fuselage_mass, ht_mass, vt_mass, 
+#                         LandingGear.quantities.mass_properties.mass.magnitude, Battery.quantities.mass_properties.mass.magnitude, 81.65, 106.14)
 
-
-x57_weights_model = WeightsModel(design_weight=1360,dynamic_pressure=0.5)
-wing_weight_model = x57_weights_model.evaluate_wing_weight(S_ref=Wing.parameters.S_ref, AR=Wing.parameters.AR, sweep=Wing.parameters.sweep, 
-                                                           taper_ratio=Wing.parameters.taper_ratio,batt_weight=Battery.quantities.mass_properties.mass)
-
-print(f'Wing Weight: {wing_weight_model.value} kg')
 
 
 

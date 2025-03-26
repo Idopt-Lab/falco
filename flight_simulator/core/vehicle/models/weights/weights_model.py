@@ -10,41 +10,50 @@ class WeightsModel:
                  design_weight : Union[float, int, csdl.Variable],
                  dynamic_pressure : Union[float, int, csdl.Variable],
                  )->None:
-        self.design_gross_weight = design_weight
-        self.dynamic_pressure = dynamic_pressure
+        
 
+        if isinstance(design_weight, ureg.Quantity):
+            self.design_gross_weight = csdl.Variable(name='design_weight', shape=(1,), value=design_weight.to_base_units().magnitude)
+        else:
+            self.design_gross_weight = design_weight
+
+        if isinstance(dynamic_pressure, ureg.Quantity):
+            self.dynamic_pressure = csdl.Variable(name='dynamic_pressure', shape=(1,), value=dynamic_pressure.to_base_units().magnitude)
+        else:
+            self.dynamic_pressure = dynamic_pressure
+    
 
     def evaluate_wing_weight(
         self,
         S_ref : Union[float, int, csdl.Variable],
-        batt_weight : Union[float, int, csdl.Variable],
         AR : Union[float, int, csdl.Variable],
         sweep : Union[float, int, csdl.Variable],
         taper_ratio : Union[float, int, csdl.Variable] = 1.,
         thickness_to_chord : Union[float, int, csdl.Variable]=0.12,
         nz : Union[float, int, csdl.Variable] = 3.75,
+        fuel_weight : Union[float, int, csdl.Variable] = 0,
     ):
         
 
         if isinstance(S_ref, ureg.Quantity):
-            self.S_ref = csdl.Variable(name='S_ref', shape=(1,), value=S_ref.to_base_units().magnitude)
+            S_ref = csdl.Variable(name='S_ref', shape=(1,), value=S_ref.to_base_units().magnitude)
         else:
-            self.S_ref = S_ref
-
-        if isinstance(batt_weight, ureg.Quantity):
-            self.batt_weight = csdl.Variable(name='batt_weight', shape=(1,), value=batt_weight.to_base_units().magnitude)
+            S_ref = S_ref
+        
+        if isinstance(fuel_weight, ureg.Quantity):
+            fuel_weight = csdl.Variable(name='fuel_weight', shape=(1,), value=fuel_weight.to_base_units().magnitude)
         else:
-            self.batt_weight = batt_weight
+            fuel_weight = fuel_weight
 
         if isinstance(sweep, ureg.Quantity):
-            self.sweep = csdl.Variable(name='sweep', shape=(1,), value=sweep.to_base_units().magnitude)
+            sweep = csdl.Variable(name='sweep', shape=(1,), value=sweep.to_base_units().magnitude)
         else:
-            self.sweep = sweep
+            sweep = sweep
         
 
 
-        W_wing = 0.036 * self.S_ref**0.758 * self.batt_weight**0.035 * (AR/csdl.cos(self.sweep)**2)**0.6 * self.dynamic_pressure**0.006 \
-        * taper_ratio**0.04 * (100 * thickness_to_chord / csdl.cos(self.sweep))**-0.3 * (nz * self.design_gross_weight)**0.49 
+        W_wing = 0.036 * S_ref**0.758 * fuel_weight**0.035 * (AR/csdl.cos(sweep)**2)**0.6 * self.dynamic_pressure**0.006 \
+        * taper_ratio**0.04 * (100 * thickness_to_chord / csdl.cos(sweep))**-0.3 * (nz * self.design_gross_weight)**0.49 
 
         return W_wing
     
@@ -58,33 +67,33 @@ class WeightsModel:
     ):
         
         if isinstance(fuselage_length, ureg.Quantity):
-            self.fuselage_length = csdl.Variable(name='fuselage_length', shape=(1,), value=fuselage_length.to_base_units().magnitude)
+            fuselage_length = csdl.Variable(name='fuselage_length', shape=(1,), value=fuselage_length.to_base_units().magnitude)
         else:
-            self.fuselage_length = fuselage_length
+            fuselage_length = fuselage_length
         
         if isinstance(fuselage_height, ureg.Quantity):
-            self.fuselage_height = csdl.Variable(name='fuselage_height', shape=(1,), value=fuselage_height.to_base_units().magnitude)
+            fuselage_height = csdl.Variable(name='fuselage_height', shape=(1,), value=fuselage_height.to_base_units().magnitude)
         else:
-            self.fuselage_height = fuselage_height
+            fuselage_height = fuselage_height
 
         if isinstance(fuselage_width, ureg.Quantity):
-            self.fuselage_width = csdl.Variable(name='fuselage_width', shape=(1,), value=fuselage_width.to_base_units().magnitude)
+            fuselage_width = csdl.Variable(name='fuselage_width', shape=(1,), value=fuselage_width.to_base_units().magnitude)
         else:
-            self.fuselage_width = fuselage_width
+            fuselage_width = fuselage_width
 
         if fuselage_length is not None and fuselage_height is not None and fuselage_width is not None:
-            xl = self.fuselage_length
+            xl = fuselage_length
             
-            average_fuselage_diameter = (self.fuselage_height + self.fuselage_width) / 2
+            average_fuselage_diameter = (fuselage_height + fuselage_width) / 2
 
             d_av = average_fuselage_diameter
 
-            self.S_wet = 3.14159 * (xl / d_av - 1.7) * d_av**2
+            S_wet = 3.14159 * (xl / d_av - 1.7) * d_av**2
 
         else:
             raise Exception("Insufficient inputs defined")
 
-        W_fuse = 0.052 * self.S_wet**1.086 * (Nult * self.design_gross_weight) ** 0.177 * self.dynamic_pressure**0.241 
+        W_fuse = 0.052 * S_wet**1.086 * (Nult * self.design_gross_weight) ** 0.177 * self.dynamic_pressure**0.241 
 
         return W_fuse 
     
@@ -98,12 +107,12 @@ class WeightsModel:
     ):
         
         if isinstance(S_ref, ureg.Quantity):
-            self.S_ref = csdl.Variable(name='S_ref', shape=(1,), value=S_ref.to_base_units().magnitude)
+            S_ref = csdl.Variable(name='S_ref', shape=(1,), value=S_ref.to_base_units().magnitude)
         else:
-            self.S_ref = S_ref
+            S_ref = S_ref
 
 
-        W_h_tail = 0.016 * self.S_ref**0.873 * (Nult * self.design_gross_weight)**0.414 * self.dynamic_pressure**0.122
+        W_h_tail = 0.016 * S_ref**0.873 * (Nult * self.design_gross_weight)**0.414 * self.dynamic_pressure**0.122
 
         return W_h_tail
     
@@ -119,18 +128,18 @@ class WeightsModel:
         
 
         if isinstance(S_ref, ureg.Quantity):
-            self.S_ref = csdl.Variable(name='S_ref', shape=(1,), value=S_ref.to_base_units().magnitude)
+            S_ref = csdl.Variable(name='S_ref', shape=(1,), value=S_ref.to_base_units().magnitude)
         else:
-            self.S_ref = S_ref
+            S_ref = S_ref
 
         if isinstance(sweep_c4, ureg.Quantity):
-            self.sweep_c4 = csdl.Variable(name='sweep_c4', shape=(1,), value=sweep_c4.to_base_units().magnitude)
+            sweep_c4 = csdl.Variable(name='sweep_c4', shape=(1,), value=sweep_c4.to_base_units().magnitude)
         else:
-            self.sweep_c4 = sweep_c4
-
+            sweep_c4 = sweep_c4
+            sweep_c4.value = np.deg2rad(sweep_c4.value)
 
         W_v_tail = 0.073 * (1.0 + 0.2 * hht) * (Nult * self.design_gross_weight)**0.376 * self.dynamic_pressure**0.122 * \
-            self.S_ref**0.873 * (AR / csdl.cos(self.sweep_c4)**2)**0.357 / ((100 * thickness_to_chord) / csdl.cos(self.sweep_c4))**0.49
+            S_ref**0.873 * (AR / csdl.cos(sweep_c4)**2)**0.357 / ((100 * thickness_to_chord) / csdl.cos(sweep_c4))**0.49
         
         return W_v_tail
     
@@ -138,7 +147,12 @@ class WeightsModel:
 
 class WeightsSolverModel:
     def evaluate(self, gross_weight_guess : csdl.ImplicitVariable, *component_weights):
-        csdl.check_parameter(gross_weight_guess, "gross_weight_guess", types=(csdl.ImplicitVariable, csdl.Variable))
+
+        if isinstance(gross_weight_guess, ureg.Quantity):
+            gross_weight_guess = csdl.Variable(name='gross_weight_guess', shape=(1,), value=gross_weight_guess.to_base_units().magnitude)
+        else:
+            gross_weight_guess = gross_weight_guess
+    
         gross_weight = csdl.Variable(shape=(1, ), value=0)
 
         for weight in component_weights:

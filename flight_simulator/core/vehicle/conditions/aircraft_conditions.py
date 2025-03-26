@@ -220,7 +220,7 @@ class AircraftCondition(Condition):
         return total_forces, total_moments
 
     def perform_linear_stability_analysis(self, print_output: bool = False) -> TrimStabilityMetrics:
-        m = self.component.quantities.mass_properties.mass
+        m = self.component.quantities.mass_properties.mass.value
         iyy = self.component.quantities.mass_properties.inertia_tensor.inertia_tensor.value[1, 1]
         total_forces = self.component.quantities.total_forces
         total_moments = self.component.quantities.total_moments
