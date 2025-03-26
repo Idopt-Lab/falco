@@ -163,6 +163,7 @@ wing_te_center_parametric = wing.project(wing_te_center_guess, plot=False)
 wing_te_center = geometry.evaluate(wing_te_center_parametric)
 
 wing_qc_center_parametric = geometry.project(np.array([-12.356+(0.25*(-14.25+12.356)), 0., -5.5])*ft2m, plot=False)
+wing_qc_center = geometry.evaluate(wing_qc_center_parametric)
 wing_qc_tip_right_parametric = geometry.project(np.array([-12.356+(0.25*(-14.25+12.356)), 16., -5.5])*ft2m, plot=False)
 wing_qc_tip_left_parametric = geometry.project(np.array([-12.356+(0.25*(-14.25+12.356)), -16., -5.5])*ft2m, plot=False)
 
@@ -1124,33 +1125,33 @@ for comp in Aircraft.comps.values():
             incidence=incidence_x57
         )
         lift_models.append(lift_model)
-    
+
 Wing.quantities.mass_properties.mass = Q_(152.88, 'kg')
-Wing.quantities.mass_properties.cg_vector = Vector(vector=Q_(wing_le_center.value + np.array([0, 0, 0]), 'm'), axis=fd_axis)
+Wing.quantities.mass_properties.cg_vector = Vector(vector=Q_(wing_qc_center.value + np.array([0, 0, 0]), 'm'), axis=fd_axis)
 Wing.quantities.wing_axis = wing_axis
 Wing.quantities.lift_model = lift_models[0]
 
 
 Fuselage.quantities.mass_properties.mass = Q_(235.87, 'kg')
-Fuselage.quantities.mass_properties.cg_vector =  Vector(vector=Q_(wing_le_center.value + np.array([0, 0, 0]), 'm'), axis=fd_axis)
+Fuselage.quantities.mass_properties.cg_vector =  Vector(vector=Q_(wing_qc_center.value + np.array([0, 0, 0]), 'm'), axis=fd_axis)
 
 
 HorTail.quantities.mass_properties.mass = Q_(27.3/2, 'kg')
-HorTail.quantities.mass_properties.cg_vector = Vector(vector=Q_(ht_le_center.value + np.array([0, 0, 0]), 'm'), axis=fd_axis)
+HorTail.quantities.mass_properties.cg_vector = Vector(vector=Q_(ht_qc.value + np.array([0, 0, 0]), 'm'), axis=fd_axis)
 HorTail.quantities.wing_axis = ht_tail_axis
 HorTail.quantities.lift_model = lift_models[1]
 
 
 VertTail.quantities.mass_properties.mass = Q_(27.3/2, 'kg')
-VertTail.quantities.mass_properties.cg_vector = Vector(vector=Q_(vt_le_mid.value + np.array([0, 0, 0]), 'm'), axis=fd_axis)
+VertTail.quantities.mass_properties.cg_vector = Vector(vector=Q_(vt_qc.value + np.array([0, 0, 0]), 'm'), axis=fd_axis)
 
 
 Battery.quantities.mass_properties.mass = Q_(390.08, 'kg')
-Battery.quantities.mass_properties.cg_vector = Vector(vector=Q_(wing_le_center.value + np.array([0, 0, 0]), 'm'), axis=fd_axis)
+Battery.quantities.mass_properties.cg_vector = Vector(vector=Q_(wing_qc_center.value + np.array([0, 0, 0]), 'm'), axis=fd_axis)
 
 
 LandingGear.quantities.mass_properties.mass = Q_(61.15, 'kg')
-LandingGear.quantities.mass_properties.cg_vector = Vector(vector=Q_(wing_le_center.value + np.array([0, 0, 0]), 'm'), axis=fd_axis)
+LandingGear.quantities.mass_properties.cg_vector = Vector(vector=Q_(wing_qc_center.value + np.array([0, 0, 0]), 'm'), axis=fd_axis)
 
 
 HL_motor_cgs = [
@@ -1199,8 +1200,8 @@ cruiseCondition = aircraft_conditions.CruiseCondition(
     pitch_angle=Q_(0,'rad'))
 
 total_forces_cruise, total_moments_cruise = cruiseCondition.assemble_forces_moments(print_output=True)
-level_cruise = cruiseCondition.compute_eom_model(print_output=True)
-cruise_long_stabiliy = cruiseCondition.perform_linear_stability_analysis(print_output=True)
+level_cruise = cruiseCondition.compute_eom_model(print_output=False)
+cruise_long_stabiliy = cruiseCondition.perform_linear_stability_analysis(print_output=False)
 
 
 
@@ -1214,7 +1215,7 @@ climbCondition = aircraft_conditions.ClimbCondition(
     flight_path_angle=Q_(0, 'rad'),
     speed=Q_(67, 'mph'))
 
-total_forces_climb, total_moments_climb = climbCondition.assemble_forces_moments(print_output=True)
+total_forces_climb, total_moments_climb = climbCondition.assemble_forces_moments(print_output=False)
 accel_climb = climbCondition.compute_eom_model(print_output=False)
 climb_long_stabiliy = climbCondition.perform_linear_stability_analysis(print_output=False)
 
