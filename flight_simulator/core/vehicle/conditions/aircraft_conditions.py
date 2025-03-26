@@ -181,9 +181,10 @@ class AircraftCondition(Condition):
                 total_forces += forces
                 total_moments += moments
                 total_inertia += inertia
-                total_cg += sub_comp.quantities.mass_properties.cg_vector.vector
-                total_mass += sub_comp.quantities.mass_properties.mass.magnitude
-            self.component.quantities.mass_properties.cg_vector.vector = total_cg
+                mass = sub_comp.quantities.mass_properties.mass.magnitude
+                total_cg += sub_comp.quantities.mass_properties.cg_vector.vector * mass
+                total_mass += mass
+            self.component.quantities.mass_properties.cg_vector.vector = total_cg / total_mass
             self.component.quantities.mass_properties.mass = total_mass
             self.component.quantities.mass_properties.inertia_tensor.inertia_tensor = total_inertia
         else:
@@ -195,8 +196,12 @@ class AircraftCondition(Condition):
             total_forces += forces
             total_moments += moments
             total_inertia += inertia
-            total_cg += self.component.quantities.mass_properties.cg_vector.vector
-            total_mass += self.component.quantities.mass_properties.mass.magnitude
+            mass = self.component.quantities.mass_properties.mass.magnitude
+            total_cg += self.component.quantities.mass_properties.cg_vector.vector * mass
+            total_mass += mass
+            self.component.quantities.mass_properties.cg_vector.vector = total_cg / total_mass
+            self.component.quantities.mass_properties.mass = total_mass
+            self.component.quantities.mass_properties.inertia_tensor.inertia_tensor = total_inertia
         self.component.quantities.total_forces = total_forces
         self.component.quantities.total_moments = total_moments
 
@@ -213,7 +218,7 @@ class AircraftCondition(Condition):
             print('Atmospheric Density:', self.quantities.ac_states_atmos.density.value, 'kg/m^3')
             print("Total Forces:", total_forces.value, 'N')
             print("Total Moments:", total_moments.value, 'N*m')
-            print("Total Center of Gravity:", total_cg.value, 'm')
+            print("Total Center of Gravity:", self.component.quantities.mass_properties.cg_vector.vector.value, 'm')
             print("Total Mass:", total_mass.value, 'kg')
             print("Total Inertia:", self.component.quantities.mass_properties.inertia_tensor.inertia_tensor.value, 'kg*m^2')
             print('-----------------------------------')
