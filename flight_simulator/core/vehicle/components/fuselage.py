@@ -18,7 +18,7 @@ class FuselageParameters:
     length : Union[float, int, csdl.Variable]
     max_width : Union[float, int, csdl.Variable]
     max_height : Union[float, int, csdl.Variable]
-    S_wet : Union[float, int, csdl.Variable, None]=None
+    S_wet : Union[float, int, csdl.Variable, None]=1
 
 @dataclass
 class FuselageGeometricQuantities:
@@ -51,7 +51,8 @@ class Fuselage(Component):
         self, 
         length : Union[int, float, csdl.Variable],
         max_width : Union[int, float, csdl.Variable, None] = None, 
-        max_height : Union[int, float, csdl.Variable, None] = None, 
+        max_height : Union[int, float, csdl.Variable, None] = None,
+        S_wet : Union[int, float, csdl.Variable, None] = 1, 
         geometry : Union[FunctionSet, None] = None,
         skip_ffd: bool = False,
         parameterization_solver = None,
@@ -79,6 +80,7 @@ class Fuselage(Component):
             length=length,
             max_height=max_height,
             max_width=max_width,
+            S_wet=S_wet
         )
 
         # print(f"Initializing Wing with parameters: {self.parameters.length.value}, {self.parameters.max_width.value}, {self.parameters.max_height.value}")
@@ -89,9 +91,13 @@ class Fuselage(Component):
                 max_height = csdl.Variable(shape=(1, ), value=max_height)
             if not isinstance(max_width, csdl.Variable):
                 max_width = csdl.Variable(shape=(1, ), value=max_width)
+            if not isinstance(S_wet, csdl.Variable):
+                S_wet = csdl.Variable(shape=(1, ), value=S_wet)
+
             f = length/csdl.maximum(max_height, max_width)
             FF = 1 + 60/f**3 + f/400
-            self.parameters.S_wet = self.quantities.surface_area
+            # self.parameters.S_wet = self.quantities.surface_area
+            self.parameters.S_wet = S_wet
 
 
 

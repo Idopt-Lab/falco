@@ -20,6 +20,8 @@ class AviaryAnalysis:
 
 
         """
+
+        self.airframe = airframe
         inputs,outputs = self.save_aircraft_data()
 
         prob = av.AviaryProblem()
@@ -54,144 +56,55 @@ class AviaryAnalysis:
 
     def save_aircraft_data(self):
 
+        airframe = self.airframe
+        X57Aircraft = {}
+        inputs = X57Aircraft['inputs'] = AviaryValues()
+        outputs = X57Aircraft['outputs'] = AviaryValues()
 
-        MultiEngineSingleAisle = {}
-        inputs = MultiEngineSingleAisle['inputs'] = AviaryValues()
-        outputs = MultiEngineSingleAisle['outputs'] = AviaryValues()
 
+        ## USING large_single_aisle_2_FLOPS_data.py as a reference
         # Overall Aircraft
         # ---------------------------
-        inputs.set_val(Aircraft.Design.BASE_AREA, 0.0, 'ft**2')
-        inputs.set_val(Aircraft.Design.EMPTY_MASS_MARGIN_SCALER, 0.00514)
-        inputs.set_val(Aircraft.Design.LANDING_TO_TAKEOFF_MASS_RATIO, 0.84)
-        inputs.set_val(Mission.Design.GROSS_MASS, 174200.0, 'lbm')
-        inputs.set_val(Aircraft.Design.USE_ALT_MASS, False)
-        inputs.set_val(Aircraft.Design.LIFT_DEPENDENT_DRAG_COEFF_FACTOR, 1.0)
-        inputs.set_val(Aircraft.Design.SUBSONIC_DRAG_COEFF_FACTOR, 1.0)
-        inputs.set_val(Aircraft.Design.SUPERSONIC_DRAG_COEFF_FACTOR, 1.0)
-        inputs.set_val(Aircraft.Design.ZERO_LIFT_DRAG_COEFF_FACTOR, 0.945)
 
-        # Air Conditioning
-        # ---------------------------
-        inputs.set_val(Aircraft.AirConditioning.MASS_SCALER, 1.0)
+        inputs.set_val(Mission.Design.GROSS_MASS, airframe.quantities.mass_properties.mass.value, 'kg')
 
-        # Anti-Icing
-        # ---------------------------
-        inputs.set_val(Aircraft.AntiIcing.MASS_SCALER, 1.0)
-
-        # APU
-        # ---------------------------
-        inputs.set_val(Aircraft.APU.MASS_SCALER, 1.0)
-
-        # Avionics
-        # ---------------------------
-        inputs.set_val(Aircraft.Avionics.MASS_SCALER, 1.0)
-
-        # Canard
-        # ---------------------------
-        inputs.set_val(Aircraft.Canard.AREA, 0.0, 'ft**2')
-        inputs.set_val(Aircraft.Canard.ASPECT_RATIO, 0.0)
-        inputs.set_val(Aircraft.Canard.THICKNESS_TO_CHORD, 0.0)
 
         # Crew and Payload
         # ---------------------------
-        inputs.set_val(Aircraft.CrewPayload.Design.NUM_BUSINESS_CLASS, 0)
-        inputs.set_val(Aircraft.CrewPayload.Design.NUM_FIRST_CLASS, 12)
-        inputs.set_val(Aircraft.CrewPayload.Design.NUM_PASSENGERS, 162, units='unitless')
-        inputs.set_val(Aircraft.CrewPayload.Design.NUM_TOURIST_CLASS, 150)
-        inputs.set_val(Aircraft.CrewPayload.NUM_BUSINESS_CLASS, 0)
-        inputs.set_val(Aircraft.CrewPayload.NUM_FIRST_CLASS, 12)
-        inputs.set_val(Aircraft.CrewPayload.NUM_PASSENGERS, 162, units='unitless')
-        inputs.set_val(Aircraft.CrewPayload.NUM_TOURIST_CLASS, 150)
-
-        inputs.set_val(Aircraft.CrewPayload.BAGGAGE_MASS_PER_PASSENGER, 35.0, 'lbm')
-        inputs.set_val(Aircraft.CrewPayload.CARGO_CONTAINER_MASS_SCALER, 1.0)
-        inputs.set_val(Aircraft.CrewPayload.NUM_FLIGHT_ATTENDANTS, 5)
-        inputs.set_val(Aircraft.CrewPayload.NUM_FLIGHT_CREW, 2)
-        inputs.set_val(Aircraft.CrewPayload.FLIGHT_CREW_MASS_SCALER, 1.0)
-        inputs.set_val(Aircraft.CrewPayload.NUM_GALLEY_CREW, 1)
-        inputs.set_val(Aircraft.CrewPayload.MISC_CARGO, 4077.0, 'lbm')
-        inputs.set_val(Aircraft.CrewPayload.NON_FLIGHT_CREW_MASS_SCALER, 1.0)
-        inputs.set_val(Aircraft.CrewPayload.PASSENGER_SERVICE_MASS_SCALER, 1.0)
-        inputs.set_val(Aircraft.CrewPayload.MASS_PER_PASSENGER, 165.0, 'lbm')
-        inputs.set_val(Aircraft.CrewPayload.WING_CARGO, 0.0, 'lbm')
-
-        # Electrical
-        # ---------------------------
-        inputs.set_val(Aircraft.Electrical.MASS_SCALER, 1.0)
-
-        # Fins
-        # ---------------------------
-        inputs.set_val(Aircraft.Fins.AREA, 0.0, 'ft**2')
-        inputs.set_val(Aircraft.Fins.NUM_FINS, 0)
-        inputs.set_val(Aircraft.Fins.TAPER_RATIO, 10.0)
-        inputs.set_val(Aircraft.Fins.MASS, 1.0, 'lbm')
-        inputs.set_val(Aircraft.Fins.MASS_SCALER, 1.0)
+        inputs.set_val(Aircraft.Battery.MASS, airframe.comps["Battery"].quantities.mass_properties.mass.magnitude, 'kg')
+        
 
         # Fuel
         # ---------------------------
-        inputs.set_val(Aircraft.Fuel.AUXILIARY_FUEL_CAPACITY, 0.0, 'lbm')
         inputs.set_val(Aircraft.Fuel.DENSITY_RATIO, 1.0)
         inputs.set_val(Aircraft.Fuel.FUEL_SYSTEM_MASS_SCALER, 1.0)
         inputs.set_val(Aircraft.Fuel.NUM_TANKS, 7)
         inputs.set_val(Aircraft.Fuel.TOTAL_CAPACITY, 46063.0, 'lbm')
         inputs.set_val(Aircraft.Fuel.UNUSABLE_FUEL_MASS_SCALER, 1.0)
 
-        # Furnishings
-        # ---------------------------
-        inputs.set_val(Aircraft.Furnishings.MASS_SCALER, 1.0)
 
         # Fuselage
         # ---------------------------
         inputs.set_val(Aircraft.Fuselage.NUM_FUSELAGES, 1)
-        inputs.set_val(Aircraft.Fuselage.LENGTH, 124.75, 'ft')
-        inputs.set_val(Aircraft.Fuselage.PASSENGER_COMPARTMENT_LENGTH, 98.5, 'ft')
-        inputs.set_val(Aircraft.Fuselage.MAX_HEIGHT, 13.0208, 'ft')
-        inputs.set_val(Aircraft.Fuselage.MAX_WIDTH, 12.33, 'ft')
+        inputs.set_val(Aircraft.Fuselage.LENGTH, airframe.comps["Fuselage"].parameters.length.value, 'm')
+        inputs.set_val(Aircraft.Fuselage.MAX_HEIGHT, airframe.comps["Fuselage"].parameters.max_height.value, 'm')
+        inputs.set_val(Aircraft.Fuselage.MAX_WIDTH, airframe.comps["Fuselage"].parameters.max_width.value, 'm')
         inputs.set_val(Aircraft.Fuselage.MILITARY_CARGO_FLOOR, False)
-        inputs.set_val(Aircraft.Fuselage.PLANFORM_AREA, 124.75 * 12.33, 'ft**2')
         inputs.set_val(Aircraft.Fuselage.MASS_SCALER, 1.0)
-        inputs.set_val(Aircraft.Fuselage.WETTED_AREA, 4142.317, 'ft**2')  # Override
+        inputs.set_val(Aircraft.Fuselage.WETTED_AREA, airframe.comps["Fuselage"].parameters.S_wet.value, 'm**2') 
         inputs.set_val(Aircraft.Fuselage.WETTED_AREA_SCALER, 1.0)
 
         # Horizontal Tail
         # ---------------------------
-        inputs.set_val(Aircraft.HorizontalTail.AREA, 407.335370699457, 'ft**2')
-        inputs.set_val(Aircraft.HorizontalTail.ASPECT_RATIO, 5.444)
-        inputs.set_val(Aircraft.HorizontalTail.TAPER_RATIO, 0.3008)
-        inputs.set_val(Aircraft.HorizontalTail.THICKNESS_TO_CHORD, 0.1195)
+        inputs.set_val(Aircraft.HorizontalTail.AREA, airframe.comps["Horizontal Tail"].parameters.S_ref.value, 'ft**2')
+        inputs.set_val(Aircraft.HorizontalTail.ASPECT_RATIO, airframe.comps["Horizontal Tail"].parameters.AR.value)
+        inputs.set_val(Aircraft.HorizontalTail.TAPER_RATIO, airframe.comps["Horizontal Tail"].parameters.taper_ratio.value)
+        inputs.set_val(Aircraft.HorizontalTail.THICKNESS_TO_CHORD, airframe.comps["Horizontal Tail"].parameters.thickness_to_chord)
         inputs.set_val(Aircraft.HorizontalTail.VERTICAL_TAIL_FRACTION, 0.0)
         inputs.set_val(Aircraft.HorizontalTail.MASS_SCALER, 1.0)
-        inputs.set_val(Aircraft.HorizontalTail.WETTED_AREA, 707.706, 'ft**2')  # Override
+        inputs.set_val(Aircraft.HorizontalTail.WETTED_AREA, airframe.comps["Horizontal Tail"].parameters.S_ref.value * 2, 'ft**2')  # Override
         inputs.set_val(Aircraft.HorizontalTail.WETTED_AREA_SCALER, 1.0)
 
-        # Hydraulics
-        # ---------------------------
-        inputs.set_val(Aircraft.Hydraulics.SYSTEM_PRESSURE, 3000.0, 'psi')
-        inputs.set_val(Aircraft.Hydraulics.MASS_SCALER, 1.0)
-
-        # Instruments
-        # ---------------------------
-        inputs.set_val(Aircraft.Instruments.MASS_SCALER, 1.0)
-
-        # Landing Gear
-        # ---------------------------
-        inputs.set_val(Aircraft.LandingGear.CARRIER_BASED, False)
-        inputs.set_val(Aircraft.LandingGear.MAIN_GEAR_OLEO_LENGTH, 84.0, 'inch')
-        inputs.set_val(Aircraft.LandingGear.MAIN_GEAR_MASS_SCALER, 1.0)
-        inputs.set_val(Aircraft.LandingGear.NOSE_GEAR_OLEO_LENGTH, 58.8, 'inch')
-        inputs.set_val(Aircraft.LandingGear.NOSE_GEAR_MASS_SCALER, 1.0)
-
-        # Nacelle
-        # ---------------------------
-        inputs.set_val(Aircraft.Nacelle.AVG_DIAMETER, 7.0, 'ft')
-        inputs.set_val(Aircraft.Nacelle.AVG_LENGTH, 11.65, 'ft')
-        inputs.set_val(Aircraft.Nacelle.MASS_SCALER, 1.0)
-        inputs.set_val(Aircraft.Nacelle.WETTED_AREA_SCALER, 1.0)
-
-        # Paint
-        # ---------------------------
-        inputs.set_val(Aircraft.Paint.MASS_PER_UNIT_AREA, 0.07, 'lbm/ft**2')
 
         # Propulsion and Engine
         # ---------------------------
@@ -336,7 +249,7 @@ class AviaryAnalysis:
 
         # Settings
         # ---------------------------
-        inputs.set_val(Settings.EQUATIONS_OF_MOTION, EquationsOfMotion.HEIGHT_ENERGY)
+        inputs.set_val(Settings.EQUATIONS_OF_MOTION, EquationsOfMotion.TWO_DEGREES_OF_FREEDOM)
         inputs.set_val(Settings.MASS_METHOD, LegacyCode.FLOPS)
         inputs.set_val(Settings.VERBOSITY, 0)
 
