@@ -1,0 +1,11 @@
+{
+ "Problem": "x57_geometry",
+ "Script": "c:/Users/joeyg/OneDrive/Documents/GitHub/Sarojini_Research/aircraft-flight-simulator/examples/advanced_examples/Joeys_X57/x57_geometry.py",
+ "Optimizer": "ScipyOptimize_SLSQP",
+ "Number of driver iterations": 7,
+ "Number of model evals": 7,
+ "Number of deriv evals": 6,
+ "Wall clock run time": "00 hours 00 minutes 03 seconds 999.8 milliseconds",
+ "Exit status": "SUCCESS",
+ "Report generation date and time": "2025-03-26 10:52:28 "
+}

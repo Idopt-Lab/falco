@@ -210,3 +210,12 @@ class SixDoFModel:
         )
 
         return lin_and_ang_accel_output
+    
+
+
+
+
+
+
+        
+    

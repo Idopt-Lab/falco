@@ -1215,7 +1215,7 @@ climbCondition = aircraft_conditions.ClimbCondition(
     flight_path_angle=Q_(0, 'rad'),
     speed=Q_(67, 'mph'))
 
-total_forces_climb, total_moments_climb = climbCondition.assemble_forces_moments(print_output=False)
+total_forces_climb, total_moments_climb = climbCondition.assemble_forces_moments(print_output=True)
 accel_climb = climbCondition.compute_eom_model(print_output=False)
 climb_long_stabiliy = climbCondition.perform_linear_stability_analysis(print_output=False)
 
@@ -1269,6 +1269,7 @@ minus_1g_long_stabiliy = minus_1g.perform_linear_stability_analysis(print_output
 
 
 # TODO: 
+# 0. Finish setting up Aviary Analysis - just need to figure out how to add aircraftCondition data to the csv that Aviary uses for mission analysis
 # 1. Add more conditions
 # 2. Refine Trim Stability - improving current Trim Model
 # 3. Refine Aero Loads - improving current Lift Model
@@ -1296,7 +1297,10 @@ weights_solver.evaluate(x57_weights_model.design_gross_weight, wing_mass, fusela
 
 
 
+from flight_simulator.core.vehicle.models.mission.AviaryAnalysis import AviaryAnalysis
 
+testAviaryAnalysis = AviaryAnalysis(aircraft_data_file_path = REPO_ROOT_FOLDER / 'examples'/ 'advanced_examples' / 'Joeys_X57',
+                                    aircraft_data_file_name='aircraft_for_bench_FwFm.csv')
 
 
 
