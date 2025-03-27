@@ -59,7 +59,8 @@ class ComponentQuantities:
 
 @dataclass
 class ComponentParameters:
-    pass
+    actuate_angle: Union[csdl.Variable, float, None] = None
+    pass    
 
 
 class Component:

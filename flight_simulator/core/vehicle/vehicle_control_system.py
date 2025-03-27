@@ -28,7 +28,10 @@ class ControlSurface:
         if component is None: # Massless control surface case with no deflection pre-defined
             self.deflection = csdl.Variable(name=name+'_deflection', shape=(1, ), value=0.)
         elif component is not None and component.parameters.actuate_angle is None:
-            self.deflection = csdl.Variable(name=name+'_deflection', shape=(1, ), value=0.)
+            if not isinstance(component.parameters.actuate_angle, csdl.Variable):
+                self.deflection = csdl.Variable(name=name+'_deflection', shape=(1, ), value=component.parameters.actuate_angle)
+            else:
+                self.deflection = component.parameters.actuate_angle
         else:
             assert isinstance(component.parameters.actuate_angle, csdl.Variable)
             self.deflection = component.parameters.actuate_angle

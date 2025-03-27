@@ -162,6 +162,20 @@ wing_te_center_guess = np.array([-14.25, 0., -5.5])*ft2m
 wing_te_center_parametric = wing.project(wing_te_center_guess, plot=False)
 wing_te_center = geometry.evaluate(wing_te_center_parametric)
 
+
+wing_te_aileron_left_parametric = wing.project(np.array([-13.85, -13.4, -7.5])*ft2m, plot=False)
+wing_te_aileron_left = geometry.evaluate(wing_te_aileron_left_parametric)
+
+wing_te_aileron_right_parametric = wing.project(np.array([-13.85, 13.4, -7.5])*ft2m, plot=False)
+wing_te_aileron_right = geometry.evaluate(wing_te_aileron_left_parametric)
+
+wing_te_flap_left_parametric = wing.project(np.array([-13.85, -6.05, -7.5])*ft2m, plot=False)
+wing_te_flap_left = geometry.evaluate(wing_te_aileron_left_parametric)
+
+wing_te_flap_right_parametric = wing.project(np.array([-13.85, 6.05, -7.5])*ft2m, plot=False)
+wing_te_flap_right = geometry.evaluate(wing_te_aileron_left_parametric)
+
+
 wing_qc_center_parametric = geometry.project(np.array([-12.356+(0.25*(-14.25+12.356)), 0., -5.5])*ft2m, plot=False)
 wing_qc_center = geometry.evaluate(wing_qc_center_parametric)
 wing_qc_tip_right_parametric = geometry.project(np.array([-12.356+(0.25*(-14.25+12.356)), 16., -5.5])*ft2m, plot=False)
@@ -975,12 +989,6 @@ Aircraft.add_subcomponent(Fuselage)
 
 
 
-aileronL.rotate(left_aileron_le_center, np.array([0., 1., 0.]), angles=np.deg2rad(0))
-aileronR.rotate(right_aileron_le_center, np.array([0., 1., 0.]), angles=np.deg2rad(0))
-flapL.rotate(left_flap_le_center, np.array([0., 1., 0.]), angles=np.deg2rad(0))
-flapR.rotate(right_flap_le_center, np.array([0., 1., 0.]), angles=np.deg2rad(0))
-htALL.rotate(ht_qc, np.array([0., 1., 0.]), angles=np.deg2rad(0))
-rudder.rotate(rudder_le_mid, np.array([0., 0., 1.]), angles=np.deg2rad(0))
 
 
 
@@ -1001,11 +1009,28 @@ Wing = WingComp(AR=wing_AR,
                 ffd_geometric_variables=ffd_geometric_variables
                 )
 
+
 Aircraft.add_subcomponent(Wing)
 wing_qc_fuse_connection = geometry.evaluate(wing_qc_center_parametric) - geometry.evaluate(fuselage_wing_qc_center_parametric)
 parameterization_solver.add_variable(computed_value=wing_qc_fuse_connection, desired_value=wing_qc_fuse_connection.value)
 
+LeftAileron = Component(name='Left Aileron')
+LeftAileron.parameters.actuate_angle = csdl.Variable(name="Left Aileron Actuate Angle", shape=(1,), value=np.deg2rad(15))
+Aircraft.add_subcomponent(LeftAileron)
 
+
+RightAileron = Component(name='Right Aileron')
+RightAileron.parameters.actuate_angle = csdl.Variable(name="Right Aileron Actuate Angle", shape=(1,), value=np.deg2rad(15))
+Aircraft.add_subcomponent(RightAileron)
+
+
+LeftFlap = Component(name='Left Flap')
+LeftFlap.parameters.actuate_angle = csdl.Variable(name="Left Flap Actuate Angle", shape=(1,), value=np.deg2rad(10))
+Aircraft.add_subcomponent(LeftFlap)
+
+RightFlap = Component(name='Right Flap')
+RightFlap.parameters.actuate_angle = csdl.Variable(name="Right Flap Actuate Angle", shape=(1,), value=np.deg2rad(10))
+Aircraft.add_subcomponent(RightFlap)
 
 
 HorTailArea = ht_span*ht_chord
@@ -1017,10 +1042,12 @@ HT_sweep = csdl.Variable(name="HT_sweep", shape=(1, ), value=0)
 HorTail = WingComp(AR=HorTail_AR, span=HT_span, sweep=HT_sweep,
                    geometry=htALL, parametric_geometry=ht_parametric_geometry,
                    tight_fit_ffd=False, skip_ffd=False,
-                   name='Horizontal Tail', orientation='horizontal', 
+                   name='Elevator', orientation='horizontal', 
                    parameterization_solver=parameterization_solver,
                    ffd_geometric_variables=ffd_geometric_variables)
 Aircraft.add_subcomponent(HorTail)
+
+HorTail.parameters.actuate_angle = csdl.Variable(name="Elevator Actuate Angle", shape=(1,), value=np.deg2rad(50))
 
 
 tail_moment_arm_computed = csdl.norm(geometry.evaluate(ht_qc_center_parametric) - geometry.evaluate(wing_qc_center_parametric))
@@ -1032,7 +1059,6 @@ parameterization_solver.add_variable(computed_value=h_tail_fuselage_connection, 
 
 vt_AR= csdl.Variable(name="VT_AR", shape=(1, ), value=1.998)
 VT_span = csdl.Variable(name="VT_span", shape=(1, ), value=2.3761728)
-VT_actuation_angle = csdl.Variable(name="VT_actuation_angle", shape=(1, ), value=0)
 VT_sweep = csdl.Variable(name="VT_sweep", shape=(1, ), value=-40)
 
 
@@ -1043,6 +1069,10 @@ VertTail = WingComp(AR=vt_AR, span=VT_span, sweep=VT_sweep,
                     parameterization_solver=parameterization_solver,
                     ffd_geometric_variables=ffd_geometric_variables)
 Aircraft.add_subcomponent(VertTail)
+
+Rudder = Component(name='Rudder')
+Rudder.parameters.actuate_angle = csdl.Variable(name="Rudder Actuate Angle", shape=(1,), value=np.deg2rad(0))
+Aircraft.add_subcomponent(Rudder)
 
 vtail_fuselage_connection = geometry.evaluate(fuselage_rear_pts_parametric) - geometry.evaluate(vt_qc_base_parametric)
 parameterization_solver.add_variable(computed_value=vtail_fuselage_connection, desired_value=vtail_fuselage_connection.value)
@@ -1097,7 +1127,9 @@ x57_mass_properties = MassProperties(mass=Q_(1360.77, 'kg'),
                                       cg=Vector(vector=Q_(np.array([0, 0, 0]), 'm'), axis=fd_axis))
 
 atmospheric_states = x_57_states.atmospheric_states
-x57_controls = AircraftControlSystem(engine_count=12,symmetrical=True)
+x57_controls = AircraftControlSystem(engine_count=12,symmetrical=False)
+x57_controls.elevator.deflection = HorTail.parameters.actuate_angle
+print(x57_controls.elevator.deflection.value)
 
 
 x57_aircraft = Component(name='X-57')
@@ -1132,6 +1164,21 @@ Wing.quantities.wing_axis = wing_axis
 Wing.quantities.lift_model = lift_models[0]
 
 
+LeftAileron.quantities.mass_properties.mass = Q_(0, 'kg')
+LeftAileron.quantities.mass_properties.cg_vector = Vector(vector=Q_(np.array([0, 0, 0]), 'm'), axis=fd_axis)
+
+RightAileron.quantities.mass_properties.mass = Q_(0, 'kg')
+RightAileron.quantities.mass_properties.cg_vector = Vector(vector=Q_(np.array([0, 0, 0]), 'm'), axis=fd_axis)
+
+LeftFlap.parameters.actuate_angle = csdl.Variable(name="Left Flap Actuation Angle", shape=(1, ), value=0)  
+LeftFlap.quantities.mass_properties.mass = Q_(0, 'kg')
+LeftFlap.quantities.mass_properties.cg_vector = Vector(vector=Q_(np.array([0, 0, 0]), 'm'), axis=fd_axis)
+
+RightFlap.parameters.actuate_angle = csdl.Variable(name="Right Flap Actuation Angle", shape=(1, ), value=0)
+RightFlap.quantities.mass_properties.mass = Q_(0, 'kg')
+RightFlap.quantities.mass_properties.cg_vector = Vector(vector=Q_(np.array([0, 0, 0]), 'm'), axis=fd_axis)
+
+
 Fuselage.quantities.mass_properties.mass = Q_(235.87, 'kg')
 Fuselage.quantities.mass_properties.cg_vector =  Vector(vector=Q_(wing_qc_center.value + np.array([0, 0, 0]), 'm'), axis=fd_axis)
 
@@ -1145,6 +1192,8 @@ HorTail.quantities.lift_model = lift_models[1]
 VertTail.quantities.mass_properties.mass = Q_(27.3/2, 'kg')
 VertTail.quantities.mass_properties.cg_vector = Vector(vector=Q_(vt_qc.value + np.array([0, 0, 0]), 'm'), axis=fd_axis)
 
+Rudder.quantities.mass_properties.mass = Q_(0, 'kg')
+Rudder.quantities.mass_properties.cg_vector = Vector(vector=Q_(np.array([0, 0, 0]), 'm'), axis=fd_axis)
 
 Battery.quantities.mass_properties.mass = Q_(390.08, 'kg')
 Battery.quantities.mass_properties.cg_vector = Vector(vector=Q_(wing_qc_center.value + np.array([0, 0, 0]), 'm'), axis=fd_axis)
@@ -1199,8 +1248,8 @@ cruiseCondition = aircraft_conditions.CruiseCondition(
     speed=Q_(67, 'mph'),
     pitch_angle=Q_(0,'rad'))
 
-total_forces_cruise, total_moments_cruise = cruiseCondition.assemble_forces_moments(print_output=True)
-level_cruise = cruiseCondition.compute_eom_model(print_output=False)
+total_forces_cruise, total_moments_cruise = cruiseCondition.assemble_forces_moments(print_output=False)
+level_cruise = cruiseCondition.compute_eom_model(print_output=True)
 cruise_long_stabiliy = cruiseCondition.perform_linear_stability_analysis(print_output=False)
 
 

@@ -9,16 +9,6 @@ from flight_simulator.core.vehicle.vehicle_control_system import VehicleControlS
 
 class AircraftControlSystem(VehicleControlSystem):
 
-    @dataclass
-    class ControlVector(csdl.VariableGroup):
-        left_aileron: csdl.Variable
-        right_aileron: csdl.Variable
-        left_flap: csdl.Variable
-        right_flap: csdl.Variable
-        elevator: csdl.Variable
-        rudder: csdl.Variable
-        throttle: csdl.Variable
-
     def __init__(self, engine_count, symmetrical: bool = True):
         self.symmetrical = symmetrical
         self.elevator = ControlSurface(name='Elevator',lb=-26, ub=28)
@@ -36,6 +26,8 @@ class AircraftControlSystem(VehicleControlSystem):
         num_engines = engine_count
         self.engines = [PropulsiveControl(name=f'Motor{i+1}', throttle=1.0) for i in range(num_engines)]
 
+
+
         if symmetrical:
             self.u = csdl.concatenate((self.aileron.deflection,
                                         -self.aileron.deflection,
@@ -45,13 +37,13 @@ class AircraftControlSystem(VehicleControlSystem):
                                         self.rudder.deflection,
                                         self.engines[0].throttle),axis=0)
         else:
+            engine_throttles = tuple(engine.throttle for engine in self.engines)
             self.u = csdl.concatenate((self.left_aileron.deflection,
                                        self.right_aileron.deflection,
                                        self.left_flap.deflection,
                                        self.right_flap.deflection,
                                        self.elevator.deflection,
-                                       self.rudder.deflection,
-                                       [engine.throttle for engine in self.engines]),axis=0)
+                                       self.rudder.deflection) + engine_throttles,axis=0)
         
         if symmetrical:
             super().__init__(
@@ -66,7 +58,7 @@ class AircraftControlSystem(VehicleControlSystem):
                 roll_control=[self.left_aileron, self.right_aileron],
                 yaw_control=[self.rudder],
                 throttle_control=[self.engines]
-            )
+            )       
     @property
     def control_order(self)-> List[str]:
         return ['roll', 'pitch', 'yaw', 'throttle']
