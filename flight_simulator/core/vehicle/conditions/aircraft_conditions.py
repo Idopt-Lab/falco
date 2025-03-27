@@ -147,14 +147,16 @@ class AircraftCondition(Condition):
     def compute_eom_model(self, print_output: bool = False):
         eom_model = SixDoFModel()
         self.quantities.ac_eom_model = eom_model.evaluate(
-            total_forces=self.quantities.total_forces,
-            total_moments=self.quantities.total_moments,
+            total_forces=self.component.quantities.total_forces,
+            total_moments=self.component.quantities.total_moments,
             ac_states=self.quantities.ac_states,
             ac_mass_properties=self.component.quantities.mass_properties
         )
         if print_output:
             print('-----------------------------------')
             print('Aircraft Condition:', self.__class__.__name__, 'in the Flight Dynamics Axis:')
+            print('Elevator Deflection:', self.controls.elevator.deflection.value, 'rad')
+            print('Rudder Deflection:', self.controls.rudder.deflection.value, 'rad')
             print('dp_dt:', self.quantities.ac_eom_model.dp_dt.value, 'rad/s^2')
             print('dq_dt:', self.quantities.ac_eom_model.dq_dt.value, 'rad/s^2')
             print('dr_dt:', self.quantities.ac_eom_model.dr_dt.value, 'rad/s^2')

@@ -24,7 +24,8 @@ class AircraftControlSystem(VehicleControlSystem):
 
         self.rudder = ControlSurface(name='Rudder',lb=-15, ub=15)
         num_engines = engine_count
-        self.engines = [PropulsiveControl(name=f'Motor{i+1}', throttle=1.0) for i in range(num_engines)]
+        self.throttle = 1.0
+        self.engines = [PropulsiveControl(name=f'Motor{i+1}', throttle = self.throttle) for i in range(num_engines)]
 
 
 

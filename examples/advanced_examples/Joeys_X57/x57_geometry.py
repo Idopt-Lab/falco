@@ -1047,7 +1047,7 @@ HorTail = WingComp(AR=HorTail_AR, span=HT_span, sweep=HT_sweep,
                    ffd_geometric_variables=ffd_geometric_variables)
 Aircraft.add_subcomponent(HorTail)
 
-HorTail.parameters.actuate_angle = csdl.Variable(name="Elevator Actuate Angle", shape=(1,), value=np.deg2rad(50))
+HorTail.parameters.actuate_angle = csdl.Variable(name="Elevator Actuate Angle", shape=(1,), value=np.deg2rad(21.5))
 
 
 tail_moment_arm_computed = csdl.norm(geometry.evaluate(ht_qc_center_parametric) - geometry.evaluate(wing_qc_center_parametric))
@@ -1127,9 +1127,10 @@ x57_mass_properties = MassProperties(mass=Q_(1360.77, 'kg'),
                                       cg=Vector(vector=Q_(np.array([0, 0, 0]), 'm'), axis=fd_axis))
 
 atmospheric_states = x_57_states.atmospheric_states
-x57_controls = AircraftControlSystem(engine_count=12,symmetrical=False)
+x57_controls = AircraftControlSystem(engine_count=12,symmetrical=True)
 x57_controls.elevator.deflection = HorTail.parameters.actuate_angle
-print(x57_controls.elevator.deflection.value)
+x57_controls.rudder.deflection = Rudder.parameters.actuate_angle
+
 
 
 x57_aircraft = Component(name='X-57')
@@ -1139,7 +1140,7 @@ cruise_radius_x57 = csdl.Variable(shape=(1,), value=5/2) # cruise propeller radi
 
 e_x57 = csdl.Variable(shape=(1,), value=0.87) # Oswald efficiency factor
 CD0_x57 = csdl.Variable(shape=(1,), value=0.001) # Zero-lift drag coefficient
-incidence_x57 = csdl.Variable(shape=(1,), value=2*np.pi/180) # Wing incidence angle in radians
+incidence_x57 = csdl.Variable(shape=(1,), value=np.deg2rad(0)) # Wing incidence angle in radians
 
 
 
@@ -1295,21 +1296,6 @@ descentCondition = aircraft_conditions.ClimbCondition(
 total_forces_descent, total_moments_descent = descentCondition.assemble_forces_moments(print_output=False)
 accel_descent = descentCondition.compute_eom_model(print_output=False)
 descent_long_stabiliy = descentCondition.perform_linear_stability_analysis(print_output=False)
-
-
-minus_1g = aircraft_conditions.ClimbCondition(
-    fd_axis=fd_axis,
-    controls=x57_controls,
-    component=Aircraft,
-    initial_altitude=Q_(1000, 'ft'),
-    final_altitude=Q_(300, 'ft'),
-    pitch_angle=Q_(-12,'rad'),
-    flight_path_angle=Q_(-1, 'rad'),
-    speed=Q_(67, 'mph'))
-
-total_forces_minus_1g, total_moments_minus_1g = minus_1g.assemble_forces_moments(print_output=False)
-accel_minus_1g = minus_1g.compute_eom_model(print_output=False)
-minus_1g_long_stabiliy = minus_1g.perform_linear_stability_analysis(print_output=False)
 
 
 
