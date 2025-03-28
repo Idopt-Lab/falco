@@ -35,7 +35,7 @@ lfs.num_workers = 1
 
 debug = False
 do_geo_param = False
-do_trim_optimization = False
+do_trim_optimization = True
 
 recorder = csdl.Recorder(inline=True, expand_ops=True, debug=debug)
 
@@ -1311,10 +1311,10 @@ if do_trim_optimization  is True:
 
     # Objective
     trim_norm_list = []
-    trim_norm_list.append(level_cruise.accel_norm.value)
-    # trim_norm_list.append(accel_climb.accel_norm.value)
-    # trim_norm_list.append(level_hover.accel_norm.value)
-    # trim_norm_list.append(accel_descent.accel_norm.value)
+    trim_norm_list.append(level_cruise.accel_norm)
+    trim_norm_list.append(accel_climb.accel_norm)
+    trim_norm_list.append(level_hover.accel_norm)
+    trim_norm_list.append(accel_descent.accel_norm)
     trim_norm = csdl.Variable(shape=(1, ), value=0)
     for i in range(len(trim_norm_list)):
         trim_norm = trim_norm + trim_norm_list[i]
@@ -1323,19 +1323,28 @@ if do_trim_optimization  is True:
 
 
     # Constraints
-    total_forces_cruise.set_as_constraint(equals=0,scaler=1e-4)
-    total_moments_cruise.set_as_constraint(equals=0,scaler=1e-4)
+    level_cruise.du_dt.set_as_constraint(equals=0,scaler=1e-4)
+    level_cruise.dw_dt.set_as_constraint(equals=0,scaler=1e-4)
 
     sim = csdl.experimental.JaxSimulator(
-        recorder=recorder, # Turn off gpu if none available
+        recorder=recorder,
         gpu=False,
         derivatives_kwargs= {
-            "concatenate_ofs" : False # Turn off
+            "concatenate_ofs" : True
         })
     
-    metadata = sim.get_optimization_metadata()
-    print("Metadata:", metadata)
-    print("Lengths:", len(metadata[0]), len(metadata[1]), metadata[2])
+    orig_get_metadata = sim.get_optimization_metadata
+    def fixed_get_metadata():
+        md = orig_get_metadata()
+        # Expected:
+        #   Design: (dScaler, dLower, dUpper, dInitial) --> take first 4 values
+        #   Constraints: (cScaler, cLower, cUpper) --> take first 3 values
+        #   Objective: oScaler --> take the first element of the third tuple
+        design = md[0][:4]
+        constr = md[1][:3]
+        obj = md[2][0]
+        return (design, constr, obj)
+    sim.get_optimization_metadata = fixed_get_metadata
 
     t1 = time.time()
     prob = CSDLAlphaProblem(problem_name='trim_optimization', simulator=sim )
@@ -1347,12 +1356,15 @@ if do_trim_optimization  is True:
     recorder.execute()
 
     for dv in recorder.design_variables.keys():
+        print('Design Variables')
         print(dv.name, dv.value)
 
     for c in recorder.constraints.keys():
+        print('Constraints')
         print(c.name, c.value)
 
     for obj in recorder.objectives.keys():
+        print('Objective')
         print(obj.name, obj.value)
 
 # TODO: 
