@@ -10,6 +10,7 @@ from typing import Union, List, Tuple
 import csdl_alpha as csdl
 from dataclasses import dataclass
 import numpy as np
+import copy
 import warnings
 import NRLMSIS2
 from flight_simulator import ureg, Q_
@@ -131,12 +132,12 @@ class AircraftCondition(Condition):
                  r: Union[ureg.Quantity, csdl.Variable] = Q_(0, 'rad/s'),
                  component=None,
                  controls=None) -> None:
-        self.axis = fd_axis
+        self.axis = fd_axis.copy()
         self.controls = controls
         self.component = component
         self.quantities: AircraftStateQuantities = AircraftStateQuantities()
         self.quantities.ac_states = AircraftStates(
-            axis=fd_axis,
+            axis=self.axis,
             u=u, v=v, w=w,
             p=p, q=q, r=r
         )
@@ -170,40 +171,22 @@ class AircraftCondition(Condition):
     def assemble_forces_moments(self, print_output: bool = False):
         total_forces = csdl.Variable(value=0., shape=(3,))
         total_moments = csdl.Variable(value=0., shape=(3,))
-        total_mass = csdl.Variable(value=0., shape=(1,))
-        total_cg = csdl.Variable(value=0., shape=(3,))  
-        total_inertia = csdl.Variable(value=0., shape=(3, 3))
+
         if hasattr(self.component, "comps") and self.component.comps:
             for sub_comp in self.component.comps.values():
                 forces, moments = sub_comp.compute_total_loads(
                     fd_state=self.quantities.ac_states,
                     controls=self.controls,
                     fd_axis=self.axis)
-                inertia = sub_comp.compute_inertia()
                 total_forces += forces
                 total_moments += moments
-                total_inertia += inertia
-                mass = sub_comp.quantities.mass_properties.mass.magnitude
-                total_cg += sub_comp.quantities.mass_properties.cg_vector.vector
-                total_mass += mass
-            self.component.quantities.mass_properties.cg_vector.vector = total_cg / total_mass
-            self.component.quantities.mass_properties.mass = total_mass
-            self.component.quantities.mass_properties.inertia_tensor.inertia_tensor = total_inertia
         else:
             forces, moments = self.component.compute_total_loads(
                 fd_state=self.quantities.ac_states,
                 controls=self.controls,
                 fd_axis=self.axis)
-            inertia = self.component.compute_inertia()
             total_forces += forces
             total_moments += moments
-            total_inertia += inertia
-            mass = self.component.quantities.mass_properties.mass.magnitude
-            total_cg += self.component.quantities.mass_properties.cg_vector.vector
-            total_mass += mass
-            self.component.quantities.mass_properties.cg_vector.vector = total_cg / total_mass
-            self.component.quantities.mass_properties.mass = total_mass
-            self.component.quantities.mass_properties.inertia_tensor.inertia_tensor = total_inertia
         self.component.quantities.total_forces = total_forces
         self.component.quantities.total_moments = total_moments
 
@@ -220,9 +203,6 @@ class AircraftCondition(Condition):
             print('Atmospheric Density:', self.quantities.ac_states_atmos.density.value, 'kg/m^3')
             print("Total Forces:", total_forces.value, 'N')
             print("Total Moments:", total_moments.value, 'N*m')
-            print("Total Center of Gravity:", self.component.quantities.mass_properties.cg_vector.vector.value, 'm')
-            print("Total Mass:", total_mass.value, 'kg')
-            print("Total Inertia:", self.component.quantities.mass_properties.inertia_tensor.inertia_tensor.value, 'kg*m^2')
             print('-----------------------------------')
         return total_forces, total_moments
 
@@ -383,7 +363,7 @@ class CruiseCondition(AircraftCondition):
         )
         self.quantities = AircraftStateQuantities()
         self._atmos_model = NRLMSIS2.Atmosphere()
-        self.axis = fd_axis
+        self.axis = fd_axis.copy()
         self.component = component
         self.controls = controls
         self._setup_condition()
@@ -472,7 +452,7 @@ class ClimbCondition(AircraftCondition):
         )
         self.quantities = AircraftStateQuantities()
         self._atmos_model = NRLMSIS2.Atmosphere()
-        self.axis = fd_axis
+        self.axis = fd_axis.copy()
         self.component = component
         self.controls = controls
         self._setup_condition()
@@ -550,7 +530,7 @@ class HoverCondition(AircraftCondition):
         )
         self.quantities = AircraftStateQuantities()
         self._atmos_model = NRLMSIS2.Atmosphere()
-        self.axis = fd_axis
+        self.axis = fd_axis.copy()
         self.component = component
         self.controls = controls
         self._setup_condition()

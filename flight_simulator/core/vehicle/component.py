@@ -37,8 +37,6 @@ class ComponentQuantities:
         self.lift_model = None
         self.prop_radius = None
         self.prop_curve = None
-        self.prop_axis = None
-        self.wing_axis = None
 
         if mass_properties is None:
             default_axis = Axis(name="Default Axis", origin=ValidOrigins.Inertial.value)
@@ -164,7 +162,7 @@ class Component:
         """
         aero = AircraftAerodynamics(
             fd_state=fd_state,
-            wing_axis=self.quantities.wing_axis,  
+            wing_axis=self.quantities.mass_properties.cg_vector.axis,  
             controls=controls,
             lift_model=self.quantities.lift_model
         )
@@ -174,7 +172,6 @@ class Component:
         fm_rotated = fm.rotate_to_axis(fd_axis)
         self.quantities.aero_forces = fm_rotated.F.vector.value
         self.quantities.aero_moments = fm_rotated.M.vector.value
-        # print(fm_rotated.F.vector.value, fm_rotated.M.vector.value)
         return fm_rotated.F.vector.value, fm_rotated.M.vector.value
     
 
@@ -188,7 +185,7 @@ class Component:
         """
        
         motor_prop = AircraftPropulsion(
-            prop_axis=self.quantities.prop_axis,
+            prop_axis=self.quantities.mass_properties.cg_vector.axis,
             fd_state=fd_state,
             controls=controls,
             radius=self.quantities.prop_radius,
@@ -229,7 +226,6 @@ class Component:
         else:
             aero_forces = np.zeros(3)
             aero_moments = np.zeros(3)
-            
         # Get propulsion loads only if radius and prop_curve are provided and the component uses propulsion
         if self.quantities.prop_curve is not None:
             prop_forces, prop_moments = self.compute_propulsion_loads(fd_state, controls, fd_axis)
@@ -262,7 +258,12 @@ class Component:
             inertia (np.array): Inertia tensor of the component.
         """
         cg = self.quantities.mass_properties.cg_vector.vector
-        mass = self.quantities.mass_properties.mass.magnitude
+        axis = self.quantities.mass_properties.cg_vector.axis
+
+        if hasattr(self.quantities.mass_properties.mass, 'value'):
+            mass = self.quantities.mass_properties.mass.value
+        else:
+            mass = self.quantities.mass_properties.mass.magnitude
 
         x= cg[0].value
         y= cg[1].value
@@ -292,10 +293,61 @@ class Component:
         inertia = inertia.set(csdl.slice[2, 1], Izy)
         inertia = inertia.set(csdl.slice[2, 2], Izz)
 
-        self.quantities.mass_properties.inertia_tensor = inertia
+        MI = MassMI(axis=axis,
+            Ixx=Q_(inertia[0,0].value, 'kg*(m*m)'),
+            Ixy=Q_(inertia[0,1].value, 'kg*(m*m)'),
+            Ixz=Q_(inertia[0,2].value, 'kg*(m*m)'),
+            Iyy=Q_(inertia[1,1].value, 'kg*(m*m)'),
+            Iyz=Q_(inertia[1,2].value, 'kg*(m*m)'),
+            Izz=Q_(inertia[2,2].value, 'kg*(m*m)'),
+            )
+
+        self.quantities.mass_properties.inertia_tensor = MI
         
-        return inertia
+        return MI
     
+    def compute_mass_properties(self):
+
+        """
+        Compute the mass properties of this component.
+        Returns:
+            mass_properties (dict): Dictionary containing the mass, center of gravity, and inertia tensor.
+        """
+    
+        mass = self.quantities.mass_properties.mass
+        cg = self.quantities.mass_properties.cg_vector
+
+        inertia = self.compute_inertia()
+        mass_properties = MassProperties(mass = mass, cg = cg, inertia=inertia)
+    
+
+        total_mass = mass.magnitude
+        total_cg = cg.vector * mass.magnitude
+        total_inertia = inertia.inertia_tensor
+
+
+        for comp in self.comps.values():
+            comp_mass_properties = comp.compute_mass_properties()
+            comp_mass = comp_mass_properties.mass
+            comp_cg = comp_mass_properties.cg_vector
+            comp_inertia = comp_mass_properties.inertia_tensor
+            total_mass += comp_mass.value
+            total_cg += comp_cg.vector * comp_mass.value
+            total_inertia += comp_inertia.inertia_tensor
+        overall_cg_vector = total_cg / total_mass
+        overall_cg = type(cg)(vector=overall_cg_vector, axis=cg.axis)
+        overall_inertia = type(inertia)(
+            axis=cg.axis,
+            Ixx=total_inertia[0, 0],
+            Ixy=-total_inertia[0, 1],
+            Ixz=-total_inertia[0, 2],
+            Iyy=total_inertia[1, 1],
+            Iyz=-total_inertia[1, 2],
+            Izz=total_inertia[2, 2])
+        mass_properties = MassProperties(mass=Q_(total_mass,'kg'),cg=overall_cg,inertia=overall_inertia)
+
+        return mass_properties
+
     def _compute_surface_area(self, geometry: Geometry, plot_flag: bool = False):
         parametric_mesh_grid_num = 10
         surfaces = geometry.functions
