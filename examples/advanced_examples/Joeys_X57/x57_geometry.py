@@ -28,12 +28,14 @@ from flight_simulator.core.vehicle.components.aircraft import Aircraft as Aircra
 from flight_simulator.core.vehicle.components.rotor import Rotor as RotorComp
 from flight_simulator.core.vehicle.conditions import aircraft_conditions
 from lsdo_geo.core.parameterization.parameterization_solver import ParameterizationSolver, GeometricVariables
+from modopt import CSDLAlphaProblem, SLSQP, IPOPT, SNOPT, PySLSQP
+
 
 lfs.num_workers = 1
 
 debug = False
 do_geo_param = False
-do_trim_optimization = True
+do_trim_optimization = False
 
 recorder = csdl.Recorder(inline=True, expand_ops=True, debug=debug)
 
@@ -1300,13 +1302,12 @@ descent_long_stabiliy = descentCondition.perform_linear_stability_analysis(print
 
 
 
-from modopt import CSDLAlphaProblem, SLSQP, IPOPT, SNOPT, PySLSQP
 
 
 if do_trim_optimization  is True:
     # Design Variables
-    x57_controls.elevator.deflection.set_as_design_variable(lower=-np.deg2rad(25), upper=np.deg2rad(25))
-    x57_controls.rudder.deflection.set_as_design_variable(lower=-np.deg2rad(25), upper=np.deg2rad(25))
+    x57_controls.elevator.deflection.set_as_design_variable(lower=-np.deg2rad(25), upper=np.deg2rad(25), scaler=2)
+    x57_controls.rudder.deflection.set_as_design_variable(lower=-np.deg2rad(25), upper=np.deg2rad(25), scaler=2)
 
     # Objective
     trim_norm_list = []
@@ -1331,6 +1332,11 @@ if do_trim_optimization  is True:
         derivatives_kwargs= {
             "concatenate_ofs" : False # Turn off
         })
+    
+    metadata = sim.get_optimization_metadata()
+    print("Metadata:", metadata)
+    print("Lengths:", len(metadata[0]), len(metadata[1]), metadata[2])
+
     t1 = time.time()
     prob = CSDLAlphaProblem(problem_name='trim_optimization', simulator=sim )
     optimizer = SLSQP(problem=prob)
