@@ -34,8 +34,8 @@ from modopt import CSDLAlphaProblem, SLSQP, IPOPT, SNOPT, PySLSQP
 lfs.num_workers = 1
 
 debug = False
-do_geo_param = False
 do_trim_optimization = True
+do_geo_param = False
 
 recorder = csdl.Recorder(inline=True, expand_ops=True, debug=debug)
 
@@ -995,7 +995,7 @@ Aircraft = AircraftComp(geometry=geometry, compute_surface_area_flag=False,
 
 Fuselage = FuseComp(
     length=csdl.Variable(name="length", shape=(1, ), value=8.2242552),
-    max_height=csdl.Variable(name="max_height", shape=(1, ), value=np.abs(wing_le_center[0].value)),
+    max_height=csdl.Variable(name="max_height", shape=(1, ), value=1.09),
     max_width=csdl.Variable(name="max_width", shape=(1, ), value=1.24070602),
     geometry=fuselage, skip_ffd=False, 
     parameterization_solver=parameterization_solver,
@@ -1147,6 +1147,8 @@ atmospheric_states = x_57_states.atmospheric_states
 x57_controls = AircraftControlSystem(engine_count=12,symmetrical=True)
 x57_controls.elevator.deflection = HorTail.parameters.actuate_angle
 x57_controls.rudder.deflection = Rudder.parameters.actuate_angle
+x57_controls.aileron.deflection = LeftAileron.parameters.actuate_angle
+x57_controls.flap.deflection = LeftFlap.parameters.actuate_angle
 
 
 
@@ -1303,28 +1305,27 @@ descent_long_stabiliy = descentCondition.perform_linear_stability_analysis(print
 
 
 
-
 if do_trim_optimization  is True:
     # Design Variables
-    x57_controls.elevator.deflection.set_as_design_variable(lower=-np.deg2rad(25), upper=np.deg2rad(25), scaler=2)
-    x57_controls.rudder.deflection.set_as_design_variable(lower=-np.deg2rad(25), upper=np.deg2rad(25), scaler=2)
+    x57_controls.elevator.deflection.set_as_design_variable(lower=-np.deg2rad(35), upper=np.deg2rad(35), scaler=1)
+    x57_controls.rudder.deflection.set_as_design_variable(lower=-np.deg2rad(35), upper=np.deg2rad(35), scaler=1)
+    x57_controls.aileron.deflection.set_as_design_variable(lower=-np.deg2rad(35), upper=np.deg2rad(35), scaler=1)
+    x57_controls.flap.deflection.set_as_design_variable(lower=-np.deg2rad(35), upper=np.deg2rad(35), scaler=1)
 
     # Objective
-    trim_norm_list = []
-    trim_norm_list.append(level_cruise.accel_norm)
-    trim_norm_list.append(accel_climb.accel_norm)
-    trim_norm_list.append(level_hover.accel_norm)
-    trim_norm_list.append(accel_descent.accel_norm)
-    trim_norm = csdl.Variable(shape=(1, ), value=0)
-    for i in range(len(trim_norm_list)):
-        trim_norm = trim_norm + trim_norm_list[i]
-    trim_norm.set_as_objective()
-
-
+    level_cruise.accel_norm.set_as_objective()
 
     # Constraints
-    level_cruise.du_dt.set_as_constraint(equals=0,scaler=1e-4)
-    level_cruise.dw_dt.set_as_constraint(equals=0,scaler=1e-4)
+    level_cruise.du_dt.set_as_constraint(equals=0,scaler=1)
+    level_cruise.dv_dt.set_as_constraint(equals=1e-6,scaler=1)
+    level_cruise.dw_dt.set_as_constraint(equals=0,scaler=1)
+
+
+
+    if debug is True:
+        pass
+    else:
+        recorder.inline = False
 
     sim = csdl.experimental.JaxSimulator(
         recorder=recorder,
@@ -1333,43 +1334,20 @@ if do_trim_optimization  is True:
             "concatenate_ofs" : True
         })
     
-    orig_get_metadata = sim.get_optimization_metadata
-    def fixed_get_metadata():
-        md = orig_get_metadata()
-        # Expected:
-        #   Design: (dScaler, dLower, dUpper, dInitial) --> take first 4 values
-        #   Constraints: (cScaler, cLower, cUpper) --> take first 3 values
-        #   Objective: oScaler --> take the first element of the third tuple
-        design = md[0][:4]
-        constr = md[1][:3]
-        obj = md[2][0]
-        return (design, constr, obj)
-    sim.get_optimization_metadata = fixed_get_metadata
-
+    # sim.check_optimization_derivatives()
     t1 = time.time()
     prob = CSDLAlphaProblem(problem_name='trim_optimization', simulator=sim )
-    optimizer = SLSQP(problem=prob)
+    optimizer = IPOPT(problem=prob)
     optimizer.solve()
     optimizer.print_results()
     t2 = time.time()
     print('Time to solve', t2-t1)
     recorder.execute()
 
-    for dv in recorder.design_variables.keys():
-        print('Design Variables')
-        print(dv.name, dv.value)
 
-    for c in recorder.constraints.keys():
-        print('Constraints')
-        print(c.name, c.value)
-
-    for obj in recorder.objectives.keys():
-        print('Objective')
-        print(obj.name, obj.value)
 
 # TODO: 
-# 0. Finish setting up Aviary Analysis - just need to figure out how to add aircraftCondition data to the csv that Aviary uses for mission analysis
-# 1. Add more conditions
+# 1. Add more flight conditions
 # 2. Refine Trim Stability - improving current Trim Model
 # 3. Refine Aero Loads - improving current Lift Model
 # 4. Set up Optimization Problem to trim airplane
