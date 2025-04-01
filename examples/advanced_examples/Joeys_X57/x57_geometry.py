@@ -34,7 +34,7 @@ from modopt import CSDLAlphaProblem, SLSQP, IPOPT, SNOPT, PySLSQP
 lfs.num_workers = 1
 
 debug = False
-do_trim_optimization = True
+do_trim_optimization = False
 do_geo_param = False
 
 recorder = csdl.Recorder(inline=True, expand_ops=True, debug=debug)
@@ -1159,7 +1159,7 @@ cruise_radius_x57 = csdl.Variable(shape=(1,), value=5/2) # cruise propeller radi
 
 e_x57 = csdl.Variable(shape=(1,), value=0.87) # Oswald efficiency factor
 CD0_x57 = csdl.Variable(shape=(1,), value=0.001) # Zero-lift drag coefficient
-incidence_x57 = csdl.Variable(shape=(1,), value=np.deg2rad(0)) # Wing incidence angle in radians
+incidence_x57 = csdl.Variable(shape=(1,), value=np.deg2rad(2)) # Wing incidence angle in radians
 
 
 
@@ -1253,7 +1253,7 @@ cruiseCondition = aircraft_conditions.CruiseCondition(
     speed=Q_(80, 'mph'),
     pitch_angle=Q_(0,'rad'))
 
-total_forces_cruise, total_moments_cruise = cruiseCondition.assemble_forces_moments(print_output=False)
+total_forces_cruise, total_moments_cruise = cruiseCondition.assemble_forces_moments(print_output=True)
 level_cruise = cruiseCondition.compute_eom_model(print_output=False)
 cruise_long_stabiliy = cruiseCondition.perform_linear_stability_analysis(print_output=False)
 
@@ -1268,7 +1268,7 @@ climbCondition = aircraft_conditions.ClimbCondition(
     flight_path_angle=Q_(0, 'rad'),
     speed=Q_(67, 'mph'))
 
-total_forces_climb, total_moments_climb = climbCondition.assemble_forces_moments(print_output=False)
+total_forces_climb, total_moments_climb = climbCondition.assemble_forces_moments(print_output=True)
 accel_climb = climbCondition.compute_eom_model(print_output=False)
 climb_long_stabiliy = climbCondition.perform_linear_stability_analysis(print_output=False)
 
@@ -1301,26 +1301,56 @@ accel_descent = descentCondition.compute_eom_model(print_output=False)
 descent_long_stabiliy = descentCondition.perform_linear_stability_analysis(print_output=False)
 
 
+do_trim_opt_0 = False
+do_trim_opt_1 = True
+do_trim_opt_2 = False
 
 
 
+if do_trim_optimization is True:
+    if do_trim_opt_0 is True:
+        # Design Variables
+        x57_controls.elevator.deflection.set_as_design_variable(lower=-np.deg2rad(35), upper=np.deg2rad(35), scaler=1)
+        x57_controls.rudder.deflection.set_as_design_variable(lower=-np.deg2rad(35), upper=np.deg2rad(35), scaler=1)
+        x57_controls.aileron.deflection.set_as_design_variable(lower=-np.deg2rad(35), upper=np.deg2rad(35), scaler=1)
+        x57_controls.flap.deflection.set_as_design_variable(lower=-np.deg2rad(35), upper=np.deg2rad(35), scaler=1)
 
-if do_trim_optimization  is True:
-    # Design Variables
-    x57_controls.elevator.deflection.set_as_design_variable(lower=-np.deg2rad(35), upper=np.deg2rad(35), scaler=1)
-    x57_controls.rudder.deflection.set_as_design_variable(lower=-np.deg2rad(35), upper=np.deg2rad(35), scaler=1)
-    x57_controls.aileron.deflection.set_as_design_variable(lower=-np.deg2rad(35), upper=np.deg2rad(35), scaler=1)
-    x57_controls.flap.deflection.set_as_design_variable(lower=-np.deg2rad(35), upper=np.deg2rad(35), scaler=1)
+        # Objective
+        level_cruise.accel_norm.set_as_objective()
 
-    # Objective
-    level_cruise.accel_norm.set_as_objective()
+        # Constraints
+        level_cruise.du_dt.set_as_constraint(equals=0,scaler=1)
+        level_cruise.dv_dt.set_as_constraint(equals=1e-6,scaler=1)
+        level_cruise.dw_dt.set_as_constraint(equals=0,scaler=1)
 
-    # Constraints
-    level_cruise.du_dt.set_as_constraint(equals=0,scaler=1)
-    level_cruise.dv_dt.set_as_constraint(equals=1e-6,scaler=1)
-    level_cruise.dw_dt.set_as_constraint(equals=0,scaler=1)
+    if do_trim_opt_1 is True:
+        x_57_states.axis.euler_angles.theta.set_as_design_variable(lower=-np.deg2rad(180), upper=np.deg2rad(180), scaler=1)
+        x_57_states.axis.euler_angles.psi.set_as_design_variable(lower=-np.deg2rad(180), upper=np.deg2rad(180), scaler=1)
+        
+        # Constraint: Fx = 0
+        total_forces_cruise[0].set_as_constraint(equals=0, scaler=1)
+        
+        # Constraint: Fy = 0
+        total_forces_cruise[1].set_as_constraint(equals=0, scaler=1)
+    
+        # Lift = Weight Objective
+        (total_forces_cruise[2] - (Aircraft.quantities.mass_properties.mass * 9.81)).set_as_objective()
 
+    if do_trim_opt_2 is True:
+        x_57_states.axis.euler_angles.theta.set_as_design_variable(lower=-np.deg2rad(180), upper=np.deg2rad(180), scaler=1)
+        x_57_states.axis.euler_angles.psi.set_as_design_variable(lower=-np.deg2rad(180), upper=np.deg2rad(180), scaler=1)
+        x57_controls.throttle.set_as_design_variable(lower=0, upper=1, scaler=1)
 
+        # Constraint: Fz = 0
+        forceConstraint_z = csdl.Variable(name="force_constraint_z", value=total_forces_cruise[2])
+        forceConstraint_z.set_as_constraint(equals=0, scaler=1)
+        
+        # Constraint: Fy = 0
+        forceConstraint_y = csdl.Variable(name="force_constraint_y", value=total_forces_cruise[1])
+        forceConstraint_y.set_as_constraint(equals=0, scaler=1)
+
+        # Objective: Thrust = Drag, I do not have drag values yet, so I will set it to 4000 N for now
+        (4000 - total_forces_cruise[0]).set_as_objective()
 
     if debug is True:
         pass
