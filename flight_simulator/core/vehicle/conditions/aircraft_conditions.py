@@ -169,27 +169,15 @@ class AircraftCondition(Condition):
         return self.quantities.ac_eom_model
 
     def assemble_forces_moments(self, print_output: bool = False):
+        """Assemble forces and moments from the component."""
 
-        total_forces = csdl.Variable(value=0., shape=(3,))
-        total_moments = csdl.Variable(value=0., shape=(3,))
+        forces, moments = self.component.compute_total_loads(
+            fd_state=self.quantities.ac_states,
+            controls=self.controls,
+            fd_axis=self.axis)
+        total_forces = csdl.Variable(value=forces, shape=(3,))
+        total_moments = csdl.Variable(value=moments, shape=(3,))
 
-        if hasattr(self.component, "comps") and self.component.comps:
-            for sub_comp in self.component.comps.values():
-                forces, moments = sub_comp.compute_total_loads(
-                    fd_state=self.quantities.ac_states,
-                    controls=self.controls,
-                    fd_axis=self.axis)
-                total_forces += forces
-                total_moments += moments
-        else:
-            forces, moments = self.component.compute_total_loads(
-                fd_state=self.quantities.ac_states,
-                controls=self.controls,
-                fd_axis=self.axis)
-            total_forces += forces
-            total_moments += moments
-        self.component.quantities.total_forces = total_forces
-        self.component.quantities.total_moments = total_moments
 
         if print_output:
             print('-----------------------------------')
