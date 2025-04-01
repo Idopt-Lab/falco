@@ -169,6 +169,7 @@ class AircraftCondition(Condition):
         return self.quantities.ac_eom_model
 
     def assemble_forces_moments(self, print_output: bool = False):
+
         total_forces = csdl.Variable(value=0., shape=(3,))
         total_moments = csdl.Variable(value=0., shape=(3,))
 
