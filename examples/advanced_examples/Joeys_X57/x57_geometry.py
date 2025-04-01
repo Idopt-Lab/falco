@@ -34,7 +34,7 @@ from modopt import CSDLAlphaProblem, SLSQP, IPOPT, SNOPT, PySLSQP
 lfs.num_workers = 1
 
 debug = False
-do_trim_optimization = False
+do_trim_optimization = True
 do_geo_param = False
 
 recorder = csdl.Recorder(inline=True, expand_ops=True, debug=debug)
@@ -172,13 +172,13 @@ wing_te_aileron_left_parametric = wing.project(np.array([-13.85, -13.4, -7.5])*f
 wing_te_aileron_left = geometry.evaluate(wing_te_aileron_left_parametric)
 
 wing_te_aileron_right_parametric = wing.project(np.array([-13.85, 13.4, -7.5])*ft2m, plot=False)
-wing_te_aileron_right = geometry.evaluate(wing_te_aileron_left_parametric)
+wing_te_aileron_right = geometry.evaluate(wing_te_aileron_right_parametric)
 
 wing_te_flap_left_parametric = wing.project(np.array([-13.85, -6.05, -7.5])*ft2m, plot=False)
 wing_te_flap_left = geometry.evaluate(wing_te_aileron_left_parametric)
 
 wing_te_flap_right_parametric = wing.project(np.array([-13.85, 6.05, -7.5])*ft2m, plot=False)
-wing_te_flap_right = geometry.evaluate(wing_te_aileron_left_parametric)
+wing_te_flap_right = geometry.evaluate(wing_te_flap_right_parametric)
 
 
 wing_qc_center_parametric = geometry.project(np.array([-12.356+(0.25*(-14.25+12.356)), 0., -7.5])*ft2m, plot=False)
@@ -1303,7 +1303,6 @@ descent_long_stabiliy = descentCondition.perform_linear_stability_analysis(print
 
 do_trim_opt_0 = False
 do_trim_opt_1 = True
-do_trim_opt_2 = False
 
 
 
@@ -1324,33 +1323,18 @@ if do_trim_optimization is True:
         level_cruise.dw_dt.set_as_constraint(equals=0,scaler=1)
 
     if do_trim_opt_1 is True:
-        x_57_states.axis.euler_angles.theta.set_as_design_variable(lower=-np.deg2rad(180), upper=np.deg2rad(180), scaler=1)
-        x_57_states.axis.euler_angles.psi.set_as_design_variable(lower=-np.deg2rad(180), upper=np.deg2rad(180), scaler=1)
+        x_57_states.axis.euler_angles.theta.set_as_design_variable(lower=-np.deg2rad(10), upper=np.deg2rad(10), scaler=1)
+        x_57_states.axis.euler_angles.psi.set_as_design_variable(lower=-np.deg2rad(5), upper=np.deg2rad(5), scaler=1)
         
         # Constraint: Fx = 0
-        total_forces_cruise[0].set_as_constraint(equals=0, scaler=1)
+        total_forces_cruise[0].set_as_constraint(equals=0, scaler=1e-4)
         
         # Constraint: Fy = 0
-        total_forces_cruise[1].set_as_constraint(equals=0, scaler=1)
+        total_forces_cruise[1].set_as_constraint(equals=0, scaler=1e-4)
     
         # Lift = Weight Objective
         (total_forces_cruise[2] - (Aircraft.quantities.mass_properties.mass * 9.81)).set_as_objective()
 
-    if do_trim_opt_2 is True:
-        x_57_states.axis.euler_angles.theta.set_as_design_variable(lower=-np.deg2rad(180), upper=np.deg2rad(180), scaler=1)
-        x_57_states.axis.euler_angles.psi.set_as_design_variable(lower=-np.deg2rad(180), upper=np.deg2rad(180), scaler=1)
-        x57_controls.throttle.set_as_design_variable(lower=0, upper=1, scaler=1)
-
-        # Constraint: Fz = 0
-        forceConstraint_z = csdl.Variable(name="force_constraint_z", value=total_forces_cruise[2])
-        forceConstraint_z.set_as_constraint(equals=0, scaler=1)
-        
-        # Constraint: Fy = 0
-        forceConstraint_y = csdl.Variable(name="force_constraint_y", value=total_forces_cruise[1])
-        forceConstraint_y.set_as_constraint(equals=0, scaler=1)
-
-        # Objective: Thrust = Drag, I do not have drag values yet, so I will set it to 4000 N for now
-        (4000 - total_forces_cruise[0]).set_as_objective()
 
     if debug is True:
         pass
