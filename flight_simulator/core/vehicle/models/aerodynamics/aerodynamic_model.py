@@ -89,9 +89,9 @@ class AircraftAerodynamics(Loads):
             density = x_bar.atmospheric_states.density
             velocity = x_bar.VTAS
             theta = x_bar.states.theta
-            alpha = theta + self.lift_model.incidence + self.controls.elevator.deflection
+            alpha = theta + self.lift_model.incidence + u_bar.elevator.deflection
 
-            CL = 2*np.pi*alpha 
+            CL = 2*np.pi*alpha
             CD = self.lift_model.CD0 + (1 / (self.lift_model.e * self.lift_model.AR * np.pi)) * CL**2  
             L = 0.5 * density * velocity**2 * self.lift_model.S * CL
             D = 0.5 * density * velocity**2 * self.lift_model.S * CD
