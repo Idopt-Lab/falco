@@ -220,29 +220,57 @@ class Component:
             total_forces (np.array): Sum of forces from all loads.
             total_moments (np.array): Sum of moments from all loads.
         """
+
+        total_forces = np.zeros(3)
+        total_moments = np.zeros(3)
+
         # Get aerodynamic loads only if a lift model is provided and the component uses one
+        aero_forces = np.zeros(3)
+        aero_moments = np.zeros(3)
         if self.quantities.lift_model is not None:
-            aero_forces, aero_moments = self.compute_aero_loads(fd_state, controls, fd_axis)
-        else:
-            aero_forces = np.zeros(3)
-            aero_moments = np.zeros(3)
+            af, am = self.compute_aero_loads(fd_state, controls, fd_axis)
+            aero_forces += af
+            aero_moments += am
+        for sub_comp in self.comps.values():
+            if sub_comp.quantities.lift_model is not None:
+                af, am = sub_comp.compute_aero_loads(fd_state, controls, fd_axis)
+                aero_forces += af
+                aero_moments += am
+
+        self.quantities.aero_forces = aero_forces
+        self.quantities.aero_moments = aero_moments
+
         # Get propulsion loads only if radius and prop_curve are provided and the component uses propulsion
+        prop_forces = np.zeros(3)
+        prop_moments = np.zeros(3)
         if self.quantities.prop_curve is not None:
-            prop_forces, prop_moments = self.compute_propulsion_loads(fd_state, controls, fd_axis)
-            # below is for prop where the CFD data is not reached, ie if the CFD data only 
-            # has alt range of 0-1000m, and if the input is 1300m, the prop forces will be 0
-            prop_forces = np.nan_to_num(prop_forces, nan=0.0)  
-            prop_moments = np.nan_to_num(prop_moments, nan=0.0)
-        else:
-            prop_forces = np.zeros(3)
-            prop_moments = np.zeros(3)
+            pf, pm = self.compute_propulsion_loads(fd_state, controls, fd_axis)
+            pf = np.nan_to_num(pf, nan=0.0)
+            pm = np.nan_to_num(pm, nan=0.0)
+            prop_forces += pf
+            prop_moments += pm
+        for sub_comp in self.comps.values():
+            if sub_comp.quantities.prop_curve is not None:
+                pf, pm = sub_comp.compute_propulsion_loads(fd_state, controls, fd_axis)
+                pf = np.nan_to_num(pf, nan=0.0)
+                pm = np.nan_to_num(pm, nan=0.0)
+                prop_forces += pf
+                prop_moments += pm
+        self.quantities.prop_forces = prop_forces
+        self.quantities.prop_moments = prop_moments
 
         # Get loads from gravity model
         grav_forces, grav_moments = self.compute_gravity_loads(fd_axis, fd_state, controls)
-        
+        self.quantities.grav_forces = grav_forces
+        self.quantities.grav_moments = grav_moments
+
         # Sum the forces and moments
-        total_forces = aero_forces + prop_forces + grav_forces
-        total_moments = aero_moments + prop_moments + grav_moments
+        local_forces = aero_forces + prop_forces + grav_forces
+        local_moments = aero_moments + prop_moments + grav_moments
+
+        # Add the parent's loads to the subcomponent loads, if any
+        total_forces += local_forces
+        total_moments += local_moments
     
         # print(total_forces, total_moments)
 
