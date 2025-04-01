@@ -34,7 +34,7 @@ from modopt import CSDLAlphaProblem, SLSQP, IPOPT, SNOPT, PySLSQP
 lfs.num_workers = 1
 
 debug = False
-do_trim_optimization = False
+do_trim_optimization = True
 do_geo_param = False
 
 recorder = csdl.Recorder(inline=True, expand_ops=True, debug=debug)
@@ -1255,11 +1255,12 @@ cruiseCondition = aircraft_conditions.CruiseCondition(
     pitch_angle=Q_(0,'rad'))
 
 total_forces_cruise, total_moments_cruise = cruiseCondition.assemble_forces_moments(print_output=True)
-level_cruise = cruiseCondition.compute_eom_model(print_output=True)
-cruise_long_stabiliy = cruiseCondition.perform_linear_stability_analysis(print_output=False)
 print("Aircraft Gravity Loads",Aircraft.quantities.grav_forces, 'N')
 print("Aircraft Aerodynamic Loads",Aircraft.quantities.aero_forces, 'N')
 print("Aircraft Propulsive Loads",Aircraft.quantities.prop_forces, 'N')
+level_cruise = cruiseCondition.compute_eom_model(print_output=True)
+cruise_long_stabiliy = cruiseCondition.perform_linear_stability_analysis(print_output=False)
+
 
 climbCondition = aircraft_conditions.ClimbCondition(
     fd_axis=fd_axis,
@@ -1336,7 +1337,7 @@ if do_trim_optimization is True:
         total_forces_cruise[1].set_as_constraint(equals=1e-6, scaler=1e-4)
     
         # Lift = Weight Objective
-        (total_forces_cruise[2] - (Aircraft.quantities.mass_properties.mass * 9.81)).set_as_objective()
+        (Aircraft.quantities.aero_forces[2] - (Aircraft.quantities.mass_properties.mass * 9.81)).set_as_objective()
 
 
     if debug is True:
@@ -1353,7 +1354,7 @@ if do_trim_optimization is True:
     
     # sim.check_optimization_derivatives()
     t1 = time.time()
-    prob = CSDLAlphaProblem(problem_name='trim_optimization', simulator=sim )
+    prob = CSDLAlphaProblem(problem_name='trim_optimization', simulator=sim)
     optimizer = IPOPT(problem=prob)
     optimizer.solve()
     optimizer.print_results()
@@ -1366,7 +1367,7 @@ if do_trim_optimization is True:
 # TODO: 
 # 1. Add more flight conditions
 # 2. Refine Trim Stability - improving current Trim Model
-# 3. Refine Aero Loads - improving current Lift Model
+# 3. Refine Aero Loads - need to have better CL calculation
 # 4. Set up Optimization Problem to trim airplane
 # 5. Set up Weights Modelling - will play into overall weight optimization
 # 6. Set up Optimization Problem to
