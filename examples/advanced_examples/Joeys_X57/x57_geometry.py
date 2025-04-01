@@ -34,7 +34,7 @@ from modopt import CSDLAlphaProblem, SLSQP, IPOPT, SNOPT, PySLSQP
 lfs.num_workers = 1
 
 debug = False
-do_trim_optimization = True
+do_trim_optimization = False
 do_geo_param = False
 
 recorder = csdl.Recorder(inline=True, expand_ops=True, debug=debug)
@@ -1244,6 +1244,7 @@ print('Aircraft CG', Aircraft.quantities.mass_properties.cg_vector.vector.value,
 print('Aircraft Inertia', Aircraft.quantities.mass_properties.inertia_tensor.inertia_tensor.value)
 
 
+
 cruiseCondition = aircraft_conditions.CruiseCondition(
     fd_axis=fd_axis,
     controls=x57_controls,
@@ -1254,9 +1255,11 @@ cruiseCondition = aircraft_conditions.CruiseCondition(
     pitch_angle=Q_(0,'rad'))
 
 total_forces_cruise, total_moments_cruise = cruiseCondition.assemble_forces_moments(print_output=True)
-level_cruise = cruiseCondition.compute_eom_model(print_output=False)
+level_cruise = cruiseCondition.compute_eom_model(print_output=True)
 cruise_long_stabiliy = cruiseCondition.perform_linear_stability_analysis(print_output=False)
-
+print("Aircraft Gravity Loads",Aircraft.quantities.grav_forces, 'N')
+print("Aircraft Aerodynamic Loads",Aircraft.quantities.aero_forces, 'N')
+print("Aircraft Propulsive Loads",Aircraft.quantities.prop_forces, 'N')
 
 climbCondition = aircraft_conditions.ClimbCondition(
     fd_axis=fd_axis,
@@ -1268,7 +1271,7 @@ climbCondition = aircraft_conditions.ClimbCondition(
     flight_path_angle=Q_(0, 'rad'),
     speed=Q_(67, 'mph'))
 
-total_forces_climb, total_moments_climb = climbCondition.assemble_forces_moments(print_output=True)
+total_forces_climb, total_moments_climb = climbCondition.assemble_forces_moments(print_output=False)
 accel_climb = climbCondition.compute_eom_model(print_output=False)
 climb_long_stabiliy = climbCondition.perform_linear_stability_analysis(print_output=False)
 
@@ -1327,10 +1330,10 @@ if do_trim_optimization is True:
         x_57_states.axis.euler_angles.psi.set_as_design_variable(lower=-np.deg2rad(5), upper=np.deg2rad(5), scaler=1)
         
         # Constraint: Fx = 0
-        total_forces_cruise[0].set_as_constraint(equals=0, scaler=1e-4)
+        total_forces_cruise[0].set_as_constraint(equals=1e-6, scaler=1e-4)
         
         # Constraint: Fy = 0
-        total_forces_cruise[1].set_as_constraint(equals=0, scaler=1e-4)
+        total_forces_cruise[1].set_as_constraint(equals=1e-6, scaler=1e-4)
     
         # Lift = Weight Objective
         (total_forces_cruise[2] - (Aircraft.quantities.mass_properties.mass * 9.81)).set_as_objective()
