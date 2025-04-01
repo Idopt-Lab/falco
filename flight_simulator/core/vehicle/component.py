@@ -243,7 +243,7 @@ class Component:
         # Sum the forces and moments
         total_forces = aero_forces + prop_forces + grav_forces
         total_moments = aero_moments + prop_moments + grav_moments
-
+    
         # print(total_forces, total_moments)
 
         self.quantities.total_forces = total_forces
