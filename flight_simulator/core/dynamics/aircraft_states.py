@@ -179,8 +179,12 @@ class AircraftStates:
         self.states = self.States6dof(
             u=u, v=v, w=w,
             p=p, q=q, r=r,
-            x=self.axis.translation_from_origin.x, y=self.axis.translation_from_origin.y, z=self.axis.translation_from_origin.z,
-            phi=axis.euler_angles.phi, theta=axis.euler_angles.theta, psi=axis.euler_angles.psi
+            x=self.axis.translation_from_origin.x, 
+            y=self.axis.translation_from_origin.y, 
+            z=self.axis.translation_from_origin.z,
+            phi=axis.euler_angles.phi, 
+            theta=axis.euler_angles.theta, 
+            psi=axis.euler_angles.psi
         )
         self.states_inertial_frame_wind = self.StatesInertialFrameWindVelocityVector(Vwx=Vwx, Vwy=Vwy, Vwz=Vwz)
 
