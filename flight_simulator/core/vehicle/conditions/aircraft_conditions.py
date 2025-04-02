@@ -400,9 +400,8 @@ class CruiseCondition(AircraftCondition):
             self.parameters.range = range
         else:
             raise NotImplementedError
-        theta = csdl.Variable(name='theta', value=theta.magnitude, shape=(1,))
-        u = V * csdl.cos(theta)
-        w = V * csdl.sin(theta)
+        u = V * csdl.cos(theta.magnitude)
+        w = V * csdl.sin(theta.magnitude)
         self.quantities.ac_states = AircraftStates(
             u=u, v=v, w=w, p=p, q=q, r=r, axis=self.axis)
         self.quantities.ac_states_atmos = atmos_states
