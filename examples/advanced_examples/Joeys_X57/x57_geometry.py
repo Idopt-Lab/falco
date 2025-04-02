@@ -1258,7 +1258,7 @@ total_forces_cruise, total_moments_cruise = cruiseCondition.assemble_forces_mome
 print("Aircraft Gravity Loads",Aircraft.quantities.grav_forces, 'N')
 print("Aircraft Aerodynamic Loads",Aircraft.quantities.aero_forces, 'N')
 print("Aircraft Propulsive Loads",Aircraft.quantities.prop_forces, 'N')
-level_cruise = cruiseCondition.compute_eom_model(print_output=True)
+level_cruise = cruiseCondition.compute_eom_model(print_output=False)
 cruise_long_stabiliy = cruiseCondition.perform_linear_stability_analysis(print_output=False)
 
 
@@ -1312,7 +1312,7 @@ do_trim_opt_1 = True
 if do_trim_optimization is True:
 
     if do_trim_opt_1 is True:
-        cruiseCondition.quantities.ac_states.states.theta.set_as_design_variable(lower=-np.deg2rad(10), upper=np.deg2rad(10), scaler=1)
+        cruiseCondition.parameters.pitch_angle.set_as_design_variable(lower=-np.deg2rad(10), upper=np.deg2rad(10), scaler=1)
         # Constraint: Fx = 0
         total_forces_cruise[0].set_as_constraint(equals=0, scaler=1)
         # Constraint: Fy = 0
@@ -1321,6 +1321,7 @@ if do_trim_optimization is True:
         # Lift = Weight Objective
         
         (Aircraft.quantities.aero_forces[2] + (Aircraft.quantities.mass_properties.mass * 9.81)).set_as_objective()
+
 
 
     if debug is True:
@@ -1335,7 +1336,7 @@ if do_trim_optimization is True:
             "concatenate_ofs" : True
         })
     
-    # sim.check_optimization_derivatives()
+    sim.check_optimization_derivatives()
     t1 = time.time()
     prob = CSDLAlphaProblem(problem_name='trim_optimization', simulator=sim)
     optimizer = IPOPT(problem=prob)
