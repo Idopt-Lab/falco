@@ -1249,9 +1249,9 @@ cruiseCondition = aircraft_conditions.CruiseCondition(
     fd_axis=fd_axis,
     controls=x57_controls,
     component = Aircraft,
-    altitude=Q_(2500, 'ft'),
+    altitude=Q_(0, 'ft'),
     range=Q_(70, 'km'),
-    speed=Q_(80, 'mph'),
+    speed=Q_(100, 'mph'),
     pitch_angle=Q_(0,'rad'))
 
 total_forces_cruise, total_moments_cruise = cruiseCondition.assemble_forces_moments(print_output=True)
@@ -1305,39 +1305,22 @@ accel_descent = descentCondition.compute_eom_model(print_output=False)
 descent_long_stabiliy = descentCondition.perform_linear_stability_analysis(print_output=False)
 
 
-do_trim_opt_0 = False
 do_trim_opt_1 = True
 
 
 
 if do_trim_optimization is True:
-    if do_trim_opt_0 is True:
-        # Design Variables
-        x57_controls.elevator.deflection.set_as_design_variable(lower=-np.deg2rad(35), upper=np.deg2rad(35), scaler=1)
-        x57_controls.rudder.deflection.set_as_design_variable(lower=-np.deg2rad(35), upper=np.deg2rad(35), scaler=1)
-        x57_controls.aileron.deflection.set_as_design_variable(lower=-np.deg2rad(35), upper=np.deg2rad(35), scaler=1)
-        x57_controls.flap.deflection.set_as_design_variable(lower=-np.deg2rad(35), upper=np.deg2rad(35), scaler=1)
-
-        # Objective
-        level_cruise.accel_norm.set_as_objective()
-
-        # Constraints
-        level_cruise.du_dt.set_as_constraint(equals=0,scaler=1)
-        level_cruise.dv_dt.set_as_constraint(equals=1e-6,scaler=1)
-        level_cruise.dw_dt.set_as_constraint(equals=0,scaler=1)
 
     if do_trim_opt_1 is True:
-        x_57_states.axis.euler_angles.theta.set_as_design_variable(lower=-np.deg2rad(10), upper=np.deg2rad(10), scaler=1)
-        x_57_states.axis.euler_angles.psi.set_as_design_variable(lower=-np.deg2rad(5), upper=np.deg2rad(5), scaler=1)
-        
+        cruiseCondition.quantities.ac_states.states.theta.set_as_design_variable(lower=-np.deg2rad(10), upper=np.deg2rad(10), scaler=1)
         # Constraint: Fx = 0
-        total_forces_cruise[0].set_as_constraint(equals=1e-6, scaler=1e-4)
-        
+        total_forces_cruise[0].set_as_constraint(equals=0, scaler=1)
         # Constraint: Fy = 0
-        total_forces_cruise[1].set_as_constraint(equals=1e-6, scaler=1e-4)
+        # total_forces_cruise[1].set_as_constraint(equals=0, scaler=1)       
     
         # Lift = Weight Objective
-        (Aircraft.quantities.aero_forces[2] - (Aircraft.quantities.mass_properties.mass * 9.81)).set_as_objective()
+        
+        (Aircraft.quantities.aero_forces[2] + (Aircraft.quantities.mass_properties.mass * 9.81)).set_as_objective()
 
 
     if debug is True:
