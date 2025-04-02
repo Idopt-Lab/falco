@@ -102,6 +102,7 @@ class CruiseParameters(csdl.VariableGroup):
         self.add_check('altitude', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
         self.add_check('speed', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
         self.add_check('mach_number', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
+        self.add_check('pitch_angle', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
         self.add_check('range', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
         self.add_check('time', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
 
@@ -400,8 +401,8 @@ class CruiseCondition(AircraftCondition):
             self.parameters.range = range
         else:
             raise NotImplementedError
-        u = V * csdl.cos(theta.magnitude)
-        w = V * csdl.sin(theta.magnitude)
+        u = V * csdl.cos(theta)
+        w = V * csdl.sin(theta)
         self.quantities.ac_states = AircraftStates(
             u=u, v=v, w=w, p=p, q=q, r=r, axis=self.axis)
         self.quantities.ac_states_atmos = atmos_states
