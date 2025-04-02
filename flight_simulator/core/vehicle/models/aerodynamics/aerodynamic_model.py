@@ -20,23 +20,17 @@ class LiftModel(csdl.CustomExplicitOperation):
 
         if AR is None:
             self.AR = csdl.Variable(name='AR', shape=(1,), value=15)
-        elif isinstance(AR, ureg.Quantity):
-            self.AR = csdl.Variable(name='AR', shape=(1,), value=AR.to_base_units())
         else:
             self.AR = AR
         
 
         if e is None:
             self.e = csdl.Variable(name='e', shape=(1,), value=0.87)
-        elif isinstance(e, ureg.Quantity):
-            self.e = csdl.Variable(name='e', shape=(1,), value=e.to_base_units())
         else:
             self.e = e
 
         if CD0 is None:
             self.CD0 = csdl.Variable(name='CD0', shape=(1,), value=0.001)
-        elif isinstance(CD0, ureg.Quantity):
-            self.CD0 = csdl.Variable(name='CD0', shape=(1,), value=CD0.to_base_units())
         else:
             self.CD0 = CD0
 
