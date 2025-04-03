@@ -12,7 +12,7 @@ from flight_simulator.core.dynamics.axis import Axis, ValidOrigins
 from flight_simulator.core.dynamics.aircraft_states import AircraftStates
 from flight_simulator.core.vehicle.aircraft_control_system import AircraftControlSystem
 
-class LiftModel(csdl.CustomExplicitOperation):
+class LiftModel:
     def __init__(self, AR:Union[ureg.Quantity, csdl.Variable], e:Union[ureg.Quantity, csdl.Variable], CD0:Union[ureg.Quantity, csdl.Variable], 
                  S:Union[ureg.Quantity, csdl.Variable], incidence:Union[ureg.Quantity, csdl.Variable]):
         super().__init__()
@@ -80,6 +80,7 @@ class AircraftAerodynamics(Loads):
             loads : ForcesMoments
                 Computed forces and moments about the reference point.
             """
+
             density = x_bar.atmospheric_states.density
             velocity = x_bar.VTAS
             theta = x_bar.states.theta

@@ -36,6 +36,7 @@ lfs.num_workers = 1
 debug = False
 do_trim_optimization = True
 do_geo_param = False
+do_weight_optimization = False
 
 recorder = csdl.Recorder(inline=True, expand_ops=True, debug=debug)
 
@@ -1249,17 +1250,17 @@ cruiseCondition = aircraft_conditions.CruiseCondition(
     fd_axis=fd_axis,
     controls=x57_controls,
     component = Aircraft,
-    altitude=Q_(0, 'ft'),
+    altitude=Q_(2500, 'ft'),
     range=Q_(70, 'km'),
     speed=Q_(100, 'mph'),
     pitch_angle=Q_(0,'rad'))
 
 total_forces_cruise, total_moments_cruise = cruiseCondition.assemble_forces_moments(print_output=True)
-print("Aircraft Gravity Loads",Aircraft.quantities.grav_forces, 'N')
-print("Aircraft Aerodynamic Loads",Aircraft.quantities.aero_forces, 'N')
-print("Aircraft Propulsive Loads",Aircraft.quantities.prop_forces, 'N')
-level_cruise = cruiseCondition.compute_eom_model(print_output=False)
-cruise_long_stabiliy = cruiseCondition.perform_linear_stability_analysis(print_output=False)
+print("Aircraft Gravity Loads",Aircraft.quantities.grav_forces.value, 'N')
+print("Aircraft Aerodynamic Loads",Aircraft.quantities.aero_forces.value, 'N')
+print("Aircraft Propulsive Loads",Aircraft.quantities.prop_forces.value, 'N')
+level_cruise = cruiseCondition.compute_eom_model(print_output=True)
+cruise_long_stabiliy = cruiseCondition.perform_linear_stability_analysis(print_output=True)
 
 
 climbCondition = aircraft_conditions.ClimbCondition(
@@ -1287,7 +1288,7 @@ hoverCondition = aircraft_conditions.HoverCondition(
 
 total_forces_hover, total_moments_hover = hoverCondition.assemble_forces_moments(print_output=False)
 level_hover = hoverCondition.compute_eom_model(print_output=False)
-hover_long_stabiliy = hoverCondition.perform_linear_stability_analysis(print_output=False)
+# hover_long_stabiliy = hoverCondition.perform_linear_stability_analysis(print_output=False)
 
 
 descentCondition = aircraft_conditions.ClimbCondition(
@@ -1305,23 +1306,65 @@ accel_descent = descentCondition.compute_eom_model(print_output=False)
 descent_long_stabiliy = descentCondition.perform_linear_stability_analysis(print_output=False)
 
 
-do_trim_opt_1 = True
-
+do_trim_opt_1 = False
+do_trim_opt_2 = True
+do_cruise_trim_opt = True
 
 
 if do_trim_optimization is True:
-
-    if do_trim_opt_1 is True:
-        cruiseCondition.parameters.pitch_angle.set_as_design_variable(lower=-np.deg2rad(10), upper=np.deg2rad(10), scaler=1)
-        # Constraint: Fx = 0
-        total_forces_cruise[0].set_as_constraint(equals=0, scaler=1)
-        # Constraint: Fy = 0
-        # total_forces_cruise[1].set_as_constraint(equals=0, scaler=1)       
     
-        # Lift = Weight Objective
-        
-        (Aircraft.quantities.aero_forces[2] + (Aircraft.quantities.mass_properties.mass * 9.81)).set_as_objective()
+    if do_trim_opt_1 is True:
+        if do_cruise_trim_opt is True:
+            pitch_angle = csdl.Variable(name="Pitch Angle", shape=(1,), value=np.deg2rad(2))
+            pitch_angle.set_as_design_variable(lower=-np.deg2rad(50), upper=np.deg2rad(50), scaler=10)
+            cruiseOpt = aircraft_conditions.CruiseCondition(
+                fd_axis=fd_axis,
+                controls=x57_controls,
+                component = Aircraft,
+                altitude=Q_(1, 'ft'),
+                range=Q_(70, 'km'),
+                speed=Q_(100, 'mph'),
+                pitch_angle=pitch_angle)
+            total_forces_cruise, total_moments_cruise = cruiseOpt.assemble_forces_moments(print_output=True)
 
+            # Constraint: Fx = 0
+            total_forces_cruise[0].set_as_constraint(equals=0, scaler=1)
+    
+        
+            # Lift = Weight Objective
+            
+            (Aircraft.quantities.aero_forces[2] + Aircraft.quantities.grav_forces[2]).set_as_objective()
+
+    if do_trim_opt_2 is True:
+        if do_cruise_trim_opt is True:
+
+            pitch_angle = csdl.Variable(name="Pitch Angle", shape=(1,), value=np.deg2rad(2))
+            pitch_angle.set_as_design_variable(lower=-np.deg2rad(50), upper=np.deg2rad(50), scaler=10)
+
+            throttle = csdl.Variable(name="Throttle", shape=(1,), value=1)
+            x57_controls.throttle = throttle
+            x57_controls.throttle.set_as_design_variable(lower=0, upper=1, scaler=10)
+
+            cruiseOpt = aircraft_conditions.CruiseCondition(
+                fd_axis=fd_axis,
+                controls=x57_controls,
+                component = Aircraft,
+                altitude=Q_(1, 'ft'),
+                range=Q_(70, 'km'),
+                speed=Q_(100, 'mph'),
+                pitch_angle=pitch_angle)
+            total_forces_cruise, total_moments_cruise = cruiseOpt.assemble_forces_moments(print_output=True)
+
+
+            # Constraint: Fy = 0
+            total_forces_cruise[1].set_as_constraint(equals=0, scaler=1) 
+
+            # Constraint: Fz = 0
+            total_forces_cruise[2].set_as_constraint(equals=0, scaler=1)      
+        
+            # Thrust = Drag Objective
+            
+            (Aircraft.quantities.prop_forces[0] + Aircraft.quantities.aero_forces[0]).set_as_objective()
 
 
     if debug is True:
@@ -1362,16 +1405,16 @@ if do_trim_optimization is True:
 # 7. Run Optimization Problem to Maximize Range
 
 
-
-x57_weights_model = WeightsModel(design_weight=Q_(1360.77, 'kg'),dynamic_pressure=Q_(0.5, 'kg*m/s**2'))
-wing_mass = x57_weights_model.evaluate_wing_weight(S_ref=Wing.parameters.S_ref, AR=Wing.parameters.AR, sweep=Wing.parameters.sweep, 
-                                                           taper_ratio=Wing.parameters.taper_ratio)
-fuselage_mass = x57_weights_model.evaluate_fuselage_weight(fuselage_length=Fuselage.parameters.length, fuselage_height=Fuselage.parameters.max_height,fuselage_width=Fuselage.parameters.max_width)
-ht_mass = x57_weights_model.evaluate_horizontal_tail_weight(S_ref=HorTail.parameters.S_ref)
-vt_mass = x57_weights_model.evaluate_vertical_tail_weight(S_ref=VertTail.parameters.S_ref, AR=VertTail.parameters.AR, sweep_c4=VertTail.parameters.sweep)
-weights_solver = WeightsSolverModel()
-weights_solver.evaluate(x57_weights_model.design_gross_weight, wing_mass, fuselage_mass, ht_mass, vt_mass, 
-                        LandingGear.quantities.mass_properties.mass.magnitude, Battery.quantities.mass_properties.mass.magnitude, 81.65, 106.14)
+if do_weight_optimization is True:
+    x57_weights_model = WeightsModel(design_weight=Q_(1360.77, 'kg'),dynamic_pressure=Q_(0.5, 'kg*m/s**2'))
+    wing_mass = x57_weights_model.evaluate_wing_weight(S_ref=Wing.parameters.S_ref, AR=Wing.parameters.AR, sweep=Wing.parameters.sweep, 
+                                                            taper_ratio=Wing.parameters.taper_ratio)
+    fuselage_mass = x57_weights_model.evaluate_fuselage_weight(fuselage_length=Fuselage.parameters.length, fuselage_height=Fuselage.parameters.max_height,fuselage_width=Fuselage.parameters.max_width)
+    ht_mass = x57_weights_model.evaluate_horizontal_tail_weight(S_ref=HorTail.parameters.S_ref)
+    vt_mass = x57_weights_model.evaluate_vertical_tail_weight(S_ref=VertTail.parameters.S_ref, AR=VertTail.parameters.AR, sweep_c4=VertTail.parameters.sweep)
+    weights_solver = WeightsSolverModel()
+    weights_solver.evaluate(x57_weights_model.design_gross_weight, wing_mass, fuselage_mass, ht_mass, vt_mass, 
+                            LandingGear.quantities.mass_properties.mass.magnitude, Battery.quantities.mass_properties.mass.magnitude, 81.65, 106.14)
 
 
 

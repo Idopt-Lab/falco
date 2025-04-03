@@ -152,7 +152,7 @@ class Component:
         parameterization_solver.add_parameter(rigid_body_translation, cost=0.001)
 
 
-    def compute_aero_loads(self, fd_state, controls, fd_axis):
+    def compute_aero_loads(self, fd_state, controls):
         """
         Compute aerodynamic loads (forces and moments) for this component 
         if an aerodynamic model is attached.
@@ -169,13 +169,13 @@ class Component:
 
         # Compute aerodynamic loads using the aero model
         fm = aero.get_FM_refPoint(x_bar=fd_state, u_bar=controls)
-        fm_rotated = fm.rotate_to_axis(fd_axis)
-        self.quantities.aero_forces = fm_rotated.F.vector.value
-        self.quantities.aero_moments = fm_rotated.M.vector.value
-        return fm_rotated.F.vector.value, fm_rotated.M.vector.value
+        fm_rotated = fm.rotate_to_axis(fd_state.axis)
+        self.quantities.aero_forces = fm_rotated.F.vector
+        self.quantities.aero_moments = fm_rotated.M.vector
+        return fm_rotated.F.vector, fm_rotated.M.vector
     
 
-    def compute_propulsion_loads(self, fd_state, controls, fd_axis):
+    def compute_propulsion_loads(self, fd_state, controls):
         """
         Compute propulsion loads (forces and moments) for this component if it 
         has propulsion capabilities.
@@ -192,27 +192,27 @@ class Component:
             prop_curve=self.quantities.prop_curve
         )
         fm = motor_prop.get_FM_refPoint(x_bar=fd_state, u_bar=controls)
-        fm_rotated = fm.rotate_to_axis(fd_axis)
-        self.quantities.prop_forces = fm_rotated.F.vector.value
-        self.quantities.prop_moments = fm_rotated.M.vector.value
+        fm_rotated = fm.rotate_to_axis(fd_state.axis)
+        self.quantities.prop_forces = fm_rotated.F.vector
+        self.quantities.prop_moments = fm_rotated.M.vector
         # print(fm_rotated.F.vector.value, fm_rotated.M.vector.value)
-        return fm_rotated.F.vector.value, fm_rotated.M.vector.value
+        return fm_rotated.F.vector, fm_rotated.M.vector
 
-    def compute_gravity_loads(self, fd_axis, fd_state, controls):
+    def compute_gravity_loads(self, fd_state, controls):
         """
         Compute gravity loads (forces and moments) for this component.
         Returns:
             forces (np.array): Gravity forces vector.
             moments (np.array): Gravity moments vector.
         """
-        gravity_load = GravityLoads(fd_state=fd_state, fd_axis=fd_axis, controls=controls, component=self)
+        gravity_load = GravityLoads(fd_state=fd_state, controls=controls, component=self)
         fm = gravity_load.get_FM_refPoint(x_bar=fd_state, u_bar=controls)
-        self.quantities.grav_forces = fm.F.vector.value
-        self.quantities.grav_moments = fm.M.vector.value
+        self.quantities.grav_forces = fm.F.vector
+        self.quantities.grav_moments = fm.M.vector
         # print(fm.F.vector.value, fm.M.vector.value)
-        return fm.F.vector.value, fm.M.vector.value
+        return fm.F.vector, fm.M.vector
     
-    def compute_total_loads(self, fd_state, controls, fd_axis):
+    def compute_total_loads(self, fd_state, controls):
         """
         Compute the total loads (forces and moments) for this component by summing the
         aerodynamic, propulsion, and gravity loads.
@@ -221,19 +221,19 @@ class Component:
             total_moments (np.array): Sum of moments from all loads.
         """
 
-        total_forces = np.zeros(3)
-        total_moments = np.zeros(3)
+        total_forces = csdl.Variable(shape=(3,), value=0.)
+        total_moments = csdl.Variable(shape=(3,), value=0.)
 
         # Get aerodynamic loads only if a lift model is provided and the component uses one
-        aero_forces = np.zeros(3)
-        aero_moments = np.zeros(3)
+        aero_forces = csdl.Variable(shape=(3,), value=0.)
+        aero_moments = csdl.Variable(shape=(3,), value=0.)
         if self.quantities.lift_model is not None:
-            af, am = self.compute_aero_loads(fd_state, controls, fd_axis)
+            af, am = self.compute_aero_loads(fd_state, controls)
             aero_forces += af
             aero_moments += am
         for sub_comp in self.comps.values():
             if sub_comp.quantities.lift_model is not None:
-                af, am = sub_comp.compute_aero_loads(fd_state, controls, fd_axis)
+                af, am = sub_comp.compute_aero_loads(fd_state, controls)
                 aero_forces += af
                 aero_moments += am
 
@@ -241,26 +241,30 @@ class Component:
         self.quantities.aero_moments = aero_moments
 
         # Get propulsion loads only if radius and prop_curve are provided and the component uses propulsion
-        prop_forces = np.zeros(3)
-        prop_moments = np.zeros(3)
+        prop_forces = csdl.Variable(shape=(3,), value=0.)
+        prop_moments = csdl.Variable(shape=(3,), value=0.)
         if self.quantities.prop_curve is not None:
-            pf, pm = self.compute_propulsion_loads(fd_state, controls, fd_axis)
-            pf = np.nan_to_num(pf, nan=0.0)
-            pm = np.nan_to_num(pm, nan=0.0)
+            pf, pm = self.compute_propulsion_loads(fd_state, controls)
+            pf = np.nan_to_num(pf.value, nan=0.0)
+            pm = np.nan_to_num(pm.value, nan=0.0)
             prop_forces += pf
             prop_moments += pm
         for sub_comp in self.comps.values():
             if sub_comp.quantities.prop_curve is not None:
-                pf, pm = sub_comp.compute_propulsion_loads(fd_state, controls, fd_axis)
-                pf = np.nan_to_num(pf, nan=0.0)
-                pm = np.nan_to_num(pm, nan=0.0)
+                pf, pm = sub_comp.compute_propulsion_loads(fd_state, controls)
+                pf = np.nan_to_num(pf.value, nan=0.0)
+                pm = np.nan_to_num(pm.value, nan=0.0)
                 prop_forces += pf
                 prop_moments += pm
         self.quantities.prop_forces = prop_forces
         self.quantities.prop_moments = prop_moments
 
         # Get loads from gravity model
-        grav_forces, grav_moments = self.compute_gravity_loads(fd_axis, fd_state, controls)
+        grav_forces = csdl.Variable(shape=(3,), value=0.)
+        grav_moments = csdl.Variable(shape=(3,), value=0.)
+        gf, gm = self.compute_gravity_loads(fd_state, controls)
+        grav_forces += gf
+        grav_moments += gm
         self.quantities.grav_forces = grav_forces
         self.quantities.grav_moments = grav_moments
 

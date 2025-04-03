@@ -172,13 +172,9 @@ class AircraftCondition(Condition):
     def assemble_forces_moments(self, print_output: bool = False):
         """Assemble forces and moments from the component."""
 
-        forces, moments = self.component.compute_total_loads(
+        total_forces, total_moments = self.component.compute_total_loads(
             fd_state=self.quantities.ac_states,
-            controls=self.controls,
-            fd_axis=self.axis)
-        total_forces = csdl.Variable(value=forces, shape=(3,))
-        total_moments = csdl.Variable(value=moments, shape=(3,))
-
+            controls=self.controls)
 
         if print_output:
             print('-----------------------------------')
@@ -189,6 +185,9 @@ class AircraftCondition(Condition):
             print('p:', self.quantities.ac_states.states.p.value, 'rad/s')
             print('q:', self.quantities.ac_states.states.q.value, 'rad/s')
             print('r:', self.quantities.ac_states.states.r.value, 'rad/s')
+            print('phi:', self.quantities.ac_states.states.phi.value, 'rad')
+            print('theta:', self.quantities.ac_states.states.theta.value, 'rad')
+            print('psi:', self.quantities.ac_states.states.psi.value, 'rad')
             print('Altitude:', self.quantities.ac_states.axis.translation_from_origin.z.value, 'm')
             print('Atmospheric Density:', self.quantities.ac_states_atmos.density.value, 'kg/m^3')
             print("Total Forces:", total_forces.value, 'N')
@@ -374,7 +373,7 @@ class CruiseCondition(AircraftCondition):
         atmos_states = self._atmos_model.evaluate(z)
         theta = self.parameters.pitch_angle
         mach_number = self.parameters.mach_number
-        speed = self.parameters.speed
+        speed = self.parameters.speed * self.controls.throttle
         time = self.parameters.time
         range = self.parameters.range
         if mach_number.value != 0 and range.value != 0:
@@ -403,6 +402,11 @@ class CruiseCondition(AircraftCondition):
             raise NotImplementedError
         u = V * csdl.cos(theta)
         w = V * csdl.sin(theta)
+        self.axis.euler_angles.theta = theta
+        self.axis.euler_angles.phi = phi
+        self.axis.euler_angles.psi = psi
+        self.axis.translation_from_origin.x = x
+        self.axis.translation_from_origin.y = y
         self.quantities.ac_states = AircraftStates(
             u=u, v=v, w=w, p=p, q=q, r=r, axis=self.axis)
         self.quantities.ac_states_atmos = atmos_states
@@ -456,7 +460,7 @@ class ClimbCondition(AircraftCondition):
             raise Exception("Cannot specify 'speed' and 'time' at the same time")
         if all(getattr(self.parameters, attr).value != 0 for attr in conflicting_attributes_3):
             raise Exception("Cannot specify 'mach_number' and 'time' at the same time")
-        v = p = q = r = csdl.Variable(value=0.)
+        x = y = v = p = q = r = phi = psi = csdl.Variable(value=0.)
         hi = self.parameters.initial_altitude
         hf = self.parameters.final_altitude
         h_mean = 0.5 * (hi + hf)
@@ -489,6 +493,11 @@ class ClimbCondition(AircraftCondition):
         alfa = theta - gamma
         u = V * csdl.cos(alfa)
         w = V * csdl.sin(alfa)
+        self.axis.euler_angles.theta = theta
+        self.axis.euler_angles.phi = phi
+        self.axis.euler_angles.psi = psi
+        self.axis.translation_from_origin.x = x
+        self.axis.translation_from_origin.y = y
         self.quantities.ac_states = AircraftStates(
             u=u, v=v, w=w, p=p, q=q, r=r, axis=self.axis)
         self.quantities.ac_states_atmos = atmos_states
@@ -526,15 +535,20 @@ class HoverCondition(AircraftCondition):
 
     def _setup_condition(self):
         hover_parameters = self.parameters
-        u = v = w = p = q = r = csdl.Variable(value=0.)
+        u = v = w = p = q = r = phi = theta = psi = x = y = csdl.Variable(value=0.)
         z = hover_parameters.altitude
         self.axis.translation_from_origin.z = z
         atmos_states = self._atmos_model.evaluate(z)
+        self.axis.euler_angles.theta = theta
+        self.axis.euler_angles.phi = phi
+        self.axis.euler_angles.psi = psi
+        self.axis.translation_from_origin.x = x
+        self.axis.translation_from_origin.y = y
         self.quantities.ac_states = AircraftStates(
             u=u, v=v, w=w, p=p, q=q, r=r, axis=self.axis)
         self.quantities.ac_states_atmos = atmos_states
         if self.component is not None:
             self.quantities.total_forces, self.quantities.total_moments = self.assemble_forces_moments()
             self.quantities.ac_eom_model = self.compute_eom_model()
-            self.quantities.stability_analysis = self.perform_linear_stability_analysis()
+            # self.quantities.stability_analysis = self.perform_linear_stability_analysis()
 
