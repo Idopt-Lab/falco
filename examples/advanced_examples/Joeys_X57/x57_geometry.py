@@ -1388,6 +1388,19 @@ if do_trim_optimization is True:
     t2 = time.time()
     print('Time to solve', t2-t1)
     recorder.execute()
+    dv_save_dict = {}
+    constraints_save_dict = {}
+
+    dv_dict = recorder.design_variables
+    constraint_dict = recorder.constraints
+
+    for dv in dv_dict.keys():
+        dv_save_dict[dv.name] = dv.value
+        print(dv.name, dv.value)
+
+    for c in constraint_dict.keys():
+        constraints_save_dict[c.name] = c.value
+        print(c.name, c.value)
 
 
 
