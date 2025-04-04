@@ -35,6 +35,12 @@ lfs.num_workers = 1
 
 debug = False
 do_trim_optimization = True
+
+do_cruise = True
+do_climb = False
+do_descent = False
+do_hover = False
+
 do_geo_param = False
 do_weight_optimization = False
 
@@ -1245,76 +1251,79 @@ print('Aircraft CG', Aircraft.quantities.mass_properties.cg_vector.vector.value,
 print('Aircraft Inertia', Aircraft.quantities.mass_properties.inertia_tensor.inertia_tensor.value)
 
 
+def flight_conditions():
 
-cruiseCondition = aircraft_conditions.CruiseCondition(
-    fd_axis=fd_axis,
-    controls=x57_controls,
-    component = Aircraft,
-    altitude=Q_(2500, 'ft'),
-    range=Q_(70, 'km'),
-    speed=Q_(100, 'mph'),
-    pitch_angle=Q_(0,'rad'))
+    if do_cruise:
+        cruise = aircraft_conditions.CruiseCondition(
+            fd_axis=fd_axis,
+            controls=x57_controls,
+            component = Aircraft,
+            altitude=Q_(2500, 'ft'),
+            range=Q_(70, 'km'),
+            speed=Q_(100, 'mph'),
+            pitch_angle=Q_(0,'rad'))
 
-total_forces_cruise, total_moments_cruise = cruiseCondition.assemble_forces_moments(print_output=True)
-print("Aircraft Gravity Loads",Aircraft.quantities.grav_forces.value, 'N')
-print("Aircraft Aerodynamic Loads",Aircraft.quantities.aero_forces.value, 'N')
-print("Aircraft Propulsive Loads",Aircraft.quantities.prop_forces.value, 'N')
-level_cruise = cruiseCondition.compute_eom_model(print_output=True)
-cruise_long_stabiliy = cruiseCondition.perform_linear_stability_analysis(print_output=True)
+        total_forces_cruise, total_moments_cruise = cruise.assemble_forces_moments(print_output=True)
+        print("Aircraft Gravity Loads",Aircraft.quantities.grav_forces.value, 'N')
+        print("Aircraft Aerodynamic Loads",Aircraft.quantities.aero_forces.value, 'N')
+        print("Aircraft Propulsive Loads",Aircraft.quantities.prop_forces.value, 'N')
+        level_cruise = cruise.compute_eom_model(print_output=True)
+        cruise_long_stabiliy = cruise.perform_linear_stability_analysis(print_output=True)
 
+    if do_climb:
+        climb = aircraft_conditions.ClimbCondition(
+            fd_axis=fd_axis,
+            controls=x57_controls,
+            component=Aircraft,
+            initial_altitude=Q_(1000, 'ft'),
+            final_altitude=Q_(2000, 'ft'),
+            pitch_angle=Q_(0,'rad'),
+            flight_path_angle=Q_(0, 'rad'),
+            speed=Q_(67, 'mph'))
 
-climbCondition = aircraft_conditions.ClimbCondition(
-    fd_axis=fd_axis,
-    controls=x57_controls,
-    component=Aircraft,
-    initial_altitude=Q_(1000, 'ft'),
-    final_altitude=Q_(2000, 'ft'),
-    pitch_angle=Q_(0,'rad'),
-    flight_path_angle=Q_(0, 'rad'),
-    speed=Q_(67, 'mph'))
+        total_forces_climb, total_moments_climb = climb.assemble_forces_moments(print_output=True)
+        accel_climb = climb.compute_eom_model(print_output=True)
+        climb_long_stabiliy = climb.perform_linear_stability_analysis(print_output=True)
 
-total_forces_climb, total_moments_climb = climbCondition.assemble_forces_moments(print_output=False)
-accel_climb = climbCondition.compute_eom_model(print_output=False)
-climb_long_stabiliy = climbCondition.perform_linear_stability_analysis(print_output=False)
+    if do_hover:
+        hover = aircraft_conditions.HoverCondition(
+            fd_axis=fd_axis,
+            controls=x57_controls,
+            component=Aircraft,
+            altitude=Q_(100, 'ft'),
+            time=Q_(120,'s'))
 
+        total_forces_hover, total_moments_hover = hover.assemble_forces_moments(print_output=True)
+        level_hover = hover.compute_eom_model(print_output=True)
+        hover_long_stabiliy = hover.perform_linear_stability_analysis(print_output=True)
+   
 
+    if do_descent:
+        descent = aircraft_conditions.ClimbCondition(
+            fd_axis=fd_axis,
+            controls=x57_controls,
+            component=Aircraft,
+            initial_altitude=Q_(1000, 'ft'),
+            final_altitude=Q_(300, 'ft'),
+            pitch_angle=Q_(0,'rad'),
+            flight_path_angle=Q_(-3, 'rad'),
+            speed=Q_(67, 'mph'))
 
-hoverCondition = aircraft_conditions.HoverCondition(
-    fd_axis=fd_axis,
-    controls=x57_controls,
-    component=Aircraft,
-    altitude=Q_(100, 'ft'),
-    time=Q_(120,'s'))
+        total_forces_descent, total_moments_descent = descent.assemble_forces_moments(print_output=True)
+        accel_descent = descent.compute_eom_model(print_output=True)
+        descent_long_stabiliy = descent.perform_linear_stability_analysis(print_output=True)
 
-total_forces_hover, total_moments_hover = hoverCondition.assemble_forces_moments(print_output=False)
-level_hover = hoverCondition.compute_eom_model(print_output=False)
-# hover_long_stabiliy = hoverCondition.perform_linear_stability_analysis(print_output=False)
-
-
-descentCondition = aircraft_conditions.ClimbCondition(
-    fd_axis=fd_axis,
-    controls=x57_controls,
-    component=Aircraft,
-    initial_altitude=Q_(1000, 'ft'),
-    final_altitude=Q_(300, 'ft'),
-    pitch_angle=Q_(0,'rad'),
-    flight_path_angle=Q_(-3, 'rad'),
-    speed=Q_(67, 'mph'))
-
-total_forces_descent, total_moments_descent = descentCondition.assemble_forces_moments(print_output=False)
-accel_descent = descentCondition.compute_eom_model(print_output=False)
-descent_long_stabiliy = descentCondition.perform_linear_stability_analysis(print_output=False)
-
+    return
 
 do_trim_opt_1 = False
-do_trim_opt_2 = True
-do_cruise_trim_opt = True
+do_trim_opt_2 = False
+do_trim_opt_3 = True
 
 
 if do_trim_optimization is True:
-    
-    if do_trim_opt_1 is True:
-        if do_cruise_trim_opt is True:
+    if do_cruise is True:
+        
+        if do_trim_opt_1 is True:
             pitch_angle = csdl.Variable(name="Pitch Angle", shape=(1,), value=np.deg2rad(2))
             pitch_angle.set_as_design_variable(lower=-np.deg2rad(50), upper=np.deg2rad(50), scaler=10)
             cruiseOpt = aircraft_conditions.CruiseCondition(
@@ -1329,15 +1338,11 @@ if do_trim_optimization is True:
 
             # Constraint: Fx = 0
             total_forces_cruise[0].set_as_constraint(equals=0, scaler=1)
-    
-        
             # Lift = Weight Objective
             
             (Aircraft.quantities.aero_forces[2] + Aircraft.quantities.grav_forces[2]).set_as_objective()
 
-    if do_trim_opt_2 is True:
-        if do_cruise_trim_opt is True:
-
+        if do_trim_opt_2 is True:
             pitch_angle = csdl.Variable(name="Pitch Angle", shape=(1,), value=np.deg2rad(2))
             pitch_angle.set_as_design_variable(lower=-np.deg2rad(50), upper=np.deg2rad(50), scaler=10)
 
@@ -1365,7 +1370,35 @@ if do_trim_optimization is True:
             # Thrust = Drag Objective
             
             (Aircraft.quantities.prop_forces[0] + Aircraft.quantities.aero_forces[0]).set_as_objective()
+        
+        if do_trim_opt_3 is True:
+            pitch_angle = csdl.Variable(name="Pitch Angle", shape=(1,), value=np.deg2rad(2))
+            pitch_angle.set_as_design_variable(lower=-np.deg2rad(50), upper=np.deg2rad(50), scaler=10)
+            
+            throttle = csdl.Variable(name="Throttle", shape=(1,), value=1)
+            throttle.set_as_design_variable(lower=0, upper=1, scaler=10)
+            
+            elevator = csdl.Variable(name="Elevator Deflection", shape=(1,), value=np.deg2rad(0))
+            elevator.set_as_design_variable(lower=-np.deg2rad(25), upper=np.deg2rad(25), scaler=10)
+        
+            x57_controls.throttle = throttle
+            x57_controls.elevator.deflection = elevator
 
+            cruiseOpt = aircraft_conditions.CruiseCondition(
+                fd_axis=fd_axis,
+                controls=x57_controls,
+                component=Aircraft,
+                altitude=Q_(1, 'ft'),
+                range=Q_(70, 'km'),
+                speed=Q_(100, 'mph'),
+                pitch_angle=pitch_angle)
+            total_forces_cruise, total_moments_cruise = cruiseOpt.assemble_forces_moments(print_output=True)
+
+            total_forces_cruise[0].set_as_constraint(equals=0, scaler=1)  # Longitudinal force balance (Fx = 0)
+            total_forces_cruise[2].set_as_constraint(equals=0, scaler=1)  # Vertical force balance (Fz = 0)
+            total_moments_cruise[1].set_as_constraint(equals=0, scaler=1) # Pitch moment balance (My = 0)
+
+            (Aircraft.quantities.aero_forces[2] + Aircraft.quantities.grav_forces[2]).set_as_objective()
 
     if debug is True:
         pass
@@ -1390,17 +1423,23 @@ if do_trim_optimization is True:
     recorder.execute()
     dv_save_dict = {}
     constraints_save_dict = {}
+    obj_save_dict = {}
 
     dv_dict = recorder.design_variables
     constraint_dict = recorder.constraints
+    obj_dict = recorder.objectives
 
     for dv in dv_dict.keys():
         dv_save_dict[dv.name] = dv.value
-        print(dv.name, dv.value)
+        print("Design Variable", dv.name, dv.value)
 
     for c in constraint_dict.keys():
         constraints_save_dict[c.name] = c.value
-        print(c.name, c.value)
+        print("Constraint", c.name, c.value)
+
+    for obj in obj_dict.keys():
+        obj_save_dict[obj.name] = obj.value
+        print("Objective", obj.name, obj.value)
 
 
 

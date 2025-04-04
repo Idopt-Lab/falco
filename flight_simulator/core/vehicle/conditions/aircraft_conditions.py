@@ -550,5 +550,5 @@ class HoverCondition(AircraftCondition):
         if self.component is not None:
             self.quantities.total_forces, self.quantities.total_moments = self.assemble_forces_moments()
             self.quantities.ac_eom_model = self.compute_eom_model()
-            # self.quantities.stability_analysis = self.perform_linear_stability_analysis()
+            self.quantities.stability_analysis = self.perform_linear_stability_analysis()
 
