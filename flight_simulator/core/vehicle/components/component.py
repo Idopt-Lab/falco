@@ -8,7 +8,6 @@ from typing import Union, List
 import numpy as np
 from lsdo_geo.core.parameterization.free_form_deformation_functions import construct_ffd_block_around_entities
 from lsdo_geo.core.parameterization.parameterization_solver import ParameterizationSolver, GeometricVariables
-import lsdo_function_spaces as lfs
 import csdl_alpha as csdl
 from dataclasses import dataclass
 import time
