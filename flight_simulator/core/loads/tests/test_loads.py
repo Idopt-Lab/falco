@@ -13,6 +13,7 @@ from flight_simulator.core.vehicle.components.component import Component
 from flight_simulator.core.vehicle.models.aerodynamics.aerodynamic_model import LiftModel
 from flight_simulator.core.vehicle.controls.aircraft_control_system import AircraftControlSystem
 from flight_simulator.core.dynamics.aircraft_states import AircraftStates
+from flight_simulator.core.vehicle.models.propulsion.propulsion_model import HLPropCurve
 import NRLMSIS2
 
 
@@ -177,7 +178,20 @@ class TestInertialLoads(TestCase):
             name='Inertial Axis',
             origin=ValidOrigins.Inertial.value)
 
-        axis = Axis(
+        axis1 = Axis(
+            name='Test Local Axis',
+            x=Q_(0, 'm'),
+            y=Q_(0, 'm'),
+            z=Q_(0, 'm'),
+            phi=Q_(0, 'deg'),
+            theta=Q_(0, 'deg'),
+            psi=Q_(0, 'deg'),
+            sequence=np.array([3, 2, 1]),
+            reference=inertial_axis,
+            origin=ValidOrigins.Inertial.value
+        )
+
+        axis2 = Axis(
             name='Flight Dynamics Body Fixed Axis',
             x=Q_(0, 'm'),
             y=Q_(0, 'm'),
@@ -203,10 +217,15 @@ class TestInertialLoads(TestCase):
         parent_component.add_subcomponent(sub_component2)
         parent_component.add_subcomponent(sub_component3)
 
-        sub_component1.quantities.mass_properties.cg_vector.axis = axis
-        sub_component2.quantities.mass_properties.cg_vector.axis = axis
-        sub_component3.quantities.mass_properties.cg_vector.axis = axis
-        parent_component.quantities.mass_properties.cg_vector.axis = axis
+        sub_component1.quantities.mass_properties.cg_vector.axis = axis1
+        sub_component1.quantities.mass_properties.mass = Q_(10, 'kg')
+        sub_component2.quantities.mass_properties.cg_vector.axis = axis1
+        sub_component2.quantities.mass_properties.mass = Q_(10, 'kg')
+        sub_component3.quantities.mass_properties.cg_vector.axis = axis1
+        sub_component3.quantities.mass_properties.mass = Q_(10, 'kg')
+        parent_component.quantities.mass_properties.cg_vector.axis = axis2
+        parent_component.quantities.mass_properties.cg_vector.x = Q_(0, 'm')
+
         lift_model = LiftModel(
             AR=csdl.Variable(name='AR', shape=(1,), value=np.array([10,])),
             e=csdl.Variable(name='e', shape=(1,), value=np.array([0.87,])),
@@ -215,16 +234,19 @@ class TestInertialLoads(TestCase):
             incidence=csdl.Variable(name='incidence', shape=(1,), value=np.deg2rad(-2))
         )
 
-        atmos_states = atmos_model.evaluate(axis.translation_from_origin.z)
         sub_component1.quantities.lift_model = lift_model
+        sub_component2.quantities.prop_radius = csdl.Variable(shape=(1,), value=1.89/2)
+        sub_component2.quantities.prop_curve = HLPropCurve()
+        
         v = w = p = q = r = csdl.Variable(value=0.)
 
-        ac_states = AircraftStates(
-            u=csdl.Variable(value=50), v=v, w=w, p=p, q=q, r=r, axis=axis)
+        ac_states = AircraftStates(u=csdl.Variable(value=15), v=v, w=w, p=p, q=q, r=r, axis=axis2)
         
         controls = AircraftControlSystem(engine_count=1,symmetrical=True)
 
-        force, moment = parent_component.compute_total_loads(fd_state=ac_states, controls=controls)
+        pf, pm = sub_component2.compute_propulsion_loads(fd_state=ac_states, controls=controls)
+
+        total_force, total_moment = parent_component.compute_total_loads(fd_state=ac_states, controls=controls)
 
         alpha = ac_states.states.theta + lift_model.incidence + controls.elevator.deflection
 
@@ -233,15 +255,15 @@ class TestInertialLoads(TestCase):
         l = 0.5 * ac_states.atmospheric_states.density * ac_states.VTAS**2 * lift_model.S * cl
         d = 0.5 * ac_states.atmospheric_states.density * ac_states.VTAS**2 * lift_model.S * cd
 
-
         aero_force = csdl.Variable(shape=(3,), value=0.)
         aero_force = aero_force.set(csdl.slice[0], -d)
         aero_force = aero_force.set(csdl.slice[2], -l)
-        force_vector = Vector(vector=aero_force, axis=axis)
+        aero_force_vector = Vector(vector=aero_force, axis=axis1)
 
-        moment_vector = Vector(vector=csdl.Variable(shape=(3,), value=0.), axis=axis)
-        loads = ForcesMoments(force=force_vector, moment=moment_vector)
+        aero_moment_vector = Vector(vector=csdl.Variable(shape=(3,), value=0.), axis=axis1)
+        aero_loads = ForcesMoments(force=aero_force_vector, moment=aero_moment_vector)
+        aero_loads_new = aero_loads.rotate_to_axis(axis2)
 
-        loads_new = loads.rotate_to_axis(axis)
-
-        self.assertEqual(force[0].value, loads_new.F.vector[0].value)
+        self.assertEqual(total_force[0].value, aero_loads_new.F.vector[0].value + pf[0].value)
+        self.assertEqual(total_force[1].value, aero_loads_new.F.vector[1].value + pf[1].value)
+        self.assertEqual(total_force[2].value, aero_loads_new.F.vector[2].value + 30*9.81)
