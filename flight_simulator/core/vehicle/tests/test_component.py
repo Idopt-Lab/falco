@@ -107,7 +107,7 @@ class TestComponentHierarchy(TestCase):
         self.assertIsNone(sub_component1.parent)
         self.assertIn("sub_component2", parent_component.comps)
 
-    def test_viz_component_hierarchy(self):
+    def test_visualize_component_hierarchy(self):
         """Test removing a subcomponent from a Component."""
         parent_component = Component(name="parent_component")
         sub_component1 = Component(name="sub_component1")
@@ -116,7 +116,7 @@ class TestComponentHierarchy(TestCase):
         parent_component.add_subcomponent(sub_component1)
         parent_component.add_subcomponent(sub_component2)
 
-        parent_component.visualize_component_hierarchy(filepath=Path.cwd()/"python_test_outputs")
+        parent_component.visualize_component_hierarchy(file_name="component_hierarchy",file_format="png", filepath=Path.cwd()/"python_test_outputs")
         self.assertTrue((Path.cwd()/"python_test_outputs/component_hierarchy.png").exists())
         # Delete the folder and all its files after the test
         (Path.cwd()/"python_test_outputs/component_hierarchy.png").unlink()

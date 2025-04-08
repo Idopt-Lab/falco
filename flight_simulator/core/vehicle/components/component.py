@@ -123,7 +123,7 @@ class Component:
         try:
             from graphviz import Graph
         except ImportError:
-            raise ImportError("Must install graphviz. Can do 'pip install graphviz'")
+            raise ImportError("Must install graphviz via application and do 'pip install graphviz'")
 
         graph = Graph(comment="Component Hierarchy")
 
