@@ -1074,8 +1074,8 @@ parameterization_solver.add_variable(computed_value=h_tail_fuselage_connection, 
 
 
 vt_AR= csdl.Variable(name="VT_AR", shape=(1, ), value=1.998)
-VT_span = csdl.Variable(name="VT_span", shape=(1, ), value=2.3761728)
-VT_sweep = csdl.Variable(name="VT_sweep", shape=(1, ), value=-40)
+VT_span = csdl.Variable(name="VT_span", shape=(1, ), value=1.6191965383361169)
+VT_sweep = csdl.Variable(name="VT_sweep", shape=(1, ), value=-30)
 
 
 VertTail = WingComp(AR=vt_AR, span=VT_span, sweep=VT_sweep,
