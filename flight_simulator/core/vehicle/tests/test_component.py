@@ -9,11 +9,11 @@ from flight_simulator.core.dynamics.axis import Axis, ValidOrigins
 from flight_simulator.core.dynamics.axis_lsdogeo import AxisLsdoGeo
 from flight_simulator.core.loads.forces_moments import Vector
 from flight_simulator.core.loads.mass_properties import MassProperties, MassMI
-from flight_simulator.core.vehicle.component import Component, ComponentQuantities, ComponentParameters
+from flight_simulator.core.vehicle.components.component import Component, ComponentQuantities, ComponentParameters
 from flight_simulator.utils.import_geometry import import_geometry
 from flight_simulator.core.vehicle.models.aerodynamics.aerodynamic_model import LiftModel
 from flight_simulator.core.dynamics.aircraft_states import AircraftStates
-from flight_simulator.core.vehicle.aircraft_control_system import AircraftControlSystem
+from flight_simulator.core.vehicle.controls.aircraft_control_system import AircraftControlSystem
 
 
 class TestComponentInitialization(TestCase):
