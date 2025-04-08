@@ -1,5 +1,5 @@
 import numpy as np
-from flight_simulator import ureg, Q_
+from flight_simulator import ureg
 import csdl_alpha as csdl
 from typing import Union, Literal
 from enum import Enum
@@ -128,6 +128,14 @@ class Axis:
         self.origin = origin
 
     def copy(self):
+        """
+        Create a copy of the Axis object.
+
+        Returns
+        -------
+        Axis
+            A new Axis object with the same properties as the original.
+        """
         # Copy translation variables if set
         if self.translation_from_origin is not None:
             new_x = csdl.Variable(
@@ -180,6 +188,8 @@ class Axis:
             sequence=self.sequence,
             reference=self.reference
         )
+    
+    
 
 
 if __name__ == "__main__":

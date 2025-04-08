@@ -87,3 +87,20 @@ class AxisTests(TestCase):
             (axis.euler_angles.phi, axis.euler_angles.theta, axis.euler_angles.psi), axis=0)        
         np.testing.assert_almost_equal(axis.euler_angles_vector.value,
                                        desired=np.deg2rad(np.array([0, 5, -3])), decimal=5)
+
+    def test_axis_copy(self):
+        inertial_axis = Axis(
+            name='Inertial Axis',
+            x=np.array([0]) * ureg.meter,
+            y=np.array([0]) * ureg.meter,
+            z=np.array([0]) * ureg.meter,            
+            origin=ValidOrigins.Inertial.value,
+            phi=np.array([0, ]) * ureg.degree,
+            theta=np.array([5, ]) * ureg.degree,
+            psi=np.array([0, ]) * ureg.degree,
+        )
+        inertial_axis_copy = inertial_axis.copy()
+        print(inertial_axis_copy.euler_angles_vector.value)
+        print(inertial_axis.euler_angles_vector.value)
+        np.testing.assert_almost_equal(inertial_axis_copy.euler_angles_vector.value,
+                                       desired=inertial_axis.euler_angles_vector.value, decimal=5)
