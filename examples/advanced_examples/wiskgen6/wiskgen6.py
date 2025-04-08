@@ -3,16 +3,12 @@ import csdl_alpha as csdl
 import numpy as np
 from dataclasses import dataclass
 from flight_simulator import ureg, REPO_ROOT_FOLDER
-from typing import Union
 from flight_simulator.core.dynamics.axis import Axis, ValidOrigins
 from flight_simulator.core.dynamics.axis_lsdogeo import AxisLsdoGeo
 from flight_simulator.core.loads.forces_moments import ForcesMoments, Vector
 from flight_simulator.utils.import_geometry import import_geometry
-from flight_simulator.utils.euler_rotations import build_rotation_matrix
-from flight_simulator.core.vehicle.component import Component, Configuration
-from flight_simulator.core.vehicle.vehicle_control_system import VehicleControlSystem, ControlSurface, PropulsiveControl
+from flight_simulator.core.vehicle.components.component import Component, Configuration
 import lsdo_geo as lg
-import vedo
 
 lfs.num_workers = 1
 
@@ -1302,7 +1298,7 @@ config.system.geometry.plot(color='red',camera={'pos':(15,wingspan.value[0]*1.25
 # geometry.plot(color='Red')
 
 # Initialize the WiskControl class
-from typing import List, Union
+from typing import Union
 from flight_simulator.core.vehicle.wisk_control_system import WiskControl
 
 WiskControlSystem = WiskControl(symmetrical=False)

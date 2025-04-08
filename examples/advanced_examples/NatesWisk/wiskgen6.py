@@ -2,26 +2,19 @@ import time
 import lsdo_function_spaces as lfs
 import csdl_alpha as csdl
 import numpy as np
-import matplotlib.pyplot as plt
-import lsdo_geo as lg
 from flight_simulator.utils.import_geometry import import_geometry
-from flight_simulator import REPO_ROOT_FOLDER, ureg, Q_
-from flight_simulator.core.vehicle.component import Component
+from flight_simulator import REPO_ROOT_FOLDER, ureg
 from flight_simulator.core.dynamics.aircraft_states import AircraftStates
 from flight_simulator.core.loads.mass_properties import MassProperties, MassMI
 from flight_simulator.core.dynamics.axis import Axis, ValidOrigins
 from flight_simulator.core.dynamics.axis_lsdogeo import AxisLsdoGeo
-from typing import Union, List
+from typing import Union
 from dataclasses import dataclass
 from flight_simulator.core.loads.forces_moments import Vector, ForcesMoments
-from flight_simulator.utils.euler_rotations import build_rotation_matrix
-from flight_simulator.core.vehicle.aircraft_control_system import AircraftControlSystem
-from flight_simulator.core.vehicle.models.propulsion.propulsion_model import PropCurve, AircraftPropulsion
 from flight_simulator.core.vehicle.models.aerodynamics.aerodynamic_model import LiftModel, AircraftAerodynamics
 from flight_simulator.core.vehicle.components.wing import Wing as WingComp
 from flight_simulator.core.vehicle.components.fuselage import Fuselage as FuseComp
 from flight_simulator.core.vehicle.components.aircraft import Aircraft as AircraftComp
-from flight_simulator.core.vehicle.components.rotor import Rotor as RotorComp
 from lsdo_geo.core.parameterization.parameterization_solver import ParameterizationSolver, GeometricVariables
 
 

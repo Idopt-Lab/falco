@@ -1,8 +1,8 @@
-from typing import List, Union
+from typing import List
 import numpy as np
 import csdl_alpha as csdl
 from dataclasses import dataclass
-from flight_simulator.core.vehicle.vehicle_control_system import VehicleControlSystem, ControlSurface, PropulsiveControl
+from flight_simulator.core.vehicle.controls.vehicle_control_system import VehicleControlSystem, ControlSurface, PropulsiveControl
 
 class WiskControl(VehicleControlSystem):
 

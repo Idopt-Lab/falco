@@ -1,20 +1,16 @@
-from dataclasses import dataclass
 import numpy as np
-from scipy.constants import value
 from scipy.interpolate import Akima1DInterpolator
 
-from flight_simulator import Q_, ureg, REPO_ROOT_FOLDER
+from flight_simulator import Q_, ureg
 from flight_simulator.core.dynamics.vector import Vector
 from flight_simulator.core.loads.forces_moments import ForcesMoments
 from flight_simulator.core.loads.loads import Loads
-from flight_simulator.core.vehicle.vehicle_control_system import (
+from flight_simulator.core.vehicle.controls.vehicle_control_system import (
     VehicleControlSystem, ControlSurface, PropulsiveControl)
 from flight_simulator.core.dynamics.axis import Axis, ValidOrigins
-from flight_simulator.core.dynamics.aircraft_states import AircraftStates
 from flight_simulator.core.loads.mass_properties import MassProperties, MassMI
-from flight_simulator.core.vehicle.component import Component, ComponentQuantities, ComponentParameters
+from flight_simulator.core.vehicle.components.component import Component
 from flight_simulator.core.vehicle.components.aircraft import Aircraft
-from flight_simulator.core.vehicle.components.wing import Wing
 from typing import Union
 from typing import List
 import csdl_alpha as csdl
