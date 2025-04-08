@@ -3,21 +3,17 @@ import lsdo_function_spaces as lfs
 import csdl_alpha as csdl
 import numpy as np
 import matplotlib.pyplot as plt
-import lsdo_geo as lg
 import copy
 import pickle
 from flight_simulator.utils.import_geometry import import_geometry
-from flight_simulator import REPO_ROOT_FOLDER, ureg, Q_
-from flight_simulator.core.vehicle.component import Component
+from flight_simulator import REPO_ROOT_FOLDER, Q_
+from flight_simulator.core.vehicle.components.component import Component
 from flight_simulator.core.dynamics.aircraft_states import AircraftStates
 from flight_simulator.core.loads.mass_properties import MassProperties, MassMI
 from flight_simulator.core.dynamics.axis import Axis, ValidOrigins
 from flight_simulator.core.dynamics.axis_lsdogeo import AxisLsdoGeo
-from typing import Union, List
-from dataclasses import dataclass
-from flight_simulator.core.loads.forces_moments import Vector, ForcesMoments
-from flight_simulator.utils.euler_rotations import build_rotation_matrix
-from flight_simulator.core.vehicle.aircraft_control_system import AircraftControlSystem
+from flight_simulator.core.loads.forces_moments import Vector
+from flight_simulator.core.vehicle.controls.aircraft_control_system import AircraftControlSystem
 from flight_simulator.core.vehicle.models.propulsion.propulsion_model import HLPropCurve, CruisePropCurve, AircraftPropulsion
 from flight_simulator.core.vehicle.models.aerodynamics.aerodynamic_model import LiftModel, AircraftAerodynamics
 from flight_simulator.core.vehicle.models.equations_of_motion.eom_model import SixDoFModel

@@ -1,4 +1,4 @@
-from flight_simulator.core.vehicle.vehicle_control_system import VehicleControlSystem, ControlSurface, PropulsiveControl
+from flight_simulator.core.vehicle.controls.vehicle_control_system import VehicleControlSystem, ControlSurface, PropulsiveControl
 from dataclasses import dataclass
 import csdl_alpha as csdl
 import numpy as np
@@ -10,7 +10,7 @@ from flight_simulator.core.loads.loads import Loads
 from flight_simulator.core.loads.forces_moments import Vector, ForcesMoments
 from flight_simulator.core.dynamics.axis import Axis, ValidOrigins
 from flight_simulator.core.dynamics.aircraft_states import AircraftStates
-from flight_simulator.core.vehicle.aircraft_control_system import AircraftControlSystem
+from flight_simulator.core.vehicle.controls.aircraft_control_system import AircraftControlSystem
 
 # TODO: Account for Torque
 

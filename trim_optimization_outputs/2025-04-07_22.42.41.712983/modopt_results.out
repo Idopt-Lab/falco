@@ -1,0 +1,19 @@
+
+	Solution from ipopt:
+	----------------------------------------------------------------------------------------------------
+	Problem                            : trim_optimization
+	Solver                             : ipopt
+	Objective                          : [9.11526771e-10]
+	Total time                         : 0.2328166961669922
+	Total callbacks                    : 175
+	Reused callbacks                   : 0
+	obj callbacks                      : 67
+	grad callbacks                     : 15
+	hess callbacks                     : 0
+	con callbacks                      : 67
+	jac callbacks                      : 26
+	Optimal variables                  : [0.84303232 5.38950406 4.36332317]
+	Optimal constraints                : [-1.13686838e-13  9.11313691e-10  9.59210417e+04]
+	Optimal multipliers (bounds)       : [1.44325456e-09 2.02458917e-09 1.01879238e+05]
+	Optimal multipliers (constr.)      : [ -9.37437543 931.77083572 194.49362638]
+	----------------------------------------------------------------------------------------------------

@@ -1,4 +1,4 @@
-from flight_simulator.core.vehicle.condition import Condition
+from flight_simulator.core.condition.condition import Condition
 from flight_simulator.core.dynamics.aircraft_states import AircraftStates
 from flight_simulator.core.loads.forces_moments import Vector, ForcesMoments
 from flight_simulator.core.dynamics.axis import Axis, ValidOrigins
