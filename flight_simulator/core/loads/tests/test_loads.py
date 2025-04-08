@@ -9,6 +9,11 @@ import numpy as np
 from flight_simulator.core.dynamics.axis import Axis, ValidOrigins
 from flight_simulator.core.loads.forces_moments import Vector, ForcesMoments
 from flight_simulator.core.loads.loads import CsdlLoads, NonCsdlLoads
+from flight_simulator.core.vehicle.components.component import Component
+from flight_simulator.core.vehicle.models.aerodynamics.aerodynamic_model import LiftModel
+from flight_simulator.core.vehicle.controls.aircraft_control_system import AircraftControlSystem
+from flight_simulator.core.dynamics.aircraft_states import AircraftStates
+import NRLMSIS2
 
 
 class TestCsdlLoads(TestCase):
@@ -162,3 +167,81 @@ class TestNonCsdlLoads(TestCase):
         self.assertEqual(dydx.value.max(), 10)
 
 
+class TestInertialLoads(TestCase):
+    
+    def test_inertial_loads_buildup(self):
+        recorder = csdl.Recorder(inline=True)
+        recorder.start()
+
+        inertial_axis = Axis(
+            name='Inertial Axis',
+            origin=ValidOrigins.Inertial.value)
+
+        axis = Axis(
+            name='Flight Dynamics Body Fixed Axis',
+            x=Q_(0, 'm'),
+            y=Q_(0, 'm'),
+            z=Q_(0, 'm'),
+            phi=Q_(0, 'deg'),
+            theta=Q_(0, 'deg'),
+            psi=Q_(0, 'deg'),
+            sequence=np.array([3, 2, 1]),
+            reference=inertial_axis,
+            origin=ValidOrigins.Inertial.value
+        )
+
+        parent_component = Component(name="Aircraft")
+        sub_component1 = Component(name="Wing")
+        sub_component2 = Component(name="Motor")
+        sub_component3 = Component(name="Fuselage")
+
+
+        atmos_model = NRLMSIS2.Atmosphere()
+
+        # Add subcomponents to the parent component
+        parent_component.add_subcomponent(sub_component1)
+        parent_component.add_subcomponent(sub_component2)
+        parent_component.add_subcomponent(sub_component3)
+
+        sub_component1.quantities.mass_properties.cg_vector.axis = axis
+        sub_component2.quantities.mass_properties.cg_vector.axis = axis
+        sub_component3.quantities.mass_properties.cg_vector.axis = axis
+        parent_component.quantities.mass_properties.cg_vector.axis = axis
+        lift_model = LiftModel(
+            AR=csdl.Variable(name='AR', shape=(1,), value=np.array([10,])),
+            e=csdl.Variable(name='e', shape=(1,), value=np.array([0.87,])),
+            CD0=csdl.Variable(name='CD0', shape=(1,), value=np.array([0.001,])),
+            S=csdl.Variable(name='S', shape=(1,), value=np.array([100,])),
+            incidence=csdl.Variable(name='incidence', shape=(1,), value=np.deg2rad(-2))
+        )
+
+        atmos_states = atmos_model.evaluate(axis.translation_from_origin.z)
+        sub_component1.quantities.lift_model = lift_model
+        v = w = p = q = r = csdl.Variable(value=0.)
+
+        ac_states = AircraftStates(
+            u=csdl.Variable(value=50), v=v, w=w, p=p, q=q, r=r, axis=axis)
+        
+        controls = AircraftControlSystem(engine_count=1,symmetrical=True)
+
+        force, moment = parent_component.compute_total_loads(fd_state=ac_states, controls=controls)
+
+        alpha = ac_states.states.theta + lift_model.incidence + controls.elevator.deflection
+
+        cl = 2 * np.pi * alpha
+        cd = lift_model.CD0 + (1 / (lift_model.e * lift_model.AR * np.pi)) * cl**2  
+        l = 0.5 * ac_states.atmospheric_states.density * ac_states.VTAS**2 * lift_model.S * cl
+        d = 0.5 * ac_states.atmospheric_states.density * ac_states.VTAS**2 * lift_model.S * cd
+
+
+        aero_force = csdl.Variable(shape=(3,), value=0.)
+        aero_force = aero_force.set(csdl.slice[0], -d)
+        aero_force = aero_force.set(csdl.slice[2], -l)
+        force_vector = Vector(vector=aero_force, axis=axis)
+
+        moment_vector = Vector(vector=csdl.Variable(shape=(3,), value=0.), axis=axis)
+        loads = ForcesMoments(force=force_vector, moment=moment_vector)
+
+        loads_new = loads.rotate_to_axis(axis)
+
+        self.assertEqual(force[0].value, loads_new.F.vector[0].value)
