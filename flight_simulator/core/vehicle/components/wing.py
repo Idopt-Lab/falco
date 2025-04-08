@@ -1,16 +1,12 @@
 from flight_simulator.core.vehicle.components.component import Component
 
-from lsdo_geo import construct_ffd_block_around_entities, construct_tight_fit_ffd_block
 import lsdo_function_spaces as lfs
 from typing import Union, List
-from lsdo_geo.core.parameterization.volume_sectional_parameterization import (
-    VolumeSectionalParameterization, VolumeSectionalParameterizationInputs
-)
+
 import csdl_alpha as csdl
 import numpy as np
 from dataclasses import dataclass
 import lsdo_geo as lg
-import time
 
 in2m=0.0254
 ft2m = 0.3048

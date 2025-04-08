@@ -2,9 +2,6 @@ import time
 import lsdo_function_spaces as lfs
 import csdl_alpha as csdl
 import numpy as np
-import matplotlib.pyplot as plt
-import copy
-import pickle
 from flight_simulator.utils.import_geometry import import_geometry
 from flight_simulator import REPO_ROOT_FOLDER, Q_
 from flight_simulator.core.vehicle.components.component import Component
