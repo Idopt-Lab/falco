@@ -1,6 +1,8 @@
 from aviary.variable_info.enums import SpeedType, ThrottleAllocation
 
 
+# THIS NEEDS TO BE POPULATED WITH ACTUAL PHASE INFO FOR THE X57 AND RENAMED TO BE SPECIFIC TO THE X57
+
 phase_info = {
     'groundroll': {
         'user_options': {
