@@ -13,6 +13,8 @@ from flight_simulator.core.dynamics.axis import Axis, ValidOrigins
 from flight_simulator.core.dynamics.aircraft_states import AircraftStates
 from flight_simulator.core.loads.mass_properties import MassProperties, MassMI
 from flight_simulator.core.vehicle.component import Component, ComponentQuantities, ComponentParameters
+from flight_simulator.core.vehicle.components.aircraft import Aircraft
+from flight_simulator.core.vehicle.components.wing import Wing
 from typing import Union
 from typing import List
 import csdl_alpha as csdl
@@ -48,11 +50,23 @@ fd_axis = Axis(
 )
 # endregion
 
+# region Aircraft Wind Axis
+
+wind_axis = Axis(
+        name='Wind Axis',
+        x=Q_(0, 'ft'),
+        y=Q_(0, 'ft'),
+        z=Q_(0, 'ft'),
+        phi=Q_(0, 'deg'),
+        theta=Q_(0, 'deg'),
+        psi=Q_(0, 'deg'),
+        sequence=np.array([3, 2, 1]),
+        reference=fd_axis,
+        origin=ValidOrigins.Inertial.value
+    )
 # endregion
 
-# region Aircraft States
-c172_states = AircraftStates(axis=fd_axis, u=Q_(125, 'mph'))
-# endregion
+# region Aircraft Component
 
 # Create a Mass Properties object with given values
 c172_mi = MassMI(axis=fd_axis,
@@ -66,19 +80,66 @@ c172_mass_properties = MassProperties(mass=Q_(1043.2616, 'kg'),
                                       inertia=c172_mi,
                                       cg=Vector(vector=Q_(np.array([0, 0, 0]), 'm'), axis=fd_axis))
 
+aircraft_component = Aircraft()
+aircraft_component.quantities.mass_properties = c172_mass_properties
+# endregion
+
+# region Wing Component
+wing_AR = csdl.Variable(name="wing_AR", shape=(1, ), value=7.32)
+wing_span = csdl.Variable(name="wingspan", shape=(1, ), value=36.0)
+wing_sweep = csdl.Variable(name="wing_sweep", shape=(1, ), value=0)
+wing_dihedral = csdl.Variable(name="wing_dihedral", shape=(1, ), value=1.44)
+
+# wing_component = Wing(
+#                 AR=wing_AR,
+#                 span=wing_span,
+#                 sweep=wing_sweep,
+#                 dihedral=wing_dihedral,
+#                 tight_fit_ffd=False,
+#                 orientation='horizontal',
+#                 name='Wing'
+# )
+#
+# aircraft_component.add_subcomponent(wing_component)
+# endregion
+
+# region Control Surface Components
+rudder_component = Component(name='Rudder')
+rudder_component.parameters.actuate_angle = csdl.Variable(name="Rudder Actuate Angle", shape=(1,), value=np.deg2rad(0))
+aircraft_component.add_subcomponent(rudder_component)
+
+elevator_component = Component(name='Elevator')
+elevator_component.parameters.actuate_angle = csdl.Variable(name="Elevator Actuate Angle", shape=(1,), value=np.deg2rad(0))
+aircraft_component.add_subcomponent(elevator_component)
+
+right_aileron_component = Component(name='Right Aileron')
+right_aileron_component.parameters.actuate_angle = csdl.Variable(name="Right Aileron Actuate Angle", shape=(1,), value=np.deg2rad(15))
+aircraft_component.add_subcomponent(right_aileron_component)
+# endregion
+
+# region Engine Component
+engine_component = Component(name='Engine')
+radius_c172 = csdl.Variable(name='eng_rad', shape=(1,), value=0.94)
+engine_component.parameters.radius = radius_c172
+
+
+
+
+# endregion
+
 # region Aircraft Controls
 class C172Control(VehicleControlSystem):
 
-    def __init__(self, symmetrical: bool = True):
+    def __init__(self, elevator_component, aileron_right_component, aileron_left_component, rudder_component, symmetrical: bool = True):
         self.symmetrical = symmetrical
 
-        self.elevator = ControlSurface('elevator_left', lb=-26, ub=28)
+        self.elevator = ControlSurface('elevator_left', lb=-26, ub=28, component=elevator_component)
         if not symmetrical:
-            self.aileron_left = ControlSurface('aileron_left', lb=-15, ub=20)
-            self.aileron_right = ControlSurface('aileron_right', lb=-15, ub=20)
+            self.aileron_left = ControlSurface('aileron_left', lb=-15, ub=20, component=aileron_right_component)
+            self.aileron_right = ControlSurface('aileron_right', lb=-15, ub=20, component=aileron_left_component)
         else:
-            self.aileron = ControlSurface('aileron', lb=-15, ub=20)
-        self.rudder = ControlSurface('rudder', lb=-16, ub=16)
+            self.aileron = ControlSurface('aileron', lb=-15, ub=20, component=aileron_right_component)
+        self.rudder = ControlSurface('rudder', lb=-16, ub=16, component=rudder_component)
 
         self.engine = PropulsiveControl(name='engine', throttle=1.0)
 
@@ -140,12 +201,12 @@ class C172Control(VehicleControlSystem):
             ub_aileron_right = self.aileron_right.upper_bound
             return np.array([ub_aileron_left, ub_aileron_right, ub_elevator, ub_rudder, ub_thr])
 
-c172_controls = C172Control(symmetrical=True)
+c172_controls = C172Control(symmetrical=True, elevator_component=elevator_component, aileron_right_component=right_aileron_component,
+                            aileron_left_component=None, rudder_component=rudder_component)
 # endregion
 
-# region Create a C172 Aircraft
-c172_aircraft = Component(name='C172')
-c172_aircraft.quantities.mass_properties = c172_mass_properties
+# region Aircraft States
+cruise_state = AircraftStates(axis=fd_axis, u=Q_(125, 'mph'))
 # endregion
 
 # region Propulsion Model
@@ -198,8 +259,7 @@ c172_prop_curve = PropCurve()
 
 class C172Propulsion(Loads):
 
-    def __init__(self, states, controls, radius:Union[ureg.Quantity, csdl.Variable], prop_curve:PropCurve):
-        super().__init__(states=states, controls=controls)
+    def __init__(self, radius:Union[ureg.Quantity, csdl.Variable], prop_curve:PropCurve):
         self.c172_prop_curve = prop_curve
 
         if radius is None:
@@ -209,11 +269,11 @@ class C172Propulsion(Loads):
         else:
             self.radius = radius
 
-    def get_FM_refPoint(self):
-        throttle = self.controls.u[4]
-        density = self.states.atmospheric_states.density
-        velocity = self.states.VTAS
-        axis = self.states.axis
+    def get_FM_localAxis(self, states, controls):
+        throttle = controls.u[4]
+        density = states.atmospheric_states.density
+        velocity = states.VTAS
+        axis = states.axis
 
         # Compute RPM
         rpm = 1000 + (2800 - 1000) * throttle
@@ -237,10 +297,11 @@ class C172Propulsion(Loads):
         loads = ForcesMoments(force=force_vector, moment=moment_vector)
         return loads
 
-radius_c172 = csdl.Variable(shape=(1,), value=0.94)
-c172_propulsion = C172Propulsion(states=c172_states, controls=c172_controls, radius=radius_c172, prop_curve=c172_prop_curve)
-prop_loads = c172_propulsion.get_FM_refPoint()
-pass
+c172_propulsion = C172Propulsion( radius=radius_c172, prop_curve=c172_prop_curve)
+c172_propulsion.get_FM_localAxis(states=cruise_state, controls=c172_controls)
+engine_component.quantities.load_solvers.append(c172_propulsion)
+
+# prop_loads = c172_propulsion.get_FM_refPoint()
 # endregion
 
 

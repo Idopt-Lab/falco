@@ -1,24 +1,16 @@
-from flight_simulator.core.vehicle.component import Configuration
+from flight_simulator.core.dynamics.aircraft_states import AircraftStates
+from flight_simulator.core.vehicle.component import Component
+from flight_simulator.core.vehicle.vehicle_control_system import VehicleControlSystem
 
 
 class Condition:
     """The Condition class"""
-    def __init__(self) -> None:
-        self.parameters : dict = {}
-        self._configuration : Configuration = None
+    def __init__(self, fd_state: AircraftStates, control_system: VehicleControlSystem, component: Component) -> None:
+        self.parameters: dict = {}
+        self.state = fd_state
+        self.controls = control_system
+        self.component = component
 
-    @property
-    def configuration(self):
-        return self._configuration
-    
-    @configuration.setter
-    def configuration(self, value):
-        if not isinstance(value, Configuration):
-            raise TypeError(f"'base_configuration' must be of type {Configuration}, received {type(value)}")
-        self._configuration = value
-
-    def finalize_meshes(self):
-        raise NotImplementedError(f"'finalize_meshes' has not been implemented for condition of type {type(self)}")
-    
-    def assemble_forces_and_moments(self):
-        raise NotImplementedError(f"'assemble_forces_and_moments' has not been implemented for condition of type {type(self)}")
+    # def assemble_forces_and_moments(self):
+    #     # Call solvers:
+    #     for a_component_solver in self.component.solvers:

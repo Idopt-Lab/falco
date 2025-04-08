@@ -20,6 +20,7 @@ class ComponentQuantities:
         self._mass_properties = mass_properties
         self.surface_mesh = []
         self.surface_area = None
+        self.load_solvers = []
 
     @property
     def mass_properties(self):
