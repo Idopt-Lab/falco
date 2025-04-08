@@ -118,7 +118,7 @@ class AviaryAnalysis:
 
 
         # Engine 1: turbofan_28k
-        filename = "C:/Users/joeyg/OneDrive/Documents/GitHub/Sarojini_Research/aircraft-flight-simulator/examples/advanced_examples/Joeys_X57/turbofan_28k_with_electric.deck"
+        filename = "C:/Users/joeyg/OneDrive/Documents/GitHub/Sarojini_Research/aircraft-flight-simulator/flight_simulator/core/vehicle/models/propulsion/turbofan_28k_with_electric.deck"
 
         inputs.set_val(Aircraft.Engine.DATA_FILE, filename)
         inputs.set_val(Aircraft.Engine.MASS, 7400, 'lbm')
@@ -150,7 +150,7 @@ class AviaryAnalysis:
         inputs.set_val(Mission.Summary.FUEL_FLOW_SCALER, 1.0)
 
         # Engine 2:
-        filename = "C:/Users/joeyg/OneDrive/Documents/GitHub/Sarojini_Research/aircraft-flight-simulator/examples/advanced_examples/Joeys_X57/turbofan_28k_with_electric.deck"
+        filename = "C:/Users/joeyg/OneDrive/Documents/GitHub/Sarojini_Research/aircraft-flight-simulator/flight_simulator/core/vehicle/models/propulsion/turbofan_28k_with_electric.deck"
 
         engine_2_inputs = AviaryValues()
         engine_2_inputs.set_val(Aircraft.Engine.DATA_FILE, filename)
