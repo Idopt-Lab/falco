@@ -84,25 +84,6 @@ aircraft_component = Aircraft()
 aircraft_component.quantities.mass_properties = c172_mass_properties
 # endregion
 
-# region Wing Component
-wing_AR = csdl.Variable(name="wing_AR", shape=(1, ), value=7.32)
-wing_span = csdl.Variable(name="wingspan", shape=(1, ), value=36.0)
-wing_sweep = csdl.Variable(name="wing_sweep", shape=(1, ), value=0)
-wing_dihedral = csdl.Variable(name="wing_dihedral", shape=(1, ), value=1.44)
-
-# wing_component = Wing(
-#                 AR=wing_AR,
-#                 span=wing_span,
-#                 sweep=wing_sweep,
-#                 dihedral=wing_dihedral,
-#                 tight_fit_ffd=False,
-#                 orientation='horizontal',
-#                 name='Wing'
-# )
-#
-# aircraft_component.add_subcomponent(wing_component)
-# endregion
-
 # region Control Surface Components
 rudder_component = Component(name='Rudder')
 rudder_component.parameters.actuate_angle = csdl.Variable(name="Rudder Actuate Angle", shape=(1,), value=np.deg2rad(0))
@@ -119,12 +100,8 @@ aircraft_component.add_subcomponent(right_aileron_component)
 
 # region Engine Component
 engine_component = Component(name='Engine')
-radius_c172 = csdl.Variable(name='eng_rad', shape=(1,), value=0.94)
+radius_c172 = csdl.Variable(name='prop_radius', shape=(1,), value=0.94)
 engine_component.parameters.radius = radius_c172
-
-
-
-
 # endregion
 
 # region Aircraft Controls
@@ -201,12 +178,9 @@ class C172Control(VehicleControlSystem):
             ub_aileron_right = self.aileron_right.upper_bound
             return np.array([ub_aileron_left, ub_aileron_right, ub_elevator, ub_rudder, ub_thr])
 
+
 c172_controls = C172Control(symmetrical=True, elevator_component=elevator_component, aileron_right_component=right_aileron_component,
                             aileron_left_component=None, rudder_component=rudder_component)
-# endregion
-
-# region Aircraft States
-cruise_state = AircraftStates(axis=fd_axis, u=Q_(125, 'mph'))
 # endregion
 
 # region Propulsion Model
@@ -297,12 +271,14 @@ class C172Propulsion(Loads):
         loads = ForcesMoments(force=force_vector, moment=moment_vector)
         return loads
 
-c172_propulsion = C172Propulsion( radius=radius_c172, prop_curve=c172_prop_curve)
-c172_propulsion.get_FM_localAxis(states=cruise_state, controls=c172_controls)
-engine_component.quantities.load_solvers.append(c172_propulsion)
 
-# prop_loads = c172_propulsion.get_FM_refPoint()
+c172_propulsion = C172Propulsion( radius=radius_c172, prop_curve=c172_prop_curve)
+# state = AircraftStates(axis=fd_axis, u=Q_(125, 'mph'))
+# loads = c172_propulsion.get_FM_localAxis(states=state, controls=c172_controls)
+
+engine_component.quantities.load_solvers.append(c172_propulsion)
 # endregion
+
 
 
 
