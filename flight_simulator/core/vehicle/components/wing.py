@@ -187,13 +187,14 @@ class Wing(Component):
         if t_o_c is None:
             t_o_c = 0.15
 
+        if sweep is None:
+            sweep = csdl.Variable(name=f"{self._name}_sweep", value=0)
+            self.parameters.sweep = sweep
+
         FF = (1 + 0.6 / x_c_m + 100 * (t_o_c) ** 4) * csdl.cos(sweep) ** 0.28
         self.parameters.S_wet = self.quantities.surface_area
 
 
-        if sweep is None:
-            sweep = csdl.Variable(name=f"{self._name}_sweep", value=0)
-            self.parameters.sweep = sweep
         
         if dihedral is None:
             dihedral = csdl.Variable(name=f"{self._name}_dihedral", value=0)
