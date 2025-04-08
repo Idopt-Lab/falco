@@ -11,9 +11,8 @@ from flight_simulator.core.dynamics.axis import Axis, ValidOrigins
 from flight_simulator.core.dynamics.axis_lsdogeo import AxisLsdoGeo
 from flight_simulator.core.loads.forces_moments import Vector
 from flight_simulator.core.vehicle.controls.aircraft_control_system import AircraftControlSystem
-from flight_simulator.core.vehicle.models.propulsion.propulsion_model import HLPropCurve, CruisePropCurve, AircraftPropulsion
-from flight_simulator.core.vehicle.models.aerodynamics.aerodynamic_model import LiftModel, AircraftAerodynamics
-from flight_simulator.core.vehicle.models.equations_of_motion.eom_model import SixDoFModel
+from flight_simulator.core.vehicle.models.propulsion.propulsion_model import HLPropCurve, CruisePropCurve
+from flight_simulator.core.vehicle.models.aerodynamics.aerodynamic_model import LiftModel
 from flight_simulator.core.vehicle.models.weights.weights_model import WeightsModel, WeightsSolverModel
 from flight_simulator.core.vehicle.components.wing import Wing as WingComp
 from flight_simulator.core.vehicle.components.fuselage import Fuselage as FuseComp
