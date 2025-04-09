@@ -1,5 +1,7 @@
 from __future__ import annotations
 from pathlib import Path
+
+from flight_simulator.core.loads.loads import Loads
 from flight_simulator.core.loads.mass_properties import MassProperties
 from lsdo_geo import Geometry
 from lsdo_function_spaces import FunctionSet
@@ -60,8 +62,6 @@ class Component:
             if "do_not_remake_ffd_block" not in kwargs:
                 num_ffd_sections = 3
                 self._ffd_block = construct_ffd_block_around_entities(entities=geometry, num_coefficients=(2, num_ffd_sections, 2), degree=(1,1,1))
-    
-
 
     def add_subcomponent(self, subcomponent: Component):
         if not isinstance(subcomponent, Component):
@@ -112,6 +112,36 @@ class Component:
         add_component_to_graph(self, self._name)
         graph.render(file_name, directory=filepath, format=file_format, view=show)
 
+    def compute_total_loads(self, fd_state, controls):
+        """
+        Compute loads (forces and moments) for this component and all subcomponents
+        Returns:
+            forces (np.array): forces vector.
+            moments (np.array): moments vector.
+        """
+
+        total_forces = csdl.Variable(shape=(3,), value=0.)
+        total_moments = csdl.Variable(shape=(3,), value=0.)
+
+        # Sum loads from the current component's Loads objects
+        if bool(self.quantities.load_solvers):
+            for ls in self.quantities.load_solvers:
+                assert isinstance(ls, Loads)
+                fm = ls.get_FM_localAxis(states=fd_state, controls=controls)
+                fm_rotated = fm.rotate_to_axis(fd_state.axis)
+                total_forces += fm_rotated.F.vector
+                total_moments += fm_rotated.M.vector
+        else:
+            pass
+
+        # Recursively sum loads from subcomponents
+        for comp in self.comps.values():
+            f, m = comp.compute_total_loads(fd_state=fd_state, controls=controls)
+            total_forces += f
+            total_moments += m
+
+        return total_forces, total_moments
+
     def _setup_geometry(self, parameterization_solver, ffd_geometric_variables, plot: bool = False):
         if not hasattr(self, 'geometry') or self.geometry is None:
             return
@@ -124,9 +154,6 @@ class Component:
 
 
         parameterization_solver.add_parameter(rigid_body_translation, cost=0.001)
-
-
-    
 
     def _compute_surface_area(self, geometry: Geometry, plot_flag: bool = False):
         parametric_mesh_grid_num = 10

@@ -173,7 +173,8 @@ class AircraftStates:
         self.axis = axis
         self.atm = NRLMSIS2.Atmosphere()
 
-        self.atmospheric_states = self.atm.evaluate(-self.axis.translation_from_origin.z) # TODO: Re-evaluate this (We are designing for a negative z-axis based on our coordinate system, but NRLMSIS2 is expecting a positive z-axis)
+        # z is positive down. So we add a negative sign because NRLMSIS2 is expecting a positive value
+        self.atmospheric_states = self.atm.evaluate(-self.axis.translation_from_origin.z)
 
 
         self.states = self.States6dof(

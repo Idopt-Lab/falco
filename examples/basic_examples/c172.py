@@ -2,6 +2,7 @@ import numpy as np
 from scipy.interpolate import Akima1DInterpolator
 
 from flight_simulator import Q_, ureg
+from flight_simulator.core.dynamics.aircraft_states import AircraftStates
 from flight_simulator.core.dynamics.vector import Vector
 from flight_simulator.core.loads.forces_moments import ForcesMoments
 from flight_simulator.core.loads.loads import Loads
@@ -36,7 +37,7 @@ fd_axis = Axis(
     name='Flight Dynamics Body Fixed Axis',
     x=Q_(0, 'ft'),
     y=Q_(0, 'ft'),
-    z=Q_(12000, 'ft'),
+    z=Q_(-12000, 'ft'),  # z is positive down in FD axis
     phi=Q_(0, 'deg'),
     theta=Q_(4, 'deg'),
     psi=Q_(0, 'deg'),
@@ -80,24 +81,35 @@ aircraft_component = Aircraft()
 aircraft_component.quantities.mass_properties = c172_mass_properties
 # endregion
 
-# region Control Surface Components
-rudder_component = Component(name='Rudder')
-rudder_component.parameters.actuate_angle = csdl.Variable(name="Rudder Actuate Angle", shape=(1,), value=np.deg2rad(0))
-aircraft_component.add_subcomponent(rudder_component)
-
-elevator_component = Component(name='Elevator')
-elevator_component.parameters.actuate_angle = csdl.Variable(name="Elevator Actuate Angle", shape=(1,), value=np.deg2rad(0))
-aircraft_component.add_subcomponent(elevator_component)
-
-right_aileron_component = Component(name='Right Aileron')
-right_aileron_component.parameters.actuate_angle = csdl.Variable(name="Right Aileron Actuate Angle", shape=(1,), value=np.deg2rad(15))
-aircraft_component.add_subcomponent(right_aileron_component)
-# endregion
+# region Fuselage Component
+fuselage_component = Component(name='Fuselage')
+aircraft_component.add_subcomponent(fuselage_component)
 
 # region Engine Component
 engine_component = Component(name='Engine')
 radius_c172 = csdl.Variable(name='prop_radius', shape=(1,), value=0.94)
 engine_component.parameters.radius = radius_c172
+fuselage_component.add_subcomponent(engine_component)
+# endregion
+# endregion
+
+# region Wing Component
+wing_component = Component(name='Wing')
+aircraft_component.add_subcomponent(wing_component)
+# endregion
+
+# region Control Surface Components
+rudder_component = Component(name='Rudder')
+rudder_component.parameters.actuate_angle = csdl.Variable(name="Rudder Actuate Angle", shape=(1,), value=np.deg2rad(0))
+# aircraft_component.add_subcomponent(rudder_component)
+
+elevator_component = Component(name='Elevator')
+elevator_component.parameters.actuate_angle = csdl.Variable(name="Elevator Actuate Angle", shape=(1,), value=np.deg2rad(0))
+# aircraft_component.add_subcomponent(elevator_component)
+
+right_aileron_component = Component(name='Right Aileron')
+right_aileron_component.parameters.actuate_angle = csdl.Variable(name="Right Aileron Actuate Angle", shape=(1,), value=np.deg2rad(15))
+wing_component.add_subcomponent(right_aileron_component)
 # endregion
 
 # region Aircraft Controls
@@ -275,12 +287,9 @@ c172_propulsion = C172Propulsion( radius=radius_c172, prop_curve=c172_prop_curve
 engine_component.quantities.load_solvers.append(c172_propulsion)
 # endregion
 
-
-
-
-
-
-
+state = AircraftStates(axis=fd_axis, u=Q_(125, 'mph'))
+tf, tm = aircraft_component.compute_total_loads(fd_state=state, controls=c172_controls)
+pass
 # Create Aerodynamic Model
 
 
