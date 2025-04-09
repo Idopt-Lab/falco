@@ -15,6 +15,9 @@ ft2m = 0.3048
 
 @dataclass
 class WingParameters:
+    #TODO: 
+        #REPLACE FLOAT AND INT WITH UREG
+        #EXPLICTLY CONVERT EVERYTHING TO CSDL VARIABLE
     AR : Union[float, int, csdl.Variable]
     S_ref : Union[float, int, csdl.Variable]
     span : Union[float, int, csdl.Variable]
