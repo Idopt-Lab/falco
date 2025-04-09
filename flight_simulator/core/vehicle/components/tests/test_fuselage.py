@@ -39,23 +39,6 @@ class TestFuseComp(TestCase):
         fuselage_rear_pts_parametric = fuselage.project(fuselage_rear_guess, plot=False)
         fuselage_rear = geometry.evaluate(fuselage_rear_pts_parametric)
 
-        # wing_parametric_geometry = [
-        #     wing_le_left_parametric,
-        #     wing_le_right_parametric,
-        #     wing_le_center_parametric,
-        #     wing_te_left_parametric,
-        #     wing_te_right_parametric,
-        #     wing_te_center_parametric,
-        #     wing_qc_center_parametric,
-        #     wing_qc_tip_right_parametric,
-        #     wing_qc_tip_left_parametric
-        # ]
-
-        # test_wing_area = csdl.Variable(name="wing_area", shape=(1, ), value=10.0)
-        # test_wing_span = csdl.Variable(name="wing_span", shape=(1, ), value=10.0)
-        # test_wing_sweep = csdl.Variable(name="wing_sweep", shape=(1, ), value=0)
-        # test_wing_dihedral = csdl.Variable(name="wing_dihedral", shape=(1, ), value=0)
-
 
         TestFuselage = FuseComp(
             length=csdl.Variable(name="length", shape=(1, ), value=8.2242552),
