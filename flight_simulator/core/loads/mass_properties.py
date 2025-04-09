@@ -108,7 +108,7 @@ class GravityLoads(Loads):
         self.mass = component.quantities.mass_properties.mass
 
         if self.mass is None:
-            self.mass = csdl.Variable(name='mass', shape=(1,), value=1630) 
+            self.mass = csdl.Variable(name='mass', shape=(1,), value=0) 
         elif isinstance(self.mass, ureg.Quantity):
             self.mass = csdl.Variable(name='mass', shape=(1,), value=self.mass.to_base_units().magnitude)
         else:
