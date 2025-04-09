@@ -32,24 +32,19 @@ class TestFuseComp(TestCase):
         )
         fuselage = geometry.declare_component(function_search_names=['Fuselage'], name='fuselage')
 
-        fuselage_nose_guess = np.array([-1.75, 0, -4])*ft2m
-        fuselage_rear_guess = np.array([-29.5, 0, -5.5])*ft2m
-        fuselage_nose_pts_parametric = fuselage.project(fuselage_nose_guess, grid_search_density_parameter=20, plot=False)
-        fuselage_nose = geometry.evaluate(fuselage_nose_pts_parametric)
-        fuselage_rear_pts_parametric = fuselage.project(fuselage_rear_guess, plot=False)
-        fuselage_rear = geometry.evaluate(fuselage_rear_pts_parametric)
-
-
         TestFuselage = FuseComp(
-            length=csdl.Variable(name="length", shape=(1, ), value=8.2242552),
-            max_height=csdl.Variable(name="max_height", shape=(1, ), value=1.09),
-            max_width=csdl.Variable(name="max_width", shape=(1, ), value=1.24070602),
+            length=csdl.Variable(name="length", shape=(1, ), value=8),
+            max_height=csdl.Variable(name="max_height", shape=(1, ), value=1),
+            max_width=csdl.Variable(name="max_width", shape=(1, ), value=1.24),
             geometry=fuselage, skip_ffd=False, 
             parameterization_solver=parameterization_solver,
             ffd_geometric_variables=ffd_geometric_variables)
 
         self.assertIsNotNone(TestFuselage.geometry)
 
-        self.assertEqual(TestFuselage.parameters.length.value, 8.2242552)
-        self.assertEqual(TestFuselage.parameters.max_height.value, 1.09)
-        self.assertEqual(TestFuselage.parameters.max_width.value, 1.24070602)
+        self.assertEqual(TestFuselage.parameters.length.value, 8)
+        self.assertEqual(TestFuselage.parameters.max_height.value, 1)
+        self.assertEqual(TestFuselage.parameters.max_width.value, 1.24)
+        
+        parameterization_solver.evaluate(ffd_geometric_variables)
+        geometry.plot()
