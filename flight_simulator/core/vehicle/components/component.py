@@ -261,14 +261,16 @@ class Component:
         # Get loads from gravity model
         grav_forces = csdl.Variable(shape=(3,), value=0.)
         grav_moments = csdl.Variable(shape=(3,), value=0.)
-        gf, gm = self.compute_gravity_loads(fd_state, controls)
-        grav_forces += gf
-        grav_moments += gm
-        for sub_comp in self.comps.values():
-            gf, gm = sub_comp.compute_gravity_loads(fd_state, controls)
+
+        if sub_comp in self.comps.values():
+            for sub_comp in self.comps.values():
+                gf, gm = sub_comp.compute_gravity_loads(fd_state, controls)
+                grav_forces += gf
+                grav_moments += gm
+        else:
+            gf, gm = self.compute_gravity_loads(fd_state, controls)
             grav_forces += gf
             grav_moments += gm
-
         self.quantities.grav_forces = grav_forces
         self.quantities.grav_moments = grav_moments
 
