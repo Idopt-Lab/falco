@@ -99,8 +99,6 @@ class AxisTests(TestCase):
             theta=np.array([5, ]) * ureg.degree,
             psi=np.array([0, ]) * ureg.degree,
         )
-        inertial_axis_copy = inertial_axis.copy()
-        print(inertial_axis_copy.euler_angles_vector.value)
-        print(inertial_axis.euler_angles_vector.value)
-        np.testing.assert_almost_equal(inertial_axis_copy.euler_angles_vector.value,
-                                       desired=inertial_axis.euler_angles_vector.value, decimal=5)
+        inertial_axis_csdl_copy = inertial_axis.copy_csdl(new_name='AxisTestCSDLCopy')
+        np.testing.assert_almost_equal(inertial_axis_csdl_copy.euler_angles_vector.value,
+                                        desired=inertial_axis.euler_angles_vector.value, decimal=5)

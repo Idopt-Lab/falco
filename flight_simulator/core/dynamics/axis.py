@@ -127,57 +127,44 @@ class Axis:
         self.reference = reference
         self.origin = origin
 
-    def copy(self):
+
+    def copy(self, new_name: str = None):
         """
-        Create a copy of the Axis object.
+        Create a deep copy of the current Axis object.
+
+        This method replicates all the Axis properties, including translation,
+        Euler angles, sequence, reference, and origin, producing a new instance
+        with the same configuration using the csdl copyvar functionality.
 
         Returns
         -------
         Axis
-            A new Axis object with the same properties as the original.
+            A new Axis instance identical to the original.
         """
+        if new_name is None:
+            self.name = self.name + "_copy"
+        else:
+            self.name = new_name
+
         # Copy translation variables if set
         if self.translation_from_origin is not None:
-            new_x = csdl.Variable(
-                value=self.translation_from_origin.x.value,
-                shape=self.translation_from_origin.x.shape,
-                name=self.translation_from_origin.x.name + "_copy"
-            )
-            new_y = csdl.Variable(
-                value=self.translation_from_origin.y.value,
-                shape=self.translation_from_origin.y.shape,
-                name=self.translation_from_origin.y.name + "_copy"
-            )
-            new_z = csdl.Variable(
-                value=self.translation_from_origin.z.value,
-                shape=self.translation_from_origin.z.shape,
-                name=self.translation_from_origin.z.name + "_copy"
-            )
+            
+            new_x = csdl.copyvar(self.translation_from_origin.x)
+            new_y = csdl.copyvar(self.translation_from_origin.y)
+            new_z = csdl.copyvar(self.translation_from_origin.z)
         else:
             new_x = new_y = new_z = None
 
         # Copy Euler angle variables if set
         if hasattr(self, 'euler_angles') and self.euler_angles is not None:
-            new_phi = csdl.Variable(
-                value=self.euler_angles.phi.value,
-                shape=self.euler_angles.phi.shape,
-                name=self.euler_angles.phi.name + "_copy"
-            )
-            new_theta = csdl.Variable(
-                value=self.euler_angles.theta.value,
-                shape=self.euler_angles.theta.shape,
-                name=self.euler_angles.theta.name + "_copy"
-            )
-            new_psi = csdl.Variable(
-                value=self.euler_angles.psi.value,
-                shape=self.euler_angles.psi.shape,
-                name=self.euler_angles.psi.name + "_copy"
-            )
+            new_phi = csdl.copyvar(self.euler_angles.phi)
+            new_theta = csdl.copyvar(self.euler_angles.theta)
+            new_psi = csdl.copyvar(self.euler_angles.psi)
         else:
             new_phi = new_theta = new_psi = None
 
         return Axis(
-            name=self.name + "_copy",
+            name=self.name,
             origin=self.origin,
             x=new_x,
             y=new_y,
@@ -186,8 +173,7 @@ class Axis:
             theta=new_theta,
             psi=new_psi,
             sequence=self.sequence,
-            reference=self.reference
-        )
+            reference=self.reference)
     
     
 
