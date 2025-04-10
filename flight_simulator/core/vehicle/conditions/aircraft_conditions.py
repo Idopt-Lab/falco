@@ -1,4 +1,3 @@
-from flight_simulator.core.condition.condition import Condition
 from flight_simulator.core.dynamics.aircraft_states import AircraftStates
 from flight_simulator.core.dynamics.axis import Axis
 from flight_simulator.core.dynamics.axis_lsdogeo import AxisLsdoGeo
@@ -119,7 +118,7 @@ class CruiseParameters(csdl.VariableGroup):
         return value
 
 
-class AircraftCondition(Condition):
+class Condition():
     """General aircraft condition."""
     def __init__(self,
                  fd_axis: Union[Axis, AxisLsdoGeo],
@@ -140,8 +139,9 @@ class AircraftCondition(Condition):
             u=u, v=v, w=w,
             p=p, q=q, r=r
         )
-        self.quantities.ac_states_atmos = self.quantities.ac_states.atm.evaluate(
-            self.quantities.ac_states.axis.translation_from_origin.z)
+        #TODO: below is redundant with self.quantities.ac_states.atmospheric_states
+        # self.quantities.ac_states_atmos = self.quantities.ac_states.atm.evaluate(
+        #     self.quantities.ac_states.axis.translation_from_origin.z)
 
 
     def compute_eom_model(self, print_output: bool = False):
@@ -474,7 +474,7 @@ class EigenValueOperationLateralDirectional(csdl.CustomExplicitOperation):
         # Set Jacobian
         derivatives['eig_vals_real', 'mat'] = temp_r
         derivatives['eig_vals_imag', 'mat'] = temp_i
-class CruiseCondition(AircraftCondition):
+class CruiseCondition(Condition):
     """Cruise condition: intended for steady analyses.
 
     Note: cannot specify all parameters at once (e.g., cannot specify speed and mach_number simultaneously)
@@ -517,6 +517,7 @@ class CruiseCondition(AircraftCondition):
         x = y = v = phi = psi = p = q = r = csdl.Variable(value=0.)
         z = self.parameters.altitude
         self.axis.translation_from_origin.z = z
+        #TODO:  REDUNDANT BELOW
         atmos_states = self._atmos_model.evaluate(z)
         theta = self.parameters.pitch_angle
         mach_number = self.parameters.mach_number
@@ -564,7 +565,7 @@ class CruiseCondition(AircraftCondition):
 
 
 
-class ClimbCondition(AircraftCondition):
+class ClimbCondition(Condition):
     """Climb condition (intended for steady analyses)"""
     def __init__(self,
                  fd_axis: Union[Axis, AxisLsdoGeo],
@@ -656,7 +657,7 @@ class ClimbCondition(AircraftCondition):
 
 
 
-class HoverCondition(AircraftCondition):
+class HoverCondition(Condition):
     """Hover condition (intended for steady analyses)
 
     Parameters:
