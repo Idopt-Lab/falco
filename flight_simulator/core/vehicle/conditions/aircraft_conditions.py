@@ -1,8 +1,6 @@
 from flight_simulator.core.dynamics.aircraft_states import AircraftStates
 from flight_simulator.core.dynamics.axis import Axis
 from flight_simulator.core.dynamics.axis_lsdogeo import AxisLsdoGeo
-from flight_simulator.core.dynamics.trim_stability import LinearStabilityMetrics
-from flight_simulator.core.vehicle.models.equations_of_motion.eom_model import SixDoFModel
 from typing import Union
 import csdl_alpha as csdl
 from dataclasses import dataclass
@@ -17,9 +15,6 @@ from flight_simulator import ureg, Q_
 @dataclass
 class AircraftStateQuantities(csdl.VariableGroup):
     ac_states: AircraftStates = None
-    ac_states_atmos: NRLMSIS2.Atmosphere = None
-    ac_eom_model = None
-    stability_analysis = None
     total_forces = None
     total_moments = None
 
@@ -139,9 +134,8 @@ class Condition():
             u=u, v=v, w=w,
             p=p, q=q, r=r
         )
-        #TODO: below is redundant with self.quantities.ac_states.atmospheric_states
-        # self.quantities.ac_states_atmos = self.quantities.ac_states.atm.evaluate(
-        #     self.quantities.ac_states.axis.translation_from_origin.z)
+
+
 
 
     def assemble_forces_moments(self, print_output: bool = False):
@@ -164,7 +158,7 @@ class Condition():
             print('theta:', self.quantities.ac_states.states.theta.value, 'rad')
             print('psi:', self.quantities.ac_states.states.psi.value, 'rad')
             print('Altitude:', self.quantities.ac_states.axis.translation_from_origin.z.value, 'm')
-            print('Atmospheric Density:', self.quantities.ac_states_atmos.density.value, 'kg/m^3')
+            print('Atmospheric Density:', self.quantities.ac_states.atmospheric_states.density.value, 'kg/m^3')
             print("Total Forces:", total_forces.value, 'N')
             print("Total Moments:", total_moments.value, 'N*m')
             print('-----------------------------------')
@@ -188,6 +182,7 @@ class CruiseCondition(Condition):
                  time: Union[ureg.Quantity, csdl.Variable] = Q_(0, 's'),
                  component=None,
                  controls=None):
+
         self.parameters: CruiseParameters = CruiseParameters(
             altitude=altitude,
             speed=speed,
@@ -197,7 +192,6 @@ class CruiseCondition(Condition):
             time=time,
         )
         self.quantities = AircraftStateQuantities()
-        self._atmos_model = NRLMSIS2.Atmosphere()
         self.axis = fd_axis.copy()
         self.component = component
         self.controls = controls
@@ -216,8 +210,8 @@ class CruiseCondition(Condition):
         x = y = v = phi = psi = p = q = r = csdl.Variable(value=0.)
         z = self.parameters.altitude
         self.axis.translation_from_origin.z = z
-        #TODO:  REDUNDANT BELOW
-        atmos_states = self._atmos_model.evaluate(z)
+        self.quantities.ac_states = AircraftStates(axis=self.axis)
+        atmos_states = self.quantities.ac_states.atmospheric_states
         theta = self.parameters.pitch_angle
         mach_number = self.parameters.mach_number
         speed = self.parameters.speed * self.controls.throttle
@@ -256,7 +250,6 @@ class CruiseCondition(Condition):
         self.axis.translation_from_origin.y = y
         self.quantities.ac_states = AircraftStates(
             u=u, v=v, w=w, p=p, q=q, r=r, axis=self.axis)
-        self.quantities.ac_states_atmos = atmos_states
         if self.component is not None:
             self.quantities.total_forces, self.quantities.total_moments = self.assemble_forces_moments()
 
@@ -290,7 +283,6 @@ class ClimbCondition(Condition):
             climb_gradient=climb_gradient,
         )
         self.quantities = AircraftStateQuantities()
-        self._atmos_model = NRLMSIS2.Atmosphere()
         self.axis = fd_axis.copy()
         self.component = component
         self.controls = controls
@@ -313,7 +305,8 @@ class ClimbCondition(Condition):
         theta = self.parameters.pitch_angle
         gamma = self.parameters.flight_path_angle
         self.axis.translation_from_origin.z = h_mean
-        atmos_states = self._atmos_model.evaluate(altitude=h_mean)
+        self.quantities.ac_states = AircraftStates(axis=self.axis)
+        atmos_states = self.quantities.ac_states.atmospheric_states
         mach_number = self.parameters.mach_number
         speed = self.parameters.speed
         time = self.parameters.time
@@ -346,7 +339,6 @@ class ClimbCondition(Condition):
         self.axis.translation_from_origin.y = y
         self.quantities.ac_states = AircraftStates(
             u=u, v=v, w=w, p=p, q=q, r=r, axis=self.axis)
-        self.quantities.ac_states_atmos = atmos_states
         if self.component is not None:
             self.quantities.total_forces, self.quantities.total_moments = self.assemble_forces_moments()
 
@@ -372,7 +364,6 @@ class HoverCondition(Condition):
             time=time,
         )
         self.quantities = AircraftStateQuantities()
-        self._atmos_model = NRLMSIS2.Atmosphere()
         self.axis = fd_axis.copy()
         self.component = component
         self.controls = controls
@@ -383,7 +374,8 @@ class HoverCondition(Condition):
         u = v = w = p = q = r = phi = theta = psi = x = y = csdl.Variable(value=0.)
         z = hover_parameters.altitude
         self.axis.translation_from_origin.z = z
-        atmos_states = self._atmos_model.evaluate(z)
+        self.quantities.ac_states = AircraftStates(axis=self.axis)
+        atmos_states = self.quantities.ac_states.atmospheric_states
         self.axis.euler_angles.theta = theta
         self.axis.euler_angles.phi = phi
         self.axis.euler_angles.psi = psi
@@ -391,7 +383,6 @@ class HoverCondition(Condition):
         self.axis.translation_from_origin.y = y
         self.quantities.ac_states = AircraftStates(
             u=u, v=v, w=w, p=p, q=q, r=r, axis=self.axis)
-        self.quantities.ac_states_atmos = atmos_states
         if self.component is not None:
             self.quantities.total_forces, self.quantities.total_moments = self.assemble_forces_moments()
 
