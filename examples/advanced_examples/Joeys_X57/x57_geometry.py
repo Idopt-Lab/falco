@@ -1238,10 +1238,10 @@ for i, cruise_motor in enumerate(cruise_motors):
 Aircraft.quantities.mass_properties.mass = Q_(0, 'kg')
 Aircraft.quantities.mass_properties.cg_vector = Vector(vector=Q_(np.array([0, 0, 0]), 'm'), axis=fd_axis)
 Aircraft.quantities.mass_properties = Aircraft.compute_mass_properties()
-print('Aircraft Mass', Aircraft.quantities.mass_properties.mass.value, 'kg')
-print('Aircraft CG', Aircraft.quantities.mass_properties.cg_vector.vector.value, 'm')
-print('Aircraft Inertia', Aircraft.quantities.mass_properties.inertia_tensor.inertia_tensor.value)
-
+# print('Aircraft Mass', Aircraft.quantities.mass_properties.mass.value, 'kg')
+# print('Aircraft CG', Aircraft.quantities.mass_properties.cg_vector.vector.value, 'm')
+# print('Aircraft Inertia', Aircraft.quantities.mass_properties.inertia_tensor.inertia_tensor.value)
+print(repr(Aircraft.quantities))
 
 def flight_conditions():
 
