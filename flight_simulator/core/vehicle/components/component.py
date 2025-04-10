@@ -53,6 +53,15 @@ class ComponentQuantities:
             raise ValueError(f"'mass_properties' must be of type {MassProperties}, received {type(value)}")
         self._mass_properties = value
 
+    def __repr__(self):
+
+        output = (
+            f"Aircraft Mass: {self.mass_properties.mass.value} kg\n"
+            f"Aircraft CG: {self.mass_properties.cg_vector.vector.value} m\n"
+            f"Aircraft Inertia: {self.mass_properties.inertia_tensor.inertia_tensor.value}"
+        )
+        return output
+
 
 @dataclass
 class ComponentParameters:
