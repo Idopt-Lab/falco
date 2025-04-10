@@ -1259,8 +1259,7 @@ def flight_conditions():
         print("Aircraft Gravity Loads",Aircraft.quantities.grav_forces.value, 'N')
         print("Aircraft Aerodynamic Loads",Aircraft.quantities.aero_forces.value, 'N')
         print("Aircraft Propulsive Loads",Aircraft.quantities.prop_forces.value, 'N')
-        level_cruise = cruise.compute_eom_model(print_output=True)
-        cruise_long_stabiliy = cruise.perform_linear_stability_analysis(print_output=True)
+
 
     if do_climb:
         climb = aircraft_conditions.ClimbCondition(
@@ -1274,8 +1273,7 @@ def flight_conditions():
             speed=Q_(67, 'mph'))
 
         total_forces_climb, total_moments_climb = climb.assemble_forces_moments(print_output=True)
-        accel_climb = climb.compute_eom_model(print_output=True)
-        climb_long_stabiliy = climb.perform_linear_stability_analysis(print_output=True)
+
 
     if do_hover:
         hover = aircraft_conditions.HoverCondition(
@@ -1286,8 +1284,7 @@ def flight_conditions():
             time=Q_(120,'s'))
 
         total_forces_hover, total_moments_hover = hover.assemble_forces_moments(print_output=True)
-        level_hover = hover.compute_eom_model(print_output=True)
-        hover_long_stabiliy = hover.perform_linear_stability_analysis(print_output=True)
+
    
 
     if do_descent:
@@ -1302,8 +1299,7 @@ def flight_conditions():
             speed=Q_(67, 'mph'))
 
         total_forces_descent, total_moments_descent = descent.assemble_forces_moments(print_output=True)
-        accel_descent = descent.compute_eom_model(print_output=True)
-        descent_long_stabiliy = descent.perform_linear_stability_analysis(print_output=True)
+
 
     return
 
