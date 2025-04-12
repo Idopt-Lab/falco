@@ -19,8 +19,8 @@ class LinAngAccel(csdl.VariableGroup):
 
 class SixDoFModel:
 
-    def __init__(self, num_nodes: int = 1, stability_flag: bool = False):
-        self.num_nodes = num_nodes
+    def __init__(self, stability_flag: bool = False):
+        
         self.stability_flag = stability_flag
 
 
@@ -31,10 +31,6 @@ class SixDoFModel:
         ac_mass_properties: MassProperties,
         ref_pt: Union[csdl.Variable, np.ndarray] = np.array([0., 0., 0.])
     ):
-        
-        if self.num_nodes == 1:
-            total_forces = csdl.reshape(total_forces, shape=(1, 3))
-            total_moments = csdl.reshape(total_moments, shape=(1, 3))
 
         Fx = total_forces[:, 0]
         Fy = total_forces[:, 1]
@@ -82,12 +78,12 @@ class SixDoFModel:
         Rbcy = cgy - ref_pt[1]
         Rbcz = cgz - ref_pt[2]
 
-        xcgdot = csdl.Variable(shape=(self.num_nodes, ), value=0.)
-        ycgdot = csdl.Variable(shape=(self.num_nodes, ), value=0.)
-        zcgdot = csdl.Variable(shape=(self.num_nodes, ), value=0.)
-        xcgddot = csdl.Variable(shape=(self.num_nodes, ), value=0.)
-        ycgddot = csdl.Variable(shape=(self.num_nodes, ), value=0.)
-        zcgddot = csdl.Variable(shape=(self.num_nodes, ), value=0.)
+        xcgdot = csdl.Variable(value=0.)
+        ycgdot = csdl.Variable(value=0.)
+        zcgdot = csdl.Variable(value=0.)
+        xcgddot = csdl.Variable(value=0.)
+        ycgddot = csdl.Variable(value=0.)
+        zcgddot = csdl.Variable(value=0.)
 
         # fill in (6 x 6) mp matrix
         mp_matrix = csdl.Variable(shape=(6, 6), value=0)
@@ -135,61 +131,61 @@ class SixDoFModel:
                             - Rbcy * q * r + Rbcz * (p ** 2 + q ** 2))
         
 
-        ang_vel_vec = csdl.Variable(shape=(self.num_nodes, 3), value=0.)
-        ang_vel_vec = ang_vel_vec.set(csdl.slice[:, 0], p)
-        ang_vel_vec = ang_vel_vec.set(csdl.slice[:, 1], q)
-        ang_vel_vec = ang_vel_vec.set(csdl.slice[:, 2], r)
+        ang_vel_vec = csdl.Variable(value=0.)
+        ang_vel_vec = ang_vel_vec.set(csdl.slice[0], p)
+        ang_vel_vec = ang_vel_vec.set(csdl.slice[1], q)
+        ang_vel_vec = ang_vel_vec.set(csdl.slice[2], r)
 
 
-        angvel_ssym = csdl.Variable(shape=(self.num_nodes, 3, 3), value=0.)
-        angvel_ssym = angvel_ssym.set(csdl.slice[:, 0, 1], -r)
-        angvel_ssym = angvel_ssym.set(csdl.slice[:, 0, 2], q)
-        angvel_ssym = angvel_ssym.set(csdl.slice[:, 1, 0], r)
-        angvel_ssym = angvel_ssym.set(csdl.slice[:, 1, 2], -p)
-        angvel_ssym = angvel_ssym.set(csdl.slice[:, 2, 0], -q)
-        angvel_ssym = angvel_ssym.set(csdl.slice[:, 2, 1], p)
+        angvel_ssym = csdl.Variable(shape=(3, 3), value=0.)
+        angvel_ssym = angvel_ssym.set(csdl.slice[0, 1], -r)
+        angvel_ssym = angvel_ssym.set(csdl.slice[0, 2], q)
+        angvel_ssym = angvel_ssym.set(csdl.slice[1, 0], r)
+        angvel_ssym = angvel_ssym.set(csdl.slice[1, 2], -p)
+        angvel_ssym = angvel_ssym.set(csdl.slice[2, 0], -q)
+        angvel_ssym = angvel_ssym.set(csdl.slice[2, 1], p)
 
 
-        Rbc_ssym = csdl.Variable(shape=(self.num_nodes, 3, 3), value=0.)
-        Rbc_ssym = Rbc_ssym.set(csdl.slice[:, 0, 1], -Rbcz)
-        Rbc_ssym = Rbc_ssym.set(csdl.slice[:, 0, 2], Rbcy)
-        Rbc_ssym = Rbc_ssym.set(csdl.slice[:, 1, 0], Rbcz)
-        Rbc_ssym = Rbc_ssym.set(csdl.slice[:, 1, 2], -Rbcx)
-        Rbc_ssym = Rbc_ssym.set(csdl.slice[:, 2, 0], -Rbcy)
-        Rbc_ssym = Rbc_ssym.set(csdl.slice[:, 2, 1], Rbcx)
+        Rbc_ssym = csdl.Variable(shape=(3, 3), value=0.)
+        Rbc_ssym = Rbc_ssym.set(csdl.slice[0, 1], -Rbcz)
+        Rbc_ssym = Rbc_ssym.set(csdl.slice[0, 2], Rbcy)
+        Rbc_ssym = Rbc_ssym.set(csdl.slice[1, 0], Rbcz)
+        Rbc_ssym = Rbc_ssym.set(csdl.slice[1, 2], -Rbcx)
+        Rbc_ssym = Rbc_ssym.set(csdl.slice[2, 0], -Rbcy)
+        Rbc_ssym = Rbc_ssym.set(csdl.slice[2, 1], Rbcx)
 
 
-        mu_vec = csdl.Variable(shape=(self.num_nodes, 3), value=0.)
-        for i in csdl.frange(self.num_nodes):
-            t1 = csdl.matvec(Idot, ang_vel_vec[i, :])
-            
-            var_1 = csdl.matmat(angvel_ssym[i, :, :], inertia_tensor)
+        mu_vec = csdl.Variable(shape=(3), value=0.)
+        
+        t1 = csdl.matvec(Idot, ang_vel_vec[:])
+        
+        var_1 = csdl.matmat(angvel_ssym[:, :], inertia_tensor)
 
-            var_2 = csdl.matvec(var_1, ang_vel_vec[i, :])
+        var_2 = csdl.matvec(var_1, ang_vel_vec[:])
 
-            var_3 = csdl.matmat(angvel_ssym[i, :, :], Rbc_ssym[i, :, :])
+        var_3 = csdl.matmat(angvel_ssym[:, :], Rbc_ssym[:, :])
 
-            var_4 = csdl.matvec(var_3, ang_vel_vec[i, :])
+        var_4 = csdl.matvec(var_3, ang_vel_vec[:])
 
-            var_5 = m * var_4
+        var_5 = m * var_4
 
-            mu_vec = mu_vec.set(
-                slices=csdl.slice[i, :],
-                value=total_moments[i, :] - t1 - var_2 - var_5,
-            )
+        mu_vec = mu_vec.set(
+            slices=csdl.slice[:],
+            value=total_moments[:] - t1 - var_2 - var_5,
+        )
 
         
         # Assemble the right hand side vector
-        rhs = csdl.Variable(shape=(self.num_nodes, 6), value=0.)
-        rhs = rhs.set(csdl.slice[:, 0], lambda_x)
-        rhs = rhs.set(csdl.slice[:, 1], lambda_y)
-        rhs = rhs.set(csdl.slice[:, 2], lambda_z)
-        rhs = rhs.set(csdl.slice[:, 3], mu_vec[:, 0])
-        rhs = rhs.set(csdl.slice[:, 4], mu_vec[:, 1])
-        rhs = rhs.set(csdl.slice[:, 5], mu_vec[:, 2])
+        rhs = csdl.Variable(shape=(6), value=0.)
+        rhs = rhs.set(csdl.slice[0], lambda_x)
+        rhs = rhs.set(csdl.slice[1], lambda_y)
+        rhs = rhs.set(csdl.slice[2], lambda_z)
+        rhs = rhs.set(csdl.slice[3], mu_vec[0])
+        rhs = rhs.set(csdl.slice[4], mu_vec[1])
+        rhs = rhs.set(csdl.slice[5], mu_vec[2])
 
         # Initialize the state vector (acceleration) and the residual
-        state = csdl.ImplicitVariable(shape=(6, self.num_nodes), value=0.)
+        state = csdl.ImplicitVariable(shape=(6), value=0.)
         residual = mp_matrix @ state - rhs.T()
 
         accel = csdl.solve_linear(mp_matrix, rhs.T())
