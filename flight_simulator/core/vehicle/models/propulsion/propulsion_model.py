@@ -154,10 +154,9 @@ class CruisePropCurve(csdl.CustomExplicitOperation):
 
 class AircraftPropulsion(Loads):
 
-    def __init__(self, prop_axis, fd_state, controls, radius:Union[ureg.Quantity, csdl.Variable], prop_curve:Union[HLPropCurve, CruisePropCurve], **kwargs):
-        super().__init__(states=fd_state, controls=controls)
+    def __init__(self, component, radius:Union[ureg.Quantity, csdl.Variable], prop_curve:Union[HLPropCurve, CruisePropCurve], **kwargs):
         self.prop_curve = prop_curve
-        self.prop_axis = prop_axis
+        self.prop_axis = component.quantities.mass_properties.cg_vector.axis
 
         if radius is None:
             self.radius = csdl.Variable(name='radius', shape=(1,), value=1.89/2) 
