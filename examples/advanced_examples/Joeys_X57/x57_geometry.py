@@ -6,13 +6,13 @@ from flight_simulator.utils.import_geometry import import_geometry
 from flight_simulator import REPO_ROOT_FOLDER, Q_
 from flight_simulator.core.vehicle.components.component import Component
 from flight_simulator.core.dynamics.aircraft_states import AircraftStates
-from flight_simulator.core.loads.mass_properties import MassProperties, MassMI
+from flight_simulator.core.loads.mass_properties import MassProperties, MassMI, GravityLoads
 from flight_simulator.core.dynamics.axis import Axis, ValidOrigins
 from flight_simulator.core.dynamics.axis_lsdogeo import AxisLsdoGeo
 from flight_simulator.core.loads.forces_moments import Vector
 from flight_simulator.core.vehicle.controls.aircraft_control_system import AircraftControlSystem
-from flight_simulator.core.vehicle.models.propulsion.propulsion_model import HLPropCurve, CruisePropCurve
-from flight_simulator.core.vehicle.models.aerodynamics.aerodynamic_model import LiftModel
+from flight_simulator.core.vehicle.models.propulsion.propulsion_model import HLPropCurve, CruisePropCurve, AircraftPropulsion
+from flight_simulator.core.vehicle.models.aerodynamics.aerodynamic_model import LiftModel, AircraftAerodynamics
 from flight_simulator.core.vehicle.models.weights.weights_model import WeightsModel, WeightsSolverModel
 from flight_simulator.core.vehicle.components.wing import Wing as WingComp
 from flight_simulator.core.vehicle.components.fuselage import Fuselage as FuseComp
@@ -1179,7 +1179,8 @@ for comp in Aircraft.comps.values():
 
 Wing.quantities.mass_properties.mass = Q_(152.88, 'kg')
 Wing.quantities.mass_properties.cg_vector = Vector(vector=Q_(wing_le_center.value, 'm'), axis=wing_axis)
-Wing.quantities.lift_model = lift_models[0]
+Wing_aerodynamics = AircraftAerodynamics(lift_model=lift_models[0], component=Wing)
+Wing.quantities.load_solvers.append(Wing_aerodynamics)
 
 
 LeftAileron.quantities.mass_properties.mass = Q_(1, 'kg')
@@ -1203,11 +1204,15 @@ Fuselage.quantities.mass_properties.cg_vector =  Vector(vector=Q_(wing_le_center
 
 HorTail.quantities.mass_properties.mass = Q_(27.3/2, 'kg')
 HorTail.quantities.mass_properties.cg_vector = Vector(vector=Q_(ht_le_center.value, 'm'), axis=ht_tail_axis)
-HorTail.quantities.lift_model = lift_models[1]
+HorTail_aerodynamics = AircraftAerodynamics(lift_model=lift_models[1], component=HorTail)
+HorTail.quantities.load_solvers.append(HorTail_aerodynamics)
 
 
 VertTail.quantities.mass_properties.mass = Q_(27.3/2, 'kg')
 VertTail.quantities.mass_properties.cg_vector = Vector(vector=Q_(vt_le_mid.value, 'm'), axis=vt_tail_axis)
+VertTail_aerodynamics = AircraftAerodynamics(lift_model=lift_models[2], component=VertTail)
+VertTail.quantities.load_solvers.append(VertTail_aerodynamics)
+
 
 Rudder.quantities.mass_properties.mass = Q_(1, 'kg')
 Rudder.quantities.mass_properties.cg_vector = Vector(vector=Q_(rudder_le_mid.value, 'm'), axis=rudder_axis)
@@ -1223,85 +1228,80 @@ LandingGear.quantities.mass_properties.cg_vector = Vector(vector=Q_(wing_le_cent
 for i, HL_motor in enumerate(lift_rotors):
     HL_motor.quantities.mass_properties.mass = Q_(81.65/12, 'kg')
     HL_motor.quantities.mass_properties.cg_vector = Vector(vector=Q_(MotorDisks[i].value, 'm'), axis=HL_motor_axes[i])
-    HL_motor.quantities.prop_radius = HL_radius_x57
-    HL_motor.quantities.prop_curve = HLPropCurve()
+    HL_motor_propulsion = AircraftPropulsion(radius=HL_radius_x57, prop_curve=HLPropCurve(), component=HL_motor)
+    HL_motor.quantities.load_solvers.append(HL_motor_propulsion)
 
 
 for i, cruise_motor in enumerate(cruise_motors):
     cruise_motor.quantities.mass_properties.mass = Q_(106.14/2, 'kg')
     cruise_motor.quantities.mass_properties.cg_vector = Vector(vector=Q_(cruise_motors_base[i].value, 'm'), axis=cruise_motor_axes[i])
-    cruise_motor.quantities.prop_radius = cruise_radius_x57
-    cruise_motor.quantities.prop_curve = CruisePropCurve()
-
+    cruise_motor_propulsion = AircraftPropulsion(radius=cruise_radius_x57, prop_curve=CruisePropCurve(), component=cruise_motor)
+    cruise_motor.quantities.load_solvers.append(cruise_motor_propulsion)
 
 
 Aircraft.quantities.mass_properties.mass = Q_(0, 'kg')
 Aircraft.quantities.mass_properties.cg_vector = Vector(vector=Q_(np.array([0, 0, 0]), 'm'), axis=fd_axis)
 Aircraft.quantities.mass_properties = Aircraft.compute_mass_properties()
-# print('Aircraft Mass', Aircraft.quantities.mass_properties.mass.value, 'kg')
-# print('Aircraft CG', Aircraft.quantities.mass_properties.cg_vector.vector.value, 'm')
-# print('Aircraft Inertia', Aircraft.quantities.mass_properties.inertia_tensor.inertia_tensor.value)
 print(repr(Aircraft.quantities))
 
-def flight_conditions():
-
-    if do_cruise:
-        cruise = aircraft_conditions.CruiseCondition(
-            fd_axis=fd_axis,
-            controls=x57_controls,
-            component = Aircraft,
-            altitude=Q_(2500, 'ft'),
-            range=Q_(70, 'km'),
-            speed=Q_(100, 'mph'),
-            pitch_angle=Q_(0,'rad'))
-
-        total_forces_cruise, total_moments_cruise = cruise.assemble_forces_moments(print_output=True)
-        print("Aircraft Gravity Loads",Aircraft.quantities.grav_forces.value, 'N')
-        print("Aircraft Aerodynamic Loads",Aircraft.quantities.aero_forces.value, 'N')
-        print("Aircraft Propulsive Loads",Aircraft.quantities.prop_forces.value, 'N')
 
 
-    if do_climb:
-        climb = aircraft_conditions.ClimbCondition(
-            fd_axis=fd_axis,
-            controls=x57_controls,
-            component=Aircraft,
-            initial_altitude=Q_(1000, 'ft'),
-            final_altitude=Q_(2000, 'ft'),
-            pitch_angle=Q_(0,'rad'),
-            flight_path_angle=Q_(0, 'rad'),
-            speed=Q_(67, 'mph'))
+if do_cruise:
+    cruise = aircraft_conditions.CruiseCondition(
+        fd_axis=fd_axis,
+        controls=x57_controls,
+        component = Aircraft,
+        altitude=Q_(2500, 'ft'),
+        range=Q_(70, 'km'),
+        speed=Q_(100, 'mph'),
+        pitch_angle=Q_(0,'rad'))
 
-        total_forces_climb, total_moments_climb = climb.assemble_forces_moments(print_output=True)
-
-
-    if do_hover:
-        hover = aircraft_conditions.HoverCondition(
-            fd_axis=fd_axis,
-            controls=x57_controls,
-            component=Aircraft,
-            altitude=Q_(100, 'ft'),
-            time=Q_(120,'s'))
-
-        total_forces_hover, total_moments_hover = hover.assemble_forces_moments(print_output=True)
-
-   
-
-    if do_descent:
-        descent = aircraft_conditions.ClimbCondition(
-            fd_axis=fd_axis,
-            controls=x57_controls,
-            component=Aircraft,
-            initial_altitude=Q_(1000, 'ft'),
-            final_altitude=Q_(300, 'ft'),
-            pitch_angle=Q_(0,'rad'),
-            flight_path_angle=Q_(-3, 'rad'),
-            speed=Q_(67, 'mph'))
-
-        total_forces_descent, total_moments_descent = descent.assemble_forces_moments(print_output=True)
+    total_forces_cruise, total_moments_cruise = cruise.assemble_forces_moments()
+    print(cruise)
 
 
-    return
+
+if do_climb:
+    climb = aircraft_conditions.ClimbCondition(
+        fd_axis=fd_axis,
+        controls=x57_controls,
+        component=Aircraft,
+        initial_altitude=Q_(1000, 'ft'),
+        final_altitude=Q_(2000, 'ft'),
+        pitch_angle=Q_(0,'rad'),
+        flight_path_angle=Q_(0, 'rad'),
+        speed=Q_(67, 'mph'))
+
+    total_forces_climb, total_moments_climb = climb.assemble_forces_moments()
+    print(climb)
+
+
+if do_hover:
+    hover = aircraft_conditions.HoverCondition(
+        fd_axis=fd_axis,
+        controls=x57_controls,
+        component=Aircraft,
+        altitude=Q_(100, 'ft'),
+        time=Q_(120,'s'))
+
+    total_forces_hover, total_moments_hover = hover.assemble_forces_moments()
+
+
+
+if do_descent:
+    descent = aircraft_conditions.ClimbCondition(
+        fd_axis=fd_axis,
+        controls=x57_controls,
+        component=Aircraft,
+        initial_altitude=Q_(1000, 'ft'),
+        final_altitude=Q_(300, 'ft'),
+        pitch_angle=Q_(0,'rad'),
+        flight_path_angle=Q_(-3, 'rad'),
+        speed=Q_(67, 'mph'))
+
+    total_forces_descent, total_moments_descent = descent.assemble_forces_moments()
+
+
 
 do_trim_opt_1 = False
 do_trim_opt_2 = False
@@ -1322,13 +1322,13 @@ if do_trim_optimization is True:
                 range=Q_(70, 'km'),
                 speed=Q_(100, 'mph'),
                 pitch_angle=pitch_angle)
-            total_forces_cruise, total_moments_cruise = cruiseOpt.assemble_forces_moments(print_output=True)
+            total_forces_cruise, total_moments_cruise = cruiseOpt.assemble_forces_moments()
 
             # Constraint: Fx = 0
             total_forces_cruise[0].set_as_constraint(equals=0, scaler=1)
             # Lift = Weight Objective
             
-            (Aircraft.quantities.aero_forces[2] + Aircraft.quantities.grav_forces[2]).set_as_objective()
+            (total_forces_cruise[2]).set_as_objective()
 
         if do_trim_opt_2 is True:
             pitch_angle = csdl.Variable(name="Pitch Angle", shape=(1,), value=np.deg2rad(2))
@@ -1346,7 +1346,7 @@ if do_trim_optimization is True:
                 range=Q_(70, 'km'),
                 speed=Q_(100, 'mph'),
                 pitch_angle=pitch_angle)
-            total_forces_cruise, total_moments_cruise = cruiseOpt.assemble_forces_moments(print_output=True)
+            total_forces_cruise, total_moments_cruise = cruiseOpt.assemble_forces_moments()
 
 
             # Constraint: Fy = 0
@@ -1357,7 +1357,7 @@ if do_trim_optimization is True:
         
             # Thrust = Drag Objective
             
-            (Aircraft.quantities.prop_forces[0] + Aircraft.quantities.aero_forces[0]).set_as_objective()
+            (total_forces_cruise[0]).set_as_objective()
         
         if do_trim_opt_3 is True:
             pitch_angle = csdl.Variable(name="Pitch Angle", shape=(1,), value=np.deg2rad(2))
@@ -1380,13 +1380,13 @@ if do_trim_optimization is True:
                 range=Q_(70, 'km'),
                 speed=Q_(100, 'mph'),
                 pitch_angle=pitch_angle)
-            total_forces_cruise, total_moments_cruise = cruiseOpt.assemble_forces_moments(print_output=True)
+            total_forces_cruise, total_moments_cruise = cruiseOpt.assemble_forces_moments()
 
             total_forces_cruise[0].set_as_constraint(equals=0, scaler=1)  # Longitudinal force balance (Fx = 0)
-            total_forces_cruise[2].set_as_constraint(equals=0, scaler=1)  # Vertical force balance (Fz = 0)
+            total_forces_cruise[1].set_as_constraint(equals=0, scaler=1)  # Lateral force balance (Fy = 0)
             total_moments_cruise[1].set_as_constraint(equals=0, scaler=1) # Pitch moment balance (My = 0)
 
-            (Aircraft.quantities.aero_forces[2] + Aircraft.quantities.grav_forces[2]).set_as_objective()
+            (total_forces_cruise[2]).set_as_objective()
 
     if debug is True:
         pass

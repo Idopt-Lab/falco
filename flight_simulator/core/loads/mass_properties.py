@@ -95,17 +95,24 @@ class MassProperties:
         self.cg_vector = cg
         self.inertia_tensor = inertia
 
+    @staticmethod
+    def create_default_mass_properties() -> "MassProperties":
+        default_axis = Axis(name="Default Axis", origin=ValidOrigins.Inertial.value)
+        default_inertia = MassMI(axis=default_axis)
+        default_cg = Vector(vector=Q_(np.zeros(3), 'm'), axis=default_axis)
+        return MassProperties(cg=default_cg, inertia=default_inertia)
+
 
 class GravityLoads(Loads):
 
-    def __init__(self, fd_state, controls, component):
+    def __init__(self, fd_state, controls, mass_properties):
         super().__init__(states=fd_state, controls=controls)
 
         # Store the states and mass properties
         self.states = fd_state
         self.load_axis = fd_state.axis
-        self.cg = component.quantities.mass_properties.cg_vector
-        self.mass = component.quantities.mass_properties.mass
+        self.cg = mass_properties.cg_vector
+        self.mass = mass_properties.mass
 
         if self.mass is None:
             self.mass = csdl.Variable(name='mass', shape=(1,), value=0) 

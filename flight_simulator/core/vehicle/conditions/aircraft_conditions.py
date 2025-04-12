@@ -136,32 +136,31 @@ class Condition():
         )
 
 
+    def __repr__(self):
+        try:
+            ac_states = self.quantities.ac_states
+            u_val = ac_states.states.u.value
+            v_val = ac_states.states.v.value
+            w_val = ac_states.states.w.value
+            p_val = ac_states.states.p.value
+            q_val = ac_states.states.q.value
+            r_val = ac_states.states.r.value
+            alt_val = ac_states.axis.translation_from_origin.z.value
+            density = ac_states.atmospheric_states.density.value
+            return (f"{self.__class__.__name__} | u={u_val} m/s, v={v_val} m/s, "
+                    f"w={w_val} m/s, p={p_val} rad/s, q={q_val} rad/s, r={r_val} rad/s, "
+                    f"Altitude={alt_val} m, Density={density} kg/m^3>")
+        except Exception:
+            return f"<{self.__class__.__name__} representation not available>"
+          
 
-
-    def assemble_forces_moments(self, print_output: bool = False):
+    def assemble_forces_moments(self):
         """Assemble forces and moments from the component."""
 
         total_forces, total_moments = self.component.compute_total_loads(
             fd_state=self.quantities.ac_states,
             controls=self.controls)
 
-        if print_output:
-            print('-----------------------------------')
-            print('Aircraft Condition:', self.__class__.__name__, 'in the Flight Dynamics Axis:')
-            print('u:', self.quantities.ac_states.states.u.value, 'm/s')
-            print('v:', self.quantities.ac_states.states.v.value, 'm/s')
-            print('w:', self.quantities.ac_states.states.w.value, 'm/s')
-            print('p:', self.quantities.ac_states.states.p.value, 'rad/s')
-            print('q:', self.quantities.ac_states.states.q.value, 'rad/s')
-            print('r:', self.quantities.ac_states.states.r.value, 'rad/s')
-            print('phi:', self.quantities.ac_states.states.phi.value, 'rad')
-            print('theta:', self.quantities.ac_states.states.theta.value, 'rad')
-            print('psi:', self.quantities.ac_states.states.psi.value, 'rad')
-            print('Altitude:', self.quantities.ac_states.axis.translation_from_origin.z.value, 'm')
-            print('Atmospheric Density:', self.quantities.ac_states.atmospheric_states.density.value, 'kg/m^3')
-            print("Total Forces:", total_forces.value, 'N')
-            print("Total Moments:", total_moments.value, 'N*m')
-            print('-----------------------------------')
         return total_forces, total_moments
 
     
@@ -250,8 +249,7 @@ class CruiseCondition(Condition):
         self.axis.translation_from_origin.y = y
         self.quantities.ac_states = AircraftStates(
             u=u, v=v, w=w, p=p, q=q, r=r, axis=self.axis)
-        if self.component is not None:
-            self.quantities.total_forces, self.quantities.total_moments = self.assemble_forces_moments()
+
 
 
 
@@ -339,9 +337,6 @@ class ClimbCondition(Condition):
         self.axis.translation_from_origin.y = y
         self.quantities.ac_states = AircraftStates(
             u=u, v=v, w=w, p=p, q=q, r=r, axis=self.axis)
-        if self.component is not None:
-            self.quantities.total_forces, self.quantities.total_moments = self.assemble_forces_moments()
-
 
 
 
@@ -383,7 +378,5 @@ class HoverCondition(Condition):
         self.axis.translation_from_origin.y = y
         self.quantities.ac_states = AircraftStates(
             u=u, v=v, w=w, p=p, q=q, r=r, axis=self.axis)
-        if self.component is not None:
-            self.quantities.total_forces, self.quantities.total_moments = self.assemble_forces_moments()
 
 

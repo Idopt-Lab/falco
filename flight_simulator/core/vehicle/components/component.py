@@ -18,6 +18,7 @@ from flight_simulator.core.dynamics.axis import Axis, ValidOrigins
 from flight_simulator.core.loads.forces_moments import Vector, ForcesMoments
 from flight_simulator.core.vehicle.models.propulsion.propulsion_model import HLPropCurve, CruisePropCurve, AircraftPropulsion
 from flight_simulator.core.vehicle.models.aerodynamics.aerodynamic_model import LiftModel, AircraftAerodynamics
+from flight_simulator.core.loads.loads import Loads
 
 
 class ComponentQuantities:
@@ -25,40 +26,18 @@ class ComponentQuantities:
         self._mass_properties = mass_properties
         self.surface_mesh = []
         self.surface_area = None
-        self.aero_forces = None
-        self.aero_moments = None
-        self.prop_forces = None
-        self.prop_moments = None
-        self.grav_forces = None
-        self.grav_moments = None
-        self.total_forces = None
-        self.total_moments = None
-        self.lift_model = None
-        self.prop_radius = None
-        self.prop_curve = None
+        self.load_solvers = []
 
         if mass_properties is None:
-            default_axis = Axis(name="Default Axis", origin=ValidOrigins.Inertial.value)
-            default_inertia = MassMI(axis=default_axis)
-            default_cg = Vector(vector=Q_(np.zeros(3), 'm'), axis=default_axis)
-            self.mass_properties = MassProperties(cg=default_cg, inertia=default_inertia)
+            self.mass_properties = MassProperties.create_default_mass_properties()
 
-    @property
-    def mass_properties(self):
-        return self._mass_properties
-
-    @mass_properties.setter
-    def mass_properties(self, value):
-        if not isinstance(value, MassProperties):
-            raise ValueError(f"'mass_properties' must be of type {MassProperties}, received {type(value)}")
-        self._mass_properties = value
 
     def __repr__(self):
 
         output = (
-            f"Aircraft Mass: {self.mass_properties.mass.value} kg\n"
-            f"Aircraft CG: {self.mass_properties.cg_vector.vector.value} m\n"
-            f"Aircraft Inertia: {self.mass_properties.inertia_tensor.inertia_tensor.value}"
+            f"Component Mass: {self.mass_properties.mass.value} kg\n"
+            f"Component CG: {self.mass_properties.cg_vector.vector.value} m\n"
+            f"Component Inertia: {self.mass_properties.inertia_tensor.inertia_tensor.value}"
         )
         return output
 
@@ -159,66 +138,6 @@ class Component:
 
         parameterization_solver.add_parameter(rigid_body_translation, cost=0.001)
 
-
-    def compute_aero_loads(self, fd_state, controls):
-        """
-        Compute aerodynamic loads (forces and moments) for this component 
-        if an aerodynamic model is attached.
-        Returns:
-            forces (np.array): Aerodynamic forces vector.
-            moments (np.array): Aerodynamic moments vector.
-        """
-        aero = AircraftAerodynamics(
-            fd_state=fd_state,
-            wing_axis=self.quantities.mass_properties.cg_vector.axis,  
-            controls=controls,
-            lift_model=self.quantities.lift_model
-        )
-
-        # Compute aerodynamic loads using the aero model
-        fm = aero.get_FM_refPoint(x_bar=fd_state, u_bar=controls)
-        fm_rotated = fm.rotate_to_axis(fd_state.axis)
-        self.quantities.aero_forces = fm_rotated.F.vector
-        self.quantities.aero_moments = fm_rotated.M.vector
-        return fm_rotated.F.vector, fm_rotated.M.vector
-    
-
-    def compute_propulsion_loads(self, fd_state, controls):
-        """
-        Compute propulsion loads (forces and moments) for this component if it 
-        has propulsion capabilities.
-        Returns:
-            forces (np.array): Propulsion forces vector.
-            moments (np.array): Propulsion moments vector.
-        """
-       
-        motor_prop = AircraftPropulsion(
-            prop_axis=self.quantities.mass_properties.cg_vector.axis,
-            fd_state=fd_state,
-            controls=controls,
-            radius=self.quantities.prop_radius,
-            prop_curve=self.quantities.prop_curve
-        )
-        fm = motor_prop.get_FM_refPoint(x_bar=fd_state, u_bar=controls)
-        fm_rotated = fm.rotate_to_axis(fd_state.axis)
-        self.quantities.prop_forces = fm_rotated.F.vector
-        self.quantities.prop_moments = fm_rotated.M.vector
-        # print(fm_rotated.F.vector.value, fm_rotated.M.vector.value)
-        return fm_rotated.F.vector, fm_rotated.M.vector
-
-    def compute_gravity_loads(self, fd_state, controls):
-        """
-        Compute gravity loads (forces and moments) for this component.
-        Returns:
-            forces (np.array): Gravity forces vector.
-            moments (np.array): Gravity moments vector.
-        """
-        gravity_load = GravityLoads(fd_state=fd_state, controls=controls, component=self)
-        fm = gravity_load.get_FM_refPoint(x_bar=fd_state, u_bar=controls)
-        self.quantities.grav_forces = fm.F.vector
-        self.quantities.grav_moments = fm.M.vector
-        # print(fm.F.vector.value, fm.M.vector.value)
-        return fm.F.vector, fm.M.vector
     
     def compute_total_loads(self, fd_state, controls):
         """
@@ -232,70 +151,27 @@ class Component:
         total_forces = csdl.Variable(shape=(3,), value=0.)
         total_moments = csdl.Variable(shape=(3,), value=0.)
 
-        # Get aerodynamic loads only if a lift model is provided and the component uses one
-        aero_forces = csdl.Variable(shape=(3,), value=0.)
-        aero_moments = csdl.Variable(shape=(3,), value=0.)
-        if self.quantities.lift_model is not None:
-            af, am = self.compute_aero_loads(fd_state, controls)
-            aero_forces += af
-            aero_moments += am
-        for sub_comp in self.comps.values():
-            if sub_comp.quantities.lift_model is not None:
-                af, am = sub_comp.compute_aero_loads(fd_state, controls)
-                aero_forces += af
-                aero_moments += am
 
-        self.quantities.aero_forces = aero_forces
-        self.quantities.aero_moments = aero_moments
-
-        # Get propulsion loads only if radius and prop_curve are provided and the component uses propulsion
-        prop_forces = csdl.Variable(shape=(3,), value=0.)
-        prop_moments = csdl.Variable(shape=(3,), value=0.)
-        if self.quantities.prop_curve is not None:
-            pf, pm = self.compute_propulsion_loads(fd_state, controls)
-            pf = np.nan_to_num(pf.value, nan=0.0)
-            pm = np.nan_to_num(pm.value, nan=0.0)
-            prop_forces += pf
-            prop_moments += pm
-        for sub_comp in self.comps.values():
-            if sub_comp.quantities.prop_curve is not None:
-                pf, pm = sub_comp.compute_propulsion_loads(fd_state, controls)
-                pf = np.nan_to_num(pf.value, nan=0.0)
-                pm = np.nan_to_num(pm.value, nan=0.0)
-                prop_forces += pf
-                prop_moments += pm
-        self.quantities.prop_forces = prop_forces
-        self.quantities.prop_moments = prop_moments
-
-        # Get loads from gravity model
-        grav_forces = csdl.Variable(shape=(3,), value=0.)
-        grav_moments = csdl.Variable(shape=(3,), value=0.)
-
-        if sub_comp in self.comps.values():
-            for sub_comp in self.comps.values():
-                gf, gm = sub_comp.compute_gravity_loads(fd_state, controls)
-                grav_forces += gf
-                grav_moments += gm
+        if bool(self.quantities.load_solvers):
+            for ls in self.quantities.load_solvers:
+                assert isinstance(ls,Loads)
+                fm = ls.get_FM_refPoint(x_bar=fd_state, u_bar=controls)
+                fm_rotated = fm.rotate_to_axis(fd_state.axis)
+                total_forces += fm_rotated.F.vector
+                total_moments += fm_rotated.M.vector
         else:
-            gf, gm = self.compute_gravity_loads(fd_state, controls)
-            grav_forces += gf
-            grav_moments += gm
-        self.quantities.grav_forces = grav_forces
-        self.quantities.grav_moments = grav_moments
+            pass
 
-        # Sum the forces and moments
-        local_forces = aero_forces + prop_forces + grav_forces
-        local_moments = aero_moments + prop_moments + grav_moments
+        for comp in self.comps.values():
+            f, m = comp.compute_total_loads(fd_state, controls)
+            total_forces += f 
+            total_moments += m
 
-        # Add the parent's loads to the subcomponent loads, if any
-        total_forces += local_forces
-        total_moments += local_moments
-    
-        # print(total_forces, total_moments)
+        grav_loads = GravityLoads(fd_state=fd_state, controls=controls, mass_properties=self.quantities.mass_properties)
+        gfm = grav_loads.get_FM_refPoint(x_bar=fd_state, u_bar=controls)
+        total_forces += gfm.F.vector
+        total_moments += gfm.M.vector
 
-        self.quantities.total_forces = total_forces
-        self.quantities.total_moments = total_moments
-        
         return total_forces, total_moments
     
     def compute_inertia(self):
@@ -363,9 +239,7 @@ class Component:
     
         mass = self.quantities.mass_properties.mass
         cg = self.quantities.mass_properties.cg_vector
-
         inertia = self.compute_inertia()
-        mass_properties = MassProperties(mass = mass, cg = cg, inertia=inertia)
     
 
         total_mass = mass.magnitude
@@ -381,8 +255,12 @@ class Component:
             total_mass += comp_mass.value
             total_cg += comp_cg.vector * comp_mass.value
             total_inertia += comp_inertia.inertia_tensor
+
+
         overall_cg_vector = total_cg / total_mass
         overall_cg = type(cg)(vector=overall_cg_vector, axis=cg.axis)
+    
+
         overall_inertia = type(inertia)(
             axis=cg.axis,
             Ixx=total_inertia[0, 0],
@@ -391,9 +269,9 @@ class Component:
             Iyy=total_inertia[1, 1],
             Iyz=-total_inertia[1, 2],
             Izz=total_inertia[2, 2])
-        mass_properties = MassProperties(mass=Q_(total_mass,'kg'),cg=overall_cg,inertia=overall_inertia)
+        total_mass_properties = MassProperties(mass=Q_(total_mass,'kg'),cg=overall_cg,inertia=overall_inertia)
 
-        return mass_properties
+        return total_mass_properties
 
     def _compute_surface_area(self, geometry: Geometry, plot_flag: bool = False):
         parametric_mesh_grid_num = 10
