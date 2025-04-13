@@ -1095,13 +1095,13 @@ parameterization_solver.add_variable(computed_value=vtail_fuselage_connection, d
 
 lift_rotors = []
 for i in range(1, 13):
-    HL_motor = Component(name=f'HL Motor {i}')
+    HL_motor = RotorComp(name=f'HL Motor {i}',radius=MotorDisks[i-1])
     lift_rotors.append(HL_motor)
     Aircraft.add_subcomponent(HL_motor)
 
 cruise_motors = []
 for i in range(1, 3):
-    cruise_motor = Component(name=f'Cruise Motor {i}')
+    cruise_motor = RotorComp(name=f'Cruise Motor {i}',radius=cruise_motors_base[i-1])
     cruise_motors.append(cruise_motor)
     Aircraft.add_subcomponent(cruise_motor)
 
@@ -1245,91 +1245,38 @@ Aircraft.quantities.mass_properties = Aircraft.compute_mass_properties()
 print(repr(Aircraft.quantities))
 
 
-do_trim_opt_1 = False
-do_trim_opt_2 = False
-do_trim_opt_3 = True
-
 
 if do_trim_optimization is True:
     if do_cruise is True:
+        pitch_angle = csdl.Variable(name="Pitch Angle", shape=(1,), value=np.deg2rad(2))
+        pitch_angle.set_as_design_variable(lower=-np.deg2rad(50), upper=np.deg2rad(50), scaler=10)
         
-        if do_trim_opt_1 is True:
-            pitch_angle = csdl.Variable(name="Pitch Angle", shape=(1,), value=np.deg2rad(2))
-            pitch_angle.set_as_design_variable(lower=-np.deg2rad(50), upper=np.deg2rad(50), scaler=10)
-            cruiseOpt = aircraft_conditions.CruiseCondition(
-                fd_axis=fd_axis,
-                controls=x57_controls,
-                component = Aircraft,
-                altitude=Q_(1, 'ft'),
-                range=Q_(70, 'km'),
-                speed=Q_(100, 'mph'),
-                pitch_angle=pitch_angle)
-            total_forces_cruise, total_moments_cruise = cruiseOpt.assemble_forces_moments()
-
-            # Constraint: Fx = 0
-            total_forces_cruise[0].set_as_constraint(equals=0, scaler=1)
-            # Lift = Weight Objective
-            
-            (total_forces_cruise[2]).set_as_objective()
-
-        if do_trim_opt_2 is True:
-            pitch_angle = csdl.Variable(name="Pitch Angle", shape=(1,), value=np.deg2rad(2))
-            pitch_angle.set_as_design_variable(lower=-np.deg2rad(50), upper=np.deg2rad(50), scaler=10)
-
-            throttle = csdl.Variable(name="Throttle", shape=(1,), value=1)
-            x57_controls.throttle = throttle
-            x57_controls.throttle.set_as_design_variable(lower=0, upper=1, scaler=10)
-
-            cruiseOpt = aircraft_conditions.CruiseCondition(
-                fd_axis=fd_axis,
-                controls=x57_controls,
-                component = Aircraft,
-                altitude=Q_(1, 'ft'),
-                range=Q_(70, 'km'),
-                speed=Q_(100, 'mph'),
-                pitch_angle=pitch_angle)
-            total_forces_cruise, total_moments_cruise = cruiseOpt.assemble_forces_moments()
-
-
-            # Constraint: Fy = 0
-            total_forces_cruise[1].set_as_constraint(equals=0, scaler=1) 
-
-            # Constraint: Fz = 0
-            total_forces_cruise[2].set_as_constraint(equals=0, scaler=1)      
+        throttle = csdl.Variable(name="Throttle", shape=(1,), value=1)
+        throttle.set_as_design_variable(lower=0, upper=1, scaler=10)
         
-            # Thrust = Drag Objective
-            
-            (total_forces_cruise[0]).set_as_objective()
-        
-        if do_trim_opt_3 is True:
-            pitch_angle = csdl.Variable(name="Pitch Angle", shape=(1,), value=np.deg2rad(2))
-            pitch_angle.set_as_design_variable(lower=-np.deg2rad(50), upper=np.deg2rad(50), scaler=10)
-            
-            throttle = csdl.Variable(name="Throttle", shape=(1,), value=1)
-            throttle.set_as_design_variable(lower=0, upper=1, scaler=10)
-            
-            elevator = csdl.Variable(name="Elevator Deflection", shape=(1,), value=np.deg2rad(0))
-            elevator.set_as_design_variable(lower=-np.deg2rad(25), upper=np.deg2rad(25), scaler=10)
-        
-            x57_controls.throttle = throttle
-            x57_controls.elevator.deflection = elevator
+        elevator = csdl.Variable(name="Elevator Deflection", shape=(1,), value=np.deg2rad(0))
+        elevator.set_as_design_variable(lower=-np.deg2rad(25), upper=np.deg2rad(25), scaler=10)
+    
+        x57_controls.throttle = throttle
+        x57_controls.elevator.deflection = elevator
 
-            cruiseOpt = aircraft_conditions.CruiseCondition(
-                fd_axis=fd_axis,
-                controls=x57_controls,
-                component=Aircraft,
-                altitude=Q_(1, 'ft'),
-                range=Q_(70, 'km'),
-                speed=Q_(100, 'mph'),
-                pitch_angle=pitch_angle)
-            total_forces_cruise, total_moments_cruise = cruiseOpt.assemble_forces_moments()
+        cruiseCondition = aircraft_conditions.CruiseCondition(
+            fd_axis=fd_axis,
+            controls=x57_controls,
+            component=Aircraft,
+            altitude=Q_(1, 'ft'),
+            range=Q_(70, 'km'),
+            speed=Q_(100, 'mph'),
+            pitch_angle=pitch_angle)
+        print(cruiseCondition)
+        total_forces_cruise, total_moments_cruise = cruiseCondition.assemble_forces_moments()
 
-            total_forces_cruise[0].set_as_constraint(equals=0, scaler=1)  # Longitudinal force balance (Fx = 0)
-            total_forces_cruise[1].set_as_constraint(equals=0, scaler=1)  # Lateral force balance (Fy = 0)
-            total_moments_cruise[1].set_as_constraint(equals=0, scaler=1) # Pitch moment balance (My = 0)
+        total_forces_cruise[0].set_as_constraint(equals=0, scaler=1)  # Longitudinal force balance (Fx = 0)
+        total_forces_cruise[1].set_as_constraint(equals=0, scaler=1)  # Lateral force balance (Fy = 0)
+        total_forces_cruise[2].set_as_constraint(equals=0, scaler=1) # Vertical force balance (Fz = 0)
 
-            (total_forces_cruise[2]).set_as_objective()
-
+        (total_forces_cruise[2]).set_as_objective()
+    # recorder.visualize_graph('x57_cruise_graph.png')
     if debug is True:
         pass
     else:
