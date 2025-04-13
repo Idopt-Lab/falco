@@ -1245,64 +1245,6 @@ Aircraft.quantities.mass_properties = Aircraft.compute_mass_properties()
 print(repr(Aircraft.quantities))
 
 
-
-if do_cruise:
-    cruise = aircraft_conditions.CruiseCondition(
-        fd_axis=fd_axis,
-        controls=x57_controls,
-        component = Aircraft,
-        altitude=Q_(2500, 'ft'),
-        range=Q_(70, 'km'),
-        speed=Q_(100, 'mph'),
-        pitch_angle=Q_(0,'rad'))
-
-    total_forces_cruise, total_moments_cruise = cruise.assemble_forces_moments()
-    print(cruise)
-
-
-
-if do_climb:
-    climb = aircraft_conditions.ClimbCondition(
-        fd_axis=fd_axis,
-        controls=x57_controls,
-        component=Aircraft,
-        initial_altitude=Q_(1000, 'ft'),
-        final_altitude=Q_(2000, 'ft'),
-        pitch_angle=Q_(0,'rad'),
-        flight_path_angle=Q_(0, 'rad'),
-        speed=Q_(67, 'mph'))
-
-    total_forces_climb, total_moments_climb = climb.assemble_forces_moments()
-    print(climb)
-
-
-if do_hover:
-    hover = aircraft_conditions.HoverCondition(
-        fd_axis=fd_axis,
-        controls=x57_controls,
-        component=Aircraft,
-        altitude=Q_(100, 'ft'),
-        time=Q_(120,'s'))
-
-    total_forces_hover, total_moments_hover = hover.assemble_forces_moments()
-
-
-
-if do_descent:
-    descent = aircraft_conditions.ClimbCondition(
-        fd_axis=fd_axis,
-        controls=x57_controls,
-        component=Aircraft,
-        initial_altitude=Q_(1000, 'ft'),
-        final_altitude=Q_(300, 'ft'),
-        pitch_angle=Q_(0,'rad'),
-        flight_path_angle=Q_(-3, 'rad'),
-        speed=Q_(67, 'mph'))
-
-    total_forces_descent, total_moments_descent = descent.assemble_forces_moments()
-
-
-
 do_trim_opt_1 = False
 do_trim_opt_2 = False
 do_trim_opt_3 = True
