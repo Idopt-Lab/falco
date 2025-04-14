@@ -19,6 +19,7 @@ from flight_simulator.core.vehicle.components.fuselage import Fuselage as FuseCo
 from flight_simulator.core.vehicle.components.aircraft import Aircraft as AircraftComp
 from flight_simulator.core.vehicle.components.rotor import Rotor as RotorComp
 from flight_simulator.core.vehicle.conditions import aircraft_conditions
+from flight_simulator.core.vehicle.models.equations_of_motion.EoM import Aircraft6DOF
 from lsdo_geo.core.parameterization.parameterization_solver import ParameterizationSolver, GeometricVariables
 from modopt import CSDLAlphaProblem, SLSQP, IPOPT, SNOPT, PySLSQP
 
@@ -993,9 +994,9 @@ Aircraft = AircraftComp(geometry=geometry, compute_surface_area_flag=False,
 
 
 Fuselage = FuseComp(
-    length=csdl.Variable(name="length", shape=(1, ), value=8.2242552),
-    max_height=csdl.Variable(name="max_height", shape=(1, ), value=1.09),
-    max_width=csdl.Variable(name="max_width", shape=(1, ), value=1.24070602),
+    length=csdl.Variable(name="fuselage_length", shape=(1, ), value=8.2242552),
+    max_height=csdl.Variable(name="fuselage_max_height", shape=(1, ), value=1.09),
+    max_width=csdl.Variable(name="fuselage_max_width", shape=(1, ), value=1.24070602),
     geometry=fuselage, skip_ffd=False, 
     parameterization_solver=parameterization_solver,
     ffd_geometric_variables=ffd_geometric_variables)
@@ -1009,7 +1010,7 @@ Aircraft.add_subcomponent(Fuselage)
 
 
 wing_AR = csdl.Variable(name="wing_AR", shape=(1, ), value=15)
-wing_span = csdl.Variable(name="wingspan", shape=(1, ), value=9.6)
+wing_span = csdl.Variable(name="wing_span", shape=(1, ), value=9.6)
 wing_sweep = csdl.Variable(name="wing_sweep", shape=(1, ), value=0)
 wing_dihedral = csdl.Variable(name="wing_dihedral", shape=(1, ), value=0)
 
@@ -1031,21 +1032,21 @@ wing_qc_fuse_connection = geometry.evaluate(wing_qc_center_parametric) - geometr
 parameterization_solver.add_variable(computed_value=wing_qc_fuse_connection, desired_value=wing_qc_fuse_connection.value)
 
 LeftAileron = Component(name='Left Aileron')
-LeftAileron.parameters.actuate_angle = csdl.Variable(name="Left Aileron Actuate Angle", shape=(1,), value=np.deg2rad(15))
+LeftAileron.parameters.actuate_angle = csdl.Variable(name="left_aileron_actuate_angle", shape=(1,), value=np.deg2rad(15))
 Aircraft.add_subcomponent(LeftAileron)
 
 
 RightAileron = Component(name='Right Aileron')
-RightAileron.parameters.actuate_angle = csdl.Variable(name="Right Aileron Actuate Angle", shape=(1,), value=np.deg2rad(15))
+RightAileron.parameters.actuate_angle = csdl.Variable(name="right_aileron_actuate_angle", shape=(1,), value=np.deg2rad(15))
 Aircraft.add_subcomponent(RightAileron)
 
 
 LeftFlap = Component(name='Left Flap')
-LeftFlap.parameters.actuate_angle = csdl.Variable(name="Left Flap Actuate Angle", shape=(1,), value=np.deg2rad(10))
+LeftFlap.parameters.actuate_angle = csdl.Variable(name="left_flap_actuate_angle", shape=(1,), value=np.deg2rad(10))
 Aircraft.add_subcomponent(LeftFlap)
 
 RightFlap = Component(name='Right Flap')
-RightFlap.parameters.actuate_angle = csdl.Variable(name="Right Flap Actuate Angle", shape=(1,), value=np.deg2rad(10))
+RightFlap.parameters.actuate_angle = csdl.Variable(name="right_flap_actuate_angle", shape=(1,), value=np.deg2rad(10))
 Aircraft.add_subcomponent(RightFlap)
 
 
@@ -1063,7 +1064,7 @@ HorTail = WingComp(AR=HorTail_AR, span=HT_span, sweep=HT_sweep,
                    ffd_geometric_variables=ffd_geometric_variables)
 Aircraft.add_subcomponent(HorTail)
 
-HorTail.parameters.actuate_angle = csdl.Variable(name="Elevator Actuate Angle", shape=(1,), value=np.deg2rad(0))
+HorTail.parameters.actuate_angle = csdl.Variable(name="elevator_actuate_angle", shape=(1,), value=np.deg2rad(0))
 
 
 tail_moment_arm_computed = csdl.norm(geometry.evaluate(ht_qc_center_parametric) - geometry.evaluate(wing_qc_center_parametric))
@@ -1153,12 +1154,12 @@ x57_controls.flap.deflection = LeftFlap.parameters.actuate_angle
 
 x57_aircraft = Component(name='X-57')
 x57_aircraft.quantities.mass_properties = x57_mass_properties
-HL_radius_x57 = csdl.Variable(shape=(1,), value=1.89/2) # HL propeller radius in ft
-cruise_radius_x57 = csdl.Variable(shape=(1,), value=5/2) # cruise propeller radius in ft
+HL_radius_x57 = csdl.Variable(name="high_lift_motor_radius",shape=(1,), value=1.89/2) # HL propeller radius in ft
+cruise_radius_x57 = csdl.Variable(name="cruise_lift_motor_radius",shape=(1,), value=5/2) # cruise propeller radius in ft
 
-e_x57 = csdl.Variable(shape=(1,), value=0.87) # Oswald efficiency factor
-CD0_x57 = csdl.Variable(shape=(1,), value=0.001) # Zero-lift drag coefficient
-incidence_x57 = csdl.Variable(shape=(1,), value=np.deg2rad(2)) # Wing incidence angle in radians
+e_x57 = csdl.Variable(name="wing_e",shape=(1,), value=0.87) # Oswald efficiency factor
+CD0_x57 = csdl.Variable(name="wing_CD0",shape=(1,), value=0.001) # Zero-lift drag coefficient
+incidence_x57 = csdl.Variable(name="wing_incidence",shape=(1,), value=np.deg2rad(2)) # Wing incidence angle in radians
 
 
 
@@ -1189,11 +1190,11 @@ LeftAileron.quantities.mass_properties.cg_vector = Vector(vector=Q_(left_aileron
 RightAileron.quantities.mass_properties.mass = Q_(1, 'kg')
 RightAileron.quantities.mass_properties.cg_vector = Vector(vector=Q_(right_aileron_le_center.value, 'm'), axis=right_aileron_axis)
 
-LeftFlap.parameters.actuate_angle = csdl.Variable(name="Left Flap Actuation Angle", shape=(1, ), value=0)  
+LeftFlap.parameters.actuate_angle = csdl.Variable(name="left_flap_actuate_angle", shape=(1, ), value=0)  
 LeftFlap.quantities.mass_properties.mass = Q_(1, 'kg')
 LeftFlap.quantities.mass_properties.cg_vector = Vector(vector=Q_(left_flap_le_center.value, 'm'), axis=left_flap_axis)
 
-RightFlap.parameters.actuate_angle = csdl.Variable(name="Right Flap Actuation Angle", shape=(1, ), value=0)
+RightFlap.parameters.actuate_angle = csdl.Variable(name="right_flap_actuate_angle", shape=(1, ), value=0)
 RightFlap.quantities.mass_properties.mass = Q_(1, 'kg')
 RightFlap.quantities.mass_properties.cg_vector = Vector(vector=Q_(right_flap_le_center.value, 'm'), axis=right_flap_axis)
 
@@ -1251,6 +1252,7 @@ if do_trim_optimization is True:
         pitch_angle = csdl.Variable(name="Pitch Angle", shape=(1,), value=np.deg2rad(2))
         pitch_angle.set_as_design_variable(lower=-np.deg2rad(50), upper=np.deg2rad(50), scaler=10)
         
+<<<<<<< Updated upstream
         throttle = csdl.Variable(name="Throttle", shape=(1,), value=1)
         throttle.set_as_design_variable(lower=0, upper=1, scaler=10)
         
@@ -1274,6 +1276,84 @@ if do_trim_optimization is True:
         total_forces_cruise[0].set_as_constraint(equals=0, scaler=1)  # Longitudinal force balance (Fx = 0)
         total_forces_cruise[1].set_as_constraint(equals=0, scaler=1)  # Lateral force balance (Fy = 0)
         total_forces_cruise[2].set_as_constraint(equals=0, scaler=1) # Vertical force balance (Fz = 0)
+=======
+        if do_trim_opt_1 is True:
+            pitch_angle = csdl.Variable(name="aircraft_pitch_angle", shape=(1,), value=np.deg2rad(2))
+            pitch_angle.set_as_design_variable(lower=-np.deg2rad(50), upper=np.deg2rad(50), scaler=10)
+            cruiseCondition = aircraft_conditions.CruiseCondition(
+                fd_axis=fd_axis,
+                controls=x57_controls,
+                component = Aircraft,
+                altitude=Q_(1, 'ft'),
+                range=Q_(70, 'km'),
+                speed=Q_(100, 'mph'),
+                pitch_angle=pitch_angle)
+            total_forces_cruise, total_moments_cruise = cruiseCondition.assemble_forces_moments()
+
+            # Constraint: Fx = 0
+            total_forces_cruise[0].set_as_constraint(equals=0, scaler=1)
+            # EoM Constraints and objectives
+            
+
+        if do_trim_opt_2 is True:
+            pitch_angle = csdl.Variable(name="aircraft_pitch_angle", shape=(1,), value=np.deg2rad(2))
+            pitch_angle.set_as_design_variable(lower=-np.deg2rad(50), upper=np.deg2rad(50), scaler=10)
+
+            throttle = csdl.Variable(name="aircraft_throttle_level", shape=(1,), value=1)
+            x57_controls.throttle = throttle
+            x57_controls.throttle.set_as_design_variable(lower=0, upper=1, scaler=10)
+
+            cruiseCondition = aircraft_conditions.CruiseCondition(
+                fd_axis=fd_axis,
+                controls=x57_controls,
+                component = Aircraft,
+                altitude=Q_(1, 'ft'),
+                range=Q_(70, 'km'),
+                speed=Q_(100, 'mph'),
+                pitch_angle=pitch_angle)
+            total_forces_cruise, total_moments_cruise = cruiseCondition.assemble_forces_moments()
+
+
+            # Constraint: Fy = 0
+            total_forces_cruise[1].set_as_constraint(equals=0, scaler=1) 
+
+            # Constraint: Fz = 0
+            total_forces_cruise[2].set_as_constraint(equals=0, scaler=1)      
+        
+            # Thrust = Drag Objective
+            
+            (total_forces_cruise[0]).set_as_objective()
+        
+        if do_trim_opt_3 is True:
+            pitch_angle = csdl.Variable(name="aircraft_pitch_angle", shape=(1,), value=np.deg2rad(2))
+            pitch_angle.set_as_design_variable(lower=-np.deg2rad(50), upper=np.deg2rad(50), scaler=10)
+            
+            throttle = csdl.Variable(name="aircraft_throttle_level", shape=(1,), value=1)
+            throttle.set_as_design_variable(lower=0, upper=1, scaler=10)
+            
+            elevator = csdl.Variable(name="elevator_deflection", shape=(1,), value=np.deg2rad(0))
+            elevator.set_as_design_variable(lower=-np.deg2rad(25), upper=np.deg2rad(25), scaler=10)
+        
+            x57_controls.throttle = throttle
+            x57_controls.elevator.deflection = elevator
+
+            cruiseCondition = aircraft_conditions.CruiseCondition(
+                fd_axis=fd_axis,
+                controls=x57_controls,
+                component=Aircraft,
+                altitude=Q_(1, 'ft'),
+                range=Q_(70, 'km'),
+                speed=Q_(100, 'mph'),
+                pitch_angle=pitch_angle)
+            
+            cruise_ac_states = cruiseCondition.quantities.ac_states
+            cruise_stability = cruiseCondition.perform_linear_stability_analysis()
+            cruise_stability.set_as_constraint(equals=0, scaler=1)
+            eom_model = Aircraft6DOF()
+            cruise_acceleration_J = eom_model.EoM_steady_state_trim(condition = cruiseCondition)
+            cruise_acceleration_J.name = "cruise_acceleration_J"
+            cruise_acceleration_J.set_as_objective()
+>>>>>>> Stashed changes
 
         (total_forces_cruise[2]).set_as_objective()
     # recorder.visualize_graph('x57_cruise_graph.png')
@@ -1317,6 +1397,7 @@ if do_trim_optimization is True:
     for obj in obj_dict.keys():
         obj_save_dict[obj.name] = obj.value
         print("Objective", obj.name, obj.value)
+
 
 
 
