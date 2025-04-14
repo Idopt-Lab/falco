@@ -11,7 +11,7 @@ from flight_simulator.core.dynamics.axis import Axis, ValidOrigins
 from flight_simulator.core.dynamics.axis_lsdogeo import AxisLsdoGeo
 from flight_simulator.core.loads.forces_moments import Vector
 from flight_simulator.core.vehicle.controls.aircraft_control_system import AircraftControlSystem
-from flight_simulator.core.vehicle.models.propulsion.propulsion_model import HLPropCurve, CruisePropCurve, AircraftPropulsion
+from flight_simulator.core.vehicle.models.propulsion.propulsion_model import HLPropCurve, CruisePropCurve, AircraftPropulsion, PropulsionLoad
 from flight_simulator.core.vehicle.models.aerodynamics.aerodynamic_model import LiftModel, AircraftAerodynamics
 from flight_simulator.core.vehicle.models.weights.weights_model import WeightsModel, WeightsSolverModel
 from flight_simulator.core.vehicle.components.wing import Wing as WingComp
@@ -1249,7 +1249,7 @@ print(repr(Aircraft.quantities))
 
 if do_trim_optimization1 is True:
     if do_cruise is True:
-        pitch_angle = csdl.Variable(name="Pitch Angle", shape=(1,), value=np.deg2rad(2))
+        pitch_angle = csdl.Variable(name="Pitch Angle", shape=(1,), value=np.deg2rad(0))
         pitch_angle.set_as_design_variable(lower=-np.deg2rad(50), upper=np.deg2rad(50), scaler=10)
         
         throttle = csdl.Variable(name="Throttle", shape=(1,), value=1)
@@ -1265,12 +1265,14 @@ if do_trim_optimization1 is True:
             fd_axis=fd_axis,
             controls=x57_controls,
             component=Aircraft,
-            altitude=Q_(1, 'ft'),
+            altitude=Q_(2500, 'ft'),
             range=Q_(70, 'km'),
             speed=Q_(100, 'mph'),
             pitch_angle=pitch_angle)
         print(cruiseCondition)
         total_forces_cruise, total_moments_cruise = cruiseCondition.assemble_forces_moments()
+        print("Total Forces", total_forces_cruise.value)
+        print("Total Moments", total_moments_cruise.value)
 
         total_forces_cruise[0].set_as_constraint(equals=0, scaler=1)  # Longitudinal force balance (Fx = 0)
         total_forces_cruise[1].set_as_constraint(equals=0, scaler=1)  # Lateral force balance (Fy = 0)

@@ -217,189 +217,58 @@ class AircraftPropulsion(Loads):
 
         moment_vector = Vector(vector=csdl.Variable(shape=(3,), value=0.), axis=self.prop_axis)
         loads = ForcesMoments(force=force_vector, moment=moment_vector)
-        return loads
+        return loads    
 
+class PropulsionLoad(Loads):
+    def __init__(self, component, omega, radius:Union[ureg.Quantity, csdl.Variable], ct, **kwargs):
+        self.omega = omega
+        self.ct = ct
+        self.prop_axis = component.quantities.mass_properties.cg_vector.axis
 
-    def plot_propulsion(self, 
-                   J_range=None,
-                   velocity_range=(20, 100),
-                   throttle_range=(0, 1),
-                   ref_velocities=[67],
-                   ref_throttles=[1.],
-                   num_points=100,
-                   rpm_ranges=[(1000, 2500)],
-                   radius_values = None,
-                   figsize=(12, 12),
-                   labels=None,
-                   colors=None,
-                   styles=None,
-                   save_path=None,
-                   title=None):
-            """
-            Plot comprehensive propulsion system characteristics with multiple configurations.
-            
-            Parameters:
-            -----------
-            J_range : tuple
-                Range of advance ratios (min, max)
-            velocity_range : tuple
-                Range of velocities in mph (min, max)
-            throttle_range : tuple
-                Range of throttle settings (min, max)
-            ref_velocities : list
-                List of reference velocities in mph for throttle sweeps
-            ref_throttles : list
-                List of reference throttle settings for velocity sweeps
-            num_points : int
-                Number of points for plotting
-            rpm_ranges : list of tuples
-                List of RPM ranges (min, max) for different configurations
-            figsize : tuple
-                Figure size in inches (width, height)
-            labels : list, optional
-                Labels for each configuration
-            colors : list, optional
-                Colors for each configuration
-            styles : list, optional
-                Line styles for each configuration
-            save_path : str, optional
-                Path to save the figure
-            """
-            # Set default styles if not provided
+        if radius is None:
+            self.radius = csdl.Variable(name='radius', shape=(1,), value=1.89/2) 
+        elif isinstance(radius, ureg.Quantity):
+            self.radius = csdl.Variable(name='radius', shape=(1,), value=radius.to_base_units())
+        else:
+            self.radius = radius
+
+    def get_FM_refPoint(self, x_bar, u_bar):
+        """
+        Compute forces and moments about the reference point.
+
+        Parameters
+        ----------
+        x_bar : csdl.VariableGroup
+            Flight-dynamic state (x̄) which should include:
+            - density
+            - VTAS
+            - states.theta
+        u_bar : csdl.Variable or csdl.VariableGroup
+            Control input (ū) which should include:
+            - throttle
+
+        Returns
+        -------
+        loads : ForcesMoments
+            Computed forces and moments about the reference point.
+        """
+        throttle = u_bar.u[6]
+        density = x_bar.atmospheric_states.density * 0.00194032  # kg/m^3 to slugs/ft^3
+        velocity = x_bar.VTAS * 3.281  # m/s to ft/s
+
+        omega_RAD = (self.omega(throttle) * 2 * np.pi)/60.0
+
+        J = (np.pi * velocity) / (omega_RAD * self.radius)
+        C_t = self.ct(J)
+
+        T = (2 / np.pi) ** 2 * density * \
+            (omega_RAD * self.radius) ** 2 * C_t
         
-            if radius_values is None:
-                radius_values = [self.radius.value]
+        force_vector = Vector(vector=csdl.concatenate((T,
+                                                       csdl.Variable(shape=(1,), value=0.),
+                                                       csdl.Variable(shape=(1,), value=0.)),
+                                                      axis=0), axis=self.prop_axis)
 
-            if J_range is None:
-                min_RPM = self.prop_curve.min_RPM
-                max_RPM = self.prop_curve.max_RPM
-
-                # Convert velocity_range from mph to ft/s
-                v_fps_min = velocity_range[0] * 1.46667
-                v_fps_max = velocity_range[1] * 1.46667
-
-                min_radius = min(radius_values)
-                max_radius = max(radius_values)
-
-                # Use the highest RPM (max_RPM) with largest radius to get the lowest J,
-                # and the lowest RPM (min_RPM) with smallest radius for the highest J.
-                omega_max = (max_RPM * 2 * np.pi) / 60.0
-                omega_min = (min_RPM * 2 * np.pi) / 60.0
-
-                computed_min_J = (np.pi * v_fps_min) / (omega_max * max_radius)
-                computed_max_J = (np.pi * v_fps_max) / (omega_min * min_radius)
-                J_range = (computed_min_J, computed_max_J)
-
-
-            n_configs = max(len(ref_velocities), len(ref_throttles), len(rpm_ranges), len(radius_values))
-            if labels is None:
-                labels = [f'R={r:.2f} ft' for r in radius_values]
-            if colors is None:
-                colors = plt.cm.viridis(np.linspace(0, 1, n_configs))
-            if styles is None:
-                styles = ['-'] * n_configs
-
-            # Create subplots
-            fig = plt.figure(figsize=figsize)
-
-            if title:
-                fig.suptitle(f'{title} Propulsion Characteristics', fontsize=16, y=0.95)
-
-            gs = plt.GridSpec(3, 2, figure=fig, hspace=0.5)
-            
-            # Create axes
-            ax_ct = fig.add_subplot(gs[0, :])
-            ax_thrust_v = fig.add_subplot(gs[1, 0])
-            ax_advance = fig.add_subplot(gs[1, 1])
-            ax_thrust_t = fig.add_subplot(gs[2, 0])
-            ax_rpm = fig.add_subplot(gs[2, 1])
-
-            # Plot thrust coefficient curve
-            J = np.linspace(J_range[0], J_range[1], num_points)
-            Ct = self.prop_curve.ct(J)
-            ax_ct.plot(J, Ct, '-k', label='Thrust Coefficient')
-            ax_ct.set_xlabel('Advance Ratio (J)')
-            ax_ct.set_ylabel('Thrust Coefficient (Ct)')
-            ax_ct.set_title('Propeller Thrust Characteristics')
-            ax_ct.grid(True)
-            ax_ct.legend()
-
-            velocities = np.linspace(velocity_range[0], velocity_range[1], num_points)
-            throttles = np.linspace(throttle_range[0], throttle_range[1], num_points)
-            density = self.states.atmospheric_states.density.value * 0.00194032
-            min_RPM = self.prop_curve.min_RPM
-            max_RPM = self.prop_curve.max_RPM
-            # Plot multiple configurations
-            for i in range(n_configs):
-                ref_throttle = ref_throttles[min(i, len(ref_throttles)-1)]
-                ref_velocity = ref_velocities[min(i, len(ref_velocities)-1)]
-                current_radius = radius_values[min(i, len(radius_values)-1)]
-                label = labels[i]
-                color = colors[i]
-                style = styles[i]
-
-                # Velocity sweep calculations
-                thrust_vs_velocity = []
-                advance_ratios = []
-                for v in velocities:
-                    v_fps = v * 1.46667  # mph to ft/s
-                    rpm = min_RPM + (max_RPM - min_RPM) * ref_throttle
-                    omega = (rpm * 2 * np.pi) / 60.0
-                    J = (np.pi * v_fps) / (omega * current_radius)
-                    ct = self.prop_curve.ct(J)
-                    T = ct * density * (rpm/60)**2 * ((current_radius*2)**4) * 4.44822  # lbf to N
-
-                    
-                    thrust_vs_velocity.append(T)
-                    advance_ratios.append(J)
-
-                # Throttle sweep calculations
-                thrust_vs_throttle = []
-                rpms = []
-                for t in throttles:
-                    ref_velocity_fps = ref_velocity * 1.46667  # mph to ft/s
-                    rpm = min_RPM + (max_RPM - min_RPM) * t
-                    omega = (rpm * 2 * np.pi) / 60.0
-                    J = (np.pi * ref_velocity_fps) / (omega * current_radius)
-                    ct = self.prop_curve.ct(J)
-                    T = ct * density * (rpm/60)**2 * ((current_radius*2)**4) * 4.44822  # lbf to N
-                    thrust_vs_throttle.append(T)
-                    rpms.append(rpm)
-
-                # Plot results for this configuration
-                ax_thrust_v.plot(velocities, thrust_vs_velocity, color=color, ls=style, 
-                                label=f'{label} τ={ref_throttle:.1f}')
-                ax_advance.plot(velocities, advance_ratios, color=color, ls=style, 
-                            label=f'{label} τ={ref_throttle:.1f}')
-                ax_thrust_t.plot(throttles, thrust_vs_throttle, color=color, ls=style, 
-                                label=f'{label} (V={ref_velocity}mph)')
-                ax_rpm.plot(throttles, rpms, color=color, ls=style, 
-                        label=f'{label} ({min_RPM}-{max_RPM}RPM)')
-
-            # Set labels and grid for all plots
-            for ax in [ax_thrust_v, ax_advance, ax_thrust_t, ax_rpm]:
-                ax.grid(True)
-                ax.legend()
-
-            ax_thrust_v.set_xlabel('Velocity (mph)')
-            ax_thrust_v.set_ylabel('Thrust (N)')
-            ax_thrust_v.set_title('Thrust vs Velocity')
-
-            ax_advance.set_xlabel('Velocity (mph)')
-            ax_advance.set_ylabel('Advance Ratio')
-            ax_advance.set_title('Advance Ratio vs Velocity')
-
-            ax_thrust_t.set_xlabel('Throttle Setting')
-            ax_thrust_t.set_ylabel('Thrust (N)')
-            ax_thrust_t.set_title('Thrust vs Throttle')
-
-            ax_rpm.set_xlabel('Throttle Setting')
-            ax_rpm.set_ylabel('RPM')
-            ax_rpm.set_title('RPM vs Throttle')
-
-            # plt.tight_layout()
-            
-            if save_path:
-                plt.savefig(save_path, bbox_inches='tight', dpi=300)
-            
-            return fig, (ax_ct, ax_thrust_v, ax_advance, ax_thrust_t, ax_rpm)
+        moment_vector = Vector(vector=csdl.Variable(shape=(3,), value=0.), axis=self.prop_axis)
+        loads = ForcesMoments(force=force_vector, moment=moment_vector)
+        return loads
