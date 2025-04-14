@@ -1,15 +1,13 @@
 from abc import abstractmethod
 import numpy as np
-
 import csdl_alpha as csdl
 import numpy as np
-from flight_simulator.core.loads.mass_properties import MassProperties
-from flight_simulator.core.dynamics.aircraft_states import AircraftStates
+from flight_simulator.core.dynamics.trim_stability import LinearStabilityMetrics
 from typing import Union
 from dataclasses import dataclass
 
 
-
+@dataclass
 class StateVectorDot(csdl.VariableGroup):
     du_dt: csdl.Variable
     dv_dt: csdl.Variable
@@ -24,22 +22,6 @@ class StateVectorDot(csdl.VariableGroup):
     dy_dt: csdl.Variable
     dz_dt: csdl.Variable
 
-
-
-    def __repr__(self):
-        return (f"du_dt={self.du_dt}\n"
-                f"dv_dt={self.dv_dt}\n"
-                f"dw_dt={self.dw_dt}\n"
-                f"dp_dt={self.dp_dt}\n"
-                f"dq_dt={self.dq_dt}\n"
-                f"dr_dt={self.dr_dt}\n"
-                f"dphi_dt={self.dphi_dt}\n"
-                f"dtheta_dt={self.dtheta_dt}\n"
-                f"dpsi_dt={self.dpsi_dt}\n"
-                f"dx_dt={self.dx_dt}\n"
-                f"dy_dt={self.dy_dt}\n"
-                f"dz_dt={self.dz_dt}")
-
 class DynamicSystem:
     def __init__(self, x, t0=0, origin='ref'):
         self.state_vector = x
@@ -49,7 +31,7 @@ class DynamicSystem:
 
 
     
-class Aircraft6DOF(DynamicSystem):
+class Aircraft6DOF():
     """
     Classical Aircraft Implementation:
     6DOF equations of motion for aircraft dynamics.
@@ -63,12 +45,11 @@ class Aircraft6DOF(DynamicSystem):
 
     """
     #TODO: CONFIRM WHETHER BODY FIXED AXIS IS AT CG OR ORIGIN
-    def __init__(self, x, t0=0, origin='fd-axis'):
-        super().__init__(x, t0, origin=origin)
 
-    def _EoM(aircraft_states, mass_properties, total_forces,total_moments):
+
+    def _EoM(self, aircraft_states, mass_properties, total_forces, total_moments):
         """
-
+        
         """
 
         Fx=total_forces[0]
@@ -96,16 +77,17 @@ class Aircraft6DOF(DynamicSystem):
         cg_vector = mass_properties.cg_vector
         inertia_tensor = mass_properties.inertia_tensor.inertia_tensor
 
-        xcg = cg_vector[0]
-        ycg = cg_vector[1]
-        zcg = cg_vector[2]
+        ref_axis = cg_vector.axis
+        xcg = cg_vector.vector.value[0]
+        ycg = cg_vector.vector.value[1]
+        zcg = cg_vector.vector.value[2]
 
-        Ixx = inertia_tensor[0, 0]
-        Iyy = inertia_tensor[1, 1]
-        Izz = inertia_tensor[2, 2]
-        Ixy = inertia_tensor[0, 1]
-        Ixz = inertia_tensor[0, 2]
-        Iyz = inertia_tensor[1, 2]
+        Ixx = inertia_tensor.value[0, 0]
+        Iyy = inertia_tensor.value[1, 1]
+        Izz = inertia_tensor.value[2, 2]
+        Ixy = inertia_tensor.value[0, 1]
+        Ixz = inertia_tensor.value[0, 2]
+        Iyz = inertia_tensor.value[1, 2]
         Idot = csdl.Variable(shape=(3, 3),value=0)
 
         # CG Offset from ref point (inertial axis)
@@ -122,7 +104,7 @@ class Aircraft6DOF(DynamicSystem):
         zcgddot = csdl.Variable(shape=(1, ), value=0.)
 
         # Generate the 6x6 mp matrix
-        mp_matrix = csdl.Variable(shape=(3, 3), value=0)
+        mp_matrix = csdl.Variable(shape=(6, 6), value=0)
         mp_matrix = mp_matrix.set(csdl.slice[0, 0], m)
         mp_matrix = mp_matrix.set(csdl.slice[1, 1], m)
         mp_matrix = mp_matrix.set(csdl.slice[2, 2], m)
@@ -191,8 +173,8 @@ class Aircraft6DOF(DynamicSystem):
         rhs = rhs.set(csdl.slice[4], mu_vec[1])
         rhs = rhs.set(csdl.slice[5], mu_vec[2])
 
-        accelerations = csdl.VariableGroup(shape=(6,), value=0)
-        accelerations = accelerations.set(csdl.solve_linear(mp_matrix, rhs))
+        accelerations = csdl.Variable(shape=(6,), value=0)
+        accelerations = accelerations.set(csdl.slice[0:6], csdl.solve_linear(mp_matrix, rhs))
 
         du_dt = accelerations[0]
         dv_dt = accelerations[1]
@@ -216,14 +198,16 @@ class Aircraft6DOF(DynamicSystem):
                                                     dp_dt=dp_dt, dq_dt=dq_dt, dr_dt=dr_dt,
                                                     dphi_dt=dphi_dt, dtheta_dt=dtheta_dt, dpsi_dt=dpsi_dt,
                                                     dx_dt=dx_dt, dy_dt=dy_dt, dz_dt=dz_dt)
+        
         return dstate_output
     
-    def EoM_steady_state_trim(self, x, component):
-        total_forces = component.quantities.total_forces
-        total_moments = component.quantities.total_moments
+    def EoM_steady_state_trim(self, condition):
+        
+        component = condition.component
+        aircraft_states = condition.quantities.ac_states
+        total_forces, total_moments = condition.assemble_forces_moments()
         mass_properties = component.quantities.mass_properties
-        aircraft_states = component.quantities.ac_states
-
+        
         res = self._EoM(aircraft_states, mass_properties, total_forces, total_moments)
 
         du_dt = res.du_dt
@@ -252,5 +236,15 @@ class Aircraft6DOF(DynamicSystem):
 
         J = csdl.Variable(shape=(1,), value=0)
         #todo: verify that xddot and xddotT shouldnt be flipped
-        J = J.set(csdl.slice[0], csdl.matmat(xddot, csdl.matvec(W, xddotT)))
+        J = J.set(csdl.slice[0], csdl.vdot(xddot, csdl.matvec(W, xddotT)))
+
         return J
+    
+    
+    
+
+
+
+    
+    
+
