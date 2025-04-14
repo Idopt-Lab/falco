@@ -6,6 +6,7 @@ from flight_simulator.core.dynamics.aircraft_states import AircraftStates
 from flight_simulator.core.dynamics.vector import Vector
 from flight_simulator.core.loads.forces_moments import ForcesMoments
 from flight_simulator.core.loads.loads import Loads
+from flight_simulator.core.vehicle.conditions.aircraft_conditions import CruiseCondition
 from flight_simulator.core.vehicle.controls.vehicle_control_system import (
     VehicleControlSystem, ControlSurface, PropulsiveControl)
 from flight_simulator.core.dynamics.axis import Axis, ValidOrigins
@@ -126,7 +127,7 @@ class C172Control(VehicleControlSystem):
             self.aileron = ControlSurface('aileron', lb=-15, ub=20, component=aileron_right_component)
         self.rudder = ControlSurface('rudder', lb=-16, ub=16, component=rudder_component)
 
-        self.engine = PropulsiveControl(name='engine', throttle=1.0)
+        self.engine = PropulsiveControl(name='engine', throttle=0.5)
 
         if symmetrical:
             self.u = csdl.concatenate((self.aileron.deflection,
@@ -189,6 +190,7 @@ class C172Control(VehicleControlSystem):
 
 c172_controls = C172Control(symmetrical=True, elevator_component=elevator_component, aileron_right_component=right_aileron_component,
                             aileron_left_component=None, rudder_component=rudder_component)
+pass
 # endregion
 
 # region Propulsion Model
@@ -287,8 +289,19 @@ c172_propulsion = C172Propulsion( radius=radius_c172, prop_curve=c172_prop_curve
 engine_component.quantities.load_solvers.append(c172_propulsion)
 # endregion
 
-state = AircraftStates(axis=fd_axis, u=Q_(125, 'mph'))
-tf, tm = aircraft_component.compute_total_loads(fd_state=state, controls=c172_controls)
+
+# region Create Conditions
+
+# region Cruise Condition
+cruise_cond = CruiseCondition(fd_axis=fd_axis, controls=c172_controls,
+                              altitude=Q_(-12000, 'ft'), mach_number=Q_(0.1, 'dimensionless'),
+                              range=Q_(10000, 'm'))
+# endregion
+
+# endregion
+
+tf, tm = aircraft_component.compute_total_loads(fd_state=cruise_cond.ac_states,
+                                                controls=cruise_cond.controls)
 pass
 # Create Aerodynamic Model
 
