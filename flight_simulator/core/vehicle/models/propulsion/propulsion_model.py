@@ -169,6 +169,8 @@ class AircraftPropulsion(Loads):
 
     def get_FM_refPoint(self, x_bar, u_bar):
         """
+        This is for the propeller models in the HLPropCurve and CruisePropCurve classes.
+        The propeller model is based on the propeller data from the Mod-III and Mod-IV propeller data from the CFD database.
         Compute forces and moments about the reference point.
 
         Parameters
@@ -234,6 +236,7 @@ class PropulsionLoad(Loads):
 
     def get_FM_refPoint(self, x_bar, u_bar):
         """
+        Generalized propeller model for the PropulsionLoad class.
         Compute forces and moments about the reference point.
 
         Parameters
@@ -272,3 +275,66 @@ class PropulsionLoad(Loads):
         moment_vector = Vector(vector=csdl.Variable(shape=(3,), value=0.), axis=self.prop_axis)
         loads = ForcesMoments(force=force_vector, moment=moment_vector)
         return loads
+    
+    def get_power(self, rpm, cp, x_bar):
+        """
+        Compute power required for the propulsion system.
+
+        Parameters
+        ----------
+        cp : 
+            Power coefficient (C_p) which should include:
+            - cp
+        
+        rpm :
+            Rotational speed of the propeller (RPM) which should include:
+            - rpm
+
+        x_bar : csdl.VariableGroup
+            Flight-dynamic state (x̄) which should include:
+            - density
+            - VTAS
+            - states.theta
+
+        Returns
+        -------
+        power : csdl.VariableGroup
+            Computed power required for the propulsion system.
+        """
+        density = x_bar.atmospheric_states.density * 0.00194032
+
+        power = (cp * density * (rpm/60)**3 * (self.radius*2)**5)/737.56  # should be kW
+
+        return power
+
+    def get_torque(self, rpm, power, x_bar):
+        """
+        Compute torque required for the propulsion system.
+
+        Parameters
+        ----------
+        power : 
+            Power required for the propulsion system (P) which should include:
+            - power
+        
+        rpm :
+            Rotational speed of the propeller (RPM) which should include:
+            - rpm
+        
+        x_bar : csdl.VariableGroup
+            Flight-dynamic state (x̄) which should include:
+            - density
+
+        Returns
+        -------
+        torque : csdl.VariableGroup
+            Computed torque required for the propulsion system.
+        """
+        torque = (power * 737.56) / ((rpm/60) * 2 * np.pi) # should be lbf-ft
+
+        density = x_bar.atmospheric_states.density * 0.00194032
+
+
+        torque_coeff = torque/(density*(rpm/60)**2*(self.radius*2)**5)
+
+        return torque

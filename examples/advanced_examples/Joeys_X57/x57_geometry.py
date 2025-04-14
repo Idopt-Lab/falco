@@ -1246,6 +1246,12 @@ Aircraft.quantities.mass_properties = Aircraft.compute_mass_properties()
 print(repr(Aircraft.quantities))
 
 
+test_prop_load = PropulsionLoad(component=Aircraft, omega = Q_(0, 'rad/s'), radius=HL_radius_x57, ct=0.3125)
+test_pwr = test_prop_load.get_power(rpm=3545, cp=0.3125, x_bar=x_57_states)
+test_torque = test_prop_load.get_torque(rpm=3545, power=test_pwr, x_bar=x_57_states)
+print("Test Power", test_pwr.value, 'kW')
+print("Test Torque", test_torque.value, 'lbf-ft')
+
 
 if do_trim_optimization1 is True:
     if do_cruise is True:
