@@ -167,11 +167,11 @@ class Component:
             total_forces += f 
             total_moments += m
 
-        grav_loads = GravityLoads(fd_state=fd_state, controls=controls, mass_properties=self.quantities.mass_properties)
-        gfm = grav_loads.get_FM_refPoint(x_bar=fd_state, u_bar=controls)
-        print(f"Gravity Loads: {gfm.F.vector.value} N")
-        total_forces += gfm.F.vector
-        total_moments += gfm.M.vector
+        if self.parent is None:
+            grav_loads = GravityLoads(fd_state=fd_state, controls=controls, mass_properties=self.quantities.mass_properties)
+            gfm = grav_loads.get_FM_refPoint(x_bar=fd_state, u_bar=controls)
+            total_forces += gfm.F.vector
+            total_moments += gfm.M.vector
 
         return total_forces, total_moments
     

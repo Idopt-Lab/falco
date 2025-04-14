@@ -6,7 +6,7 @@ from flight_simulator.utils.import_geometry import import_geometry
 from flight_simulator import REPO_ROOT_FOLDER, Q_
 from flight_simulator.core.vehicle.components.component import Component
 from flight_simulator.core.dynamics.aircraft_states import AircraftStates
-from flight_simulator.core.loads.mass_properties import MassProperties, MassMI, GravityLoads
+from flight_simulator.core.loads.mass_properties import MassProperties, MassMI
 from flight_simulator.core.dynamics.axis import Axis, ValidOrigins
 from flight_simulator.core.dynamics.axis_lsdogeo import AxisLsdoGeo
 from flight_simulator.core.loads.forces_moments import Vector
@@ -1265,7 +1265,7 @@ if do_trim_optimization1 is True:
             fd_axis=fd_axis,
             controls=x57_controls,
             component=Aircraft,
-            altitude=Q_(2500, 'ft'),
+            altitude=Q_(1, 'ft'),
             range=Q_(70, 'km'),
             speed=Q_(100, 'mph'),
             pitch_angle=pitch_angle)
@@ -1277,6 +1277,8 @@ if do_trim_optimization1 is True:
         total_forces_cruise[0].set_as_constraint(equals=0, scaler=1)  # Longitudinal force balance (Fx = 0)
         total_forces_cruise[1].set_as_constraint(equals=0, scaler=1)  # Lateral force balance (Fy = 0)
         total_forces_cruise[2].set_as_constraint(equals=0, scaler=1) # Vertical force balance (Fz = 0)
+
+        total_forces_cruise[2].set_as_objective()  # Minimize vertical force (Fz)
 
 do_trim_opt_3 = False
 if do_trim_opt_3 is True:
