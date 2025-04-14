@@ -158,6 +158,7 @@ class AircraftStates:
                     raise ValueError(f"Variable {name} must have shape {self._metadata[name]['shape']}.")
             return value
 
+        
     def __init__(self,
                  axis: Union[Axis, AxisLsdoGeo],
                  u: Union[ureg.Quantity, csdl.Variable]=Q_(0, 'm/s'),
@@ -170,6 +171,8 @@ class AircraftStates:
                  Vwy: Union[ureg.Quantity, csdl.Variable] = Q_(0, 'm/s'),
                  Vwz: Union[ureg.Quantity, csdl.Variable] = Q_(0, 'm/s'),
                  ):
+        
+        
         self.axis = axis
         self.atm = NRLMSIS2.Atmosphere()
 
@@ -252,26 +255,3 @@ class AircraftStates:
 
         self.course_angle = csdl.arctan(self.inertial_velocity_vector[1]/self.inertial_velocity_vector[0])
 
-
-
-# if __name__ == "__main__":
-#     recorder = csdl.Recorder(inline=True)
-#     recorder.start()
-
-#     inertial_axis = Axis(
-#         name='Inertial Axis',
-#         origin=ValidOrigins.Inertial.value
-#     )
-
-#     axis = Axis(name='Reference Axis',
-#                 x=np.array([10, ]) * ureg.meter,
-#                 y=np.array([0, ]) * ureg.meter,
-#                 z=np.array([0, ]) * ureg.meter,
-#                 phi=np.array([0, ]) * ureg.degree,
-#                 theta=np.array([5, ]) * ureg.degree,
-#                 psi=np.array([0, ]) * ureg.degree,
-#                 reference=inertial_axis,
-#                 origin=ValidOrigins.Inertial.value)
-
-#     aircraft_states = AircaftStates(axis=axis, u=Q_(10, 'm/s'))
-#     pass
