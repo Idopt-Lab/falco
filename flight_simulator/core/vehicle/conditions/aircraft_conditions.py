@@ -149,9 +149,9 @@ class Condition():
             density = ac_states.atmospheric_states.density.value
             return (f"{self.__class__.__name__} | u={u_val} m/s, v={v_val} m/s, "
                     f"w={w_val} m/s, p={p_val} rad/s, q={q_val} rad/s, r={r_val} rad/s, "
-                    f"Altitude={alt_val} m, Density={density} kg/m^3>")
+                    f"Altitude={alt_val} m, Density={density} kg/m^3")
         except Exception:
-            return f"<{self.__class__.__name__} representation not available>"
+            return f"{self.__class__.__name__} representation not available"
           
 
     def assemble_forces_moments(self):
