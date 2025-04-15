@@ -16,6 +16,8 @@ from flight_simulator.core.vehicle.components.aircraft import Aircraft
 from typing import Union
 from typing import List
 import csdl_alpha as csdl
+from modopt import CSDLAlphaProblem, SLSQP, IPOPT
+import time
 
 
 # Every CSDl code starts with a recorder
@@ -127,7 +129,7 @@ class C172Control(VehicleControlSystem):
             self.aileron = ControlSurface('aileron', lb=-15, ub=20, component=aileron_right_component)
         self.rudder = ControlSurface('rudder', lb=-16, ub=16, component=rudder_component)
 
-        self.engine = PropulsiveControl(name='engine', throttle=0.5)
+        self.engine = PropulsiveControl(name='engine', throttle=0.52)
 
         if symmetrical:
             self.u = csdl.concatenate((self.aileron.deflection,
@@ -302,6 +304,42 @@ cruise_cond = CruiseCondition(fd_axis=fd_axis, controls=c172_controls,
 
 tf, tm = aircraft_component.compute_total_loads(fd_state=cruise_cond.ac_states,
                                                 controls=cruise_cond.controls)
+
+thrust = tf[0]
+drag = 900
+residual = csdl.absolute(thrust-drag)
+
+residual.set_as_objective()
+
+c172_controls.engine.throttle.set_as_design_variable(lower=0.4,
+                                                     upper=0.8)
+
+sim = csdl.experimental.JaxSimulator(
+        recorder=recorder,
+        gpu=False,
+        derivatives_kwargs= {
+            "concatenate_ofs" : True
+        })
+
+sim.check_optimization_derivatives()
+
+
+t1 = time.time()
+prob = CSDLAlphaProblem(problem_name='trim_optimization', simulator=sim)
+optimizer = SLSQP(problem=prob)
+optimizer.solve()
+optimizer.print_results()
+t2 = time.time()
+print('Time to solve', t2-t1)
+recorder.execute()
+dv_save_dict = {}
+constraints_save_dict = {}
+obj_save_dict = {}
+
+dv_dict = recorder.design_variables
+constraint_dict = recorder.constraints
+obj_dict = recorder.objectives
+
 pass
 # Create Aerodynamic Model
 
