@@ -1,6 +1,8 @@
 from flight_simulator.core.dynamics.aircraft_states import AircraftStates
+from flight_simulator.core.vehicle.controls.aircraft_control_system import AircraftControlSystem
 from flight_simulator.core.dynamics.axis import Axis
 from flight_simulator.core.dynamics.axis_lsdogeo import AxisLsdoGeo
+from flight_simulator.core.vehicle.components.component import Component
 from typing import Union
 import csdl_alpha as csdl
 from dataclasses import dataclass
@@ -13,13 +15,6 @@ from flight_simulator.core.vehicle.components.component import Component
 from flight_simulator.core.vehicle.controls.vehicle_control_system import VehicleControlSystem
 from flight_simulator.core.dynamics.linear_stability import LinearStabilityAnalysis
 from flight_simulator.core.vehicle.models.equations_of_motion.EoM import EquationsOfMotion
-
-
-@dataclass
-class AircraftStateQuantities(csdl.VariableGroup):
-    ac_states: AircraftStates = None
-    total_forces = None
-    total_moments = None
 
 
 @dataclass
@@ -118,6 +113,7 @@ class CruiseParameters(csdl.VariableGroup):
 
 class Condition():
     """General aircraft condition."""
+<<<<<<< Updated upstream
     def __init__(self, 
                  states: AircraftStates,
                  controls: VehicleControlSystem,
@@ -127,16 +123,33 @@ class Condition():
         self.controls = controls
         self.eom = eom
         self.analysis = analysis
+=======
+    def __init__(self,
+                 ac_states: AircraftStates,
+                 controls: AircraftControlSystem) -> None:
+        self.controls = controls
+        self.ac_states = ac_states
+
+>>>>>>> Stashed changes
 
     def __repr__(self):
         try:
             ac_states = self.ac_states
+<<<<<<< Updated upstream
             u_val = ac_states.state_vector.u.value
             v_val = ac_states.state_vector.v.value
             w_val = ac_states.state_vector.w.value
             p_val = ac_states.state_vector.p.value
             q_val = ac_states.state_vector.q.value
             r_val = ac_states.state_vector.r.value
+=======
+            u_val = ac_states.states.u.value
+            v_val = ac_states.states.v.value
+            w_val = ac_states.states.w.value
+            p_val = ac_states.states.p.value
+            q_val = ac_states.states.q.value
+            r_val = ac_states.states.r.value
+>>>>>>> Stashed changes
             alt_val = ac_states.axis.translation_from_origin.z.value
             density = ac_states.atmospheric_states.density.value
             return (f"{self.__class__.__name__} | u={u_val} m/s, v={v_val} m/s, "
@@ -146,7 +159,11 @@ class Condition():
             return f"{self.__class__.__name__} representation not available"
           
 
+<<<<<<< Updated upstream
     def assemble_forces_moments(self, component: Component):
+=======
+    def assemble_forces_moments(self, component:Component):
+>>>>>>> Stashed changes
         """Assemble forces and moments from the component."""
 
         total_forces, total_moments = component.compute_total_loads(
@@ -199,14 +216,13 @@ class CruiseCondition(Condition):
     """
     def __init__(self,
                  fd_axis: Union[Axis, AxisLsdoGeo],
+                 controls: AircraftControlSystem,
                  altitude: Union[ureg.Quantity, csdl.Variable] = Q_(0, 'm'),
                  range: Union[ureg.Quantity, csdl.Variable] = Q_(0, 'm'),
                  pitch_angle: Union[ureg.Quantity, csdl.Variable] = Q_(0, 'rad'),
                  speed: Union[ureg.Quantity, csdl.Variable] = Q_(0, 'm/s'),
                  mach_number: Union[ureg.Quantity, csdl.Variable] = Q_(0, 'dimensionless'),
-                 time: Union[ureg.Quantity, csdl.Variable] = Q_(0, 's'),
-                 component=None,
-                 controls=None):
+                 time: Union[ureg.Quantity, csdl.Variable] = Q_(0, 's')):
 
         self.parameters: CruiseParameters = CruiseParameters(
             altitude=altitude,
@@ -216,13 +232,13 @@ class CruiseCondition(Condition):
             mach_number=mach_number,
             time=time,
         )
-        self.quantities = AircraftStateQuantities()
-        self.axis = fd_axis.copy()
-        self.component = component
-        self.controls = controls
-        self._setup_condition()
 
-    def _setup_condition(self):
+        ac_states = self._setup_condition(fd_axis)
+        super().__init__(ac_states=ac_states, controls=controls)
+
+    def _setup_condition(self, fd_axis: Union[Axis, AxisLsdoGeo]):
+        axis = fd_axis.copy(new_name="cruise_axis")
+
         conflicting_attributes_1 = ["speed", "mach_number"]
         conflicting_attributes_2 = ["speed", "time", "range"]
         conflicting_attributes_3 = ["mach_number", "time", "range"]
@@ -233,13 +249,27 @@ class CruiseCondition(Condition):
         if all(getattr(self.parameters, attr).value != 0 for attr in conflicting_attributes_3):
             raise Exception("Cannot specify 'mach_number', 'time', and 'range' at the same time")
         x = y = v = phi = psi = p = q = r = csdl.Variable(value=0.)
+<<<<<<< Updated upstream
         z = self.parameters.altitude
         self.axis.translation_from_origin.z = z
         self.ac_states = AircraftStates(axis=self.axis)
         atmos_states = self.ac_states.atmospheric_states
         theta = self.parameters.pitch_angle
+=======
+        
+        axis.translation_from_origin.x = x
+        axis.translation_from_origin.y = y
+        axis.translation_from_origin.z = self.parameters.altitude
+
+        axis.euler_angles.phi = phi
+        axis.euler_angles.theta = self.parameters.pitch_angle
+        axis.euler_angles.psi = psi
+
+        self.ac_states = AircraftStates(axis=axis)
+        atmos_states = self.ac_states.atmospheric_states
+>>>>>>> Stashed changes
         mach_number = self.parameters.mach_number
-        speed = self.parameters.speed * self.controls.throttle
+        speed = self.parameters.speed
         time = self.parameters.time
         range = self.parameters.range
         if mach_number.value != 0 and range.value != 0:
@@ -266,6 +296,7 @@ class CruiseCondition(Condition):
             self.parameters.range = range
         else:
             raise NotImplementedError
+<<<<<<< Updated upstream
         u = V * csdl.cos(theta)
         w = V * csdl.sin(theta)
         self.axis.euler_angles.theta = theta
@@ -276,6 +307,12 @@ class CruiseCondition(Condition):
         self.ac_states = AircraftStates(
             u=u, v=v, w=w, p=p, q=q, r=r, axis=self.axis)
 
+=======
+        u = V * csdl.cos(self.parameters.pitch_angle)
+        w = V * csdl.sin(self.parameters.pitch_angle)
+        ac_states = AircraftStates(axis=axis, u=u, v=v, w=w, p=p, q=q, r=r)
+        return ac_states
+>>>>>>> Stashed changes
 
 
 
@@ -284,6 +321,7 @@ class ClimbCondition(Condition):
     """Climb condition (intended for steady analyses)"""
     def __init__(self,
                  fd_axis: Union[Axis, AxisLsdoGeo],
+                 controls: AircraftControlSystem,
                  initial_altitude: Union[ureg.Quantity, csdl.Variable] = Q_(0, 'm'),
                  final_altitude: Union[ureg.Quantity, csdl.Variable] = Q_(0, 'm'),
                  pitch_angle: Union[ureg.Quantity, csdl.Variable] = Q_(0, 'rad'),
@@ -292,9 +330,7 @@ class ClimbCondition(Condition):
                  mach_number: Union[ureg.Quantity, csdl.Variable] = Q_(0, 'dimensionless'),
                  time: Union[ureg.Quantity, csdl.Variable] = Q_(0, 's'),
                  climb_gradient: Union[ureg.Quantity, csdl.Variable] = Q_(0, 'm/s'),
-                 rate_of_climb: Union[ureg.Quantity, csdl.Variable] = Q_(0, 'm/s'),
-                 component=None,
-                 controls=None) -> None:
+                 rate_of_climb: Union[ureg.Quantity, csdl.Variable] = Q_(0, 'm/s')):
         self.parameters: ClimbParameters = ClimbParameters(
             initial_altitude=initial_altitude,
             final_altitude=final_altitude,
@@ -306,13 +342,12 @@ class ClimbCondition(Condition):
             rate_of_climb=rate_of_climb,
             climb_gradient=climb_gradient,
         )
-        self.quantities = AircraftStateQuantities()
-        self.axis = fd_axis.copy()
-        self.component = component
-        self.controls = controls
-        self._setup_condition()
 
-    def _setup_condition(self):
+        ac_states = self._setup_condition(fd_axis)
+        super().__init__(ac_states=ac_states, controls=controls)
+
+    def _setup_condition(self, fd_axis: Union[Axis, AxisLsdoGeo]):
+        axis = fd_axis.copy(new_name="climb_axis")
         conflicting_attributes_1 = ["speed", "mach_number"]
         conflicting_attributes_2 = ["speed", "time"]
         conflicting_attributes_3 = ["mach_number", "time"]
@@ -328,8 +363,21 @@ class ClimbCondition(Condition):
         h_mean = 0.5 * (hi + hf)
         theta = self.parameters.pitch_angle
         gamma = self.parameters.flight_path_angle
+<<<<<<< Updated upstream
         self.axis.translation_from_origin.z = h_mean
         self.ac_states = AircraftStates(axis=self.axis)
+=======
+
+        axis.translation_from_origin.x = x
+        axis.translation_from_origin.y = y
+        axis.translation_from_origin.z = h_mean
+
+        axis.euler_angles.phi = phi
+        axis.euler_angles.theta = self.parameters.pitch_angle
+        axis.euler_angles.psi = psi
+
+        self.ac_states = AircraftStates(axis=axis)
+>>>>>>> Stashed changes
         atmos_states = self.ac_states.atmospheric_states
         mach_number = self.parameters.mach_number
         speed = self.parameters.speed
@@ -356,6 +404,7 @@ class ClimbCondition(Condition):
         alfa = theta - gamma
         u = V * csdl.cos(alfa)
         w = V * csdl.sin(alfa)
+<<<<<<< Updated upstream
         self.axis.euler_angles.theta = theta
         self.axis.euler_angles.phi = phi
         self.axis.euler_angles.psi = psi
@@ -363,6 +412,10 @@ class ClimbCondition(Condition):
         self.axis.translation_from_origin.y = y
         self.ac_states = AircraftStates(
             u=u, v=v, w=w, p=p, q=q, r=r, axis=self.axis)
+=======
+        ac_states = AircraftStates(axis=axis, u=u, v=v, w=w, p=p, q=q, r=r)
+        return ac_states
+>>>>>>> Stashed changes
 
 
 
@@ -376,23 +429,21 @@ class HoverCondition(Condition):
     """
     def __init__(self,
                  fd_axis: Union[Axis, AxisLsdoGeo],
+                 controls: AircraftControlSystem,
                  altitude: Union[ureg.Quantity, csdl.Variable] = Q_(0, 'm'),
-                 time: Union[ureg.Quantity, csdl.Variable] = Q_(0, 's'),
-                 component=None,
-                 controls=None) -> None:
+                 time: Union[ureg.Quantity, csdl.Variable] = Q_(0, 's')):
         self.parameters: HoverParameters = HoverParameters(
             altitude=altitude,
             time=time,
         )
-        self.quantities = AircraftStateQuantities()
-        self.axis = fd_axis.copy()
-        self.component = component
-        self.controls = controls
-        self._setup_condition()
+        ac_states = self._setup_condition(fd_axis)
+        super().__init__(ac_states=ac_states, controls=controls)
 
-    def _setup_condition(self):
+    def _setup_condition(self, fd_axis: Union[Axis, AxisLsdoGeo]):
+        axis = fd_axis.copy(new_name="hover_axis")
         hover_parameters = self.parameters
         u = v = w = p = q = r = phi = theta = psi = x = y = csdl.Variable(value=0.)
+<<<<<<< Updated upstream
         z = hover_parameters.altitude
         self.axis.translation_from_origin.z = z
         self.ac_states = AircraftStates(axis=self.axis)
@@ -404,5 +455,20 @@ class HoverCondition(Condition):
         self.axis.translation_from_origin.y = y
         self.ac_states = AircraftStates(
             u=u, v=v, w=w, p=p, q=q, r=r, axis=self.axis)
+=======
+
+        axis.translation_from_origin.x = x
+        axis.translation_from_origin.y = y
+        axis.translation_from_origin.z = hover_parameters.altitude
+
+        axis.euler_angles.phi = phi
+        axis.euler_angles.theta = theta
+        axis.euler_angles.psi = psi
+
+        self.ac_states = AircraftStates(axis=axis)
+        atmos_states = self.ac_states.atmospheric_states
+        ac_states = AircraftStates(axis=axis, u=u, v=v, w=w, p=p, q=q, r=r)
+        return ac_states
+>>>>>>> Stashed changes
 
 
