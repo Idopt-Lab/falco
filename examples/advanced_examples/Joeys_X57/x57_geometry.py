@@ -1277,11 +1277,10 @@ if do_trim_optimization1 is True:
         print("Total Forces", total_forces_cruise.value)
         print("Total Moments", total_moments_cruise.value)
 
-        total_forces_cruise[0].set_as_constraint(equals=0, scaler=1e-4)  # Minimize horizontal force (Fx)
-        total_forces_cruise[1].set_as_constraint(equals=0, scaler=1e-4)  # Minimize side force (Fy)
+        total_forces_cruise[0].set_as_constraint(equals=0)  # Minimize horizontal force (Fx)
+        total_forces_cruise[1].set_as_constraint(equals=0)  # Minimize side force (Fy)
 
-        (csdl.absolute(total_forces_cruise[2]-(1060*9.81))).set_as_objective()  # Minimize vertical force (Fz)
-
+        (csdl.absolute(total_forces_cruise[2]+(1060*9.81))).set_as_objective()  # Minimize vertical force (Fz)
 
 
 # recorder.visualize_graph('x57_cruise_graph.png')

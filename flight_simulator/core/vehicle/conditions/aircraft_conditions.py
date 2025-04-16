@@ -185,8 +185,6 @@ class Condition():
         
     
 
-
-
 class CruiseCondition(Condition):
     """Cruise condition: intended for steady analyses.
 
@@ -238,8 +236,8 @@ class CruiseCondition(Condition):
         axis.euler_angles.theta = self.parameters.pitch_angle
         axis.euler_angles.psi = psi
 
-        self.ac_states = AircraftStates(axis=axis)
-        atmos_states = self.ac_states.atmospheric_states
+        ac_states = AircraftStates(axis=axis)
+        atmos_states = ac_states.atmospheric_states
         mach_number = self.parameters.mach_number
         speed = self.parameters.speed
         time = self.parameters.time
@@ -331,8 +329,8 @@ class ClimbCondition(Condition):
         axis.euler_angles.theta = self.parameters.pitch_angle
         axis.euler_angles.psi = psi
 
-        self.ac_states = AircraftStates(axis=axis)
-        atmos_states = self.ac_states.atmospheric_states
+        ac_states = AircraftStates(axis=axis)
+        atmos_states = ac_states.atmospheric_states
         mach_number = self.parameters.mach_number
         speed = self.parameters.speed
         time = self.parameters.time
@@ -396,8 +394,8 @@ class HoverCondition(Condition):
         axis.euler_angles.theta = theta
         axis.euler_angles.psi = psi
 
-        self.ac_states = AircraftStates(axis=axis)
-        atmos_states = self.ac_states.atmospheric_states
+        ac_states = AircraftStates(axis=axis)
+        atmos_states = ac_states.atmospheric_states
         ac_states = AircraftStates(axis=axis, u=u, v=v, w=w, p=p, q=q, r=r)
         return ac_states
 
