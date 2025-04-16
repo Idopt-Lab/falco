@@ -204,44 +204,6 @@ class EquationsOfMotion():
         
         return dstate_output
     
-    def EoM_steady_state_trim(self, condition):
-        
-        component = condition.component
-        aircraft_states = condition.quantities.ac_states
-        total_forces, total_moments = condition.assemble_forces_moments()
-        mass_properties = component.quantities.mass_properties
-        
-        res = self._EoM(aircraft_states, mass_properties, total_forces, total_moments)
-
-        du_dt = res.du_dt
-        dv_dt = res.dv_dt
-        dw_dt = res.dw_dt
-        dp_dt = res.dp_dt
-        dq_dt = res.dq_dt
-        dr_dt = res.dr_dt
-
-        xddot = csdl.Variable(shape=(6,), value=0)
-        xddot = xddot.set(csdl.slice[0], du_dt)
-        xddot = xddot.set(csdl.slice[1], dv_dt)
-        xddot = xddot.set(csdl.slice[2], dw_dt)
-        xddot = xddot.set(csdl.slice[3], dp_dt)
-        xddot = xddot.set(csdl.slice[4], dq_dt)
-        xddot = xddot.set(csdl.slice[5], dr_dt)
-        xddotT = xddot.T()
-
-        W= csdl.Variable(shape=(6, 6), value=0)
-        W = W.set(csdl.slice[0, 0], 1)
-        W = W.set(csdl.slice[1, 1], 1)
-        W = W.set(csdl.slice[2, 2], 1)
-        W = W.set(csdl.slice[3, 3], 1)
-        W = W.set(csdl.slice[4, 4], 1)
-        W = W.set(csdl.slice[5, 5], 1)
-
-        J = csdl.Variable(shape=(1,), value=0)
-        #todo: verify that xddot and xddotT shouldnt be flipped
-        J = J.set(csdl.slice[0], csdl.vdot(xddot, csdl.matvec(W, xddotT)))
-
-        return J
     
     
     
