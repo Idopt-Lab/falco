@@ -8,43 +8,20 @@ from flight_simulator.core.vehicle.controls.vehicle_control_system import Vehicl
 
 class AircraftControlSystem(VehicleControlSystem):
 
-    def __init__(self, engine_count, symmetrical: bool = True):
+    def __init__(self, engine_count: int, symmetrical: bool = True)-> None:
         self.symmetrical = symmetrical
         self.elevator = ControlSurface(name='Elevator',lb=-26, ub=28)
         
-        if not symmetrical:
-            self.left_aileron = ControlSurface(name='Left Aileron',lb=-15, ub=20)
-            self.right_aileron = ControlSurface(name='Right Aileron',lb=-15, ub=20)
-            self.left_flap = ControlSurface(name='Left Flap',lb=-15, ub=20)
-            self.right_flap = ControlSurface(name='Right Flap',lb=-15, ub=20)
+        if symmetrical:
+            self._init_symmetrical_controls()
         else:
-            self.aileron = ControlSurface(name='Aileron',lb=-15, ub=20)
-            self.flap = ControlSurface(name='Flap',lb=-15, ub=20)
+            self._init_asymmetrical_controls()
 
         self.rudder = ControlSurface(name='Rudder',lb=-15, ub=15)
-        num_engines = engine_count
-        self.throttle = 1.0
-        self.engines = [PropulsiveControl(name=f'Motor{i+1}', throttle = self.throttle) for i in range(num_engines)]
+        self.engines = self._init_engines(engine_count)
+        self.u = self._assemble_control_vector()
 
 
-
-        if symmetrical:
-            self.u = csdl.concatenate((self.aileron.deflection,
-                                        -self.aileron.deflection,
-                                        self.flap.deflection,
-                                        -self.flap.deflection,
-                                        self.elevator.deflection,
-                                        self.rudder.deflection,
-                                        self.engines[0].throttle),axis=0)
-        else:
-            engine_throttles = tuple(engine.throttle for engine in self.engines)
-            self.u = csdl.concatenate((self.left_aileron.deflection,
-                                       self.right_aileron.deflection,
-                                       self.left_flap.deflection,
-                                       self.right_flap.deflection,
-                                       self.elevator.deflection,
-                                       self.rudder.deflection) + engine_throttles,axis=0)
-        
         if symmetrical:
             super().__init__(
                 pitch_control=[self.elevator],
@@ -57,8 +34,66 @@ class AircraftControlSystem(VehicleControlSystem):
                 pitch_control=[self.elevator],
                 roll_control=[self.left_aileron, self.right_aileron],
                 yaw_control=[self.rudder],
-                throttle_control=[self.engines]
-            )       
+                throttle_control=self.engines
+            )
+
+
+    def _init_symmetrical_controls(self) -> None:
+        """Initialize controls for a symmetrical configuration."""
+        self.aileron = ControlSurface(name='Aileron', lb=-15, ub=20)
+        self.flap = ControlSurface(name='Flap', lb=-15, ub=20)
+    
+    def _init_asymmetrical_controls(self) -> None:
+        """Initialize controls for an asymmetrical configuration."""
+        self.left_aileron = ControlSurface(name='Left Aileron', lb=-15, ub=20)
+        self.right_aileron = ControlSurface(name='Right Aileron', lb=-15, ub=20)
+        self.left_flap = ControlSurface(name='Left Flap', lb=-15, ub=20)
+        self.right_flap = ControlSurface(name='Right Flap', lb=-15, ub=20)
+    
+
+    def _init_engines(self, engine_count: int) -> List[PropulsiveControl]:
+        """
+        Initialize the propulsion controls.
+
+        Returns:
+            List[PropulsiveControl]: List of propulsive control instances.
+        """
+        if self.symmetrical:
+            common_throttle = PropulsiveControl(name='Motor', throttle=1)
+            return [common_throttle for _ in range(engine_count)]
+        else:
+            return [PropulsiveControl(name=f'Motor{i+1}', throttle=1.0) for i in range(engine_count)]
+        
+
+
+    def _assemble_control_vector(self):
+        """
+        Assemble the control vector using the deflections of the surfaces.
+        
+        Returns:
+            The concatenated control vector.
+        """
+        if self.symmetrical:
+            return csdl.concatenate((
+                self.aileron.deflection,
+                -self.aileron.deflection,
+                self.flap.deflection,
+                -self.flap.deflection,
+                self.elevator.deflection,
+                self.rudder.deflection,
+                self.engines[0].throttle
+            ), axis=0)
+        else:
+            return csdl.concatenate((
+                self.left_aileron.deflection,
+                self.right_aileron.deflection,
+                self.left_flap.deflection,
+                self.right_flap.deflection,
+                self.elevator.deflection,
+                self.rudder.deflection
+            ) + tuple(engine.throttle for engine in self.engines), axis=0)
+        
+    
     @property
     def control_order(self)-> List[str]:
         return ['roll', 'pitch', 'yaw', 'throttle']
