@@ -248,7 +248,7 @@ class TestInertialLoads(TestCase):
 
         total_force, total_moment = parent_component.compute_total_loads(fd_state=ac_states, controls=controls)
 
-        alpha = ac_states.states.theta + lift_model.incidence + controls.elevator.deflection
+        alpha = ac_states.state_vector.theta + lift_model.incidence + controls.elevator.deflection
 
         cl = 2 * np.pi * alpha
         cd = lift_model.CD0 + (1 / (lift_model.e * lift_model.AR * np.pi)) * cl**2  
