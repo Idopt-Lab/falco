@@ -212,7 +212,7 @@ class CruiseCondition(Condition):
         )
 
         ac_states = self._setup_condition(fd_axis)
-        super().__init__(ac_states=ac_states, controls=controls)
+        super().__init__(states=ac_states, controls=controls)
 
     def _setup_condition(self, fd_axis: Union[Axis, AxisLsdoGeo]):
         axis = fd_axis.copy(new_name="cruise_axis")
