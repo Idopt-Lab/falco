@@ -78,7 +78,7 @@ class AircraftAerodynamics(Loads):
 
             density = x_bar.atmospheric_states.density
             velocity = x_bar.VTAS
-            theta = x_bar.states.theta
+            theta = x_bar.state_vector.theta
             alpha = theta + self.lift_model.incidence + u_bar.elevator.deflection
 
             CL = 2*np.pi*alpha
@@ -158,7 +158,7 @@ class AircraftAerodynamics(Loads):
                 ref_alpha = float(self.lift_model.incidence.value)  # 2 degrees reference angle
                 
                 for v in velocities:
-                    density = self.states.atmospheric_states.density.value
+                    density = self.state_vector.atmospheric_states.density.value
                     CL = 2 * np.pi * ref_alpha+0.2
                     CD = self.lift_model.CD0.value + (1/(e * AR * np.pi)) * CL**2
                     
@@ -169,12 +169,12 @@ class AircraftAerodynamics(Loads):
                     drag_forces.append(D)
 
                 # Alpha sweep calculations
-                ref_velocity = self.states.VTAS.value 
+                ref_velocity = self.state_vector.VTAS.value 
                 alpha_lifts = []
                 alpha_drags = []
                 
                 for alpha in alphas:
-                    density = self.states.atmospheric_states.density.value
+                    density = self.state_vector.atmospheric_states.density.value
                     CL = 2 * np.pi * alpha
                     CD = self.lift_model.CD0.value + (1/(e * AR * np.pi)) * CL**2
                     

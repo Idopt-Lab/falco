@@ -138,8 +138,8 @@ class GravityLoads(Loads):
 
 
         m = self.mass
-        th = self.states.states.theta
-        ph = self.states.states.phi
+        th = self.states.state_vector.theta
+        ph = self.states.state_vector.phi
 
         Fxg = -m * g * csdl.sin(th)
         Fyg = m * g * csdl.cos(th) * csdl.sin(ph)
