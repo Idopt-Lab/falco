@@ -1317,47 +1317,47 @@ if do_trim_opt_3 is True:
     cruise_acceleration_J.name = "cruise_acceleration_J"
     cruise_acceleration_J.set_as_objective()
 
-    # recorder.visualize_graph('x57_cruise_graph.png')
-    if debug is True:
-        pass
-    else:
-        recorder.inline = False
+# recorder.visualize_graph('x57_cruise_graph.png')
+if debug is True:
+    pass
+else:
+    recorder.inline = False
 
-    sim = csdl.experimental.JaxSimulator(
-        recorder=recorder,
-        gpu=False,
-        derivatives_kwargs= {
-            "concatenate_ofs" : True
-        })
-    
-    sim.check_optimization_derivatives()
-    t1 = time.time()
-    prob = CSDLAlphaProblem(problem_name='trim_optimization', simulator=sim)
-    optimizer = IPOPT(problem=prob)
-    optimizer.solve()
-    optimizer.print_results()
-    t2 = time.time()
-    print('Time to solve', t2-t1)
-    recorder.execute()
-    dv_save_dict = {}
-    constraints_save_dict = {}
-    obj_save_dict = {}
+sim = csdl.experimental.JaxSimulator(
+    recorder=recorder,
+    gpu=False,
+    derivatives_kwargs= {
+        "concatenate_ofs" : True
+    })
 
-    dv_dict = recorder.design_variables
-    constraint_dict = recorder.constraints
-    obj_dict = recorder.objectives
+sim.check_optimization_derivatives()
+t1 = time.time()
+prob = CSDLAlphaProblem(problem_name='trim_optimization', simulator=sim)
+optimizer = IPOPT(problem=prob)
+optimizer.solve()
+optimizer.print_results()
+t2 = time.time()
+print('Time to solve', t2-t1)
+recorder.execute()
+dv_save_dict = {}
+constraints_save_dict = {}
+obj_save_dict = {}
 
-    for dv in dv_dict.keys():
-        dv_save_dict[dv.name] = dv.value
-        print("Design Variable", dv.name, dv.value)
+dv_dict = recorder.design_variables
+constraint_dict = recorder.constraints
+obj_dict = recorder.objectives
 
-    for c in constraint_dict.keys():
-        constraints_save_dict[c.name] = c.value
-        print("Constraint", c.name, c.value)
+for dv in dv_dict.keys():
+    dv_save_dict[dv.name] = dv.value
+    print("Design Variable", dv.name, dv.value)
 
-    for obj in obj_dict.keys():
-        obj_save_dict[obj.name] = obj.value
-        print("Objective", obj.name, obj.value)
+for c in constraint_dict.keys():
+    constraints_save_dict[c.name] = c.value
+    print("Constraint", c.name, c.value)
+
+for obj in obj_dict.keys():
+    obj_save_dict[obj.name] = obj.value
+    print("Objective", obj.name, obj.value)
 
 
 

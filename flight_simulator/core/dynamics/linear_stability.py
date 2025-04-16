@@ -3,7 +3,6 @@ from abc import abstractmethod
 import numpy as np
 import csdl_alpha as csdl
 import numpy as np
-from flight_simulator.core.dynamics.trim_stability import LinearStabilityMetrics
 from typing import Union
 from dataclasses import dataclass
 from flight_simulator.core.vehicle.components.component import Component
