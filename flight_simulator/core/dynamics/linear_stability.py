@@ -7,7 +7,6 @@ from typing import Union
 from dataclasses import dataclass
 from flight_simulator.core.vehicle.components.component import Component
 from flight_simulator.core.vehicle.controls.vehicle_control_system import VehicleControlSystem
-from flight_simulator.core.dynamics.trim_stability import LinearStabilityMetrics
 from flight_simulator.core.vehicle.models.equations_of_motion.EoM import EquationsOfMotion
 from flight_simulator.core.dynamics.aircraft_states import AircraftStates
 from flight_simulator.core.loads.mass_properties import MassMI

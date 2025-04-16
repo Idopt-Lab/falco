@@ -2,14 +2,11 @@ from abc import abstractmethod
 import numpy as np
 import csdl_alpha as csdl
 import numpy as np
-from flight_simulator.core.dynamics.trim_stability import LinearStabilityMetrics
 from typing import Union
 from dataclasses import dataclass
 from flight_simulator.core.vehicle.components.component import Component
 from flight_simulator.core.vehicle.controls.vehicle_control_system import VehicleControlSystem
-from flight_simulator.core.dynamics.trim_stability import LinearStabilityMetrics
 from flight_simulator.core.dynamics.aircraft_states import AircraftStates
-from flight_simulator.core.vehicle.models.mass_properties import MassProperties
 
 @dataclass
 class StateVectorDot(csdl.VariableGroup):

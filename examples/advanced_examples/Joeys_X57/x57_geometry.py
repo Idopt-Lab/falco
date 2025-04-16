@@ -19,7 +19,7 @@ from flight_simulator.core.vehicle.components.fuselage import Fuselage as FuseCo
 from flight_simulator.core.vehicle.components.aircraft import Aircraft as AircraftComp
 from flight_simulator.core.vehicle.components.rotor import Rotor as RotorComp
 from flight_simulator.core.vehicle.conditions import aircraft_conditions
-from flight_simulator.core.vehicle.models.equations_of_motion.EoM import Aircraft6DOF
+from flight_simulator.core.vehicle.models.equations_of_motion.EoM import EquationsOfMotion
 from lsdo_geo.core.parameterization.parameterization_solver import ParameterizationSolver, GeometricVariables
 from modopt import CSDLAlphaProblem, SLSQP, IPOPT, SNOPT, PySLSQP
 
