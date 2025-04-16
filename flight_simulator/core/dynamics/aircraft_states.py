@@ -200,7 +200,7 @@ class AircraftStates:
         self.euler_angles_vector = self.axis.euler_angles_vector
 
         self.states_vector = csdl.concatenate(
-            (self.body_frame_velocity_vector, self.angular_rates_vector, self.position_vector, self.euler_angles_vector),
+            (self.body_frame_velocity_vector, self.angular_rates_vector, self.euler_angles_vector, self.position_vector),
             axis=0
         )
 
@@ -221,7 +221,7 @@ class AircraftStates:
             axis=0)
 
         self.statesdot_vector = csdl.concatenate(
-            (self.linear_acceleration_vector, self.angular_acceleration_vector, self.body_frame_velocity_vector, self.angular_rates_vector),
+            (self.linear_acceleration_vector, self.angular_acceleration_vector, self.angular_rates_vector, self.body_frame_velocity_vector),
             axis=0
         )
 
