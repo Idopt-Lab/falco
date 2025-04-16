@@ -1282,36 +1282,7 @@ if do_trim_optimization1 is True:
 
         (csdl.absolute(total_forces_cruise[2]-(1060*9.81))).set_as_objective()  # Minimize vertical force (Fz)
 
-    do_trim_opt_3 = False
-    if do_trim_opt_3 is True:
-        pitch_angle = csdl.Variable(name="aircraft_pitch_angle", shape=(1,), value=np.deg2rad(2))
-        pitch_angle.set_as_design_variable(lower=-np.deg2rad(50), upper=np.deg2rad(50), scaler=10)
-        
-        throttle = csdl.Variable(name="aircraft_throttle_level", shape=(1,), value=1)
-        throttle.set_as_design_variable(lower=0, upper=1, scaler=10)
-        
-        elevator = csdl.Variable(name="elevator_deflection", shape=(1,), value=np.deg2rad(0))
-        elevator.set_as_design_variable(lower=-np.deg2rad(25), upper=np.deg2rad(25), scaler=10)
 
-        x57_controls.throttle = throttle
-        x57_controls.elevator.deflection = elevator
-
-        cruiseCondition = aircraft_conditions.CruiseCondition(
-            fd_axis=fd_axis,
-            controls=x57_controls,
-            component=Aircraft,
-            altitude=Q_(1, 'ft'),
-            range=Q_(70, 'km'),
-            speed=Q_(100, 'mph'),
-            pitch_angle=pitch_angle)
-        
-        cruise_ac_states = cruiseCondition.quantities.ac_states
-        cruise_stability = cruiseCondition.perform_linear_stability_analysis()
-        cruise_stability.set_as_constraint(equals=0, scaler=1)
-        eom_model = Aircraft6DOF()
-        cruise_acceleration_J = eom_model.EoM_steady_state_trim(condition = cruiseCondition)
-        cruise_acceleration_J.name = "cruise_acceleration_J"
-        cruise_acceleration_J.set_as_objective()
 
 # recorder.visualize_graph('x57_cruise_graph.png')
 if debug is True:
