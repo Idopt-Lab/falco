@@ -21,27 +21,6 @@ from flight_simulator.core.vehicle.models.aerodynamics.aerodynamic_model import 
 from flight_simulator.core.loads.loads import Loads
 
 
-class ComponentQuantities:
-    def __init__(self, mass_properties: MassProperties = None) -> None:
-        self._mass_properties = mass_properties
-        self.surface_mesh = []
-        self.surface_area = None
-        self.load_solvers = []
-
-        if mass_properties is None:
-            self.mass_properties = MassProperties.create_default_mass_properties()
-
-
-    def __repr__(self):
-
-        output = (
-            f"Component Mass: {self.mass_properties.mass.value} kg\n"
-            f"Component CG: {self.mass_properties.cg_vector.vector.value} m\n"
-            f"Component Inertia: {self.mass_properties.inertia_tensor.inertia_tensor.value}"
-        )
-        return output
-
-
 @dataclass
 class ComponentParameters:
     actuate_angle: Union[csdl.Variable, float, None] = None
@@ -51,29 +30,45 @@ class ComponentParameters:
 class Component:
     def __init__(self, name: str, geometry: Union[FunctionSet, None] = None, 
                 compute_surface_area_flag: bool = False, 
-                parameterization_solver: ParameterizationSolver=None, 
+                parameterization_solver: ParameterizationSolver=None,
+                mass_properties: MassProperties = None, 
                 ffd_geometric_variables: GeometricVariables=None, **kwargs) -> None:
         self._name = name
         self.parent = None
         self.comps = {}
         self.geometry: Union[FunctionSet, Geometry, None] = geometry
         self.compute_surface_area_flag = compute_surface_area_flag
-        self.quantities: ComponentQuantities = ComponentQuantities()
         self.parameters: ComponentParameters = ComponentParameters()
         self._parameterization_solver = parameterization_solver
         self._ffd_geometric_variables = ffd_geometric_variables 
+        self._mass_properties = mass_properties
+        self.surface_mesh = []
+        self.surface_area = None
+        self.load_solvers = []
 
         for key, value in kwargs.items():
             setattr(self.parameters, key, value)
 
         if geometry and compute_surface_area_flag:
-            self.quantities.surface_area = self._compute_surface_area(geometry)
+            self.surface_area = self._compute_surface_area(geometry)
 
         if geometry is not None and isinstance(geometry, FunctionSet):
             if "do_not_remake_ffd_block" not in kwargs:
                 num_ffd_sections = 3
                 self._ffd_block = construct_ffd_block_around_entities(entities=geometry, num_coefficients=(2, num_ffd_sections, 2), degree=(1,1,1))
+
+        if mass_properties is None:
+            self.mass_properties = MassProperties.create_default_mass_properties()
     
+
+    def __repr__(self):
+
+        output = (
+            f"Component Mass: {self.mass_properties.mass.value} kg\n"
+            f"Component CG: {self.mass_properties.cg_vector.vector.value} m\n"
+            f"Component Inertia: {self.mass_properties.inertia_tensor.inertia_tensor.value}"
+        )
+        return output
 
 
     def add_subcomponent(self, subcomponent: Component):
@@ -152,8 +147,8 @@ class Component:
         total_moments = csdl.Variable(shape=(3,), value=0.)
 
 
-        if bool(self.quantities.load_solvers):
-            for ls in self.quantities.load_solvers:
+        if bool(self.load_solvers):
+            for ls in self.load_solvers:
                 assert isinstance(ls,Loads)
                 fm = ls.get_FM_refPoint(x_bar=fd_state, u_bar=controls)
                 fm_rotated = fm.rotate_to_axis(fd_state.axis)
@@ -168,7 +163,7 @@ class Component:
             total_moments += m
 
         if self.parent is None:
-            grav_loads = GravityLoads(fd_state=fd_state, controls=controls, mass_properties=self.quantities.mass_properties)
+            grav_loads = GravityLoads(fd_state=fd_state, controls=controls, mass_properties=self.mass_properties)
             gfm = grav_loads.get_FM_refPoint(x_bar=fd_state, u_bar=controls)
             total_forces += gfm.F.vector
             total_moments += gfm.M.vector
@@ -181,13 +176,13 @@ class Component:
         Returns:
             inertia (np.array): Inertia tensor of the component.
         """
-        cg = self.quantities.mass_properties.cg_vector.vector
-        axis = self.quantities.mass_properties.cg_vector.axis
+        cg = self.mass_properties.cg_vector.vector
+        axis = self.mass_properties.cg_vector.axis
 
-        if hasattr(self.quantities.mass_properties.mass, 'value'):
-            mass = self.quantities.mass_properties.mass.value
+        if hasattr(self.mass_properties.mass, 'value'):
+            mass = self.mass_properties.mass.value
         else:
-            mass = self.quantities.mass_properties.mass.magnitude
+            mass = self.mass_properties.mass.magnitude
 
         x= cg[0].value
         y= cg[1].value
@@ -226,7 +221,7 @@ class Component:
             Izz=Q_(inertia[2,2].value, 'kg*(m*m)'),
             )
 
-        self.quantities.mass_properties.inertia_tensor = MI
+        self.mass_properties.inertia_tensor = MI
         
         return MI
     
@@ -238,8 +233,8 @@ class Component:
             mass_properties (dict): Dictionary containing the mass, center of gravity, and inertia tensor.
         """
     
-        mass = self.quantities.mass_properties.mass
-        cg = self.quantities.mass_properties.cg_vector
+        mass = self.mass_properties.mass
+        cg = self.mass_properties.cg_vector
         inertia = self.compute_inertia()
     
 
@@ -278,7 +273,7 @@ class Component:
         parametric_mesh_grid_num = 10
         surfaces = geometry.functions
         surface_area = csdl.Variable(shape=(1,), value=1)
-        surface_mesh = self.quantities.surface_mesh
+        surface_mesh = self.surface_mesh
         num_surfaces = len(surfaces.keys())
 
         parametric_mesh = geometry.generate_parametric_grid(grid_resolution=(parametric_mesh_grid_num, parametric_mesh_grid_num))

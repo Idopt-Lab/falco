@@ -156,7 +156,7 @@ class AircraftPropulsion(Loads):
 
     def __init__(self, component, radius:Union[ureg.Quantity, csdl.Variable], prop_curve:Union[HLPropCurve, CruisePropCurve], **kwargs):
         self.prop_curve = prop_curve
-        self.prop_axis = component.quantities.mass_properties.cg_vector.axis
+        self.prop_axis = component.mass_properties.cg_vector.axis
 
         if radius is None:
             self.radius = csdl.Variable(name='radius', shape=(1,), value=1.89/2) 
@@ -225,7 +225,7 @@ class PropulsionLoad(Loads):
     def __init__(self, component, omega, radius:Union[ureg.Quantity, csdl.Variable], ct, **kwargs):
         self.omega = omega
         self.ct = ct
-        self.prop_axis = component.quantities.mass_properties.cg_vector.axis
+        self.prop_axis = component.mass_properties.cg_vector.axis
 
         if radius is None:
             self.radius = csdl.Variable(name='radius', shape=(1,), value=1.89/2) 

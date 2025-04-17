@@ -1146,23 +1146,20 @@ x57_mass_properties = MassProperties(mass=Q_(1360.77, 'kg'),
                                       cg=Vector(vector=Q_(np.array([0, 0, 0]), 'm'), axis=fd_axis))
 
 atmospheric_states = x_57_states.atmospheric_states
-x57_controls = AircraftControlSystem(engine_count=12,symmetrical=True)
+x57_controls = AircraftControlSystem(engine_count=14,symmetrical=True)
 x57_controls.elevator.deflection = HorTail.parameters.actuate_angle
 x57_controls.rudder.deflection = Rudder.parameters.actuate_angle
 x57_controls.aileron.deflection = LeftAileron.parameters.actuate_angle
 x57_controls.flap.deflection = LeftFlap.parameters.actuate_angle
 
-
-
 x57_aircraft = Component(name='X-57')
-x57_aircraft.quantities.mass_properties = x57_mass_properties
+x57_aircraft.mass_properties = x57_mass_properties
 HL_radius_x57 = csdl.Variable(name="high_lift_motor_radius",shape=(1,), value=1.89/2) # HL propeller radius in ft
 cruise_radius_x57 = csdl.Variable(name="cruise_lift_motor_radius",shape=(1,), value=5/2) # cruise propeller radius in ft
 
 e_x57 = csdl.Variable(name="wing_e",shape=(1,), value=0.87) # Oswald efficiency factor
 CD0_x57 = csdl.Variable(name="wing_CD0",shape=(1,), value=0.001) # Zero-lift drag coefficient
-incidence_x57 = csdl.Variable(name="wing_incidence",shape=(1,), value=np.deg2rad(2)) # Wing incidence angle in radians
-
+Wing.parameters.actuate_angle = csdl.Variable(name="wing_incidence",shape=(1,), value=np.deg2rad(2)) # Wing incidence angle in radians
 
 
 ## Aerodynamic Forces - from Modification IV
@@ -1176,76 +1173,76 @@ for comp in Aircraft.comps.values():
             e=e_x57,
             CD0=CD0_x57,
             S=comp.parameters.S_ref,
-            incidence=incidence_x57
+            incidence=comp.parameters.actuate_angle,
         )
         lift_models.append(lift_model)
 
-Wing.quantities.mass_properties.mass = Q_(152.88, 'kg')
-Wing.quantities.mass_properties.cg_vector = Vector(vector=Q_(wing_le_center.value, 'm'), axis=wing_axis)
+Wing.mass_properties.mass = Q_(152.88, 'kg')
+Wing.mass_properties.cg_vector = Vector(vector=Q_(wing_le_center.value, 'm'), axis=wing_axis)
 Wing_aerodynamics = AircraftAerodynamics(lift_model=lift_models[0], component=Wing)
-Wing.quantities.load_solvers.append(Wing_aerodynamics)
+Wing.load_solvers.append(Wing_aerodynamics)
 
 
-LeftAileron.quantities.mass_properties.mass = Q_(1, 'kg')
-LeftAileron.quantities.mass_properties.cg_vector = Vector(vector=Q_(left_aileron_le_center.value, 'm'), axis=left_aileron_axis)
+LeftAileron.mass_properties.mass = Q_(1, 'kg')
+LeftAileron.mass_properties.cg_vector = Vector(vector=Q_(left_aileron_le_center.value, 'm'), axis=left_aileron_axis)
 
-RightAileron.quantities.mass_properties.mass = Q_(1, 'kg')
-RightAileron.quantities.mass_properties.cg_vector = Vector(vector=Q_(right_aileron_le_center.value, 'm'), axis=right_aileron_axis)
+RightAileron.mass_properties.mass = Q_(1, 'kg')
+RightAileron.mass_properties.cg_vector = Vector(vector=Q_(right_aileron_le_center.value, 'm'), axis=right_aileron_axis)
 
 LeftFlap.parameters.actuate_angle = csdl.Variable(name="left_flap_actuate_angle", shape=(1, ), value=0)  
-LeftFlap.quantities.mass_properties.mass = Q_(1, 'kg')
-LeftFlap.quantities.mass_properties.cg_vector = Vector(vector=Q_(left_flap_le_center.value, 'm'), axis=left_flap_axis)
+LeftFlap.mass_properties.mass = Q_(1, 'kg')
+LeftFlap.mass_properties.cg_vector = Vector(vector=Q_(left_flap_le_center.value, 'm'), axis=left_flap_axis)
 
 RightFlap.parameters.actuate_angle = csdl.Variable(name="right_flap_actuate_angle", shape=(1, ), value=0)
-RightFlap.quantities.mass_properties.mass = Q_(1, 'kg')
-RightFlap.quantities.mass_properties.cg_vector = Vector(vector=Q_(right_flap_le_center.value, 'm'), axis=right_flap_axis)
+RightFlap.mass_properties.mass = Q_(1, 'kg')
+RightFlap.mass_properties.cg_vector = Vector(vector=Q_(right_flap_le_center.value, 'm'), axis=right_flap_axis)
 
 
-Fuselage.quantities.mass_properties.mass = Q_(235.87, 'kg')
-Fuselage.quantities.mass_properties.cg_vector =  Vector(vector=Q_(wing_le_center.value + np.array([0,0,1]), 'm'), axis=wing_axis) # cg is at the wing cg but shifted down 
+Fuselage.mass_properties.mass = Q_(235.87, 'kg')
+Fuselage.mass_properties.cg_vector =  Vector(vector=Q_(wing_le_center.value + np.array([0,0,1]), 'm'), axis=wing_axis) # cg is at the wing cg but shifted down 
 
 
-HorTail.quantities.mass_properties.mass = Q_(27.3/2, 'kg')
-HorTail.quantities.mass_properties.cg_vector = Vector(vector=Q_(ht_le_center.value, 'm'), axis=ht_tail_axis)
+HorTail.mass_properties.mass = Q_(27.3/2, 'kg')
+HorTail.mass_properties.cg_vector = Vector(vector=Q_(ht_le_center.value, 'm'), axis=ht_tail_axis)
 HorTail_aerodynamics = AircraftAerodynamics(lift_model=lift_models[1], component=HorTail)
-HorTail.quantities.load_solvers.append(HorTail_aerodynamics)
+HorTail.load_solvers.append(HorTail_aerodynamics)
 
 
-VertTail.quantities.mass_properties.mass = Q_(27.3/2, 'kg')
-VertTail.quantities.mass_properties.cg_vector = Vector(vector=Q_(vt_le_mid.value, 'm'), axis=vt_tail_axis)
+VertTail.mass_properties.mass = Q_(27.3/2, 'kg')
+VertTail.mass_properties.cg_vector = Vector(vector=Q_(vt_le_mid.value, 'm'), axis=vt_tail_axis)
 VertTail_aerodynamics = AircraftAerodynamics(lift_model=lift_models[2], component=VertTail)
-VertTail.quantities.load_solvers.append(VertTail_aerodynamics)
+VertTail.load_solvers.append(VertTail_aerodynamics)
 
 
-Rudder.quantities.mass_properties.mass = Q_(1, 'kg')
-Rudder.quantities.mass_properties.cg_vector = Vector(vector=Q_(rudder_le_mid.value, 'm'), axis=rudder_axis)
+Rudder.mass_properties.mass = Q_(1, 'kg')
+Rudder.mass_properties.cg_vector = Vector(vector=Q_(rudder_le_mid.value, 'm'), axis=rudder_axis)
 
-Battery.quantities.mass_properties.mass = Q_(390.08, 'kg')
-Battery.quantities.mass_properties.cg_vector = Vector(vector=Q_(wing_le_center.value + np.array([0,0,2]), 'm'), axis=wing_axis)
+Battery.mass_properties.mass = Q_(390.08, 'kg')
+Battery.mass_properties.cg_vector = Vector(vector=Q_(wing_le_center.value + np.array([0,0,2]), 'm'), axis=wing_axis)
 
 
-LandingGear.quantities.mass_properties.mass = Q_(61.15, 'kg')
-LandingGear.quantities.mass_properties.cg_vector = Vector(vector=Q_(wing_le_center.value + np.array([0,0,2]), 'm'), axis=wing_axis)
+LandingGear.mass_properties.mass = Q_(61.15, 'kg')
+LandingGear.mass_properties.cg_vector = Vector(vector=Q_(wing_le_center.value + np.array([0,0,2]), 'm'), axis=wing_axis)
 
 
 for i, HL_motor in enumerate(lift_rotors):
-    HL_motor.quantities.mass_properties.mass = Q_(81.65/12, 'kg')
-    HL_motor.quantities.mass_properties.cg_vector = Vector(vector=Q_(MotorDisks[i].value, 'm'), axis=HL_motor_axes[i])
+    HL_motor.mass_properties.mass = Q_(81.65/12, 'kg')
+    HL_motor.mass_properties.cg_vector = Vector(vector=Q_(MotorDisks[i].value, 'm'), axis=HL_motor_axes[i])
     HL_motor_propulsion = AircraftPropulsion(radius=HL_radius_x57, prop_curve=HLPropCurve(), component=HL_motor)
-    HL_motor.quantities.load_solvers.append(HL_motor_propulsion)
+    HL_motor.load_solvers.append(HL_motor_propulsion)
 
 
 for i, cruise_motor in enumerate(cruise_motors):
-    cruise_motor.quantities.mass_properties.mass = Q_(106.14/2, 'kg')
-    cruise_motor.quantities.mass_properties.cg_vector = Vector(vector=Q_(cruise_motors_base[i].value, 'm'), axis=cruise_motor_axes[i])
+    cruise_motor.mass_properties.mass = Q_(106.14/2, 'kg')
+    cruise_motor.mass_properties.cg_vector = Vector(vector=Q_(cruise_motors_base[i].value, 'm'), axis=cruise_motor_axes[i])
     cruise_motor_propulsion = AircraftPropulsion(radius=cruise_radius_x57, prop_curve=CruisePropCurve(), component=cruise_motor)
-    cruise_motor.quantities.load_solvers.append(cruise_motor_propulsion)
+    cruise_motor.load_solvers.append(cruise_motor_propulsion)
 
 
-Aircraft.quantities.mass_properties.mass = Q_(0, 'kg')
-Aircraft.quantities.mass_properties.cg_vector = Vector(vector=Q_(np.array([0, 0, 0]), 'm'), axis=fd_axis)
-Aircraft.quantities.mass_properties = Aircraft.compute_mass_properties()
-print(repr(Aircraft.quantities))
+Aircraft.mass_properties.mass = Q_(0, 'kg')
+Aircraft.mass_properties.cg_vector = Vector(vector=Q_(np.array([0, 0, 0]), 'm'), axis=fd_axis)
+Aircraft.mass_properties = Aircraft.compute_mass_properties()
+print(repr(Aircraft))
 
 
 test_prop_load = PropulsionLoad(component=Aircraft, omega = Q_(0, 'rad/s'), radius=HL_radius_x57, ct=0.3125)
@@ -1260,7 +1257,7 @@ if do_trim_optimization1 is True and do_cruise is True:
         for engine in x57_controls.engines:
             engine.throttle.set_as_design_variable(lower=0.5, upper=1, scaler=10)
 
-        x57_controls.elevator.deflection.set_as_design_variable(lower=-np.deg2rad(25), upper=np.deg2rad(25), scaler=10)
+        x57_controls.elevator.deflection.set_as_design_variable(lower=-np.deg2rad(5), upper=np.deg2rad(5), scaler=10)
 
         cruiseCondition = aircraft_conditions.CruiseCondition(
             fd_axis=fd_axis,
@@ -1271,17 +1268,17 @@ if do_trim_optimization1 is True and do_cruise is True:
             pitch_angle=Q_(0, 'deg'))
         print(cruiseCondition)
 
-        cruiseCondition.parameters.pitch_angle.set_as_design_variable(lower=-np.deg2rad(50), upper=np.deg2rad(50), scaler=10)
+        cruiseCondition.parameters.pitch_angle.set_as_design_variable(lower=-np.deg2rad(25), upper=np.deg2rad(25), scaler=10)
 
 
         total_forces_cruise, total_moments_cruise = cruiseCondition.assemble_forces_moments(component=Aircraft)
         print("Total Forces", total_forces_cruise.value)
         print("Total Moments", total_moments_cruise.value)
 
-        total_forces_cruise[0].set_as_constraint(equals=0)  # Minimize horizontal force (Fx)
-        total_forces_cruise[1].set_as_constraint(equals=0)  # Minimize side force (Fy)
+        total_forces_cruise[0].set_as_constraint(equals=0) 
+        total_forces_cruise[1].set_as_constraint(equals=0) 
 
-        (csdl.absolute(total_forces_cruise[2]+(1060*9.81))).set_as_objective()  # Minimize vertical force (Fz)
+        (csdl.absolute(total_forces_cruise[2])).set_as_objective()  # Minimize vertical force (Fz)
 
 
 if do_trim_optimization2 is True and do_cruise is True:    
@@ -1403,7 +1400,7 @@ if do_weight_optimization is True:
     vt_mass = x57_weights_model.evaluate_vertical_tail_weight(S_ref=VertTail.parameters.S_ref, AR=VertTail.parameters.AR, sweep_c4=VertTail.parameters.sweep)
     weights_solver = WeightsSolverModel()
     weights_solver.evaluate(x57_weights_model.design_gross_weight, wing_mass, fuselage_mass, ht_mass, vt_mass, 
-                            LandingGear.quantities.mass_properties.mass.magnitude, Battery.quantities.mass_properties.mass.magnitude, 81.65, 106.14)
+                            LandingGear.mass_properties.mass.magnitude, Battery.mass_properties.mass.magnitude, 81.65, 106.14)
 
 
 

@@ -53,7 +53,7 @@ class AircraftAerodynamics(Loads):
 
     def __init__(self, component, lift_model:LiftModel):
         self.lift_model = lift_model
-        self.wing_axis = component.quantities.mass_properties.cg_vector.axis
+        self.wing_axis = component.mass_properties.cg_vector.axis
         
 
     def get_FM_refPoint(self, x_bar, u_bar):
@@ -95,4 +95,3 @@ class AircraftAerodynamics(Loads):
             loads = ForcesMoments(force=force_vector, moment=moment_vector)
             return loads
 
-    
