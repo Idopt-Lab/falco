@@ -23,11 +23,12 @@ from flight_simulator.core.vehicle.models.equations_of_motion.EoM import Equatio
 from lsdo_geo.core.parameterization.parameterization_solver import ParameterizationSolver, GeometricVariables
 from modopt import CSDLAlphaProblem, SLSQP, IPOPT, SNOPT, PySLSQP
 
-
+t0 = time.time()
 lfs.num_workers = 1
 
 debug = False
-do_trim_optimization1 = True
+do_trim_optimization1 = False
+do_trim_optimization2 = True
 
 do_cruise = True
 do_climb = False
@@ -1253,8 +1254,7 @@ print("Test Power", test_pwr.value, 'kW')
 print("Test Torque", test_torque.value, 'lbf-ft')
 
 
-if do_trim_optimization1 is True:
-    if do_cruise is True:    
+if do_trim_optimization1 is True and do_cruise is True:    
 
         for engine in x57_controls.engines:
             engine.throttle.set_as_design_variable(lower=0.5, upper=1, scaler=10)
@@ -1283,7 +1283,56 @@ if do_trim_optimization1 is True:
         (csdl.absolute(total_forces_cruise[2]+(1060*9.81))).set_as_objective()  # Minimize vertical force (Fz)
 
 
-# recorder.visualize_graph('x57_cruise_graph.png')
+if do_trim_optimization2 is True and do_cruise is True:    
+    
+    for engine in x57_controls.engines:
+        engine.throttle.set_as_design_variable(lower=0.5, upper=1, scaler=10)
+
+    # x57_controls.elevator.deflection.set_as_design_variable(lower=-np.deg2rad(10), upper=np.deg2rad(10), scaler=1)
+
+    cruiseCondition = aircraft_conditions.CruiseCondition(
+        fd_axis=fd_axis,
+        controls=x57_controls,
+        altitude=Q_(1, 'ft'),
+        range=Q_(70, 'km'),
+        speed=Q_(70, 'mph'),
+        pitch_angle=Q_(0, 'deg'))
+    print(cruiseCondition)
+
+    cruiseCondition.parameters.pitch_angle.set_as_design_variable(lower=-np.deg2rad(25), upper=np.deg2rad(25), scaler=1)
+
+    J = cruiseCondition.evaluate_trim_res(component=Aircraft)
+    print("J Scalar Initial:", J.value)
+    J.name = 'J'
+    J.set_as_objective()  # Minimize J (norm(state vector dot 1-6))
+
+do_handling_qualities_optimization = True
+if do_handling_qualities_optimization is True and do_cruise is True:
+    for engine in x57_controls.engines:
+        engine.throttle.set_as_design_variable(lower=0.5, upper=1, scaler=10)
+
+    # x57_controls.elevator.deflection.set_as_design_variable(lower=-np.deg2rad(10), upper=np.deg2rad(10), scaler=1)
+
+    cruiseCondition = aircraft_conditions.CruiseCondition(
+        fd_axis=fd_axis,
+        controls=x57_controls,
+        altitude=Q_(1, 'ft'),
+        range=Q_(70, 'km'),
+        speed=Q_(70, 'mph'),
+        pitch_angle=Q_(0, 'deg'))
+    print(cruiseCondition)
+
+    cruiseCondition.parameters.pitch_angle.set_as_design_variable(lower=-np.deg2rad(25), upper=np.deg2rad(25), scaler=1)
+
+    stab_metrics = cruiseCondition.eval_linear_stability(component=Aircraft)
+
+    stab_metrics.time_2_double_phugoid.set_as_constraint(upper=0.5)
+    J = cruiseCondition.evaluate_trim_res(component=Aircraft)
+    print("J Scalar Initial:", J.value)
+    J.name = 'J'
+    J.set_as_objective()  # Minimize J (norm(state vector dot 1-6))
+
+
 if debug is True:
     pass
 else:
@@ -1296,6 +1345,8 @@ sim = csdl.experimental.JaxSimulator(
         "concatenate_ofs" : True
     })
 
+checks = sim.check_totals()
+
 sim.check_optimization_derivatives()
 t1 = time.time()
 prob = CSDLAlphaProblem(problem_name='trim_optimization', simulator=sim)
@@ -1303,7 +1354,8 @@ optimizer = IPOPT(problem=prob)
 optimizer.solve()
 optimizer.print_results()
 t2 = time.time()
-print('Time to solve', t2-t1)
+print('Time to solve Optimization:', t2-t1)
+print('Total code run time:', t2-t0)
 recorder.execute()
 dv_save_dict = {}
 constraints_save_dict = {}
