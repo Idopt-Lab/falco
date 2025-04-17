@@ -199,7 +199,12 @@ class EquationsOfMotion():
                                                     dphi_dt=dphi_dt, dtheta_dt=dtheta_dt, dpsi_dt=dpsi_dt,
                                                     dx_dt=dx_dt, dy_dt=dy_dt, dz_dt=dz_dt)
         
-        return dstate_output
+        dstate_vector = csdl.concatenate((dstate_output.du_dt, dstate_output.dv_dt, dstate_output.dw_dt,
+                                                dstate_output.dp_dt, dstate_output.dq_dt, dstate_output.dr_dt,
+                                                dstate_output.dphi_dt, dstate_output.dtheta_dt, dstate_output.dpsi_dt,
+                                                dstate_output.dx_dt, dstate_output.dy_dt, dstate_output.dz_dt), axis=0)
+        
+        return dstate_vector
     
     
     

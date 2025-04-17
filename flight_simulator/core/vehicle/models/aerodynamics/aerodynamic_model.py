@@ -81,7 +81,7 @@ class AircraftAerodynamics(Loads):
             theta = x_bar.state_vector.theta
             alpha = theta + self.lift_model.incidence
 
-            CL = 2*np.pi*alpha
+            CL = 2*np.pi*alpha + 0.3
             CD = self.lift_model.CD0 + (1 / (self.lift_model.e * self.lift_model.AR * np.pi)) * CL**2  
             L = 0.5 * density * velocity**2 * self.lift_model.S * CL
             D = 0.5 * density * velocity**2 * self.lift_model.S * CD

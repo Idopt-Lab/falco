@@ -189,6 +189,7 @@ class AircraftStates:
             theta=axis.euler_angles.theta, 
             psi=axis.euler_angles.psi
         )
+
         self.states_inertial_frame_wind = self.StatesInertialFrameWindVelocityVector(Vwx=Vwx, Vwy=Vwy, Vwz=Vwz)
 
         self.body_frame_velocity_vector = csdl.concatenate((self.state_vector.u, self.state_vector.v, self.state_vector.w), axis=0)
@@ -254,4 +255,25 @@ class AircraftStates:
         self.inertial_velocity_vector = csdl.matvec(R_B_to_I, self.body_frame_velocity_vector) + self.inertial_frame_wind_velocity_vector
 
         self.course_angle = csdl.arctan(self.inertial_velocity_vector[1]/self.inertial_velocity_vector[0])
-
+    
+    def _assemble_state_vector(self):
+        """
+        Assemble the state vector.
+        
+        Returns:
+            The concatenated state vector.
+        """
+        return csdl.concatenate((
+                self.state_vector.u,
+                self.state_vector.v,
+                self.state_vector.w,
+                self.state_vector.p,
+                self.state_vector.q,
+                self.state_vector.r,
+                self.state_vector.phi,
+                self.state_vector.theta,
+                self.state_vector.psi,
+                self.state_vector.x,
+                self.state_vector.y,
+                self.state_vector.z
+            ), axis=0)
