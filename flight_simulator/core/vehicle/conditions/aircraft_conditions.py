@@ -154,15 +154,16 @@ class Condition():
         
         tf, tm = self.assemble_forces_moments(component=component)
         mp = component.quantities.mass_properties
+        st = self.ac_states
 
-        self.r = self.eom._EoM_res(aircraft_states=self.ac_states, mass_properties=mp, total_forces=tf, total_moments=tm)
-        return self.r
+        r, x = self.eom._EoM_res(aircraft_states=st, mass_properties=mp, total_forces=tf, total_moments=tm)
+        return r, x
     
     def evaluate_trim_res(self, component: Component):
 
-        res = self.evaluate_eom(component=component)
+        res, x = self.evaluate_eom(component=component)
         res_vec = csdl.Variable(shape=(6,), value=0.)
-        res_vec = res_vec.set(csdl.slice[0:5], res[0:5])
+        res_vec = res_vec.set(csdl.slice[0:5], csdl.get_index(res,slices=csdl.slice[0:5]))
         J = csdl.norm(res_vec)
 
         return J
@@ -170,12 +171,12 @@ class Condition():
     def generate_linear_system(self, component: Component):
         """Conducts a Linear Stability Analysis."""
         
-        r = self.evaluate_eom(component=component)
-        state_vector_list = [self.ac_states.state_vector.u, self.ac_states.state_vector.v, self.ac_states.state_vector.w,
-                             self.ac_states.state_vector.p, self.ac_states.state_vector.q, self.ac_states.state_vector.r,
-                             self.ac_states.state_vector.phi, self.ac_states.state_vector.theta, self.ac_states.state_vector.psi,
-                             self.ac_states.state_vector.x, self.ac_states.state_vector.y, self.ac_states.state_vector.z]
-        A = csdl.derivative(ofs=r, wrts=state_vector_list)
+        r, x = self.evaluate_eom(component=component)
+        # state_vector_list = [self.ac_states.state_vector.u, self.ac_states.state_vector.v, self.ac_states.state_vector.w,
+        #                      self.ac_states.state_vector.p, self.ac_states.state_vector.q, self.ac_states.state_vector.r,
+        #                      self.ac_states.state_vector.phi, self.ac_states.state_vector.theta, self.ac_states.state_vector.psi,
+        #                      self.ac_states.state_vector.x, self.ac_states.state_vector.y, self.ac_states.state_vector.z]
+        A = csdl.derivative(ofs=r, wrts=x)
         B = csdl.derivative(ofs=r, wrts=self.controls.u)
 
         return A, B

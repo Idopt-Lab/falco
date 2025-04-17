@@ -29,6 +29,7 @@ lfs.num_workers = 1
 debug = False
 do_trim_optimization1 = False
 do_trim_optimization2 = True
+do_handling_qualities_optimization = False
 
 do_cruise = True
 do_climb = False
@@ -1306,7 +1307,6 @@ if do_trim_optimization2 is True and do_cruise is True:
     J.name = 'J'
     J.set_as_objective()  # Minimize J (norm(state vector dot 1-6))
 
-do_handling_qualities_optimization = True
 if do_handling_qualities_optimization is True and do_cruise is True:
     for engine in x57_controls.engines:
         engine.throttle.set_as_design_variable(lower=0.5, upper=1, scaler=10)

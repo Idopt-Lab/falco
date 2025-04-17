@@ -47,7 +47,7 @@ class EquationsOfMotion():
     """
 
 
-    def _EoM_res(self, aircraft_states: AircraftStates, mass_properties, total_forces, total_moments):
+    def _EoM_res(self, aircraft_states, mass_properties, total_forces, total_moments):
         """
         
         """
@@ -194,17 +194,15 @@ class EquationsOfMotion():
                 + w * (csdl.cos(phi) * csdl.sin(theta) * csdl.sin(psi) - csdl.sin(phi) * csdl.cos(psi))
         dz_dt = -u * csdl.sin(theta) + v * csdl.sin(phi) * csdl.cos(theta) + w * csdl.cos(phi) * csdl.cos(theta)
 
-        dstate_output = StateVectorDot(du_dt=du_dt, dv_dt=dv_dt, dw_dt=dw_dt,
-                                                    dp_dt=dp_dt, dq_dt=dq_dt, dr_dt=dr_dt,
-                                                    dphi_dt=dphi_dt, dtheta_dt=dtheta_dt, dpsi_dt=dpsi_dt,
-                                                    dx_dt=dx_dt, dy_dt=dy_dt, dz_dt=dz_dt)
         
-        dstate_vector = csdl.concatenate((dstate_output.du_dt, dstate_output.dv_dt, dstate_output.dw_dt,
-                                                dstate_output.dp_dt, dstate_output.dq_dt, dstate_output.dr_dt,
-                                                dstate_output.dphi_dt, dstate_output.dtheta_dt, dstate_output.dpsi_dt,
-                                                dstate_output.dx_dt, dstate_output.dy_dt, dstate_output.dz_dt), axis=0)
+        dstate_vector = csdl.concatenate([du_dt, dv_dt, dw_dt,
+                                                dp_dt, dq_dt, dr_dt,
+                                                dphi_dt, dtheta_dt, dpsi_dt,
+                                                dx_dt, dy_dt, dz_dt])
         
-        return dstate_vector
+        state_vector = csdl.concatenate([u, v, w, p, q, r, phi, theta, psi, x, y, z])
+        
+        return dstate_vector, state_vector
     
     
     
