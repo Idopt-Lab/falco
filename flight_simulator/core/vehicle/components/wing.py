@@ -216,7 +216,7 @@ class Wing(Component):
             sweep = Q_(0.0, 'rad')
             self.parameters.sweep = sweep
 
-        self.parameters.S_wet = self.quantities.surface_area
+        self.parameters.S_wet = self.surface_area
 
 
         
