@@ -12,6 +12,7 @@ from flight_simulator.core.dynamics.aircraft_states import AircraftStates
 from flight_simulator.core.loads.mass_properties import MassMI
 
 
+
 @dataclass
 class LinearStabilityMetrics(csdl.VariableGroup):
     A_mat_longitudinal : csdl.Variable
@@ -55,13 +56,13 @@ class LinearStabilityAnalysis():
         A_mat_L = csdl.Variable(shape=(4, 4), name="A_mat_Longitudinal")
         long_indices=[0, 2, 4, 7]
         for i in csdl.frange(len(long_indices)):
-            A_mat_L = A_mat_L.set(csdl.slice[i, :], A[long_indices[i], :])
+            A_mat_L = A_mat_L.set(csdl.slice[i, :], A[long_indices[i.value], :])
             
         # Lat-Dir: v, p, r, 
         A_mat_LD = csdl.Variable(shape=(4, 4), name="A_mat_Lateral_Directional")
         latdir_indices=[1, 3, 5, 6]
         for i in csdl.frange(len(latdir_indices)):
-            A_mat_LD = A_mat_LD.set(csdl.slice[i, :], A[latdir_indices[i], :])
+            A_mat_LD = A_mat_LD.set(csdl.slice[i, :], A[latdir_indices[i.value], :])
         
             
         eig_val_long_operation = EigenValueOperation()

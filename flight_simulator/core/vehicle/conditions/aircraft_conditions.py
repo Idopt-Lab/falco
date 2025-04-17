@@ -153,7 +153,7 @@ class Condition():
     def evaluate_eom(self, component: Component):
         
         tf, tm = self.assemble_forces_moments(component=component)
-        mp = component.mass_properties
+        mp = component.quantities.mass_properties
 
         self.r = self.eom._EoM_res(aircraft_states=self.ac_states, mass_properties=mp, total_forces=tf, total_moments=tm)
         return self.r
@@ -161,7 +161,9 @@ class Condition():
     def evaluate_trim_res(self, component: Component):
 
         res = self.evaluate_eom(component=component)
-        J = csdl.norm(res[0:5])
+        res_vec = csdl.Variable(shape=(6,), value=0.)
+        res_vec = res_vec.set(csdl.slice[0:5], res[0:5])
+        J = csdl.norm(res_vec)
 
         return J
 
@@ -169,17 +171,20 @@ class Condition():
         """Conducts a Linear Stability Analysis."""
         
         r = self.evaluate_eom(component=component)
-        self.A = csdl.derivative(ofs=r, wrts=self.ac_states.state_vector)
-        self.B = csdl.derivative(ofs=r, wrts=self.controls.u)
+        state_vector_list = [self.ac_states.state_vector.u, self.ac_states.state_vector.v, self.ac_states.state_vector.w,
+                             self.ac_states.state_vector.p, self.ac_states.state_vector.q, self.ac_states.state_vector.r,
+                             self.ac_states.state_vector.phi, self.ac_states.state_vector.theta, self.ac_states.state_vector.psi,
+                             self.ac_states.state_vector.x, self.ac_states.state_vector.y, self.ac_states.state_vector.z]
+        A = csdl.derivative(ofs=r, wrts=state_vector_list)
+        B = csdl.derivative(ofs=r, wrts=self.controls.u)
 
-        return self.A, self.B
+        return A, B
     
-    def eval_linear_stability(self):
+    def eval_linear_stability(self, component: Component):
         """Evaluates the linear stability analysis."""
-        if self.A is None or self.B is None:
-            raise ValueError("A and B matrices must be computed before evaluating linear stability.")
         
-        stability_metrics = self.analysis.linear_stab_analysis(A=self.A, B=self.B)
+        A, B = self.generate_linear_system(component=component)
+        stability_metrics = self.analysis.linear_stab_analysis(A=A, B=B)
 
         return stability_metrics
         
