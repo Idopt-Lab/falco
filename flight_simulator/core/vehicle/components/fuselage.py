@@ -10,15 +10,17 @@ import csdl_alpha as csdl
 from dataclasses import dataclass
 from lsdo_function_spaces import FunctionSet
 import lsdo_geo as lg
+from flight_simulator import ureg, Q_
+
 
 
 
 @dataclass
 class FuselageParameters:
-    length : Union[float, int, csdl.Variable]
-    max_width : Union[float, int, csdl.Variable]
-    max_height : Union[float, int, csdl.Variable]
-    S_wet : Union[float, int, csdl.Variable, None]=None
+    length : Union[ureg.Quantity, csdl.Variable]
+    max_width : Union[ureg.Quantity, csdl.Variable]
+    max_height : Union[ureg.Quantity, csdl.Variable]
+    S_wet : Union[ureg.Quantity, csdl.Variable, None]=Q_(1, "m**2")
 
 @dataclass
 class FuselageGeometricQuantities:
@@ -49,9 +51,10 @@ class Fuselage(Component):
     """
     def __init__(
         self, 
-        length : Union[int, float, csdl.Variable],
-        max_width : Union[int, float, csdl.Variable, None] = None, 
-        max_height : Union[int, float, csdl.Variable, None] = None, 
+        length : Union[ureg.Quantity, csdl.Variable],
+        max_width : Union[ureg.Quantity, csdl.Variable, None] = None, 
+        max_height : Union[ureg.Quantity, csdl.Variable, None] = None,
+        S_wet : Union[ureg.Quantity, csdl.Variable, None] = Q_(1, "m**2"),
         geometry : Union[FunctionSet, None] = None,
         skip_ffd: bool = False,
         parameterization_solver = None,
@@ -64,9 +67,27 @@ class Fuselage(Component):
         super().__init__(geometry, **kwargs)
         
         # Do type checking
-        csdl.check_parameter(length, "length", types=(int, float, csdl.Variable))
-        csdl.check_parameter(max_width, "max_width", types=(int, float, csdl.Variable), allow_none=True)
-        csdl.check_parameter(max_height, "max_height", types=(int, float, csdl.Variable), allow_none=True)
+
+        def define_checks(self):
+            self.add_check('length', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
+            self.add_check('max_width', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
+            self.add_check('max_height', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
+            self.add_check('S_wet', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
+    
+
+        def _check_parameters(self, name, value):
+            if self._metadata[name]['type'] is not None:
+                if type(value) not in self._metadata[name]['type']:
+                    raise ValueError(f"Variable {name} must be of type {self._metadata[name]['type']}.")
+            if self._metadata[name]['variablize']:
+                if isinstance(value, ureg.Quantity):
+                    value_si = value.to_base_units()
+                    value = csdl.Variable(value=value_si.magnitude, shape=(1,), name=name)
+                    value.add_tag(tag=str(value_si.units))
+            if self._metadata[name]['shape'] is not None:
+                if value.shape != self._metadata[name]['shape']:
+                    raise ValueError(f"Variable {name} must have shape {self._metadata[name]['shape']}.")
+            return value
 
         self._name = f"Fuselage"
         self.geometry = geometry
@@ -79,19 +100,13 @@ class Fuselage(Component):
             length=length,
             max_height=max_height,
             max_width=max_width,
+            S_wet=S_wet
         )
 
         # print(f"Initializing Wing with parameters: {self.parameters.length.value}, {self.parameters.max_width.value}, {self.parameters.max_height.value}")
 
-        # compute form factor (according to Raymer) if parameters are provided
-        if all(arg is not None for arg in [length, max_height, max_width]):
-            if not isinstance(max_height, csdl.Variable):
-                max_height = csdl.Variable(shape=(1, ), value=max_height)
-            if not isinstance(max_width, csdl.Variable):
-                max_width = csdl.Variable(shape=(1, ), value=max_width)
-            f = length/csdl.maximum(max_height, max_width)
-            FF = 1 + 60/f**3 + f/400
-            self.parameters.S_wet = self.quantities.surface_area
+
+        self.parameters.S_wet = S_wet
 
 
 
@@ -240,4 +255,3 @@ class Fuselage(Component):
             pass
         else:
             ffd_geometric_variables.add_variable(fuselage_geometric_qts.width, width_outer_dv)
-

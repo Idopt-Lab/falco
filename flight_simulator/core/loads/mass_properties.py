@@ -6,7 +6,7 @@ from flight_simulator import ureg, Q_
 from flight_simulator.core.loads.loads import Loads
 from flight_simulator.core.dynamics.axis import Axis
 from flight_simulator.core.dynamics.axis_lsdogeo import AxisLsdoGeo
-from flight_simulator.core.loads.forces_moments import Vector
+from flight_simulator.core.loads.forces_moments import Vector, ForcesMoments
 from flight_simulator.core.dynamics.axis import Axis, ValidOrigins
 
 
@@ -77,7 +77,8 @@ class MassMI:
 
 class MassProperties:
     def __init__(self,
-                 cg: Vector, inertia: MassMI,
+                 cg: Vector, 
+                 inertia: MassMI,
                  mass: Union[ureg.Quantity, csdl.Variable] = Q_(0, 'kg')):
 
         assert cg.axis.name == inertia.axis.name
@@ -94,48 +95,71 @@ class MassProperties:
         self.cg_vector = cg
         self.inertia_tensor = inertia
 
+    @staticmethod
+    def create_default_mass_properties() -> "MassProperties":
+        default_axis = Axis(name="Default Axis", origin=ValidOrigins.Inertial.value)
+        default_inertia = MassMI(axis=default_axis)
+        default_cg = Vector(vector=Q_(np.zeros(3), 'm'), axis=default_axis)
+        return MassProperties(cg=default_cg, inertia=default_inertia)
+
 
 class GravityLoads(Loads):
 
-    # TODO: Implement this class
+    def __init__(self, fd_state, controls, mass_properties):
+        self.states = fd_state
+        self.controls = controls
+        self.mass_properties = mass_properties
 
-    def get_FM_refPoint(self):
+
+    def get_FM_localAxis(self):
         """Use vehicle state and control objects to generate an estimate
         of gravity forces and moments about a reference point."""
-        # Gravity FM
-        g = states_obj.atmosphere_properties['g']
-        FD_body_fixed_axis = states_obj.return_fd_bodyfixed_axis()
+        # Store the states and mass properties
+        self.load_axis = self.states.axis
+        self.cg = self.mass_properties.cg_vector
+        self.mass = self.mass_properties.mass
 
-        Rbc = np.array([self.cg.x.magnitude,
-                        self.cg.y.magnitude,
-                        self.cg.z.magnitude])
+        if self.mass is None:
+            self.mass = csdl.Variable(name='mass', shape=(1,), value=0) 
+        elif isinstance(self.mass, ureg.Quantity):
+            self.mass = csdl.Variable(name='mass', shape=(1,), value=self.mass.to_base_units().magnitude)
+        else:
+            self.mass = self.mass
+        
+        # Gravity FM
+        g=9.81
+        cg_vals = self.cg.vector.value 
+        x = cg_vals[0]
+        y = cg_vals[1]
+        z = cg_vals[2]
+        
+        Rbc = np.array([x,y,z])
+
 
         m = self.mass
-        th = states_obj.Theta
-        ph = states_obj.Phi
+        th = self.states.state_vector.theta
+        ph = self.states.state_vector.phi
 
-        Fxg = -m * g * np.sin(th)
-        Fyg = m * g * np.cos(th) * np.sin(ph)
-        Fzg = m * g * np.cos(th) * np.cos(ph)
+        Fxg = -m * g * csdl.sin(th)
+        Fyg = m * g * csdl.cos(th) * csdl.sin(ph)
+        Fzg = m * g * csdl.cos(th) * csdl.cos(ph)
+        forceVec = csdl.concatenate([Fxg, Fyg, Fzg])
 
         Rbsksym = np.array([[0, -Rbc[2], Rbc[1]],
                             [Rbc[2], 0, -Rbc[0]],
                             [-Rbc[1], Rbc[0], 0]])
-        Mgrav = np.dot(Rbsksym, np.array([Fxg.magnitude,
-                                          Fyg.magnitude,
-                                          Fzg.magnitude]))
-        Mgrav = Mgrav * ureg.newton * ureg.meter
-
-        F_FD_BodyFixed = Vector(x=Fxg,
-                                y=Fyg,
-                                z=Fzg, axis=FD_body_fixed_axis)
-        M_FD_BodyFixed = Vector(x=Mgrav[0],
-                                y=Mgrav[1],
-                                z=Mgrav[2], axis=FD_body_fixed_axis)
-        FM_grav_FDbodyfixed = ForcesMoments(F=F_FD_BodyFixed, M=M_FD_BodyFixed)
-        return FM_grav_FDbodyfixed
+        
+        Mgrav = np.dot(Rbsksym, np.array([Fxg, Fyg, Fzg]))
 
 
+
+        F_FD_BodyFixed = Vector(forceVec,axis=self.load_axis)
+        M_FD_BodyFixed = Vector(csdl.concatenate([Mgrav[0],Mgrav[1],Mgrav[2]]),axis=self.load_axis)
+
+        loads = ForcesMoments(force=F_FD_BodyFixed, moment=M_FD_BodyFixed)
+        return loads
+    
+    
 
 if __name__ == "__main__":
     recorder = csdl.Recorder(inline=True)

@@ -2,10 +2,13 @@ from flight_simulator.core.vehicle.components.component import Component
 
 import lsdo_function_spaces as lfs
 from typing import Union, List
+
 import csdl_alpha as csdl
 import numpy as np
 from dataclasses import dataclass
 import lsdo_geo as lg
+from flight_simulator import ureg, Q_
+
 
 in2m=0.0254
 ft2m = 0.3048
@@ -13,23 +16,27 @@ ft2m = 0.3048
 
 
 @dataclass
-class WingParameters:
-    AR : Union[float, int, csdl.Variable]
-    S_ref : Union[float, int, csdl.Variable]
-    span : Union[float, int, csdl.Variable]
-    sweep : Union[float, int, csdl.Variable]
-    incidence : Union[float, int, csdl.Variable]
-    taper_ratio : Union[float, int, csdl.Variable]
-    dihedral : Union[float, int, csdl.Variable]
-    root_twist_delta : Union[int, float, csdl.Variable, None]
-    tip_twist_delta : Union[int, float, csdl.Variable, None]
-    thickness_to_chord : Union[float, int, csdl.Variable] = 0.15
-    thickness_to_chord_loc : float = 0.3
-    MAC: Union[float, None] = None
-    S_wet : Union[float, int, csdl.Variable, None]=None
+class WingParameters(csdl.VariableGroup):
+    #TODO: 
+        #REPLACE FLOAT AND INT WITH UREG
+        #EXPLICTLY CONVERT EVERYTHING TO CSDL VARIABLE
+    AR : csdl.Variable
+    S_ref : csdl.Variable
+    span : csdl.Variable
+    sweep : csdl.Variable
+    incidence : csdl.Variable
+    taper_ratio : csdl.Variable
+    dihedral : csdl.Variable
+    root_twist_delta : Union[csdl.Variable,None]
+    tip_twist_delta : Union[csdl.Variable,None]
+    thickness_to_chord : csdl.Variable
+    thickness_to_chord_loc : csdl.Variable
     actuate_angle: csdl.Variable = None
-    actuate_axis_location: Union[float, int, csdl.Variable, None] = 0.
+    actuate_axis_location: Union[csdl.Variable,None]=None
+    MAC: Union[csdl.Variable,None]=None
+    S_wet : Union[csdl.Variable,None]=None
 
+    
 @dataclass
 class WingGeometricQuantities:
     span: csdl.Variable
@@ -69,19 +76,19 @@ class Wing(Component):
 
     def __init__(
         self,
-        AR : Union[int, float, csdl.Variable, None] = None, 
-        S_ref : Union[int, float, csdl.Variable, None] = None,
-        span : Union[int, float, csdl.Variable, None] = None, 
-        dihedral : Union[int, float, csdl.Variable, None] = None, 
-        sweep : Union[int, float, csdl.Variable, None] = None, 
-        taper_ratio : Union[int, float, csdl.Variable, None] = None,
-        incidence : Union[int, float, csdl.Variable] = 0, 
-        root_twist_delta : Union[int, float, csdl.Variable] = 0,
-        tip_twist_delta : Union[int, float, csdl.Variable] = 0,
-        thickness_to_chord: float = 0.15,
-        thickness_to_chord_loc: float = 0.3,
-        actuate_angle: Union[float, int, csdl.Variable, None] = None,
-        actuate_axis_location: Union[int, float, csdl.Variable, None] = 0.25,
+        AR : Union[ureg.Quantity, csdl.Variable, None] = None, 
+        S_ref : Union[ureg.Quantity, csdl.Variable, None] = None,
+        span : Union[ureg.Quantity, csdl.Variable, None] = None, 
+        dihedral : Union[ureg.Quantity, csdl.Variable, None] = None, 
+        sweep : Union[ureg.Quantity, csdl.Variable, None] = None, 
+        taper_ratio : Union[ureg.Quantity, csdl.Variable, None] = None,
+        incidence : Union[ureg.Quantity, csdl.Variable] = Q_(0, 'rad'), 
+        root_twist_delta : Union[ureg.Quantity, csdl.Variable] = Q_(0, 'rad'),
+        tip_twist_delta : Union[ureg.Quantity, csdl.Variable] = Q_(0, 'rad'),
+        thickness_to_chord: Union[ureg.Quantity, csdl.Variable] = Q_(0.15, 'dimensionless'),
+        thickness_to_chord_loc: Union[ureg.Quantity, csdl.Variable] = Q_(0.3, 'm'),
+        actuate_angle: Union[ureg.Quantity, csdl.Variable,None] = None,
+        actuate_axis_location: Union[ureg.Quantity, csdl.Variable, None] = Q_(0.25, 'm'),
         geometry : Union[lfs.FunctionSet, None]=None,
         parametric_geometry: List = None,
         tight_fit_ffd: bool = False,
@@ -97,17 +104,36 @@ class Wing(Component):
         super().__init__(geometry=geometry, **kwargs)
         
         
-        # Do type checking 
-        csdl.check_parameter(AR, "AR", types=(int, float, csdl.Variable), allow_none=True)
-        csdl.check_parameter(S_ref, "S_ref", types=(int, float, csdl.Variable), allow_none=True)
-        csdl.check_parameter(span, "span", types=(int, float, csdl.Variable), allow_none=True)
-        csdl.check_parameter(dihedral, "dihedral", types=(int, float, csdl.Variable), allow_none=True)
-        csdl.check_parameter(sweep, "sweep", types=(int, float, csdl.Variable), allow_none=True)
-        csdl.check_parameter(incidence, "incidence", types=(int, float, csdl.Variable))
-        csdl.check_parameter(taper_ratio, "taper_ratio", types=(int, float, csdl.Variable), allow_none=True)
-        csdl.check_parameter(root_twist_delta, "root_twist_delta", types=(int, float, csdl.Variable))
-        csdl.check_parameter(tip_twist_delta, "tip_twist_delta", types=(int, float, csdl.Variable))
-        csdl.check_parameter(orientation, "orientation", values=["horizontal", "vertical"])
+        def define_checks(self):
+            self.add_check('AR', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
+            self.add_check('S_ref', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
+            self.add_check('span', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
+            self.add_check('sweep', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
+            self.add_check('incidence', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
+            self.add_check('taper_ratio', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
+            self.add_check('dihedral', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
+            self.add_check('root_twist_delta', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
+            self.add_check('tip_twist_delta', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
+            self.add_check('MAC', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
+            self.add_check('S_wet', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
+            self.add_check('actuate_angle', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
+            self.add_check('actuate_axis_location', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
+
+        def _check_parameters(self, name, value):
+            if self._metadata[name]['type'] is not None:
+                if type(value) not in self._metadata[name]['type']:
+                    raise ValueError(f"Variable {name} must be of type {self._metadata[name]['type']}.")
+            if self._metadata[name]['variablize']:
+                if isinstance(value, ureg.Quantity):
+                    value_si = value.to_base_units()
+                    value = csdl.Variable(value=value_si.magnitude, shape=(1,), name=name)
+                    value.add_tag(tag=str(value_si.units))
+            if self._metadata[name]['shape'] is not None:
+                if value.shape != self._metadata[name]['shape']:
+                    raise ValueError(f"Variable {name} must have shape {self._metadata[name]['shape']}.")
+            return value
+
+
 
         # Check if wing is over-parameterized
         if all(arg is not None for arg in [AR, S_ref, span]):
@@ -153,6 +179,8 @@ class Wing(Component):
 
         if taper_ratio is None:
             taper_ratio = 1
+            self.parameters.taper_ratio = csdl.Variable(name=f"{self._name}_taper_ratio", value=taper_ratio)
+
         if AR is not None and S_ref is not None:
             span = (AR * S_ref)**0.5
             self.parameters.span = span
@@ -182,15 +210,15 @@ class Wing(Component):
         t_o_c = self.parameters.thickness_to_chord
 
         if t_o_c is None:
-            t_o_c = 0.15
-
-        FF = (1 + 0.6 / x_c_m + 100 * (t_o_c) ** 4) * csdl.cos(sweep) ** 0.28
-        self.parameters.S_wet = self.quantities.surface_area
-
+            t_o_c = Q_(0.0, 'dimensionless')
 
         if sweep is None:
-            sweep = csdl.Variable(name=f"{self._name}_sweep", value=0)
+            sweep = Q_(0.0, 'rad')
             self.parameters.sweep = sweep
+
+        self.parameters.S_wet = self.surface_area
+
+
         
         if dihedral is None:
             dihedral = csdl.Variable(name=f"{self._name}_dihedral", value=0)

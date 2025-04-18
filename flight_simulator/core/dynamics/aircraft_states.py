@@ -158,6 +158,7 @@ class AircraftStates:
                     raise ValueError(f"Variable {name} must have shape {self._metadata[name]['shape']}.")
             return value
 
+        
     def __init__(self,
                  axis: Union[Axis, AxisLsdoGeo],
                  u: Union[ureg.Quantity, csdl.Variable]=Q_(0, 'm/s'),
@@ -170,31 +171,37 @@ class AircraftStates:
                  Vwy: Union[ureg.Quantity, csdl.Variable] = Q_(0, 'm/s'),
                  Vwz: Union[ureg.Quantity, csdl.Variable] = Q_(0, 'm/s'),
                  ):
+        
+        
         self.axis = axis
         self.atm = NRLMSIS2.Atmosphere()
 
-        # z is positive down. So we add a negative sign because NRLMSIS2 is expecting a positive value
-        self.atmospheric_states = self.atm.evaluate(-self.axis.translation_from_origin.z)
+        self.atmospheric_states = self.atm.evaluate(self.axis.translation_from_origin.z) 
 
 
-        self.states = self.States6dof(
+        self.state_vector = self.States6dof(
             u=u, v=v, w=w,
             p=p, q=q, r=r,
-            x=self.axis.translation_from_origin.x, y=self.axis.translation_from_origin.y, z=self.axis.translation_from_origin.z,
-            phi=axis.euler_angles.phi, theta=axis.euler_angles.theta, psi=axis.euler_angles.psi
+            x=self.axis.translation_from_origin.x, 
+            y=self.axis.translation_from_origin.y, 
+            z=self.axis.translation_from_origin.z,
+            phi=axis.euler_angles.phi, 
+            theta=axis.euler_angles.theta, 
+            psi=axis.euler_angles.psi
         )
+
         self.states_inertial_frame_wind = self.StatesInertialFrameWindVelocityVector(Vwx=Vwx, Vwy=Vwy, Vwz=Vwz)
 
-        self.body_frame_velocity_vector = csdl.concatenate((self.states.u, self.states.v, self.states.w), axis=0)
+        self.body_frame_velocity_vector = csdl.concatenate((self.state_vector.u, self.state_vector.v, self.state_vector.w), axis=0)
         self.inertial_frame_wind_velocity_vector = csdl.concatenate((self.states_inertial_frame_wind.Vwx,
                                                                      self.states_inertial_frame_wind.Vwy,
                                                                      self.states_inertial_frame_wind.Vwz), axis=0)
-        self.angular_rates_vector = csdl.concatenate((self.states.p, self.states.q, self.states.r), axis=0)
+        self.angular_rates_vector = csdl.concatenate((self.state_vector.p, self.state_vector.q, self.state_vector.r), axis=0)
         self.position_vector = self.axis.translation_from_origin_vector
         self.euler_angles_vector = self.axis.euler_angles_vector
 
         self.states_vector = csdl.concatenate(
-            (self.body_frame_velocity_vector, self.angular_rates_vector, self.position_vector, self.euler_angles_vector),
+            (self.body_frame_velocity_vector, self.angular_rates_vector, self.euler_angles_vector, self.position_vector),
             axis=0
         )
 
@@ -215,7 +222,7 @@ class AircraftStates:
             axis=0)
 
         self.statesdot_vector = csdl.concatenate(
-            (self.linear_acceleration_vector, self.angular_acceleration_vector, self.body_frame_velocity_vector, self.angular_rates_vector),
+            (self.linear_acceleration_vector, self.angular_acceleration_vector, self.angular_rates_vector, self.body_frame_velocity_vector),
             axis=0
         )
 
@@ -223,11 +230,11 @@ class AircraftStates:
         self.VTAS.add_name(name='VTAS')
         self.VTAS.add_tag(tag='m/s')
 
-        self.alpha = csdl.arctan(self.states.w / self.states.u)  # Todo: Change to atan2
+        self.alpha = csdl.arctan(self.state_vector.w / self.state_vector.u)  # Todo: Change to atan2
         self.alpha.add_name(name='alpha')
         self.alpha.add_tag(tag='rad')
 
-        self.beta = csdl.arcsin(self.states.v / self.VTAS)
+        self.beta = csdl.arcsin(self.state_vector.v / self.VTAS)
         self.beta.add_name(name='beta')
         self.beta.add_tag(tag='rad')
 
@@ -248,27 +255,25 @@ class AircraftStates:
         self.inertial_velocity_vector = csdl.matvec(R_B_to_I, self.body_frame_velocity_vector) + self.inertial_frame_wind_velocity_vector
 
         self.course_angle = csdl.arctan(self.inertial_velocity_vector[1]/self.inertial_velocity_vector[0])
-
-
-
-# if __name__ == "__main__":
-#     recorder = csdl.Recorder(inline=True)
-#     recorder.start()
-
-#     inertial_axis = Axis(
-#         name='Inertial Axis',
-#         origin=ValidOrigins.Inertial.value
-#     )
-
-#     axis = Axis(name='Reference Axis',
-#                 x=np.array([10, ]) * ureg.meter,
-#                 y=np.array([0, ]) * ureg.meter,
-#                 z=np.array([0, ]) * ureg.meter,
-#                 phi=np.array([0, ]) * ureg.degree,
-#                 theta=np.array([5, ]) * ureg.degree,
-#                 psi=np.array([0, ]) * ureg.degree,
-#                 reference=inertial_axis,
-#                 origin=ValidOrigins.Inertial.value)
-
-#     aircraft_states = AircaftStates(axis=axis, u=Q_(10, 'm/s'))
-#     pass
+    
+    def _assemble_state_vector(self):
+        """
+        Assemble the state vector.
+        
+        Returns:
+            The concatenated state vector.
+        """
+        return csdl.concatenate((
+                self.state_vector.u,
+                self.state_vector.v,
+                self.state_vector.w,
+                self.state_vector.p,
+                self.state_vector.q,
+                self.state_vector.r,
+                self.state_vector.phi,
+                self.state_vector.theta,
+                self.state_vector.psi,
+                self.state_vector.x,
+                self.state_vector.y,
+                self.state_vector.z
+            ), axis=0)
