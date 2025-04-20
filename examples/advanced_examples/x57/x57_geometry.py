@@ -606,4 +606,9 @@ def get_geometry():
 
 
 
-
+if __name__ == "__main__":
+    recorder = csdl.Recorder(inline=True, expand_ops=True, debug=False)
+    recorder.start()
+    geometry_data = get_geometry()
+    print("Geometry computed successfully")
+    recorder.stop()

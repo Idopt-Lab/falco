@@ -11,10 +11,6 @@ import copy
 import warnings
 import NRLMSIS2
 from flight_simulator import ureg, Q_
-from flight_simulator.core.vehicle.components.component import Component
-from flight_simulator.core.vehicle.controls.vehicle_control_system import VehicleControlSystem
-# from flight_simulator.core.dynamics.linear_stability import LinearStabilityAnalysis
-# from flight_simulator.core.vehicle.models.equations_of_motion.EoM import EquationsOfMotion
 
 
 @dataclass
@@ -120,6 +116,7 @@ class Condition():
         self.controls = controls
 
 
+
     def __repr__(self):
         try:
             ac_states = self.ac_states
@@ -146,8 +143,7 @@ class Condition():
             controls=self.controls)
 
         return total_forces, total_moments
-    
-        
+
     
 
 class CruiseCondition(Condition):
@@ -175,7 +171,6 @@ class CruiseCondition(Condition):
         )
 
         ac_states = self._setup_condition(fd_axis)
-
         super().__init__(states=ac_states, controls=controls)
 
     def _setup_condition(self, fd_axis: Union[Axis, AxisLsdoGeo]):
@@ -265,7 +260,7 @@ class ClimbCondition(Condition):
         )
 
         ac_states = self._setup_condition(fd_axis)
-        super().__init__(ac_states=ac_states, controls=controls)
+        super().__init__(states=ac_states, controls=controls)
 
     def _setup_condition(self, fd_axis: Union[Axis, AxisLsdoGeo]):
         axis = fd_axis.copy(new_name="climb_axis")
@@ -343,7 +338,7 @@ class HoverCondition(Condition):
             time=time,
         )
         ac_states = self._setup_condition(fd_axis)
-        super().__init__(ac_states=ac_states, controls=controls)
+        super().__init__(states=ac_states, controls=controls)
 
     def _setup_condition(self, fd_axis: Union[Axis, AxisLsdoGeo]):
         axis = fd_axis.copy(new_name="hover_axis")
