@@ -153,7 +153,7 @@ class Condition():
     def evaluate_eom(self, component: Component):
         
         tf, tm = self.assemble_forces_moments(component=component)
-        mp = component.quantities.mass_properties
+        mp = component.mass_properties
         st = self.ac_states
 
         r, x = self.eom._EoM_res(aircraft_states=st, mass_properties=mp, total_forces=tf, total_moments=tm)
