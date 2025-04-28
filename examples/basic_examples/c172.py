@@ -1,5 +1,5 @@
 import numpy as np
-from scipy.interpolate import Akima1DInterpolator
+from scipy.interpolate import Akima1DInterpolator, RectBivariateSpline
 
 from flight_simulator import Q_, ureg
 from flight_simulator.core.dynamics.aircraft_states import AircraftStates
@@ -196,6 +196,321 @@ c172_controls = C172Control(symmetrical=True, elevator_component=elevator_compon
                             aileron_left_component=None, rudder_component=rudder_component)
 pass
 # endregion
+
+
+# region Aerodyamic Model
+class AeroCurve(csdl.CustomExplicitOperation):
+    def __init__(self):
+        super().__init__()
+
+        # Curves for aerodynamic constants
+        # Controls & state input
+        self.alpha_data = np.array([-7.5, -5, -2.5, 0, 2.5, 5, 7.5, 10, 15, 17, 18, 19.5])  # degree
+        self.delta_aile_data = np.array([-15, -10, -5, -2.5, 0, 5, 10, 15, 20])  # degree
+        self.delta_elev_data = np.array([-26, -20, -10, -5, 0, 7.5, 15, 22.5, 28])  # degree
+        # Ouptuts
+        # CD
+        """Initialize all drag coefficient splines"""
+        CD_data = np.array([0.044, 0.034, 0.03, 0.03, 0.036, 0.048, 0.067, 0.093, 0.15, 0.169, 0.177, 0.184])
+        self.CD = Akima1DInterpolator(self.alpha_data, CD_data, method="akima")
+        self.CD_derivative = self.CD.derivative()
+        # CD_elevator_influence
+        CD_delta_elev_data = np.array(
+            [[0.0135, 0.0119, 0.0102, 0.00846, 0.0067, 0.0049, 0.00309, 0.00117, -0.0033, -0.00541, -0.00656, -0.00838],
+             [0.0121, 0.0106, 0.00902, 0.00738, 0.00574, 0.00406, 0.00238, 0.00059, -0.00358, -0.00555, -0.00661,
+              -0.00831],
+             [0.00651, 0.00552, 0.00447, 0.00338, 0.00229, 0.00117, 0.0000517, -0.00114, -0.00391, -0.00522, -0.00593,
+              -0.00706],
+             [0.00249, 0.002, 0.00147, 0.000931, 0.000384, -0.000174, -0.000735, -0.00133, -0.00272, -0.00337, -0.00373,
+              -0.00429],
+             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+             [-0.00089, -0.00015, 0.00064, 0.00146, 0.00228, 0.00311, 0.00395, 0.00485, 0.00693, 0.00791, 0.00844,
+              0.00929],
+             [0.00121, 0.00261, 0.00411, 0.00566, 0.00721, 0.00879, 0.0104, 0.0121, 0.016, 0.0179, 0.0189, 0.0205],
+             [0.00174, 0.00323, 0.00483, 0.00648, 0.00814, 0.00983, 0.0115, 0.0133, 0.0175, 0.0195, 0.0206, 0.0223],
+             [0.00273, 0.00438, 0.00614, 0.00796, 0.0098, 0.0117, 0.0135, 0.0155, 0.0202, 0.0224, 0.0236, 0.0255]])
+        self.CD_delta_elev = RectBivariateSpline(self.delta_elev_data, self.alpha_data, CD_delta_elev_data)
+        # self.CD_delta_elev_derivative = RectBivariateSpline.partial_derivative()
+
+        """Initialize all lift coefficient splines"""
+        # CL_alpha
+        CL_data = np.array([-0.571, -0.321, -0.083, 0.148, 0.392, 0.65, 0.918, 1.195, 1.659, 1.789, 1.84, 1.889])
+        self.CL_alpha = Akima1DInterpolator(self.alpha_data, CL_data)
+        self.CL_alpha_derivative = self.CL_alpha.derivative()
+
+        # CL_dot (alphadot)
+        CL_alphadot_data = np.array(
+            [2.434, 2.362, 2.253, 2.209, 2.178, 2.149, 2.069, 1.855, 1.185, 0.8333, 0.6394, 0.4971])
+        self.CL_dot = Akima1DInterpolator(self.alpha_data, CL_alphadot_data)
+        self.CL_dot_derivative = self.CL_dot.derivative()
+
+        # CL_q
+        CL_q_data = np.array([7.282, 7.282, 7.282, 7.282, 7.282, 7.282, 7.282, 7.282, 7.282, 7.282, 7.282, 7.282])
+        self.CL_q = Akima1DInterpolator(self.alpha_data, CL_q_data)
+        self.CL_q_derivative = self.CL_q.derivative()
+
+        # CL_delta_elev
+        CL_delta_elev_data = np.array([-0.132, -0.123, -0.082, -0.041, 0, 0.061, 0.116, 0.124, 0.137])
+        self.CL_delta_elev = Akima1DInterpolator(self.delta_elev_data, CL_delta_elev_data)
+        self.CL_delta_elev_derivative = self.CL_delta_elev.derivative()
+
+        """Initialize all moment coefficient splines"""
+        # Cm
+        CM_data = np.array(
+            [0.0597, 0.0498, 0.0314, 0.0075, -0.0248, -0.068, -0.1227, -0.1927, -0.3779, -0.4605, -0.5043, -0.5496])
+        self.CM = Akima1DInterpolator(self.alpha_data, CM_data)
+        self.CM_derivative = self.CM.derivative()
+
+        # Cm_q
+        CM_q_data = np.array(
+            [-6.232, -6.232, -6.232, -6.232, -6.232, -6.232, -6.232, -6.232, -6.232, -6.232, -6.232, -6.232])
+        self.CM_q = Akima1DInterpolator(self.alpha_data, CM_q_data)
+        self.CM_q_derivative = self.CM_q.derivative()
+
+        # Cm_dot (alphadot)
+        CM_alphadot_data = np.array(
+            [-6.64, -6.441, -6.146, -6.025, -5.942, -5.861, -5.644, -5.059, -3.233, -2.273, -1.744, -1.356])
+        self.CM_dot = Akima1DInterpolator(self.alpha_data, CM_alphadot_data)
+        self.CM_dot_derivative = self.CM_dot.derivative()
+
+        # Cm_delta_elev
+        CM_delta_elev_data = np.array([0.3302, 0.3065, 0.2014, 0.1007, -0.0002, -0.1511, -0.2863, -0.3109, -0.345])
+        self.CM_delta_elev = Akima1DInterpolator(self.delta_elev_data, CM_delta_elev_data)
+        self.CM_delta_elev_derivative = self.CM_delta_elev.derivative()
+
+        """Initialize all side force coefficient splines"""
+        # CY_beta
+        CY_beta_data = np.array(
+            [-0.268, -0.268, -0.268, -0.268, -0.268, -0.268, -0.268, -0.268, -0.268, -0.268, -0.268, -0.268])
+        self.CY_beta = Akima1DInterpolator(self.alpha_data, CY_beta_data)
+        self.CY_beta_derivative = self.CY_beta.derivative()
+
+        # CY_p
+        CY_p_data = np.array(
+            [-0.032, -0.0372, -0.0418, -0.0463, -0.051, -0.0563, -0.0617, -0.068, -0.0783, -0.0812, -0.0824, -0.083])
+        self.CY_p = Akima1DInterpolator(self.alpha_data, CY_p_data)
+        self.CY_p_derivative = self.CY_p.derivative()
+
+        # CY_r
+        CY_r_data = np.array(
+            [0.2018, 0.2054, 0.2087, 0.2115, 0.2139, 0.2159, 0.2175, 0.2187, 0.2198, 0.2198, 0.2196, 0.2194])
+        self.CY_r = Akima1DInterpolator(self.alpha_data, CY_r_data)
+        self.CY_r_derivative = self.CY_r.derivative()
+
+        # CY_delta_rud
+        CY_delta_rud_data = (-1) * np.array(
+            [0.561, 0.561, 0.561, 0.561, 0.561, 0.561, 0.561, 0.561, 0.561, 0.561, 0.561, 0.561])
+        self.CY_delta_rud = Akima1DInterpolator(self.alpha_data, CY_delta_rud_data)
+        self.CY_delta_rud_derivative = self.CY_delta_rud.derivative()
+
+        """Initialize all roll coefficient splines"""
+        # Cl_beta
+        CL_beta_data = np.array(
+            [-0.178, -0.186, -0.1943, -0.202, -0.2103, -0.219, -0.2283, -0.2376, -0.2516, -0.255, -0.256, -0.257])
+        self.CL_beta = Akima1DInterpolator(self.alpha_data, CL_beta_data)
+        self.CL_beta_derivative = self.CL_beta.derivative()
+
+        # Cl_p
+        CL_p_data = np.array(
+            [-0.4968, -0.4678, -0.4489, -0.4595, 0.487, -0.5085, -0.5231, -0.4916, -0.301, -0.203, -0.1498, -0.0671])
+        self.CL_p = Akima1DInterpolator(self.alpha_data, CL_p_data)
+        self.CL_p_derivative = self.CL_p.derivative()
+
+        # Cl_r
+        CL_r_data = np.array(
+            [-0.09675, -0.05245, -0.01087, 0.02986, 0.07342, 0.1193, 0.1667, 0.2152, 0.2909, 0.3086, 0.3146, 0.3197])
+        self.CL_r = Akima1DInterpolator(self.alpha_data, CL_r_data)
+        self.CL_r_derivative = self.CL_r.derivative()
+
+        # Cl_delta_rud
+        CL_delta_rud_data = (-1) * np.array(
+            [0.091, 0.082, 0.072, 0.063, 0.053, 0.0432, 0.0333, 0.0233, 0.0033, -0.005, -0.009, -0.015])
+        self.CL_delta_rud = Akima1DInterpolator(self.alpha_data, CL_delta_rud_data)
+        self.CL_delta_rud_derivative = self.CL_delta_rud.derivative()
+
+        # Cl_delta_aile
+        CL_delta_aile_data = np.array(
+            [-0.078052, -0.059926, -0.036422, -0.018211, 0, 0.018211, 0.036422, 0.059926, 0.078052])
+        self.CL_delta_aile = Akima1DInterpolator(self.delta_aile_data, CL_delta_aile_data)
+        self.CL_delta_aile_derivative = self.CL_delta_aile.derivative()
+
+        """Initialize all yaw coefficient splines"""
+        # Cn_beta
+        CN_beta_data = np.array(
+            [0.0126, 0.0126, 0.0126, 0.0126, 0.0126, 0.0126, 0.0126, 0.0126, 0.0126, 0.0126, 0.0126, 0.0126])
+        self.CN_beta = Akima1DInterpolator(self.alpha_data, CN_beta_data)
+        self.CN_beta_derivative = self.CN_beta.derivative()
+
+        # Cn_p
+        CN_p_data = np.array(
+            [0.03, 0.016, 0.00262, -0.0108, -0.0245, -0.0385, -0.0528, -0.0708, -0.113, -0.1284, -0.1356, -0.1422])
+        self.CN_p = Akima1DInterpolator(self.alpha_data, CN_p_data)
+        self.CN_p_derivative = self.CN_p.derivative()
+
+        # Cn_r
+        CN_r_data = np.array(
+            [-0.028, -0.027, -0.027, -0.0275, -0.0293, -0.0325, -0.037, -0.043, -0.05484, -0.058, -0.0592, -0.06015])
+        self.CN_r = Akima1DInterpolator(self.alpha_data, CN_r_data)
+        self.CN_r_derivative = self.CN_r.derivative()
+
+        # Cn_delta_rud
+        CN_delta_rud_data = (-1) * np.array(
+            [-0.211, -0.215, -0.218, -0.22, -0.224, -0.226, -0.228, -0.229, -0.23, -0.23, -0.23, -0.23])
+        self.CN_delta_rud = Akima1DInterpolator(self.alpha_data, CN_delta_rud_data)
+        self.CN_delta_rud_derivative = self.CN_delta_rud.derivative()
+
+        CN_delta_aile_data = np.array([[-0.004321, -0.002238, -0.0002783, 0.001645, 0.003699, 0.005861, 0.008099,
+                                        0.01038, 0.01397, 0.01483, 0.01512, 0.01539],
+                                       [-0.003318, -0.001718, -0.0002137, 0.001263, 0.00284, 0.0045, 0.006218, 0.00797,
+                                        0.01072, 0.01138, 0.01161, 0.01181],
+                                       [-0.002016, -0.001044, -0.000123, 0.0007675, 0.00173, 0.002735, 0.0038, 0.004844,
+                                        0.00652, 0.00692, 0.00706, 0.0072],
+                                       [-0.00101, -0.000522, -0.0000649, 0.000384, 0.000863, 0.00137, 0.0019, 0.00242,
+                                        0.00326, 0.00346, 0.00353, 0.0036],
+                                       [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                                       [0.00101, 0.00052, 0.000065, -0.000384, -0.00086, -0.0014, -0.002, -0.002422,
+                                        -0.00326, -0.00346, -0.00353, -0.0036],
+                                       [0.00202, 0.001044, 0.00013, -0.0008, -0.00173, -0.002735, -0.0038, -0.004844,
+                                        -0.00652, -0.00692, -0.00706, -0.0072],
+                                       [0.00332, 0.00172, 0.000214, -0.001263, -0.00284, -0.0045, -0.00622, -0.008,
+                                        -0.01072, -0.01138, -0.01161, -0.01181],
+                                       [0.004321, 0.00224, 0.00028, -0.001645, -0.0037, -0.00586, -0.0081, -0.0104,
+                                        -0.014, -0.01483, -0.01512, -0.0154]])
+        self.CN_delta_aile = RectBivariateSpline(self.delta_aile_data,
+                                                 self.alpha_data,
+                                                 CN_delta_aile_data)
+        # self.Cn_delta_aile_derivative = RectBivariateSpline.partial_derivative()
+
+    def evaluate(self, alpha: csdl.Variable, delta_aileron: csdl.Variable, delta_elev: csdl.Variable):
+        # assign method inputs to input dictionary
+        self.declare_input('alpha', alpha)
+        self.declare_input('delta_aileron', delta_aileron)
+        self.declare_input('delta_elev', delta_elev)
+
+        # declare output variables
+        CD = self.create_output('CD', alpha.shape)
+        CD_delta_elev = self.create_output('CD_delta_elev', alpha.shape)
+
+        CL_alpha = self.create_output('CL_alpha', alpha.shape)
+        CL_dot = self.create_output('CL_dot', alpha.shape)
+        CL_q = self.create_output('CL_q', alpha.shape)
+        CL_delta_elev = self.create_output('CL_delta_elev', alpha.shape)
+
+        CM = self.create_output('CM', alpha.shape)
+        CM_q = self.create_output('CM_q', alpha.shape)
+        CM_dot = self.create_output('CM_dot', alpha.shape)
+        CM_delta_elev = self.create_output('CM_delta_elev', alpha.shape)
+
+        CY_beta = self.create_output('CY_beta', alpha.shape)
+        CY_p = self.create_output('CY_p', alpha.shape)
+        CY_r = self.create_output('CY_r', alpha.shape)
+        CY_delta_rud = self.create_output('CY_delta_rud', alpha.shape)
+
+        CL_beta = self.create_output('CL_beta', alpha.shape)
+        CL_p = self.create_output('CL_p', alpha.shape)
+        CL_r = self.create_output('CL_r', alpha.shape)
+        CL_delta_rud = self.create_output('CL_delta_rud', alpha.shape)
+        CL_delta_aile = self.create_output('CL_delta_aile', alpha.shape)
+
+        CN_beta = self.create_output('CN_beta', alpha.shape)
+        CN_p = self.create_output('CN_p', alpha.shape)
+        CN_r = self.create_output('CN_r', alpha.shape)
+        CN_delta_rud = self.create_output('CN_delta_rud', alpha.shape)
+        CN_delta_aile = self.create_output('CN_delta_aile', alpha.shape)
+
+
+        # construct output of the model
+        outputs = csdl.VariableGroup()
+        outputs.CD = CD
+        outputs.CD_delta_elev = CD_delta_elev
+        outputs.CL_alpha = CL_alpha
+        outputs.CL_dot = CL_dot
+        outputs.CL_q = CL_q
+        outputs.CL_delta_elev = CL_delta_elev
+        outputs.CM = CM
+        outputs.CM_q = CM_q
+        outputs.CM_dot = CM_dot
+        outputs.CM_delta_elev = CM_delta_elev
+        outputs.CY_beta = CY_beta
+        outputs.CY_p = CY_p
+        outputs.CY_r = CY_r
+        outputs.CY_delta_rud = CY_delta_rud
+        outputs.CL_beta = CL_beta
+        outputs.CL_p = CL_p
+        outputs.CL_r = CL_r
+        outputs.CL_delta_rud = CL_delta_rud
+        outputs.CL_delta_aile = CL_delta_aile
+        outputs.CN_beta = CN_beta
+        outputs.CN_p = CN_p
+        outputs.CN_r = CN_r
+        outputs.CN_delta_rud = CN_delta_rud
+        outputs.CN_delta_aile = CN_delta_aile
+
+        return outputs
+
+    def compute(self, input_vals, output_vals):
+        alpha = input_vals['alpha']
+        delta_aileron = input_vals['delta_aileron']
+        delta_elev = input_vals['delta_elev']
+
+        output_vals['CD'] = self.CD(alpha)
+        output_vals['CD_delta_elev'] = self.CD_delta_elev(delta_elev, alpha)
+        output_vals['CL_alpha'] = self.CL_alpha(alpha)
+        output_vals['CL_dot'] = self.CL_dot(alpha)
+        output_vals['CL_q'] = self.CL_q(alpha)
+        output_vals['CL_delta_elev'] = self.CL_delta_elev(alpha)
+        output_vals['CM'] = self.CM(alpha)
+        output_vals['CM_q'] = self.CM_q(alpha)
+        output_vals['CM_dot'] = self.CM_dot(alpha)
+        output_vals['CM_delta_elev'] = self.CM_delta_elev(alpha)
+        output_vals['CY_beta'] = self.CY_beta(alpha)
+        output_vals['CY_p'] = self.CY_p(alpha)
+        output_vals['CY_r'] = self.CY_r(alpha)
+        output_vals['CY_delta_rud'] = self.CY_delta_rud(alpha)
+        output_vals['CL_beta'] = self.CL_beta(alpha)
+        output_vals['CL_p'] = self.CL_p(alpha)
+        output_vals['CL_r'] = self.CL_r(alpha)
+        output_vals['CL_delta_rud'] = self.CL_delta_rud(alpha)
+        output_vals['CL_delta_aile'] = self.CL_delta_aile(alpha)
+        output_vals['CN_beta'] = self.CN_beta(alpha)
+        output_vals['CN_p'] = self.CN_p(alpha)
+        output_vals['CN_r'] = self.CN_r(alpha)
+        output_vals['CN_delta_rud'] = self.CN_delta_rud(alpha)
+        output_vals['CN_delta_aile'] = self.CN_delta_aile(delta_aileron, alpha)
+
+    def compute_derivatives(self, input_vals, outputs_vals, derivatives):
+        alpha = input_vals['alpha']
+        delta_aileron = input_vals['delta_aileron']
+        delta_elev = input_vals['delta_elev']
+
+        derivatives['CD', 'alpha'] = np.diag(self.CD_derivative(alpha))
+        derivatives['CD_delta_elev', 'delta_elev'] = np.diag(self.CD_delta_elev.partial_derivative(delta_elev, alpha))
+        derivatives['CD_delta_elev', 'alpha'] = np.diag(self.CD_delta_elev.partial_derivative(delta_elev, alpha))
+        derivatives['CL_alpha', 'alpha'] = np.diag(self.CL_alpha_derivative(alpha))
+        derivatives['CL_dot', 'alpha'] = np.diag(self.CL_dot_derivative(alpha))
+        derivatives['CL_q', 'alpha'] = np.diag(self.CL_q_derivative(alpha))
+        derivatives['CL_delta_elev', 'alpha'] = np.diag(self.CL_delta_elev_derivative(alpha))
+        derivatives['CM', 'alpha'] = np.diag(self.CM_derivative(alpha))
+        derivatives['CM_q', 'alpha'] = np.diag(self.CM_q_derivative(alpha))
+        derivatives['CM_dot', 'alpha'] = np.diag(self.CM_dot_derivative(alpha))
+        derivatives['CM_delta_elev', 'alpha'] = np.diag(self.CM_delta_elev_derivative(alpha))
+        derivatives['CY_beta', 'alpha'] = np.diag(self.CY_beta_derivative(alpha))
+        derivatives['CY_p', 'alpha'] = np.diag(self.CY_p_derivative(alpha))
+        derivatives['CY_r', 'alpha'] = np.diag(self.CY_r_derivative(alpha))
+        derivatives['CY_delta_rud', 'alpha'] = np.diag(self.CY_delta_rud_derivative(alpha))
+        derivatives['CL_beta', 'alpha'] = np.diag(self.CL_beta_derivative(alpha))
+        derivatives['CL_p', 'alpha'] = np.diag(self.CL_p_derivative(alpha))
+        derivatives['CL_r', 'alpha'] = np.diag(self.CL_r_derivative(alpha))
+        derivatives['CL_delta_rud', 'alpha'] = np.diag(self.CL_delta_rud_derivative(alpha))
+        derivatives['CL_delta_aile', 'alpha'] = np.diag(self.CL_delta_aile_derivative(alpha))
+        derivatives['CN_beta', 'alpha'] = np.diag(self.CN_beta_derivative(alpha))
+        derivatives['CN_p', 'alpha'] = np.diag(self.CN_p_derivative(alpha))
+        derivatives['CN_r', 'alpha'] = np.diag(self.CN_r_derivative(alpha))
+        derivatives['CN_delta_rud', 'alpha'] = np.diag(self.CN_delta_rud_derivative(alpha))
+        derivatives['CN_delta_aile', 'delta_aileron'] = np.diag(self.CN_delta_aile.partial_derivative(delta_aileron, alpha))
+        derivatives['CN_delta_aile', 'delta_elev'] = np.diag(self.CN_delta_aile.partial_derivative(delta_aileron, alpha))
+# endregion
+
 
 # region Propulsion Model
 
