@@ -95,12 +95,12 @@ class MassProperties:
         self.cg_vector = cg
         self.inertia_tensor = inertia
 
-    @staticmethod
-    def create_default_mass_properties() -> "MassProperties":
-        default_axis = Axis(name="Default Axis", origin=ValidOrigins.Inertial.value)
-        default_inertia = MassMI(axis=default_axis)
-        default_cg = Vector(vector=Q_(np.zeros(3), 'm'), axis=default_axis)
-        return MassProperties(cg=default_cg, inertia=default_inertia)
+    # @staticmethod
+    # def create_default_mass_properties() -> "MassProperties":
+    #     default_axis = Axis(name="Default Axis", origin=ValidOrigins.Inertial.value)
+    #     default_inertia = MassMI(axis=default_axis)
+    #     default_cg = Vector(vector=Q_(np.zeros(3), 'm'), axis=default_axis)
+    #     return MassProperties(cg=default_cg, inertia=default_inertia)
 
 
 class GravityLoads(Loads):
@@ -115,46 +115,25 @@ class GravityLoads(Loads):
         """Use vehicle state and control objects to generate an estimate
         of gravity forces and moments about a reference point."""
         # Store the states and mass properties
-        self.load_axis = self.states.axis
-        self.cg = self.mass_properties.cg_vector
-        self.mass = self.mass_properties.mass
-
-        if self.mass is None:
-            self.mass = csdl.Variable(name='mass', shape=(1,), value=0) 
-        elif isinstance(self.mass, ureg.Quantity):
-            self.mass = csdl.Variable(name='mass', shape=(1,), value=self.mass.to_base_units().magnitude)
-        else:
-            self.mass = self.mass
+        load_axis = self.states.axis
+        cg = self.mass_properties.cg_vector.vector
+        m = self.mass_properties.mass
         
         # Gravity FM
         g=9.81
-        cg_vals = self.cg.vector.value 
-        x = cg_vals[0]
-        y = cg_vals[1]
-        z = cg_vals[2]
-        
-        Rbc = np.array([x,y,z])
 
-
-        m = self.mass
-        th = self.states.state_vector.theta
-        ph = self.states.state_vector.phi
+        th = self.states.states.theta
+        ph = self.states.states.phi
 
         Fxg = -m * g * csdl.sin(th)
         Fyg = m * g * csdl.cos(th) * csdl.sin(ph)
         Fzg = m * g * csdl.cos(th) * csdl.cos(ph)
         forceVec = csdl.concatenate([Fxg, Fyg, Fzg])
 
-        Rbsksym = np.array([[0, -Rbc[2], Rbc[1]],
-                            [Rbc[2], 0, -Rbc[0]],
-                            [-Rbc[1], Rbc[0], 0]])
-        
-        Mgrav = np.dot(Rbsksym, np.array([Fxg, Fyg, Fzg]))
+        Mgrav = csdl.cross(cg, forceVec)
 
-
-
-        F_FD_BodyFixed = Vector(forceVec,axis=self.load_axis)
-        M_FD_BodyFixed = Vector(csdl.concatenate([Mgrav[0],Mgrav[1],Mgrav[2]]),axis=self.load_axis)
+        F_FD_BodyFixed = Vector(forceVec,axis=load_axis)
+        M_FD_BodyFixed = Vector(csdl.concatenate([Mgrav[0],Mgrav[1],Mgrav[2]]),axis=load_axis)
 
         loads = ForcesMoments(force=F_FD_BodyFixed, moment=M_FD_BodyFixed)
         return loads
