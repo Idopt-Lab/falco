@@ -179,7 +179,7 @@ class AircraftStates:
         self.atmospheric_states = self.atm.evaluate(self.axis.translation_from_origin.z) 
 
 
-        self.state_vector = self.States6dof(
+        self.states = self.States6dof(
             u=u, v=v, w=w,
             p=p, q=q, r=r,
             x=self.axis.translation_from_origin.x, 
@@ -192,11 +192,11 @@ class AircraftStates:
 
         self.states_inertial_frame_wind = self.StatesInertialFrameWindVelocityVector(Vwx=Vwx, Vwy=Vwy, Vwz=Vwz)
 
-        self.body_frame_velocity_vector = csdl.concatenate((self.state_vector.u, self.state_vector.v, self.state_vector.w), axis=0)
+        self.body_frame_velocity_vector = csdl.concatenate((self.states.u, self.states.v, self.states.w), axis=0)
         self.inertial_frame_wind_velocity_vector = csdl.concatenate((self.states_inertial_frame_wind.Vwx,
                                                                      self.states_inertial_frame_wind.Vwy,
                                                                      self.states_inertial_frame_wind.Vwz), axis=0)
-        self.angular_rates_vector = csdl.concatenate((self.state_vector.p, self.state_vector.q, self.state_vector.r), axis=0)
+        self.angular_rates_vector = csdl.concatenate((self.states.p, self.states.q, self.states.r), axis=0)
         self.position_vector = self.axis.translation_from_origin_vector
         self.euler_angles_vector = self.axis.euler_angles_vector
 
@@ -230,11 +230,11 @@ class AircraftStates:
         self.VTAS.add_name(name='VTAS')
         self.VTAS.add_tag(tag='m/s')
 
-        self.alpha = csdl.arctan(self.state_vector.w / self.state_vector.u)  # Todo: Change to atan2
+        self.alpha = csdl.arctan(self.states.w / self.states.u)  # Todo: Change to atan2
         self.alpha.add_name(name='alpha')
         self.alpha.add_tag(tag='rad')
 
-        self.beta = csdl.arcsin(self.state_vector.v / self.VTAS)
+        self.beta = csdl.arcsin(self.states.v / self.VTAS)
         self.beta.add_name(name='beta')
         self.beta.add_tag(tag='rad')
 
