@@ -68,21 +68,7 @@ wind_axis = Axis(
 
 # region Aircraft Component
 
-# Create a Mass Properties object with given values
-c172_mi = MassMI(axis=fd_axis,
-                 Ixx=Q_(1285.3154166, 'kg*(m*m)'),
-                 Iyy=Q_(1824.9309607, 'kg*(m*m)'),
-                 Izz=Q_(2666.89390765, 'kg*(m*m)'),
-                 Ixy=Q_(0, 'kg*(m*m)'),
-                 Ixz=Q_(0, 'kg*(m*m)'),
-                 Iyz=Q_(0, 'kg*(m*m)'))
-c172_mass_properties = MassProperties(mass=Q_(1043.2616, 'kg'),
-                                      inertia=c172_mi,
-                                      cg=Vector(vector=Q_(np.array([0, 0, 0]), 'm'), axis=fd_axis))
-
-aircraft_component = Aircraft(
-    mass_properties=c172_mass_properties
-)
+aircraft_component = Aircraft()
 
 # endregion
 
@@ -300,6 +286,19 @@ engine_component.load_solvers.append(c172_propulsion)
 cruise_cond = CruiseCondition(fd_axis=fd_axis, controls=c172_controls,
                               altitude=Q_(12000, 'ft'), mach_number=Q_(0.1, 'dimensionless'),
                               range=Q_(10000, 'm'))
+
+# Create a Mass Properties object with given values
+c172_mi = MassMI(axis=cruise_cond.ac_states.axis,
+                 Ixx=Q_(1285.3154166, 'kg*(m*m)'),
+                 Iyy=Q_(1824.9309607, 'kg*(m*m)'),
+                 Izz=Q_(2666.89390765, 'kg*(m*m)'),
+                 Ixy=Q_(0, 'kg*(m*m)'),
+                 Ixz=Q_(0, 'kg*(m*m)'),
+                 Iyz=Q_(0, 'kg*(m*m)'))
+c172_mass_properties = MassProperties(mass=Q_(1043.2616, 'kg'),
+                                      inertia=c172_mi,
+                                      cg=Vector(vector=Q_(np.array([0, 0, 0]), 'm'), axis=fd_axis))
+aircraft_component.mass_properties = c172_mass_properties
 # endregion
 
 # endregion
