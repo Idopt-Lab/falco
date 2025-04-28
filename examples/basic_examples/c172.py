@@ -80,8 +80,10 @@ c172_mass_properties = MassProperties(mass=Q_(1043.2616, 'kg'),
                                       inertia=c172_mi,
                                       cg=Vector(vector=Q_(np.array([0, 0, 0]), 'm'), axis=fd_axis))
 
-aircraft_component = Aircraft()
-aircraft_component.quantities.mass_properties = c172_mass_properties
+aircraft_component = Aircraft(
+    mass_properties=c172_mass_properties
+)
+
 # endregion
 
 # region Fuselage Component
@@ -288,7 +290,7 @@ c172_propulsion = C172Propulsion( radius=radius_c172, prop_curve=c172_prop_curve
 # state = AircraftStates(axis=fd_axis, u=Q_(125, 'mph'))
 # loads = c172_propulsion.get_FM_localAxis(states=state, controls=c172_controls)
 
-engine_component.quantities.load_solvers.append(c172_propulsion)
+engine_component.load_solvers.append(c172_propulsion)
 # endregion
 
 
@@ -296,7 +298,7 @@ engine_component.quantities.load_solvers.append(c172_propulsion)
 
 # region Cruise Condition
 cruise_cond = CruiseCondition(fd_axis=fd_axis, controls=c172_controls,
-                              altitude=Q_(-12000, 'ft'), mach_number=Q_(0.1, 'dimensionless'),
+                              altitude=Q_(12000, 'ft'), mach_number=Q_(0.1, 'dimensionless'),
                               range=Q_(10000, 'm'))
 # endregion
 
