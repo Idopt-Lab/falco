@@ -176,7 +176,7 @@ class AircraftStates:
         self.axis = axis
         self.atm = NRLMSIS2.Atmosphere()
 
-        self.atmospheric_states = self.atm.evaluate(self.axis.translation_from_origin.z) 
+        self.atmospheric_states = self.atm.evaluate(-self.axis.translation_from_origin.z)
 
 
         self.states = self.States6dof(

@@ -174,7 +174,7 @@ class CruiseCondition(Condition):
         super().__init__(states=ac_states, controls=controls)
 
     def _setup_condition(self, fd_axis: Union[Axis, AxisLsdoGeo]):
-        axis = fd_axis.copy(new_name="cruise_axis")
+        axis = fd_axis.copy(new_name="Cruise Axis")
 
         conflicting_attributes_1 = ["speed", "mach_number"]
         conflicting_attributes_2 = ["speed", "time", "range"]
@@ -189,7 +189,7 @@ class CruiseCondition(Condition):
         
         axis.translation_from_origin.x = x
         axis.translation_from_origin.y = y
-        axis.translation_from_origin.z = self.parameters.altitude
+        axis.translation_from_origin.z = -self.parameters.altitude  # FD axis z points down
 
         axis.euler_angles.phi = phi
         axis.euler_angles.theta = self.parameters.pitch_angle
