@@ -3,6 +3,7 @@ from flight_simulator.core.vehicle.controls.vehicle_control_system import Vehicl
 from flight_simulator.core.dynamics.axis import Axis
 from flight_simulator.core.dynamics.axis_lsdogeo import AxisLsdoGeo
 from flight_simulator.core.vehicle.components.component import Component
+from flight_simulator.core.dynamics.EoM import EquationsOfMotion
 from typing import Union
 import csdl_alpha as csdl
 from dataclasses import dataclass
@@ -111,9 +112,11 @@ class Condition():
     """General aircraft condition."""
     def __init__(self, 
                  states: AircraftStates,
-                 controls: VehicleControlSystem) -> None:
+                 controls: VehicleControlSystem,
+                 eom: EquationsOfMotion) -> None:
         self.ac_states = states
         self.controls = controls
+        self.eom = eom
 
 
 
@@ -144,7 +147,23 @@ class Condition():
 
         return total_forces, total_moments
 
-    
+    def evaluate_eom(self, component: Component):
+        
+        tf, tm = self.assemble_forces_moments(component=component)
+        mp = component.mass_properties
+        st = self.ac_states
+
+        r, x = self.eom._EoM_res(aircraft_states=st, mass_properties=mp, total_forces=tf, total_moments=tm)
+        return r, x
+
+    def evaluate_trim_res(self, component: Component):
+
+        res, x = self.evaluate_eom(component=component)
+        res_vec = csdl.Variable(shape=(6,), value=0.)
+        res_vec = res_vec.set(csdl.slice[0:5], csdl.get_index(res,slices=csdl.slice[0:5]))
+        J = csdl.norm(res_vec)
+
+        return J
 
 class CruiseCondition(Condition):
     """Cruise condition: intended for steady analyses.
@@ -171,7 +190,8 @@ class CruiseCondition(Condition):
         )
 
         ac_states = self._setup_condition(fd_axis)
-        super().__init__(states=ac_states, controls=controls)
+        eom = EquationsOfMotion()
+        super().__init__(states=ac_states, controls=controls, eom=eom)
 
     def _setup_condition(self, fd_axis: Union[Axis, AxisLsdoGeo]):
         axis = fd_axis.copy(new_name="cruise_axis")
@@ -260,7 +280,8 @@ class ClimbCondition(Condition):
         )
 
         ac_states = self._setup_condition(fd_axis)
-        super().__init__(states=ac_states, controls=controls)
+        eom = EquationsOfMotion()
+        super().__init__(states=ac_states, controls=controls, eom=eom)
 
     def _setup_condition(self, fd_axis: Union[Axis, AxisLsdoGeo]):
         axis = fd_axis.copy(new_name="climb_axis")
@@ -338,7 +359,8 @@ class HoverCondition(Condition):
             time=time,
         )
         ac_states = self._setup_condition(fd_axis)
-        super().__init__(states=ac_states, controls=controls)
+        eom= EquationsOfMotion()
+        super().__init__(states=ac_states, controls=controls, eom=eom)
 
     def _setup_condition(self, fd_axis: Union[Axis, AxisLsdoGeo]):
         axis = fd_axis.copy(new_name="hover_axis")

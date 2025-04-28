@@ -18,6 +18,8 @@ from flight_simulator.core.vehicle.controls.vehicle_control_system import Vehicl
 from typing import Union
 from scipy.interpolate import Akima1DInterpolator
 from flight_simulator.core.loads.loads import Loads
+import os
+import scipy.io as sio
 
 
 
@@ -30,8 +32,6 @@ sys.path.append(str(x57_folder_path))
 
 debug = False
 
-
-do_geo_param = False
 
 
 ## AXIS/AXISLSDOGEO CREATION
@@ -383,7 +383,7 @@ openvsp_axis, wing_axis, ht_tail_axis, trimTab_axis, vt_tail_axis, HL_motor_axes
 
 ## Aircraft Component Creation
 
-def build_aircraft():
+def build_aircraft(do_geo_param: bool = False):
     geometry = geo['geometry']
 
     parameterization_solver = ParameterizationSolver()
@@ -465,6 +465,9 @@ def build_aircraft():
 
     HorTail.parameters.actuate_angle = csdl.Variable(name="elevator_actuate_angle", shape=(1,), value=np.deg2rad(0))
 
+    TrimTab = Component(name='Trim Tab')
+    TrimTab.parameters.actuate_angle = csdl.Variable(name="Trim Tab Actuate Angle", shape=(1,), value=np.deg2rad(0))
+    Aircraft.add_subcomponent(TrimTab)
 
     tail_moment_arm_computed = csdl.norm(geometry.evaluate(geo['ht_qc_center_parametric']) - geometry.evaluate(geo['wing_qc_center_parametric']))
     h_tail_fuselage_connection = geometry.evaluate(geo['ht_te_center_parametric']) - geometry.evaluate(geo['fuselage_tail_te_center_parametric'])
@@ -519,24 +522,9 @@ def build_aircraft():
     CD0_x57 = csdl.Variable(name="wing_CD0",shape=(1,), value=0.001) # Zero-lift drag coefficient
     Wing.parameters.actuate_angle = csdl.Variable(name="wing_incidence",shape=(1,), value=np.deg2rad(2)) # Wing incidence angle in radians
 
-    lift_models = []
-    for comp in Aircraft.comps.values():
-        if isinstance(comp, WingComp):
-            # Build the lift model with the wing's parameters
-            lift_model = LiftModel(
-                AR=comp.parameters.AR,
-                e=e_x57,
-                CD0=CD0_x57,
-                S=comp.parameters.S_ref,
-                incidence=comp.parameters.actuate_angle,
-            )
-            lift_models.append(lift_model)
-
     
     Wing.mass_properties.mass = Q_(152.88, 'kg')
     Wing.mass_properties.cg_vector = Vector(vector=Q_(geo['wing_le_center'].value, 'm'), axis=wing_axis)
-    Wing_aerodynamics = AircraftAerodynamics(lift_model=lift_models[0], component=Wing)
-    Wing.load_solvers.append(Wing_aerodynamics)
 
 
     LeftAileron.mass_properties.mass = Q_(1, 'kg')
@@ -560,14 +548,14 @@ def build_aircraft():
 
     HorTail.mass_properties.mass = Q_(27.3/2, 'kg')
     HorTail.mass_properties.cg_vector = Vector(vector=Q_(geo['ht_le_center'].value, 'm'), axis=ht_tail_axis)
-    HorTail_aerodynamics = AircraftAerodynamics(lift_model=lift_models[1], component=HorTail)
-    HorTail.load_solvers.append(HorTail_aerodynamics)
+
+
+    TrimTab.mass_properties.mass = Q_(1, 'kg')
+    TrimTab.mass_properties.cg_vector = Vector(vector=Q_(geo['trimTab_le_center'].value, 'm'), axis=trimTab_axis)
 
 
     VertTail.mass_properties.mass = Q_(27.3/2, 'kg')
     VertTail.mass_properties.cg_vector = Vector(vector=Q_(geo['vt_le_mid'].value, 'm'), axis=vt_tail_axis)
-    VertTail_aerodynamics = AircraftAerodynamics(lift_model=lift_models[2], component=VertTail)
-    VertTail.load_solvers.append(VertTail_aerodynamics)
 
 
     Rudder.mass_properties.mass = Q_(1, 'kg')
@@ -584,20 +572,22 @@ def build_aircraft():
     for i, HL_motor in enumerate(lift_rotors):
         HL_motor.mass_properties.mass = Q_(81.65/12, 'kg')
         HL_motor.mass_properties.cg_vector = Vector(vector=Q_(geo['MotorDisks'][i].value, 'm'), axis=HL_motor_axes[i])
-        HL_motor_propulsion = AircraftPropulsion(radius=HL_radius_x57, prop_curve=HLPropCurve(), component=HL_motor)
+        HL_motor_propulsion = X57Propulsion(radius=HL_radius_x57, prop_curve=HLPropCurve(), component=HL_motor)
         HL_motor.load_solvers.append(HL_motor_propulsion)
 
 
     for i, cruise_motor in enumerate(cruise_motors):
         cruise_motor.mass_properties.mass = Q_(106.14/2, 'kg')
         cruise_motor.mass_properties.cg_vector = Vector(vector=Q_(geo['cruise_motors_base'][i].value, 'm'), axis=cruise_motor_axes[i])
-        cruise_motor_propulsion = AircraftPropulsion(radius=cruise_radius_x57, prop_curve=CruisePropCurve(), component=cruise_motor)
+        cruise_motor_propulsion = X57Propulsion(radius=cruise_radius_x57, prop_curve=CruisePropCurve(), component=cruise_motor)
         cruise_motor.load_solvers.append(cruise_motor_propulsion)
 
 
     Aircraft.mass_properties.mass = Q_(0, 'kg')
     Aircraft.mass_properties.cg_vector = Vector(vector=Q_(np.array([0, 0, 0]), 'm'), axis=fd_axis)
     Aircraft.mass_properties = Aircraft.compute_mass_properties()
+    Aircraft_Aerodynamics = X57Aerodynamics(component=Aircraft)
+    Aircraft.load_solvers.append(Aircraft_Aerodynamics)
     print(repr(Aircraft))
 
     if do_geo_param is True:
@@ -612,14 +602,15 @@ def build_aircraft():
     return Aircraft
 
 
-
+    
 
 
 class X57ControlSystem(VehicleControlSystem):
 
-    def __init__(self, engine_count: int, symmetrical: bool = True)-> None:
+    def __init__(self, hl_engine_count: int, cm_engine_count: int, symmetrical: bool = True)-> None:
         self.symmetrical = symmetrical
         self.elevator = ControlSurface(name='Elevator',lb=-26, ub=28)
+        self.trim_tab = ControlSurface(name='Trim Tab', lb=-15, ub=15)
         
         if symmetrical:
             self._init_symmetrical_controls()
@@ -627,7 +618,15 @@ class X57ControlSystem(VehicleControlSystem):
             self._init_asymmetrical_controls()
 
         self.rudder = ControlSurface(name='Rudder',lb=-15, ub=15)
-        self.engines = self._init_engines(engine_count)
+        self.hl_engines = self._init_hl_engines(hl_engine_count)
+        midpoint_hl = len(self.hl_engines) // 2
+        self.hl_engines_left = self.hl_engines[:midpoint_hl]
+        self.hl_engines_right = self.hl_engines[midpoint_hl:]
+        self.cm_engines = self._init_cm_engines(cm_engine_count)
+        midpoint_cm = len(self.cm_engines) // 2
+        self.cm_engines_left = self.cm_engines[:midpoint_cm]
+        self.cm_engines_right = self.cm_engines[midpoint_cm:]
+        self.engines = self.hl_engines + self.cm_engines
         self.u = self._assemble_control_vector()
 
 
@@ -664,17 +663,14 @@ class X57ControlSystem(VehicleControlSystem):
         self.right_flap = ControlSurface(name='Right Flap', lb=-15, ub=20)
     
 
-    def _init_engines(self, engine_count: int) -> List[PropulsiveControl]:
-        """
-        Initialize the propulsion controls.
+    def _init_hl_engines(self, count: int) -> list:
+        """Initialize high-lift engines."""
+        return [PropulsiveControl(name=f'HL_Motor{i+1}', throttle=1.0) for i in range(count)]
 
-        Returns:
-            List[PropulsiveControl]: List of propulsive control instances.
-        """
-        return [
-            PropulsiveControl(name=f'Motor{i+1}', throttle=1.0)
-            for i in range(engine_count)
-        ]
+    def _init_cm_engines(self, count: int) -> list:
+        """Initialize cruise engines."""
+        return [PropulsiveControl(name=f'Cruise_Motor{i+1}', throttle=1.0) for i in range(count)]
+    
         
 
 
@@ -728,58 +724,388 @@ class X57ControlSystem(VehicleControlSystem):
 
 
 ## Aerodynamic Forces - from Modification IV
-
-
-
-# TODO: IMPROVE AERODYNAMIC MODEL TO INCLUDE MORE COMPLEX AERODYNAMIC EFFECTS
-
-class LiftModel:
-    def __init__(self, AR:Union[ureg.Quantity, csdl.Variable], e:Union[ureg.Quantity, csdl.Variable], CD0:Union[ureg.Quantity, csdl.Variable], 
-                 S:Union[ureg.Quantity, csdl.Variable], incidence:Union[ureg.Quantity, csdl.Variable]):
-        super().__init__()
-
-
-        if AR is None:
-            self.AR = csdl.Variable(name='AR', shape=(1,), value=15)
-        else:
-            self.AR = AR
-        
-
-        if e is None:
-            self.e = csdl.Variable(name='e', shape=(1,), value=0.87)
-        else:
-            self.e = e
-
-        if CD0 is None:
-            self.CD0 = csdl.Variable(name='CD0', shape=(1,), value=0.001)
-        else:
-            self.CD0 = CD0
-
-        if S is None:
-            self.S = csdl.Variable(name='S', shape=(1,), value=6.22)
-        elif isinstance(S, ureg.Quantity):
-            self.S = csdl.Variable(name='S', shape=(1,), value=S.to_base_units())
-        else:
-            self.S = S
-
-        if incidence is None:
-            self.incidence = csdl.Variable(name='incidence', shape=(1,), value=2*np.pi/180)
-        elif isinstance(incidence, ureg.Quantity):
-            self.incidence = csdl.Variable(name='incidence', shape=(1,), value=incidence.to_base_units())
-        else:
-            self.incidence = incidence
-        
+    
     
 
 
-class AircraftAerodynamics(Loads):
+class X57Aerodynamics(Loads):
 
     # TODO: Improve aerodynamic model to include more complex aerodynamic effects
 
-    def __init__(self, component, lift_model:LiftModel):
-        self.lift_model = lift_model
-        self.wing_axis = component.mass_properties.cg_vector.axis
+    def __init__(self, component):
+
+        self.AR_wing = component.comps['Wing'].parameters.AR.value
+        self.i_wing = component.comps['Wing'].parameters.actuate_angle
+        self.Sref_wing = component.comps['Wing'].parameters.S_ref
+        self.span_wing = component.comps['Wing'].parameters.span
+        self.bref_wing = self.span_wing/2
+        self.taper_wing = component.comps['Wing'].parameters.taper_ratio
+        self.cref_wing = 2 * self.Sref_wing/((1 + self.taper_wing) * self.span_wing)
+
+        self.Sref_stab = component.comps['Elevator'].parameters.S_ref
+        self.span_stab = component.comps['Elevator'].parameters.span
+        self.bref_stab = self.span_stab/2
+        self.taper_stab = component.comps['Elevator'].parameters.taper_ratio
+        self.cref_stab = 2 * self.Sref_stab/((1 + self.taper_stab) * self.span_stab)
+
+
+        self.Sref_VT = component.comps['Vertical Tail'].parameters.S_ref
+        self.span_VT = component.comps['Vertical Tail'].parameters.span
+        self.bref_VT = self.span_VT/2
+        self.taper_VT = component.comps['Vertical Tail'].parameters.taper_ratio
+        self.cref_VT = 2 * self.Sref_VT/((1 + self.taper_VT) * self.span_VT)
+
+        self.HT_axis = component.comps['Elevator'].mass_properties.cg_vector
+        self.VT_axis = component.comps['Vertical Tail'].mass_properties.cg_vector
+        self.Wing_axis = component.comps['Wing'].mass_properties.cg_vector
+
+        self.wind_axis = wind_axis
+
         
+        package_dir = os.path.dirname(os.path.abspath(__file__))
+        thefile = os.path.join(package_dir, 'X57_aeroDer.mat')
+        self.aeroDer = sio.loadmat(thefile)
+
+
+    def __C1_CD_tot(self, alpha):
+        # C1 = wing + tip nacelle. Fig 24a
+        CL_tot = self.__C1_CL_tot(alpha)
+        CD = 0.1033 * CL_tot ** 2 - 0.1302 * CL_tot + 0.0584
+        return CD
+
+    def __C2_CD_tot(self, alpha):
+        # add HLN to C1. Fig 24a
+        CL_tot = self.__C2_CL_tot(alpha)
+        CD = 0.1059 * CL_tot ** 2 - 0.1049 * CL_tot + 0.0491
+        return CD
+
+    def __C8_CD_tot(self, alpha):
+        # add stab + trim tab to C2. Fig 24a
+        # Warning: low R2 fit
+        CL_tot = self.__C8_CL_tot(alpha)
+        CD = 0.0754 * CL_tot ** 2 - 0.0687 * CL_tot + 0.0419
+        return CD
+
+    def __C11_noblow_CD_tot(self, alpha):
+        # Fig 16c
+        CL_tot = self.__C11_noblow_CL_tot(alpha)
+        CD = 0.0579 * CL_tot ** 2 - 0.1283 * CL_tot + 0.1661
+        return CD
+
+    def __C11_blow_CD_tot(self, alpha):
+        # Fig 16c
+        CL_tot = self.__C11_blow_CL_tot(alpha)
+        CD = 0.0461 * CL_tot ** 2 - 0.1294 * CL_tot + 0.2942
+        return CD
+
+    def __C12_CD_tot(self, alpha):
+        # add fus+Vtail to C8. Fig 24a
+        # Warning: low R2 fit for commented out
+        # second eq has better R2 but excludes last 5 points that go haywire on Fig 24a
+        CL_tot = self.__C12_CL_tot(alpha)
+        #CD = 0.2082 * CL_tot ** 2 - 0.3955 * CL_tot + 0.2263
+        CD = 0.0514 * CL_tot**2 - 0.029 * CL_tot + 0.04
+        return CD
+
+    def __C1_CL_tot(self, alpha):
+        # Excludes stabilator contribution. Fig 24e
+        alpha = alpha * (180 / np.pi)
+        # CL = -0.0021 * alpha ** 2 + 0.0939 * alpha + 0.8036
+        CL = 0.0633 * alpha + 0.8055
+        return CL
+
+    def __C2_CL_tot(self, alpha):
+        # Excludes stabilator contribution. Fig 24e
+        alpha = alpha * (180 / np.pi)
+        # CL = -0.002*alpha**2 + 0.0963*alpha + 0.6728
+        CL = 0.0721 * alpha + 0.6633
+        return CL
+
+    def __C8_CL_tot(self, alpha):
+        # Excludes stabilator contribution. Fig 24e
+        alpha = alpha * (180 / np.pi)
+        # CL =  -0.0005*alpha**2 + 0.0746*alpha + 0.6899
+        CL = 0.0674 * alpha + 0.6946
+        return CL
+
+    def __C11_noblow_CL_tot(self, alpha):
+        # Excludes stabilator contribution, and is at TO condition. Fig 15
+        alpha = alpha * (180 / np.pi)
+        # CL = -0.0034*alpha**2 + 0.1109*alpha + 1.7157
+        CL = 0.075 * alpha + 1.7047
+        return CL
+
+    def __C11_blow_CL_tot(self, alpha):
+        # Excludes stabilator contribution, and is at TO condition. Fig 15
+        alpha = alpha * (180 / np.pi)
+        # CL = -0.0046*alpha**2 + 0.1774*alpha + 2.5755
+        CL = 0.1153 * alpha + 2.6807
+        return CL
+
+    def __C12_CL_tot(self, alpha):
+        # Excludes stabilator contribution. Fig 24e
+        alpha = alpha * (180 / np.pi)
+        # CL =  -0.004*alpha**2 + 0.1343*alpha + 0.6455
+        CL = 0.082 * alpha + 0.7155
+        return CL
+
+    def __C1_Cm_tot(self, alpha):
+        # Excludes stabilator contribution. Fig 24c
+        CL_tot = self.__C1_CL_tot(alpha)
+        Cm = 0.053 * CL_tot ** 2 - 0.0604 * CL_tot - 0.1675
+        return Cm
+
+    def __C2_Cm_tot(self, alpha):
+        # Excludes stabilator contribution. Fig 24c
+        CL_tot = self.__C2_CL_tot(alpha)
+        Cm = 0.0665 * CL_tot ** 2 - 0.085 * CL_tot - 0.1411
+        return Cm
+
+    def __C8_Cm_tot(self, alpha):
+        # Excludes stabilator contribution. Fig 24c
+        CL_tot = self.__C8_CL_tot(alpha)
+        Cm = 0.0467 * CL_tot ** 2 - 0.0452 * CL_tot - 0.1754
+        return Cm
+
+    def __C11_noblow_Cm_tot(self, alpha):
+        # Excludes stabilator contribution, and is at TO condition. Fig 16e
+        alpha = alpha * (180 / np.pi)
+        # Cm = 0.0005*alpha**2 - 0.0008*alpha -0.4063
+        Cm = 0.0062 * alpha - 0.407
+        return Cm
+
+    def __C11_blow_Cm_tot(self, alpha):
+        # Excludes stabilator contribution, and is at TO condition. Fig 16e
+        alpha = alpha * (180 / np.pi)
+        # Cm = 0.0006*alpha**2 - 0.0024*alpha - 0.7404
+        Cm = 0.0064 * alpha - 0.7585
+        return Cm
+
+    def __C12_Cm_tot(self, alpha):
+        # Excludes stabilator contribution. Fig 24c
+        CL_tot = self.__C12_CL_tot(alpha)
+        Cm = 0.0811 * CL_tot ** 2 + 0.4284 * CL_tot - 0.5138
+        return Cm
+
+    # above are private. do not use outside aerodynamics class
+    # begin component breakdown. use outside Aerod class
+
+    def blow_CL_tot(self, alpha):
+        # Excludes stabilator contribution, and is at TO condition
+        CL = self.__C11_blow_CL_tot(alpha) - self.__C11_noblow_CL_tot(alpha)
+        return CL
+
+    def blow_CD_tot(self, alpha):
+        # Excludes stabilator contribution, and is at TO condition
+        CD = self.__C11_blow_CD_tot(alpha) - self.__C11_noblow_CD_tot(alpha)
+        return CD
+
+    def blow_Cm_tot(self, alpha):
+        # Excludes stabilator contribution, and is at TO condition
+        Cm = self.__C11_blow_Cm_tot(alpha) - self.__C11_noblow_Cm_tot(alpha)
+        return Cm
+
+    def flap_CL_tot(self, alpha):
+        # Excludes stabilator contribution, and is at TO condition
+        CL = self.__C11_noblow_CL_tot(alpha) - self.__C8_CL_tot(alpha)
+        return CL
+
+    def flap_CD_tot(self, alpha):
+        # Excludes stabilator contribution, and is at TO condition
+        CD = self.__C11_noblow_CD_tot(alpha) - self.__C8_CD_tot(alpha)
+        return CD
+
+    def flap_Cm_tot(self, alpha):
+        # Excludes stabilator contribution, and is at TO condition
+        Cm = self.__C11_noblow_Cm_tot(alpha) - self.__C8_Cm_tot(alpha)
+        return Cm
+
+    def Wing_tipNacelle_CD_tot(self, alpha):
+        #
+        CD = self.__C1_CD_tot(alpha)
+        return CD
+
+    def Wing_tipNacelle_CL_tot(self, alpha):
+        #
+        CL_tot = self.__C1_CL_tot(alpha)
+        return CL_tot
+
+    def Wing_tipNacelle_Cm_tot(self, alpha):
+        #
+        Cm_tot = self.__C1_Cm_tot(alpha)
+        return Cm_tot
+
+    def HLN_CD_tot(self, alpha):
+        #
+        CD = self.__C2_CD_tot(alpha) - self.__C1_CD_tot(alpha)
+        return CD
+
+    def HLN_CL_tot(self, alpha):
+        #
+        CL_tot = self.__C2_CL_tot(alpha) - self.__C1_CL_tot(alpha)
+        return CL_tot
+
+    def HLN_Cm_tot(self, alpha):
+        #
+        Cm = self.__C2_Cm_tot(alpha) - self.__C1_Cm_tot(alpha)
+        return Cm
+
+    def Fus_Vtail_CD_tot(self, alpha):
+        #
+        CD = self.__C12_CD_tot(alpha) - self.__C8_CD_tot(alpha)
+        return CD
+
+    def Fus_Vtail_CL_tot(self, alpha):
+        #
+        CL_tot = self.__C12_CL_tot(alpha) - self.__C8_CL_tot(alpha)
+        return CL_tot
+
+    def Fus_Vtail_Cm_tot(self, alpha):
+        #
+        Cm = self.__C12_Cm_tot(alpha) - self.__C8_Cm_tot(alpha)
+        return Cm
+
+    def Stab_CL_tot(self, stab_alpha, trimtab):
+        # stab alpha given on pg 11 of computational component buildup of X57
+        # -0.2245 for -10deg trimtab, -0.0941 for -5deg trimtab, approx slope 0.02/deg trimtab
+        stab_alpha = stab_alpha * (180 / np.pi)
+        trimtab = trimtab * (180 / np.pi)
+        CL_tot = 0.065558 * stab_alpha + 0.02 * trimtab
+        return CL_tot
+
+    def Stab_CD_tot(self, stab_alpha, trimtab):
+        # Fig. 7d. almost same for all tab values
+        CL = self.Stab_CL_tot(stab_alpha, trimtab)
+        CD = 0.0871 * CL ** 2 + 0.0005 * CL + 0.0086
+        return CD
+
+    def Stab_Cm_tot(self, stab_alpha, trimtab):
+        # Fig. 7d. almost same for all tab values
+        CL = self.Stab_CL_tot(stab_alpha, trimtab)
+        trimtab = trimtab * (180 / np.pi)
+        Cm = 0.028 * CL - 0.0056 * trimtab  # approx avg of 6 eqs in Fig 6e and fig 7e
+        return Cm
+
+    def Stab_downwash(self, alpha, AR, flap, blow_num):
+        # stab downwash given on pg 12 of computational component buildup of X57
+        # CL_tot is aircraft CL excluding stabilator contribution
+        # does not include flap contribution
+        m = 0.65  # C8
+        b = 0.33  # C8
+        offset = 0.00  # C8
+        CL_tot = self.__C8_CL_tot(alpha)
+        downwash_C8 = (180 / 3.14) * (2 * (m * CL_tot + b) / (3.14 * AR)) + offset
+
+        m = 1  # C11 no blow
+        b = 0  # C11 no blow
+        offset = -1.6  # C11 no blow
+        CL_tot = self.__C11_noblow_CL_tot(alpha)
+        downwash_C11_noblow = (180 / 3.14) * (2 * (m * CL_tot + b) / (3.14 * AR)) + offset
+        # downwash_flap_noblow = downwash_C11_noblow - downwash_C8
+
+        m = 1  # C11 blow
+        b = 0  # C11 blow
+        offset = -2.7  # C11 blow
+        CL_tot = self.__C11_blow_CL_tot(alpha)
+        downwash_C11_blow = (180 / 3.14) * (2 * (m * CL_tot + b) / (3.14 * AR)) + offset
+        downwash_blow = downwash_C11_blow - downwash_C11_noblow
+
+        m = 1.5  # C12, 1.0 for C11 (with flap no fus Vtail)
+        b = -0.76  # C12, 0.0 for C11
+        offset = 0.00  # C12, -1.6 for C11 noblow, -2.7 for C11 blow
+        CL_tot = self.__C12_CL_tot(alpha)
+        downwash_C12 = (180 / 3.14) * (2 * (m * CL_tot + b) / (3.14 * AR)) + offset
+        downwash_fusVtail = downwash_C12 - downwash_C8
+
+        if flap:
+            if blow_num:
+                downwash = (downwash_C11_blow + downwash_fusVtail) * (np.pi/180)
+            else:
+                downwash = downwash_C11_noblow + downwash_fusVtail * (np.pi/180)
+        else:
+            downwash = downwash_C12 * (np.pi/180)
+        return downwash
+
+    def stab_alpha(self, alpha, i_w, i_stab, AR, flap, blow_num):
+        stabilator_alpha = alpha + i_w + i_stab - self.Stab_downwash(alpha, AR, flap, blow_num)
+        return stabilator_alpha  # in rad
+
+    """ this function below is based on semi-span results and gives non-zero rolling moment at zero aileron deflection
+    def aileron_roll(self, alpha, aileron):
+        alpha = alpha.to('deg').magnitude
+        aileron = aileron.to('deg').magnitude
+        c_roll_0 = 0.0012* alpha**2 - 0.0532*alpha - 0.3168
+        c_roll_p10 = 0.0014* alpha**2 - 0.053 * alpha - 0.4022
+        c_roll_m10 = 0.001*alpha**2 - 0.0547*alpha - 0.2208
+        # fit least squares line for aileron deflection
+        y = np.array([c_roll_m10, c_roll_0, c_roll_p10])
+        x = np.array([-10, 0, 10])
+        coeff = np.polyfit(x, y, 1)
+        c_l = coeff[0]*aileron + coeff[1]
+        return c_l
+    """
+
+    def AC_CL(self, alpha, i_w, i_stab, AR, flap, blow_num, trimtab):
+        # assumining all other parameters as functions of cref_wing
+        stabi_alpha = self.stab_alpha(alpha, i_w, i_stab, AR, flap, blow_num)
+        CL = flap * self.flap_CL_tot(alpha) + blow_num / 12 * self.blow_CL_tot(alpha) + \
+             self.Wing_tipNacelle_CL_tot(alpha) + self.HLN_CL_tot(alpha) + \
+             self.Fus_Vtail_CL_tot(alpha) + \
+             self.Stab_CL_tot(stabi_alpha, trimtab) * self.Sref_stab / self.Sref_wing
+        return CL
+
+    def AC_CD(self, alpha, i_w, i_stab, AR, flap, blow_num, trimtab):
+        # assumining all other parameters as functions of cref_wing
+        stabi_alpha = self.stab_alpha(alpha, i_w, i_stab, AR, flap, blow_num)
+        CD = flap * self.flap_CD_tot(alpha) + blow_num / 12 * self.blow_CD_tot(alpha) + \
+             self.Wing_tipNacelle_CD_tot(alpha) + self.HLN_CD_tot(alpha) + \
+             self.Fus_Vtail_CD_tot(alpha) + \
+             self.Stab_CD_tot(stabi_alpha, trimtab) * self.Sref_stab / self.Sref_wing
+        return CD
+
+    def AC_CM(self, alpha, i_w, i_stab, AR, flap, blow_num, trimtab):
+        # assuming all other parameters as functions of cref_wing
+        # need aircraft geometry data to compute moment arms
+        # assume all lift generated at wing and stabilator c/4
+        # pos vector from wing c/4 to HT c/4
+
+        r = csdl.Variable(name='r', shape=(3,), value=0)
+        r1 = self.HT_axis.vector[0] + self.cref_stab / 4 - (self.Wing_axis.vector[0] + self.cref_wing / 4)
+        r2 = 0
+        r3 = self.HT_axis.vector[2] - self.Wing_axis.vector[2]
+        r.set(csdl.slice[0], r1)
+        r.set(csdl.slice[1], r2)
+        r.set(csdl.slice[2], r3)
+
+        
+        stabi_alpha = self.stab_alpha(alpha, i_w, i_stab, AR, flap, blow_num)
+        
+        # Build f_hat using csdl operations so that csdl.cross works as expected
+        f1 = -csdl.sin(stabi_alpha)
+        f2 = 0
+        f3 = csdl.cos(stabi_alpha)
+
+        f_hat = csdl.Variable(name='f_hat', shape=(3,), value=0)
+        f_hat.set(csdl.slice[0], f1)
+        f_hat.set(csdl.slice[1], f2)
+        f_hat.set(csdl.slice[2], f3)
+
+        
+        CL_stabi = self.Stab_CL_tot(stabi_alpha, trimtab)
+        CM_stabi_wingcby4 = csdl.cross(r, f_hat) * (CL_stabi * self.Sref_stab) / (self.Sref_wing * self.cref_wing)
+        
+        Cm = (flap * self.flap_Cm_tot(alpha) +
+            blow_num / 12 * self.blow_Cm_tot(alpha) +
+            self.Wing_tipNacelle_Cm_tot(alpha) +
+            self.HLN_Cm_tot(alpha) +
+            self.Fus_Vtail_Cm_tot(alpha) +
+            self.Stab_Cm_tot(stabi_alpha, trimtab) * self.Sref_stab * self.cref_stab / (self.Sref_wing * self.cref_wing) +
+            CM_stabi_wingcby4[1])
+    
+
+        return Cm
+    
+         
 
     def get_FM_localAxis(self, states, controls):
             """
@@ -803,19 +1129,73 @@ class AircraftAerodynamics(Loads):
             density = states.atmospheric_states.density
             velocity = states.VTAS
             theta = states.state_vector.theta
-            alpha = theta + self.lift_model.incidence
+            p = states.state_vector.p
+            q = states.state_vector.q
+            r = states.state_vector.r
+            beta = states.beta
+            alpha = theta + self.i_wing
 
-            CL = 2*np.pi*alpha + 0.3
-            CD = self.lift_model.CD0 + (1 / (self.lift_model.e * self.lift_model.AR * np.pi)) * CL**2  
-            L = 0.5 * density * velocity**2 * self.lift_model.S * CL
-            D = 0.5 * density * velocity**2 * self.lift_model.S * CD
+            dstab = controls.elevator.deflection
+            dflap = controls.left_flap.deflection
+            daileron = controls.left_aileron.deflection
+            dtrim = controls.trim_tab.deflection
+            drudder = controls.rudder.deflection
+
+
+            blow_num = 0
+            for engine in controls.hl_engines:
+                blow_num += 1
+
+
+            CL = self.AC_CL(alpha=alpha, i_w=self.i_wing, i_stab=dstab, AR=self.AR_wing, flap=dflap, blow_num=blow_num, trimtab=dtrim)
+            CD = self.AC_CD(alpha=alpha, i_w=self.i_wing, i_stab=dstab, AR=self.AR_wing, flap=dflap, blow_num=blow_num, trimtab=dtrim)
+            CM = self.AC_CM(alpha=alpha, i_w=self.i_wing, i_stab=dstab, AR=self.AR_wing, flap=dflap, blow_num=blow_num, trimtab=dtrim)
+
+            L = 0.5 * density * velocity**2 * self.Sref_wing * CL
+            D = 0.5 * density * velocity**2 * self.Sref_wing * CD
+            M = 0.5 * density * velocity**2 * self.Sref_wing * CM * self.cref_wing
+
+
+            phat = p * self.bref_wing / (2 * velocity)
+            qhat = q * self.bref_wing / (2 * velocity)
+            rhat = r * self.bref_wing / (2 * velocity)
+
+
+            Cl = self.aeroDer['Clda'][0][0] * daileron + \
+             self.aeroDer['Cldr'][0][0] * drudder + \
+             self.aeroDer['Clp'][0][0] * phat + \
+             self.aeroDer['Clr'][0][0] * rhat + \
+             self.aeroDer['Clbeta'][0][0] * beta
+
+            L_roll = 0.5 * density * velocity**2 * self.Sref_wing * self.bref_wing * Cl  # net rolling moment
+
+            Cn = self.aeroDer['Cnda'][0][0] * daileron + \
+                self.aeroDer['Cndr'][0][0] * drudder + \
+                self.aeroDer['Cnp'][0][0] * phat + \
+                self.aeroDer['Cnr'][0][0] * rhat + \
+                self.aeroDer['Cnbeta'][0][0] * beta
+
+            N_yaw = 0.5 * density * velocity**2 * self.Sref_wing * self.bref_wing * Cn  # net yawing moment
+
+            CY = self.aeroDer['CYda'][0][0] * daileron + \
+                self.aeroDer['CYdr'][0][0] * drudder + \
+                self.aeroDer['CYp'][0][0] * phat + \
+                self.aeroDer['CYr'][0][0] * rhat + \
+                self.aeroDer['CYbeta'][0][0] * beta
+
+            Y_sideforce = 0.5 * density * velocity**2 * self.Sref_wing * CY  # net sideforce
 
             aero_force = csdl.Variable(shape=(3,), value=0.)
             aero_force = aero_force.set(csdl.slice[0], -D)
+            aero_force = aero_force.set(csdl.slice[1], Y_sideforce)
             aero_force = aero_force.set(csdl.slice[2], -L)
-            force_vector = Vector(vector=aero_force, axis=self.wing_axis)
+            force_vector = Vector(vector=aero_force, axis=self.wind_axis)
 
-            moment_vector = Vector(vector=csdl.Variable(shape=(3,), value=0.), axis=self.wing_axis)
+            aero_moment = csdl.Variable(shape=(3,), value=0.)
+            aero_moment = aero_moment.set(csdl.slice[0], L_roll)
+            aero_moment = aero_moment.set(csdl.slice[1], M)
+            aero_moment = aero_moment.set(csdl.slice[2], N_yaw)
+            moment_vector = Vector(vector=aero_moment, axis=self.wind_axis)
             loads = ForcesMoments(force=force_vector, moment=moment_vector)
             return loads
     
@@ -843,6 +1223,13 @@ class HLPropCurve(csdl.CustomExplicitOperation):
         self.ct = Akima1DInterpolator(J_data, Ct_data, method="akima")
         self.ct_derivative = Akima1DInterpolator.derivative(self.ct)
 
+        Cp_data = np.array([0,0.3134,0.3152,0.3075,0.2874,0.2367,0.0809,0.0018])
+        self.cp = Akima1DInterpolator(V_inf_data, Cp_data, method="akima")
+        self.cp_derivative = Akima1DInterpolator.derivative(self.cp)
+
+        Torque_data = np.array([0,9.3,16.1,16.0,13.0,8.7,2.2,0.0])
+        self.torque = Akima1DInterpolator(V_inf_data, Torque_data, method="akima")
+        self.torque_derivative = Akima1DInterpolator.derivative(self.torque)
 
     # def evaluate(self, inputs: csdl.VariableGroup):
     def evaluate(self, advance_ratio: csdl.Variable):
@@ -858,6 +1245,20 @@ class HLPropCurve(csdl.CustomExplicitOperation):
 
         return outputs
     
+    def evaluate_cp(self, velocity:csdl.Variable):
+        self.declare_input('velocity', velocity)
+
+        # declare output variables
+        cp = self.create_output('cp', velocity.shape)
+
+        if hasattr(velocity, 'value') and (velocity.value is not None):
+            cp.set_value(self.cp(velocity.value))
+
+        # construct output of the model
+        outputs = csdl.VariableGroup()
+        outputs.cp = cp
+        return outputs
+        
 
     def evaluate_rpm(self, velocity: csdl.Variable):
         # assign method inputs to input dictionary
@@ -875,6 +1276,22 @@ class HLPropCurve(csdl.CustomExplicitOperation):
 
         return outputs
     
+    def evaluate_torque(self, velocity: csdl.Variable):
+        # assign method inputs to input dictionary
+        self.declare_input('velocity', velocity)
+
+        # declare output variables
+        torque = self.create_output('torque', velocity.shape)
+    
+        if hasattr(velocity, 'value') and (velocity.value is not None):
+            torque.set_value(self.torque(velocity.value))
+
+        # construct output of the model
+        outputs = csdl.VariableGroup()
+        outputs.torque = torque
+
+        return outputs
+    
     def compute(self, input_vals, output_vals):
         advance_ratio = input_vals['advance_ratio']
         output_vals['ct'] = self.ct(advance_ratio)
@@ -882,6 +1299,10 @@ class HLPropCurve(csdl.CustomExplicitOperation):
     def compute_rpm(self, input_vals, output_vals):
         velocity = input_vals['velocity']
         output_vals['rpm'] = self.rpm(velocity)
+
+    def compute_cp(self, input_vals, output_vals):
+        velocity = input_vals['velocity']
+        output_vals['cp'] = self.cp(velocity)
 
     def compute_derivatives(self, input_vals, outputs_vals, derivatives):
         advance_ratio = input_vals['advance_ratio']
@@ -891,7 +1312,13 @@ class HLPropCurve(csdl.CustomExplicitOperation):
         velocity = input_vals['velocity']
         derivatives['rpm', 'velocity'] = np.diag(self.rpm_derivative(velocity))
 
+    def compute_cp_derivatives(self, input_vals, outputs_vals, derivatives):
+        velocity = input_vals['velocity']
+        derivatives['cp', 'velocity'] = np.diag(self.cp_derivative(velocity))
 
+    def compute_torque_derivatives(self, input_vals, outputs_vals, derivatives):
+        velocity = input_vals['velocity']
+        derivatives['torque', 'velocity'] = np.diag(self.torque_derivative(velocity))
 
 class CruisePropCurve(csdl.CustomExplicitOperation):
 
@@ -913,7 +1340,12 @@ class CruisePropCurve(csdl.CustomExplicitOperation):
             [0,0.1831,0.1673,0.1422,0.1003,0.0479,-0.0085,-0.0366,-0.0057,0.0030,-0.0504])
         self.ct = Akima1DInterpolator(J_data, Ct_data, method="akima")
         self.ct_derivative = Akima1DInterpolator.derivative(self.ct)
-
+        Cp_data = np.array([0,0.1155,0.1219,0.1195,0.0979,0.0563,-0.0021,-0.0365,0.0003,0.0134,-0.0756])
+        self.cp = Akima1DInterpolator(V_inf_data, Cp_data, method="akima")
+        self.cp_derivative = Akima1DInterpolator.derivative(self.cp)
+        Torque_data = np.array([0,178.38,188.26,184.47,151.25,73.56,-2.79,-47.67,0.35,11.10,-62.45])
+        self.torque = Akima1DInterpolator(V_inf_data, Torque_data, method="akima")
+        self.torque_derivative = Akima1DInterpolator.derivative(self.torque)
 
     # def evaluate(self, inputs: csdl.VariableGroup):
     def evaluate(self, advance_ratio: csdl.Variable):
@@ -929,6 +1361,19 @@ class CruisePropCurve(csdl.CustomExplicitOperation):
 
         return outputs
     
+    def evaluate_cp(self, velocity:csdl.Variable):
+        self.declare_input('velocity', velocity)
+
+        # declare output variables
+        cp = self.create_output('cp', velocity.shape)
+
+        if hasattr(velocity, 'value') and (velocity.value is not None):
+            cp.set_value(self.cp(velocity.value))
+
+        # construct output of the model
+        outputs = csdl.VariableGroup()
+        outputs.cp = cp
+        return outputs
 
     def evaluate_rpm(self, velocity: csdl.Variable):
         # assign method inputs to input dictionary
@@ -946,6 +1391,22 @@ class CruisePropCurve(csdl.CustomExplicitOperation):
 
         return outputs
     
+    def evaluate_torque(self, velocity: csdl.Variable):
+        # assign method inputs to input dictionary
+        self.declare_input('velocity', velocity)
+
+        # declare output variables
+        torque = self.create_output('torque', velocity.shape)
+    
+        if hasattr(velocity, 'value') and (velocity.value is not None):
+            torque.set_value(self.torque(velocity.value))
+
+        # construct output of the model
+        outputs = csdl.VariableGroup()
+        outputs.torque = torque
+
+        return outputs
+    
     def compute(self, input_vals, output_vals):
         advance_ratio = input_vals['advance_ratio']
         output_vals['ct'] = self.ct(advance_ratio)
@@ -953,6 +1414,10 @@ class CruisePropCurve(csdl.CustomExplicitOperation):
     def compute_rpm(self, input_vals, output_vals):
         velocity = input_vals['velocity']
         output_vals['rpm'] = self.rpm(velocity)
+
+    def compute_cp(self, input_vals, output_vals):
+        velocity = input_vals['velocity']
+        output_vals['cp'] = self.cp(velocity)
 
     def compute_derivatives(self, input_vals, outputs_vals, derivatives):
         advance_ratio = input_vals['advance_ratio']
@@ -962,9 +1427,16 @@ class CruisePropCurve(csdl.CustomExplicitOperation):
         velocity = input_vals['velocity']
         derivatives['rpm', 'velocity'] = np.diag(self.rpm_derivative(velocity))
 
+    def compute_cp_derivatives(self, input_vals, outputs_vals, derivatives):
+        velocity = input_vals['velocity']
+        derivatives['cp', 'velocity'] = np.diag(self.cp_derivative(velocity))
+
+    def compute_torque_derivatives(self, input_vals, outputs_vals, derivatives):
+        velocity = input_vals['velocity']
+        derivatives['torque', 'velocity'] = np.diag(self.torque_derivative(velocity))
 
 
-class AircraftPropulsion(Loads):
+class X57Propulsion(Loads):
 
     def __init__(self, component, radius:Union[ureg.Quantity, csdl.Variable], prop_curve:Union[HLPropCurve, CruisePropCurve], **kwargs):
         self.prop_curve = prop_curve
@@ -1010,19 +1482,20 @@ class AircraftPropulsion(Loads):
         rpm = rpm_curve.evaluate_rpm(velocity=velocity).rpm * throttle
         omega_RAD = (rpm * 2 * np.pi) / 60.0  # rad/s
 
-
         # Compute advance ratio
-        J = (np.pi * velocity) / (omega_RAD * self.radius)  # non-dimensional
+        J = (np.pi * velocity) / (omega_RAD * self.radius)   # non-dimensional
 
         # Compute Ct
         ct_curve = type(self.prop_curve)()
         ct = ct_curve.evaluate(advance_ratio=J).ct
 
         # Compute Thrust
-        T = ct * density * (rpm/60)**2 * ((self.radius*2)**4) * 4.44822 # lbf to N
-    
+        T_raw = (ct * density * (rpm/60)**2 * ((self.radius*2)**4) * 4.44822) # lbf to N
         
+        T_raw.value = np.nan_to_num(T_raw.value, nan=1e-6)  # Replace NaN with 1e-6 to prevent division by zero
 
+        T = csdl.Variable(shape=(1,), value=T_raw.value)  
+    
         force_vector = Vector(vector=csdl.concatenate((T,
                                                        csdl.Variable(shape=(1,), value=0.),
                                                        csdl.Variable(shape=(1,), value=0.)),
@@ -1033,44 +1506,14 @@ class AircraftPropulsion(Loads):
         return loads
 
    
-    def get_power(self, rpm, cp, states):
+
+    def get_power(self, states, controls):
         """
         Compute power required for the propulsion system.
 
         Parameters
         ----------
-        cp : 
-            Power coefficient (C_p) which should include:
-            - cp
-        
-        rpm :
-            Rotational speed of the propeller (RPM) which should include:
-            - rpm
-
-        x_bar : csdl.VariableGroup
-            Flight-dynamic state (x̄) which should include:
-            - density
-            - VTAS
-            - states.theta
-
-        Returns
-        -------
-        power : csdl.VariableGroup
-            Computed power required for the propulsion system.
-        """
-        density = states.atmospheric_states.density * 0.00194032
-
-        power = (cp * density * (rpm/60)**3 * (self.radius*2)**5)/737.56  # should be kW
-
-        return power
-
-    def get_torque(self, rpm, power, states):
-        """
-        Compute torque required for the propulsion system.
-
-        Parameters
-        ----------
-        power : 
+        torque : 
             Power required for the propulsion system (P) which should include:
             - power
         
@@ -1087,14 +1530,26 @@ class AircraftPropulsion(Loads):
         torque : csdl.VariableGroup
             Computed torque required for the propulsion system.
         """
-        torque = (power * 737.56) / ((rpm/60) * 2 * np.pi) # should be lbf-ft
-
+        throttle = controls.u[6]
         density = states.atmospheric_states.density * 0.00194032
+        velocity = states.VTAS * 3.281  # m/s to ft/s
+
+        # Compute RPM
+        rpm_curve = type(self.prop_curve)() 
+        rpm = rpm_curve.evaluate_rpm(velocity=velocity).rpm * throttle
+        omega_RAD = (rpm * 2 * np.pi) / 60.0  # rad/s
+
+        torque_curve = type(self.prop_curve)()
+        torque = torque_curve.evaluate_torque(velocity=velocity).torque
+
+        power_raw = (torque * (rpm/60) * 2 * np.pi)/737.56
 
 
-        torque_coeff = torque/(density*(rpm/60)**2*(self.radius*2)**5)
+        power_raw.value = np.nan_to_num(power_raw.value, nan=1e-6)  # Replace NaN with 1e-6 to prevent division by zero
 
-        return torque
+        power = csdl.Variable(shape=(1,), value=power_raw.value)  
+
+        return power
         
 
 # if __name__ == "__main__":
