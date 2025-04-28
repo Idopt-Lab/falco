@@ -59,18 +59,18 @@ class EquationsOfMotion():
         My=total_moments[1]
         Mz=total_moments[2]
 
-        u = aircraft_states.state_vector.u
-        v = aircraft_states.state_vector.v
-        w = aircraft_states.state_vector.w
-        p = aircraft_states.state_vector.p
-        q = aircraft_states.state_vector.q
-        r = aircraft_states.state_vector.r
-        phi = aircraft_states.state_vector.phi
-        theta = aircraft_states.state_vector.theta
-        psi = aircraft_states.state_vector.psi
-        x = aircraft_states.state_vector.x
-        y = aircraft_states.state_vector.y
-        z = aircraft_states.state_vector.z
+        u = aircraft_states.states.u
+        v = aircraft_states.states.v
+        w = aircraft_states.states.w
+        p = aircraft_states.states.p
+        q = aircraft_states.states.q
+        r = aircraft_states.states.r
+        phi = aircraft_states.states.phi
+        theta = aircraft_states.states.theta
+        psi = aircraft_states.states.psi
+        x = aircraft_states.states.x
+        y = aircraft_states.states.y
+        z = aircraft_states.states.z
 
         # Extract mass properties
         m = mass_properties.mass

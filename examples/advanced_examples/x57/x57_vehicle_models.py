@@ -1128,10 +1128,10 @@ class X57Aerodynamics(Loads):
             """
             density = states.atmospheric_states.density
             velocity = states.VTAS
-            theta = states.state_vector.theta
-            p = states.state_vector.p
-            q = states.state_vector.q
-            r = states.state_vector.r
+            theta = states.states.theta
+            p = states.states.p
+            q = states.states.q
+            r = states.states.r
             beta = states.beta
             alpha = theta + self.i_wing
 
