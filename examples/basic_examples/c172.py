@@ -216,13 +216,12 @@ class AeroCurve(csdl.CustomExplicitOperation):
              [0.00174, 0.00323, 0.00483, 0.00648, 0.00814, 0.00983, 0.0115, 0.0133, 0.0175, 0.0195, 0.0206, 0.0223],
              [0.00273, 0.00438, 0.00614, 0.00796, 0.0098, 0.0117, 0.0135, 0.0155, 0.0202, 0.0224, 0.0236, 0.0255]])
         self.CD_delta_elev = RectBivariateSpline(self.delta_elev_data, self.alpha_data, CD_delta_elev_data)
-        # self.CD_delta_elev_derivative = RectBivariateSpline.partial_derivative()
 
         """Initialize all lift coefficient splines"""
-        # CL_alpha
+        # CL
         CL_data = np.array([-0.571, -0.321, -0.083, 0.148, 0.392, 0.65, 0.918, 1.195, 1.659, 1.789, 1.84, 1.889])
-        self.CL_alpha = Akima1DInterpolator(self.alpha_data, CL_data)
-        self.CL_alpha_derivative = self.CL_alpha.derivative()
+        self.CL = Akima1DInterpolator(self.alpha_data, CL_data)
+        self.CL_derivative = self.CL.derivative()
 
         # CL_dot (alphadot)
         CL_alphadot_data = np.array(
@@ -365,7 +364,6 @@ class AeroCurve(csdl.CustomExplicitOperation):
         self.CN_delta_aile = RectBivariateSpline(self.delta_aile_data,
                                                  self.alpha_data,
                                                  CN_delta_aile_data)
-        # self.Cn_delta_aile_derivative = RectBivariateSpline.partial_derivative()
 
     def evaluate(self, alpha: csdl.Variable, delta_aileron: csdl.Variable, delta_elev: csdl.Variable):
         # assign method inputs to input dictionary
@@ -377,7 +375,7 @@ class AeroCurve(csdl.CustomExplicitOperation):
         CD = self.create_output('CD', alpha.shape)
         CD_delta_elev = self.create_output('CD_delta_elev', alpha.shape)
 
-        CL_alpha = self.create_output('CL_alpha', alpha.shape)
+        CL = self.create_output('CL', alpha.shape)
         CL_dot = self.create_output('CL_dot', alpha.shape)
         CL_q = self.create_output('CL_q', alpha.shape)
         CL_delta_elev = self.create_output('CL_delta_elev', alpha.shape)
@@ -409,7 +407,7 @@ class AeroCurve(csdl.CustomExplicitOperation):
         outputs = csdl.VariableGroup()
         outputs.CD = CD
         outputs.CD_delta_elev = CD_delta_elev
-        outputs.CL_alpha = CL_alpha
+        outputs.CL = CL
         outputs.CL_dot = CL_dot
         outputs.CL_q = CL_q
         outputs.CL_delta_elev = CL_delta_elev
@@ -441,7 +439,7 @@ class AeroCurve(csdl.CustomExplicitOperation):
 
         output_vals['CD'] = self.CD(alpha)
         output_vals['CD_delta_elev'] = self.CD_delta_elev(delta_elev, alpha)
-        output_vals['CL_alpha'] = self.CL_alpha(alpha)
+        output_vals['CL'] = self.CL(alpha)
         output_vals['CL_dot'] = self.CL_dot(alpha)
         output_vals['CL_q'] = self.CL_q(alpha)
         output_vals['CL_delta_elev'] = self.CL_delta_elev(alpha)
@@ -470,9 +468,9 @@ class AeroCurve(csdl.CustomExplicitOperation):
         delta_elev = input_vals['delta_elev']
 
         derivatives['CD', 'alpha'] = np.diag(self.CD_derivative(alpha))
-        derivatives['CD_delta_elev', 'delta_elev'] = np.diag(self.CD_delta_elev.partial_derivative(delta_elev, alpha))
-        derivatives['CD_delta_elev', 'alpha'] = np.diag(self.CD_delta_elev.partial_derivative(delta_elev, alpha))
-        derivatives['CL_alpha', 'alpha'] = np.diag(self.CL_alpha_derivative(alpha))
+        derivatives['CD_delta_elev', 'delta_elev'] = np.diag(self.CD_delta_elev(delta_elev, alpha, dx=1, dy=0))
+        derivatives['CD_delta_elev', 'alpha'] = np.diag(self.CD_delta_elev(delta_elev, alpha, dx=0, dy=1))
+        derivatives['CL', 'alpha'] = np.diag(self.CL_derivative(alpha))
         derivatives['CL_dot', 'alpha'] = np.diag(self.CL_dot_derivative(alpha))
         derivatives['CL_q', 'alpha'] = np.diag(self.CL_q_derivative(alpha))
         derivatives['CL_delta_elev', 'alpha'] = np.diag(self.CL_delta_elev_derivative(alpha))
@@ -493,10 +491,146 @@ class AeroCurve(csdl.CustomExplicitOperation):
         derivatives['CN_p', 'alpha'] = np.diag(self.CN_p_derivative(alpha))
         derivatives['CN_r', 'alpha'] = np.diag(self.CN_r_derivative(alpha))
         derivatives['CN_delta_rud', 'alpha'] = np.diag(self.CN_delta_rud_derivative(alpha))
-        derivatives['CN_delta_aile', 'delta_aileron'] = np.diag(self.CN_delta_aile.partial_derivative(delta_aileron, alpha))
-        derivatives['CN_delta_aile', 'delta_elev'] = np.diag(self.CN_delta_aile.partial_derivative(delta_aileron, alpha))
-# endregion
+        derivatives['CN_delta_aile', 'delta_aileron'] = np.diag(self.CN_delta_aile(delta_aileron, alpha, dx=1, dy=0))
+        derivatives['CN_delta_aile', 'delta_elev'] = np.diag(self.CN_delta_aile(delta_aileron, alpha, dx=0, dy=1))
 
+
+class C172Aerodynamics(Loads):
+
+    def __init__(self, S:Union[ureg.Quantity, csdl.Variable], c:Union[ureg.Quantity, csdl.Variable],
+                 b:Union[ureg.Quantity, csdl.Variable], aero_curves:AeroCurve):
+
+        if S is None:
+            self.S = csdl.Variable(name='S', shape=(1,), value=16.2)
+        elif isinstance(S, ureg.Quantity):
+            self.S = csdl.Variable(name='S', shape=(1,), value=S.to_base_units())
+        else:
+            self.S = S
+
+        if c is None:
+            self.c = csdl.Variable(name='c', shape=(1,), value=1.49352)
+        elif isinstance(c, ureg.Quantity):
+            self.c = csdl.Variable(name='c', shape=(1,), value=c.to_base_units())
+        else:
+            self.c = c
+
+        if b is None:
+            self.b = csdl.Variable(name='b', shape=(1,), value=10.91184)
+        elif isinstance(c, ureg.Quantity):
+            self.b = csdl.Variable(name='b', shape=(1,), value=b.to_base_units())
+        else:
+            self.b = b
+
+        self.c172_aero_curves = aero_curves
+
+    def get_FM_localAxis(self, states, controls):
+        rad2deg = 180.0 / np.pi
+        # State or Maneuver Axis
+        axis = states.axis
+
+        # Geometric Design Variables
+        S = self.S
+        c = self.c
+        b = self.b
+        # State Variables (angles for the tables are ALL in degrees)
+        velocity = states.VTAS
+        p = states.states.p
+        q = states.states.q
+        r = states.states.r
+        density = states.atmospheric_states.density
+        alpha = states.alpha * rad2deg
+        beta = states.beta * rad2deg
+        alpha_dot = states.alpha_dot  # Keeping it in rad/s
+        # Controls
+        left_aileron = controls.u[0] * rad2deg
+        elevator = controls.u[2] * rad2deg
+        rudder = controls.u[3] * rad2deg
+
+        curve_outputs = self.c172_aero_curves.evaluate(alpha=alpha,delta_aileron=left_aileron, delta_elev=elevator)
+
+        CD = curve_outputs.CD
+        CD_delta_elev = curve_outputs.CD_delta_elev
+        CL = curve_outputs.CL
+        CL_dot = curve_outputs.CL_dot
+        CL_q = curve_outputs.CL_q
+        CL_delta_elev = curve_outputs.CL_delta_elev
+        CM = curve_outputs.CM
+        CM_q = curve_outputs.CM_q
+        CM_dot = curve_outputs.CM_dot
+        CM_delta_elev = curve_outputs.CM_delta_elev
+        CY_beta = curve_outputs.CY_beta
+        CY_p = curve_outputs.CY_p
+        CY_r = curve_outputs.CY_r
+        CY_delta_rud = curve_outputs.CY_delta_rud
+        CL_beta = curve_outputs.CL_beta
+        CL_p = curve_outputs.CL_p
+        CL_r = curve_outputs.CL_r
+        CL_delta_rud = curve_outputs.CL_delta_rud
+        CL_delta_aile = curve_outputs.CL_delta_aile
+        CN_beta = curve_outputs.CN_beta
+        CN_p = curve_outputs.CN_p
+        CN_r = curve_outputs.CN_r
+        CN_delta_rud = curve_outputs.CN_delta_rud
+        CN_delta_aile = curve_outputs.CN_delta_aile
+
+        CL_total = (
+                CL + CL_delta_elev +
+                c / (2 * velocity) * (CL_q * q + CL_dot * alpha_dot)
+        )
+        CD_total = CD + CD_delta_elev
+
+        CM_total = (
+                CM + CM_delta_elev +
+                c / (2 * velocity) * (
+                            2 * CM_q * q + CM_dot * alpha_dot)
+        )
+
+        CY_total = (
+                CY_beta * beta +
+                CY_delta_rud * rudder +
+                b / (2 * velocity) * (CY_p * p + CY_r * r)
+        )
+        Cl_total = (
+                0.1 * CL_beta * beta +
+                CL_delta_aile +
+                0.075 * CL_delta_rud * rudder +
+                b / (2 * velocity) * (CL_p * p + CL_r * r)
+        )
+        Cn_total = (
+                CN_beta * beta +
+                CN_delta_aile +
+                0.075 * CN_delta_rud * rudder +
+                b / (2 * velocity) * (CN_p * p + CN_r * r)
+        )
+
+        # Compute Forces from coefficients:
+        qBar = 0.5 * density * velocity ** 2
+
+        L = qBar * S * CL_total
+        D = qBar * S * CD_total
+        Y = qBar * S * CY_total
+        l = qBar * S * b * Cl_total
+        m = qBar * S * c * CM_total
+        n = qBar * S * b * Cn_total
+
+        force_vector = Vector(vector=csdl.concatenate((-D,
+                                                       Y,
+                                                       -L),
+                                                      axis=0), axis=axis)
+
+        moment_vector = Vector(vector=csdl.concatenate((l,
+                                                       m,
+                                                       n),
+                                                      axis=0), axis=axis)
+        loads = ForcesMoments(force=force_vector, moment=moment_vector)
+        return loads
+
+c172_aero_curves = AeroCurve()
+
+c172_aerodynamics = C172Aerodynamics(S=None, b=None, c=None, aero_curves=c172_aero_curves)
+state = AircraftStates(axis=fd_axis, u=Q_(125, 'mph'), w=Q_(5.2, 'mph'))
+loads = c172_aerodynamics.get_FM_localAxis(states=state, controls=c172_controls)
+# endregion
 
 # region Propulsion Model
 

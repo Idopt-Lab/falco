@@ -238,6 +238,8 @@ class AircraftStates:
         self.beta.add_name(name='beta')
         self.beta.add_tag(tag='rad')
 
+        self.alpha_dot = (csdl.cos(self.alpha) * self.linear_acceleration.wDot - csdl.sin(self.alpha) * self.linear_acceleration.uDot) / (self.VTAS * csdl.cos(self.beta))
+
         self.gamma = self.axis.euler_angles.theta - self.alpha
         self.gamma.add_name(name='gamma')
         self.gamma.add_tag(tag='rad')
