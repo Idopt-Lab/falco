@@ -238,6 +238,19 @@ class AircraftStates:
         self.beta.add_name(name='beta')
         self.beta.add_tag(tag='rad')
 
+        self.windAxis = Axis(
+            name='Flight Dynamics Wind Axis',
+            x=Q_(0, 'ft'),
+            y=Q_(0, 'ft'),
+            z=Q_(0, 'ft'),
+            phi=Q_(0, 'deg'),
+            theta=self.alpha,
+            psi=-self.beta,
+            sequence=np.array([3, 2, 1]),
+            reference=self.axis,
+            origin=ValidOrigins.Inertial.value
+        )
+
         self.alpha_dot = (csdl.cos(self.alpha) * self.linear_acceleration.wDot - csdl.sin(self.alpha) * self.linear_acceleration.uDot) / (self.VTAS * csdl.cos(self.beta))
 
         self.gamma = self.axis.euler_angles.theta - self.alpha

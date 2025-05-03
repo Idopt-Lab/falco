@@ -613,16 +613,21 @@ class C172Aerodynamics(Loads):
         m = qBar * S * c * CM_total
         n = qBar * S * b * Cn_total
 
+        wind_axis = state.windAxis
+
         force_vector = Vector(vector=csdl.concatenate((-D,
                                                        Y,
                                                        -L),
-                                                      axis=0), axis=axis)
+                                                      axis=0), axis=wind_axis)
 
         moment_vector = Vector(vector=csdl.concatenate((l,
                                                        m,
                                                        n),
-                                                      axis=0), axis=axis)
-        loads = ForcesMoments(force=force_vector, moment=moment_vector)
+                                                      axis=0), axis=wind_axis)
+        loads_waxis = ForcesMoments(force=force_vector, moment=moment_vector)
+
+        loads = loads_waxis.rotate_to_axis(states.axis)
+
         return loads
 
 c172_aero_curves = AeroCurve()

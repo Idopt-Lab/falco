@@ -21,6 +21,7 @@ class Vector:
             self.vector.add_tag(str(vector_si.units))
         elif isinstance(vector, csdl.Variable):
             self.vector = vector
+            self.vector.add_tag('csdl_variable')
         else:
             raise IOError
 
