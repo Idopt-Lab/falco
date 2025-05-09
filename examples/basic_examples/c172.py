@@ -133,7 +133,7 @@ elevator_component.parameters.actuate_angle = csdl.Variable(name="Elevator Actua
 # aircraft_component.add_subcomponent(elevator_component)
 
 right_aileron_component = Component(name='Right Aileron')
-right_aileron_component.parameters.actuate_angle = csdl.Variable(name="Right Aileron Actuate Angle", shape=(1,), value=np.deg2rad(15))
+right_aileron_component.parameters.actuate_angle = csdl.Variable(name="Right Aileron Actuate Angle", shape=(1,), value=np.deg2rad(0))
 wing_component.add_subcomponent(right_aileron_component)
 # endregion
 
@@ -480,7 +480,7 @@ class AeroCurve(csdl.CustomExplicitOperation):
         output_vals['CM'] = self.CM(alpha)
         output_vals['CM_q'] = self.CM_q(alpha)
         output_vals['CM_dot'] = self.CM_dot(alpha)
-        output_vals['CM_delta_elev'] = self.CM_delta_elev(alpha)
+        output_vals['CM_delta_elev'] = self.CM_delta_elev(delta_elev)
         output_vals['CY_beta'] = self.CY_beta(alpha)
         output_vals['CY_p'] = self.CY_p(alpha)
         output_vals['CY_r'] = self.CY_r(alpha)
@@ -489,7 +489,7 @@ class AeroCurve(csdl.CustomExplicitOperation):
         output_vals['CL_p'] = self.CL_p(alpha)
         output_vals['CL_r'] = self.CL_r(alpha)
         output_vals['CL_delta_rud'] = self.CL_delta_rud(alpha)
-        output_vals['CL_delta_aile'] = self.CL_delta_aile(alpha)
+        output_vals['CL_delta_aile'] = self.CL_delta_aile(delta_aileron)
         output_vals['CN_beta'] = self.CN_beta(alpha)
         output_vals['CN_p'] = self.CN_p(alpha)
         output_vals['CN_r'] = self.CN_r(alpha)
@@ -507,11 +507,11 @@ class AeroCurve(csdl.CustomExplicitOperation):
         derivatives['CL', 'alpha'] = np.diag(self.CL_derivative(alpha))
         derivatives['CL_dot', 'alpha'] = np.diag(self.CL_dot_derivative(alpha))
         derivatives['CL_q', 'alpha'] = np.diag(self.CL_q_derivative(alpha))
-        derivatives['CL_delta_elev', 'alpha'] = np.diag(self.CL_delta_elev_derivative(alpha))
+        derivatives['CL_delta_elev', 'delta_elev'] = np.diag(self.CL_delta_elev_derivative(delta_elev))
         derivatives['CM', 'alpha'] = np.diag(self.CM_derivative(alpha))
         derivatives['CM_q', 'alpha'] = np.diag(self.CM_q_derivative(alpha))
         derivatives['CM_dot', 'alpha'] = np.diag(self.CM_dot_derivative(alpha))
-        derivatives['CM_delta_elev', 'alpha'] = np.diag(self.CM_delta_elev_derivative(alpha))
+        derivatives['CM_delta_elev', 'delta_elev'] = np.diag(self.CM_delta_elev_derivative(delta_elev))
         derivatives['CY_beta', 'alpha'] = np.diag(self.CY_beta_derivative(alpha))
         derivatives['CY_p', 'alpha'] = np.diag(self.CY_p_derivative(alpha))
         derivatives['CY_r', 'alpha'] = np.diag(self.CY_r_derivative(alpha))
@@ -520,14 +520,13 @@ class AeroCurve(csdl.CustomExplicitOperation):
         derivatives['CL_p', 'alpha'] = np.diag(self.CL_p_derivative(alpha))
         derivatives['CL_r', 'alpha'] = np.diag(self.CL_r_derivative(alpha))
         derivatives['CL_delta_rud', 'alpha'] = np.diag(self.CL_delta_rud_derivative(alpha))
-        derivatives['CL_delta_aile', 'alpha'] = np.diag(self.CL_delta_aile_derivative(alpha))
+        derivatives['CL_delta_aile', 'delta_aileron'] = np.diag(self.CL_delta_aile_derivative(delta_aileron))
         derivatives['CN_beta', 'alpha'] = np.diag(self.CN_beta_derivative(alpha))
         derivatives['CN_p', 'alpha'] = np.diag(self.CN_p_derivative(alpha))
         derivatives['CN_r', 'alpha'] = np.diag(self.CN_r_derivative(alpha))
         derivatives['CN_delta_rud', 'alpha'] = np.diag(self.CN_delta_rud_derivative(alpha))
         derivatives['CN_delta_aile', 'delta_aileron'] = np.diag(self.CN_delta_aile(delta_aileron, alpha, dx=1, dy=0))
         derivatives['CN_delta_aile', 'delta_elev'] = np.diag(self.CN_delta_aile(delta_aileron, alpha, dx=0, dy=1))
-
 
 class C172Aerodynamics(Loads):
 
