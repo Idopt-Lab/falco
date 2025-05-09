@@ -42,28 +42,12 @@ fd_axis = Axis(
     y=Q_(0, 'ft'),
     z=Q_(-12000, 'ft'),  # z is positive down in FD axis
     phi=Q_(0, 'deg'),
-    theta=Q_(4, 'deg'),
+    theta=Q_(2.38213092, 'deg'),
     psi=Q_(0, 'deg'),
     sequence=np.array([3, 2, 1]),
     reference=inertial_axis,
     origin=ValidOrigins.Inertial.value
 )
-# endregion
-
-# region Aircraft Wind Axis
-
-wind_axis = Axis(
-        name='Wind Axis',
-        x=Q_(0, 'ft'),
-        y=Q_(0, 'ft'),
-        z=Q_(0, 'ft'),
-        phi=Q_(0, 'deg'),
-        theta=Q_(0, 'deg'),
-        psi=Q_(0, 'deg'),
-        sequence=np.array([3, 2, 1]),
-        reference=fd_axis,
-        origin=ValidOrigins.Inertial.value
-    )
 # endregion
 
 # region Aircraft Component
@@ -77,7 +61,32 @@ fuselage_component = Component(name='Fuselage')
 aircraft_component.add_subcomponent(fuselage_component)
 
 # region Engine Component
+engine_axis = Axis(
+    name='Engine Axis',
+    x=Q_(0, 'ft'),
+    y=Q_(0, 'ft'),
+    z=Q_(0, 'ft'),  # z is positive down in FD axis
+    phi=Q_(0, 'deg'),
+    theta=Q_(0, 'deg'),
+    psi=Q_(0, 'deg'),
+    sequence=np.array([3, 2, 1]),
+    reference=inertial_axis,
+    origin=ValidOrigins.Inertial.value
+)
+
 engine_component = Component(name='Engine')
+c172_engine_mass_properties = MassProperties(mass=Q_(0, 'kg'),
+                                             inertia=MassMI(axis=engine_axis,
+                                                            Ixx=Q_(0, 'kg*(m*m)'),
+                                                            Iyy=Q_(0, 'kg*(m*m)'),
+                                                            Izz=Q_(0, 'kg*(m*m)'),
+                                                            Ixy=Q_(0, 'kg*(m*m)'),
+                                                            Ixz=Q_(0, 'kg*(m*m)'),
+                                                            Iyz=Q_(0, 'kg*(m*m)')),
+                                             cg=Vector(vector=Q_(np.array([0, 0, 0]), 'm'),
+                                                       axis=engine_axis))
+engine_component.mass_properties = c172_engine_mass_properties
+
 radius_c172 = csdl.Variable(name='prop_radius', shape=(1,), value=0.94)
 engine_component.parameters.radius = radius_c172
 fuselage_component.add_subcomponent(engine_component)
@@ -85,7 +94,32 @@ fuselage_component.add_subcomponent(engine_component)
 # endregion
 
 # region Wing Component
+
+wing_axis = Axis(
+    name='Wing Axis',
+    x=Q_(0, 'ft'),
+    y=Q_(0, 'ft'),
+    z=Q_(0, 'ft'),  # z is positive down in FD axis
+    phi=Q_(0, 'deg'),
+    theta=Q_(0, 'deg'),
+    psi=Q_(0, 'deg'),
+    sequence=np.array([3, 2, 1]),
+    reference=inertial_axis,
+    origin=ValidOrigins.Inertial.value
+)
+c172_wing_mass_properties = MassProperties(mass=Q_(0, 'kg'),
+                                           inertia=MassMI(axis=wing_axis,
+                                                          Ixx=Q_(0, 'kg*(m*m)'),
+                                                          Iyy=Q_(0, 'kg*(m*m)'),
+                                                          Izz=Q_(0, 'kg*(m*m)'),
+                                                          Ixy=Q_(0, 'kg*(m*m)'),
+                                                          Ixz=Q_(0, 'kg*(m*m)'),
+                                                          Iyz=Q_(0, 'kg*(m*m)')),
+                                           cg=Vector(vector=Q_(np.array([0, 0, 0]), 'm'),
+                                                     axis=wing_axis))
+
 wing_component = Component(name='Wing')
+wing_component.mass_properties = c172_wing_mass_properties
 aircraft_component.add_subcomponent(wing_component)
 # endregion
 
@@ -184,7 +218,7 @@ pass
 # endregion
 
 
-# region Aerodyamic Model
+# region Aerodynamic Model
 class AeroCurve(csdl.CustomExplicitOperation):
     def __init__(self):
         super().__init__()
@@ -442,7 +476,7 @@ class AeroCurve(csdl.CustomExplicitOperation):
         output_vals['CL'] = self.CL(alpha)
         output_vals['CL_dot'] = self.CL_dot(alpha)
         output_vals['CL_q'] = self.CL_q(alpha)
-        output_vals['CL_delta_elev'] = self.CL_delta_elev(alpha)
+        output_vals['CL_delta_elev'] = self.CL_delta_elev(delta_elev)
         output_vals['CM'] = self.CM(alpha)
         output_vals['CM_q'] = self.CM_q(alpha)
         output_vals['CM_dot'] = self.CM_dot(alpha)
@@ -523,10 +557,8 @@ class C172Aerodynamics(Loads):
 
         self.c172_aero_curves = aero_curves
 
-    def get_FM_localAxis(self, states, controls):
+    def get_FM_localAxis(self, states, controls, axis):
         rad2deg = 180.0 / np.pi
-        # State or Maneuver Axis
-        axis = states.axis
 
         # Geometric Design Variables
         S = self.S
@@ -538,7 +570,7 @@ class C172Aerodynamics(Loads):
         q = states.states.q
         r = states.states.r
         density = states.atmospheric_states.density
-        alpha = states.alpha * rad2deg
+        alpha_eff = states.alpha * rad2deg + axis.euler_angles_vector[1] * rad2deg
         beta = states.beta * rad2deg
         alpha_dot = states.alpha_dot  # Keeping it in rad/s
         # Controls
@@ -546,7 +578,7 @@ class C172Aerodynamics(Loads):
         elevator = controls.u[2] * rad2deg
         rudder = controls.u[3] * rad2deg
 
-        curve_outputs = self.c172_aero_curves.evaluate(alpha=alpha,delta_aileron=left_aileron, delta_elev=elevator)
+        curve_outputs = self.c172_aero_curves.evaluate(alpha=alpha_eff,delta_aileron=left_aileron, delta_elev=elevator)
 
         CD = curve_outputs.CD
         CD_delta_elev = curve_outputs.CD_delta_elev
@@ -615,26 +647,41 @@ class C172Aerodynamics(Loads):
 
         wind_axis = state.windAxis
 
+        effective_wing_axis = Axis(
+            name='Effective Wing Axis',
+            x=axis.translation_from_origin_vector[0],
+            y=axis.translation_from_origin_vector[1],
+            z=axis.translation_from_origin_vector[2],
+            phi=axis.euler_angles_vector[0]+wind_axis.euler_angles_vector[0],
+            theta=axis.euler_angles_vector[1]+wind_axis.euler_angles_vector[1],
+            psi=axis.euler_angles_vector[2]+wind_axis.euler_angles_vector[2],
+            sequence=np.array([3, 2, 1]),
+            reference=axis.reference,
+            origin=ValidOrigins.Inertial.value
+        )
+
         force_vector = Vector(vector=csdl.concatenate((-D,
                                                        Y,
                                                        -L),
-                                                      axis=0), axis=wind_axis)
+                                                      axis=0), axis=effective_wing_axis)
 
         moment_vector = Vector(vector=csdl.concatenate((l,
                                                        m,
                                                        n),
-                                                      axis=0), axis=wind_axis)
+                                                      axis=0), axis=effective_wing_axis)
         loads_waxis = ForcesMoments(force=force_vector, moment=moment_vector)
 
-        loads = loads_waxis.rotate_to_axis(states.axis)
-
-        return loads
+        return loads_waxis
 
 c172_aero_curves = AeroCurve()
 
 c172_aerodynamics = C172Aerodynamics(S=None, b=None, c=None, aero_curves=c172_aero_curves)
 state = AircraftStates(axis=fd_axis, u=Q_(125, 'mph'), w=Q_(5.2, 'mph'))
-loads = c172_aerodynamics.get_FM_localAxis(states=state, controls=c172_controls)
+# loads = c172_aerodynamics.get_FM_localAxis(states=state, controls=c172_controls)
+wing_component.load_solvers.append(c172_aerodynamics)
+wing_component.compute_total_loads(fd_state=state, controls=c172_controls)
+
+pass
 # endregion
 
 # region Propulsion Model
@@ -697,11 +744,10 @@ class C172Propulsion(Loads):
         else:
             self.radius = radius
 
-    def get_FM_localAxis(self, states, controls):
+    def get_FM_localAxis(self, states, controls, axis):
         throttle = controls.u[4]
         density = states.atmospheric_states.density
         velocity = states.VTAS
-        axis = states.axis
 
         # Compute RPM
         rpm = 1000 + (2800 - 1000) * throttle
@@ -727,10 +773,11 @@ class C172Propulsion(Loads):
 
 
 c172_propulsion = C172Propulsion( radius=radius_c172, prop_curve=c172_prop_curve)
-# state = AircraftStates(axis=fd_axis, u=Q_(125, 'mph'))
-# loads = c172_propulsion.get_FM_localAxis(states=state, controls=c172_controls)
+state = AircraftStates(axis=fd_axis, u=Q_(125, 'mph'), w=Q_(5.2, 'mph'))
+# loads = c172_propulsion.get_FM_localAxis(states=state, controls=c172_controls, axis=engine_axis)
 
 engine_component.load_solvers.append(c172_propulsion)
+engine_component.compute_total_loads(fd_state=state, controls=c172_controls)
 # endregion
 
 

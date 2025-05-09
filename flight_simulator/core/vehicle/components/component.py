@@ -140,6 +140,7 @@ class Component:
             total_forces (np.array): Sum of forces from all loads.
             total_moments (np.array): Sum of moments from all loads.
         """
+        from flight_simulator.utils.euler_rotations import build_rotation_matrix
 
         total_forces = csdl.Variable(shape=(3,), value=0.)
         total_moments = csdl.Variable(shape=(3,), value=0.)
@@ -148,10 +149,25 @@ class Component:
         if bool(self.load_solvers):
             for ls in self.load_solvers:
                 assert isinstance(ls,Loads)
-                fm = ls.get_FM_localAxis(states=fd_state, controls=controls)
-                fm_rotated = fm.rotate_to_axis(fd_state.axis)
-                total_forces += fm_rotated.F.vector
-                total_moments += fm_rotated.M.vector
+                local_axis = self.mass_properties.cg_vector.axis
+                fm = ls.get_FM_localAxis(states=fd_state, controls=controls, axis=local_axis)
+
+                if local_axis.reference.name == 'Inertial Axis' or local_axis.reference.name == 'OpenVSP Axis':
+                    # Let's rotate the forces and moments to the inertial axis
+                    fm_inertial_axis = fm.rotate_to_axis(local_axis.reference)
+                else:
+                    raise NotImplementedError
+
+                # Now we need to rotate the forces and moments to the FD axis
+                # The FD axis is always referenced to the inertial axis
+                R = build_rotation_matrix(fd_state.axis.euler_angles_vector, np.array([3, 2, 1]))
+                force_vector_fd_axis = csdl.matvec(R, fm_inertial_axis.F.vector)
+                moment_vector_fd_axis = csdl.matvec(R, fm_inertial_axis.M.vector)
+                fm_fd_axis = ForcesMoments(force=Vector(vector=force_vector_fd_axis, axis=fd_state.axis),
+                                         moment=Vector(vector=moment_vector_fd_axis, axis=fd_state.axis))
+
+                total_forces += fm_fd_axis.F.vector
+                total_moments += fm_fd_axis.M.vector
         else:
             pass
 
