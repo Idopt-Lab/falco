@@ -35,5 +35,5 @@ def build_rotation_matrix(angles: csdl.Variable, seq:np.ndarray):
         # print(D.value)
         R = csdl.matmat(D,R)
         # print(R.value)
-    # R = csdl.transpose(R)
+    R = csdl.transpose(R)
     return R
