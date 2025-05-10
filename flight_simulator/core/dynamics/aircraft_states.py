@@ -161,15 +161,15 @@ class AircraftStates:
         
     def __init__(self,
                  axis: Union[Axis, AxisLsdoGeo],
-                 u: Union[ureg.Quantity, csdl.Variable]=Q_(0, 'm/s'),
-                 v: Union[ureg.Quantity, csdl.Variable]=Q_(0, 'm/s'),
-                 w: Union[ureg.Quantity, csdl.Variable]=Q_(0, 'm/s'),
-                 p: Union[ureg.Quantity, csdl.Variable]=Q_(0, 'rad/s'),
-                 q: Union[ureg.Quantity, csdl.Variable]=Q_(0, 'rad/s'),
-                 r: Union[ureg.Quantity, csdl.Variable]=Q_(0, 'rad/s'),
-                 Vwx: Union[ureg.Quantity, csdl.Variable] = Q_(0, 'm/s'),
-                 Vwy: Union[ureg.Quantity, csdl.Variable] = Q_(0, 'm/s'),
-                 Vwz: Union[ureg.Quantity, csdl.Variable] = Q_(0, 'm/s'),
+                 u: Union[ureg.Quantity, csdl.Variable]=Q_(0, 'm/s'),     # WRT To Body-Fixed Frame
+                 v: Union[ureg.Quantity, csdl.Variable]=Q_(0, 'm/s'),     # WRT To Body-Fixed Frame
+                 w: Union[ureg.Quantity, csdl.Variable]=Q_(0, 'm/s'),     # WRT To Body-Fixed Frame
+                 p: Union[ureg.Quantity, csdl.Variable]=Q_(0, 'rad/s'),   # WRT To Body-Fixed Frame
+                 q: Union[ureg.Quantity, csdl.Variable]=Q_(0, 'rad/s'),   # WRT To Body-Fixed Frame
+                 r: Union[ureg.Quantity, csdl.Variable]=Q_(0, 'rad/s'),   # WRT To Body-Fixed Frame
+                 Vwx: Union[ureg.Quantity, csdl.Variable] = Q_(0, 'm/s'), # WRT To Inertial Frame
+                 Vwy: Union[ureg.Quantity, csdl.Variable] = Q_(0, 'm/s'), # WRT To Inertial Frame
+                 Vwz: Union[ureg.Quantity, csdl.Variable] = Q_(0, 'm/s'), # WRT To Inertial Frame
                  ):
         
         
@@ -182,12 +182,12 @@ class AircraftStates:
         self.states = self.States6dof(
             u=u, v=v, w=w,
             p=p, q=q, r=r,
-            x=self.axis.translation_from_origin.x, 
-            y=self.axis.translation_from_origin.y, 
-            z=self.axis.translation_from_origin.z,
-            phi=axis.euler_angles.phi, 
-            theta=axis.euler_angles.theta, 
-            psi=axis.euler_angles.psi
+            x=self.axis.translation_from_origin.x,    # WRT To Inertial Frame
+            y=self.axis.translation_from_origin.y,    # WRT To Inertial Frame
+            z=self.axis.translation_from_origin.z,    # WRT To Inertial Frame
+            phi=axis.euler_angles.phi,                # WRT To Inertial Frame
+            theta=axis.euler_angles.theta,            # WRT To Inertial Frame
+            psi=axis.euler_angles.psi                 # WRT To Inertial Frame
         )
 
         self.states_inertial_frame_wind = self.StatesInertialFrameWindVelocityVector(Vwx=Vwx, Vwy=Vwy, Vwz=Vwz)
@@ -239,7 +239,7 @@ class AircraftStates:
         self.beta.add_tag(tag='rad')
 
         self.windAxis = Axis(
-            name='Flight Dynamics Wind Axis',
+            name='Wind Axis',
             x=Q_(0, 'ft'),
             y=Q_(0, 'ft'),
             z=Q_(0, 'ft'),

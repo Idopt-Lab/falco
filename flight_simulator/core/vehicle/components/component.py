@@ -150,22 +150,24 @@ class Component:
 
         if bool(self.load_solvers):
             for ls in self.load_solvers:
-                assert isinstance(ls,Loads)
+                assert isinstance(ls, Loads)
                 local_axis = self.mass_properties.cg_vector.axis
                 fm = ls.get_FM_localAxis(states=fd_state, controls=controls, axis=local_axis)
 
-
-                if local_axis.reference.name == 'Inertial Axis' or local_axis.reference.name == 'OpenVSP Axis':
+                if fm.F.axis.reference.name == 'Inertial Axis' or fm.F.axis.reference.name == 'OpenVSP Axis':
                     # Let's rotate the forces and moments to the inertial axis
-                    fm_inertial_axis = fm.rotate_to_axis(local_axis.reference)
+                    fm_fd_axis = fm.transform_to_axis(local_axis.reference, translate_flag=True, rotate_flag=True)
+                elif fm.F.axis.name == 'Wind Axis':
+                    # Implement R cross F
+                    fm_fd_axis_component_origin = fm.transform_to_axis(fd_state.axis, translate_flag=False,
+                                                                    rotate_flag=True)
+
+                    F_trans, M_trans = ForcesMoments.translate_to_axis(fm_fd_axis_component_origin.F.vector, fm_fd_axis_component_origin.M.vector, local_axis.translation)
+
+                    fm_fd_axis = ForcesMoments(force=Vector(vector=F_trans, axis=fm.F.axis),
+                                             moment=Vector(vector=M_trans, axis=fm.F.axis))
                 else:
                     raise NotImplementedError
-                
-                R = build_rotation_matrix(fd_state.axis.euler_angles_vector, np.array([3, 2, 1]))
-                force_vector_fd_axis = csdl.matvec(R, fm_inertial_axis.F.vector)
-                moment_vector_fd_axis = csdl.matvec(R, fm_inertial_axis.M.vector)
-                fm_fd_axis = ForcesMoments(force=Vector(vector=force_vector_fd_axis, axis=fd_state.axis),
-                                         moment=Vector(vector=moment_vector_fd_axis, axis=fd_state.axis))
 
                 total_forces += fm_fd_axis.F.vector
                 total_moments += fm_fd_axis.M.vector
