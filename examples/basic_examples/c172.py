@@ -42,7 +42,7 @@ fd_axis = Axis(
     y=Q_(0, 'ft'),
     z=Q_(-12000, 'ft'),  # z is positive down in FD axis
     phi=Q_(0, 'deg'),
-    theta=Q_(2.38213092, 'deg'),
+    theta=Q_(0, 'deg'),
     psi=Q_(0, 'deg'),
     sequence=np.array([3, 2, 1]),
     reference=inertial_axis,
@@ -67,7 +67,7 @@ engine_axis = Axis(
     y=Q_(0, 'ft'),
     z=Q_(0, 'ft'),  # z is positive down in FD axis
     phi=Q_(0, 'deg'),
-    theta=Q_(0, 'deg'),
+    theta=Q_(60, 'deg'),
     psi=Q_(0, 'deg'),
     sequence=np.array([3, 2, 1]),
     reference=inertial_axis,
@@ -99,7 +99,7 @@ wing_axis = Axis(
     name='Wing Axis',
     x=Q_(0, 'ft'),
     y=Q_(0, 'ft'),
-    z=Q_(0, 'ft'),  # z is positive down in FD axis
+    z=Q_(10, 'ft'),  # z is positive down in FD axis
     phi=Q_(0, 'deg'),
     theta=Q_(0, 'deg'),
     psi=Q_(0, 'deg'),
@@ -151,7 +151,7 @@ class C172Control(VehicleControlSystem):
             self.aileron = ControlSurface('aileron', lb=-15, ub=20, component=aileron_right_component)
         self.rudder = ControlSurface('rudder', lb=-16, ub=16, component=rudder_component)
 
-        self.engine = PropulsiveControl(name='engine', throttle=0.52)
+        self.engine = PropulsiveControl(name='engine', throttle=0.99)
 
         if symmetrical:
             self.u = csdl.concatenate((self.aileron.deflection,
@@ -646,28 +646,15 @@ class C172Aerodynamics(Loads):
 
         wind_axis = state.windAxis
 
-        effective_wing_axis = Axis(
-            name='Effective Wing Axis',
-            x=axis.translation_from_origin_vector[0],
-            y=axis.translation_from_origin_vector[1],
-            z=axis.translation_from_origin_vector[2],
-            phi=axis.euler_angles_vector[0]+wind_axis.euler_angles_vector[0],
-            theta=axis.euler_angles_vector[1]+wind_axis.euler_angles_vector[1],
-            psi=axis.euler_angles_vector[2]+wind_axis.euler_angles_vector[2],
-            sequence=np.array([3, 2, 1]),
-            reference=axis.reference,
-            origin=ValidOrigins.Inertial.value
-        )
-
         force_vector = Vector(vector=csdl.concatenate((-D,
                                                        Y,
                                                        -L),
-                                                      axis=0), axis=effective_wing_axis)
+                                                      axis=0), axis=wind_axis)
 
         moment_vector = Vector(vector=csdl.concatenate((l,
                                                        m,
                                                        n),
-                                                      axis=0), axis=effective_wing_axis)
+                                                      axis=0), axis=wind_axis)
         loads_waxis = ForcesMoments(force=force_vector, moment=moment_vector)
 
         return loads_waxis
@@ -675,7 +662,7 @@ class C172Aerodynamics(Loads):
 c172_aero_curves = AeroCurve()
 
 c172_aerodynamics = C172Aerodynamics(S=None, b=None, c=None, aero_curves=c172_aero_curves)
-state = AircraftStates(axis=fd_axis, u=Q_(125, 'mph'), w=Q_(5.2, 'mph'))
+state = AircraftStates(axis=fd_axis, u=Q_(120, 'mph'), w=Q_(1.5, 'mph'))
 # loads = c172_aerodynamics.get_FM_localAxis(states=state, controls=c172_controls)
 wing_component.load_solvers.append(c172_aerodynamics)
 wing_component.compute_total_loads(fd_state=state, controls=c172_controls)
