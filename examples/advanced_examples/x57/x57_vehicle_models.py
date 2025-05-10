@@ -55,9 +55,9 @@ def create_axes():
         y=Q_(0, 'm'),
         z=Q_(0, 'm'),
         origin=ValidOrigins.OpenVSP.value
-
     )
-    
+
+
     wing_axis = AxisLsdoGeo(
         name='Wing Axis',
         geometry=geo['wing'],
@@ -377,9 +377,22 @@ def create_axes():
         origin=ValidOrigins.Inertial.value
     )
 
-    return openvsp_axis, wing_axis, ht_tail_axis, trimTab_axis, vt_tail_axis, HL_motor_axes, cruise_motor_axes, inertial_axis, fd_axis, wind_axis, geo, left_flap_axis, right_flap_axis, left_aileron_axis, right_aileron_axis, rudder_axis, geo
 
-openvsp_axis, wing_axis, ht_tail_axis, trimTab_axis, vt_tail_axis, HL_motor_axes, cruise_motor_axes, inertial_axis, fd_axis, wind_axis, geo, left_flap_axis, right_flap_axis, left_aileron_axis, right_aileron_axis, rudder_axis, _ = create_axes()
+    aircraft_axis = Axis(
+        name='Aircraft Inertial Axis',
+        x=Q_(0, 'm'),
+        y=Q_(0, 'm'),
+        z=Q_(0, 'm'),
+        phi=Q_(0, 'deg'),
+        theta=Q_(0, 'deg'),
+        psi=Q_(0, 'deg'),
+        origin=ValidOrigins.Inertial.value,
+        sequence=np.array([3, 2, 1]),
+        reference=inertial_axis)
+
+    return openvsp_axis, wing_axis, ht_tail_axis, trimTab_axis, vt_tail_axis, HL_motor_axes, cruise_motor_axes, inertial_axis, fd_axis, wind_axis, geo, left_flap_axis, right_flap_axis, left_aileron_axis, right_aileron_axis, rudder_axis, aircraft_axis, geo
+
+openvsp_axis, wing_axis, ht_tail_axis, trimTab_axis, vt_tail_axis, HL_motor_axes, cruise_motor_axes, inertial_axis, fd_axis, wind_axis, geo, left_flap_axis, right_flap_axis, left_aileron_axis, right_aileron_axis, rudder_axis, aircraft_axis, _ = create_axes()
 
 ## Aircraft Component Creation
 
@@ -522,70 +535,38 @@ def build_aircraft(do_geo_param: bool = False):
     CD0_x57 = csdl.Variable(name="wing_CD0",shape=(1,), value=0.001) # Zero-lift drag coefficient
     Wing.parameters.actuate_angle = csdl.Variable(name="wing_incidence",shape=(1,), value=np.deg2rad(2)) # Wing incidence angle in radians
 
-    
-    Wing.mass_properties.mass = Q_(152.88, 'kg')
-    Wing.mass_properties.cg_vector = Vector(vector=Q_(geo['wing_le_center'].value, 'm'), axis=wing_axis)
+    Wing.mass_properties = MassProperties(mass=Q_(152.88, 'kg'), cg=Vector(vector=Q_(geo['wing_le_center'].value, 'm'), axis=wing_axis), inertia=MassMI(axis=wing_axis))
+    LeftAileron.mass_properties = MassProperties(mass=Q_(1, 'kg'), cg=Vector(vector=Q_(geo['left_aileron_le_center'].value, 'm'), axis=left_aileron_axis), inertia=MassMI(axis=left_aileron_axis))
+    RightAileron.mass_properties = MassProperties(mass=Q_(1, 'kg'), cg=Vector(vector=Q_(geo['right_aileron_le_center'].value, 'm'), axis=right_aileron_axis), inertia=MassMI(axis=right_aileron_axis))
 
+    LeftFlap.mass_properties = MassProperties(mass=Q_(1, 'kg'), cg=Vector(vector=Q_(geo['left_flap_le_center'].value, 'm'), axis=left_flap_axis), inertia=MassMI(axis=left_flap_axis))
+    RightFlap.mass_properties = MassProperties(mass=Q_(1, 'kg'), cg=Vector(vector=Q_(geo['right_flap_le_center'].value, 'm'), axis=right_flap_axis), inertia=MassMI(axis=right_flap_axis))
 
-    LeftAileron.mass_properties.mass = Q_(1, 'kg')
-    LeftAileron.mass_properties.cg_vector = Vector(vector=Q_(geo['left_aileron_le_center'].value, 'm'), axis=left_aileron_axis)
+    Fuselage.mass_properties = MassProperties(mass=Q_(235.87, 'kg'), cg=Vector(vector=Q_(geo['fuselage_wing_qc'].value, 'm'), axis=wing_axis), inertia=MassMI(axis=wing_axis))
+    HorTail.mass_properties = MassProperties(mass=Q_(27.3/2, 'kg'), cg=Vector(vector=Q_(geo['ht_le_center'].value, 'm'), axis=ht_tail_axis), inertia=MassMI(axis=ht_tail_axis))
+    TrimTab.mass_properties = MassProperties(mass=Q_(1, 'kg'), cg=Vector(vector=Q_(geo['trimTab_le_center'].value, 'm'), axis=trimTab_axis), inertia=MassMI(axis=trimTab_axis))
 
-    RightAileron.mass_properties.mass = Q_(1, 'kg')
-    RightAileron.mass_properties.cg_vector = Vector(vector=Q_(geo['right_aileron_le_center'].value, 'm'), axis=right_aileron_axis)
+    VertTail.mass_properties = MassProperties(mass=Q_(27.3/2, 'kg'), cg=Vector(vector=Q_(geo['vt_le_mid'].value, 'm'), axis=vt_tail_axis), inertia=MassMI(axis=vt_tail_axis))
+    Rudder.mass_properties = MassProperties(mass=Q_(1, 'kg'), cg=Vector(vector=Q_(geo['rudder_le_mid'].value, 'm'), axis=rudder_axis), inertia=MassMI(axis=rudder_axis))
+    Battery.mass_properties = MassProperties(mass=Q_(390.08, 'kg'), cg=Vector(vector=Q_(geo['wing_le_center'].value + np.array([0,0,2]), 'm'), axis=wing_axis), inertia=MassMI(axis=wing_axis))
+    LandingGear.mass_properties = MassProperties(mass=Q_(61.15, 'kg'), cg=Vector(vector=Q_(geo['wing_le_center'].value + np.array([0,0,2]), 'm'), axis=wing_axis), inertia=MassMI(axis=wing_axis))
 
-    LeftFlap.parameters.actuate_angle = csdl.Variable(name="left_flap_actuate_angle", shape=(1, ), value=0)  
-    LeftFlap.mass_properties.mass = Q_(1, 'kg')
-    LeftFlap.mass_properties.cg_vector = Vector(vector=Q_(geo['left_flap_le_center'].value, 'm'), axis=left_flap_axis)
-
-    RightFlap.parameters.actuate_angle = csdl.Variable(name="right_flap_actuate_angle", shape=(1, ), value=0)
-    RightFlap.mass_properties.mass = Q_(1, 'kg')
-    RightFlap.mass_properties.cg_vector = Vector(vector=Q_(geo['right_flap_le_center'].value, 'm'), axis=right_flap_axis)
-
-
-    Fuselage.mass_properties.mass = Q_(235.87, 'kg')
-    Fuselage.mass_properties.cg_vector =  Vector(vector=Q_(geo['wing_le_center'].value + np.array([0,0,1]), 'm'), axis=wing_axis) # cg is at the wing cg but shifted down 
-
-
-    HorTail.mass_properties.mass = Q_(27.3/2, 'kg')
-    HorTail.mass_properties.cg_vector = Vector(vector=Q_(geo['ht_le_center'].value, 'm'), axis=ht_tail_axis)
-
-
-    TrimTab.mass_properties.mass = Q_(1, 'kg')
-    TrimTab.mass_properties.cg_vector = Vector(vector=Q_(geo['trimTab_le_center'].value, 'm'), axis=trimTab_axis)
-
-
-    VertTail.mass_properties.mass = Q_(27.3/2, 'kg')
-    VertTail.mass_properties.cg_vector = Vector(vector=Q_(geo['vt_le_mid'].value, 'm'), axis=vt_tail_axis)
-
-
-    Rudder.mass_properties.mass = Q_(1, 'kg')
-    Rudder.mass_properties.cg_vector = Vector(vector=Q_(geo['rudder_le_mid'].value, 'm'), axis=rudder_axis)
-
-    Battery.mass_properties.mass = Q_(390.08, 'kg')
-    Battery.mass_properties.cg_vector = Vector(vector=Q_(geo['wing_le_center'].value + np.array([0,0,2]), 'm'), axis=wing_axis)
-
-
-    LandingGear.mass_properties.mass = Q_(61.15, 'kg')
-    LandingGear.mass_properties.cg_vector = Vector(vector=Q_(geo['wing_le_center'].value + np.array([0,0,2]), 'm'), axis=wing_axis)
 
 
     for i, HL_motor in enumerate(lift_rotors):
-        HL_motor.mass_properties.mass = Q_(81.65/12, 'kg')
-        HL_motor.mass_properties.cg_vector = Vector(vector=Q_(geo['MotorDisks'][i].value, 'm'), axis=HL_motor_axes[i])
-        HL_motor_propulsion = X57Propulsion(radius=HL_radius_x57, prop_curve=HLPropCurve(), component=HL_motor)
+        HL_motor.mass_properties = MassProperties(mass=Q_(81.65/12, 'kg'), cg=Vector(vector=Q_(geo['MotorDisks'][i].value, 'm'), axis=HL_motor_axes[i]), inertia=MassMI(axis=HL_motor_axes[i]))
+        HL_motor_propulsion = X57Propulsion(radius=HL_radius_x57, prop_curve=HLPropCurve())
         HL_motor.load_solvers.append(HL_motor_propulsion)
 
 
     for i, cruise_motor in enumerate(cruise_motors):
-        cruise_motor.mass_properties.mass = Q_(106.14/2, 'kg')
-        cruise_motor.mass_properties.cg_vector = Vector(vector=Q_(geo['cruise_motors_base'][i].value, 'm'), axis=cruise_motor_axes[i])
-        cruise_motor_propulsion = X57Propulsion(radius=cruise_radius_x57, prop_curve=CruisePropCurve(), component=cruise_motor)
+        cruise_motor.mass_properties = MassProperties(mass=Q_(106.14/2, 'kg'), cg=Vector(vector=Q_(geo['cruise_motors_base'][i].value, 'm'), axis=cruise_motor_axes[i]), inertia=MassMI(axis=cruise_motor_axes[i]))
+        cruise_motor_propulsion = X57Propulsion(radius=cruise_radius_x57, prop_curve=CruisePropCurve())
         cruise_motor.load_solvers.append(cruise_motor_propulsion)
 
 
-    Aircraft.mass_properties.mass = Q_(0, 'kg')
-    Aircraft.mass_properties.cg_vector = Vector(vector=Q_(np.array([0, 0, 0]), 'm'), axis=fd_axis)
-    Aircraft.mass_properties = Aircraft.compute_mass_properties()
+    Aircraft.mass_properties = MassProperties(mass=Q_(0, 'kg'), cg=Vector(vector=Q_(np.array([0, 0, 0]), 'm'), axis=aircraft_axis), inertia=MassMI(axis=aircraft_axis))
+    Aircraft.mass_properties = Aircraft.compute_total_mass_properties()
     Aircraft_Aerodynamics = X57Aerodynamics(component=Aircraft)
     Aircraft.load_solvers.append(Aircraft_Aerodynamics)
     print(repr(Aircraft))
@@ -1107,7 +1088,7 @@ class X57Aerodynamics(Loads):
     
          
 
-    def get_FM_localAxis(self, states, controls):
+    def get_FM_localAxis(self, states, controls, axis):
             """
             Compute forces and moments about the reference point.
 
@@ -1189,13 +1170,13 @@ class X57Aerodynamics(Loads):
             aero_force = aero_force.set(csdl.slice[0], -D)
             aero_force = aero_force.set(csdl.slice[1], Y_sideforce)
             aero_force = aero_force.set(csdl.slice[2], -L)
-            force_vector = Vector(vector=aero_force, axis=self.wind_axis)
+            force_vector = Vector(vector=aero_force, axis=axis)
 
             aero_moment = csdl.Variable(shape=(3,), value=0.)
             aero_moment = aero_moment.set(csdl.slice[0], L_roll)
             aero_moment = aero_moment.set(csdl.slice[1], M)
             aero_moment = aero_moment.set(csdl.slice[2], N_yaw)
-            moment_vector = Vector(vector=aero_moment, axis=self.wind_axis)
+            moment_vector = Vector(vector=aero_moment, axis=axis)
             loads = ForcesMoments(force=force_vector, moment=moment_vector)
             return loads
     
@@ -1220,7 +1201,7 @@ class HLPropCurve(csdl.CustomExplicitOperation):
             [0,0.5490,0.5966,0.6860,0.8250,1.0521,1.4595,1.6098])
         Ct_data = np.array(
             [0,0.3125,0.3058,0.2848,0.2473,0.1788,0.0366,-0.0198])
-        self.ct = Akima1DInterpolator(J_data, Ct_data, method="akima")
+        self.ct = Akima1DInterpolator(V_inf_data, Ct_data, method="akima")
         self.ct_derivative = Akima1DInterpolator.derivative(self.ct)
 
         Cp_data = np.array([0,0.3134,0.3152,0.3075,0.2874,0.2367,0.0809,0.0018])
@@ -1231,94 +1212,49 @@ class HLPropCurve(csdl.CustomExplicitOperation):
         self.torque = Akima1DInterpolator(V_inf_data, Torque_data, method="akima")
         self.torque_derivative = Akima1DInterpolator.derivative(self.torque)
 
-    # def evaluate(self, inputs: csdl.VariableGroup):
-    def evaluate(self, advance_ratio: csdl.Variable):
-        # assign method inputs to input dictionary
-        self.declare_input('advance_ratio', advance_ratio)
-
-        # declare output variables
-        ct = self.create_output('ct', advance_ratio.shape)
-
-        # construct output of the model
+        # def evaluate(self, inputs: csdl.VariableGroup):
+    def evaluate(self, velocity: csdl.Variable=None):
         outputs = csdl.VariableGroup()
-        outputs.ct = ct
+
+        if velocity is not None:
+            self.declare_input('velocity', velocity)
+            cp = self.create_output('cp', velocity.shape)
+            rpm = self.create_output('rpm', velocity.shape)
+            torque = self.create_output('torque', velocity.shape)
+            ct = self.create_output('ct', velocity.shape)
+
+
+            if hasattr(velocity, 'value') and (velocity.value is not None):
+                ct.set_value(self.ct(velocity.value))
+                cp.set_value(self.cp(velocity.value))
+                rpm.set_value(self.rpm(velocity.value))
+                torque.set_value(self.torque(velocity.value))
+
+            outputs.ct = ct
+            outputs.cp = cp
+            outputs.rpm = rpm
+            outputs.torque = torque
 
         return outputs
-    
-    def evaluate_cp(self, velocity:csdl.Variable):
-        self.declare_input('velocity', velocity)
-
-        # declare output variables
-        cp = self.create_output('cp', velocity.shape)
-
-        if hasattr(velocity, 'value') and (velocity.value is not None):
-            cp.set_value(self.cp(velocity.value))
-
-        # construct output of the model
-        outputs = csdl.VariableGroup()
-        outputs.cp = cp
-        return outputs
-        
-
-    def evaluate_rpm(self, velocity: csdl.Variable):
-        # assign method inputs to input dictionary
-        self.declare_input('velocity', velocity)
-
-        # declare output variables
-        rpm = self.create_output('rpm', velocity.shape)
-
-        if hasattr(velocity, 'value') and (velocity.value is not None):
-            rpm.set_value(self.rpm(velocity.value))
-
-        # construct output of the model
-        outputs = csdl.VariableGroup()
-        outputs.rpm = rpm
-
-        return outputs
-    
-    def evaluate_torque(self, velocity: csdl.Variable):
-        # assign method inputs to input dictionary
-        self.declare_input('velocity', velocity)
-
-        # declare output variables
-        torque = self.create_output('torque', velocity.shape)
-    
-        if hasattr(velocity, 'value') and (velocity.value is not None):
-            torque.set_value(self.torque(velocity.value))
-
-        # construct output of the model
-        outputs = csdl.VariableGroup()
-        outputs.torque = torque
-
-        return outputs
-    
+            
     def compute(self, input_vals, output_vals):
-        advance_ratio = input_vals['advance_ratio']
-        output_vals['ct'] = self.ct(advance_ratio)
 
-    def compute_rpm(self, input_vals, output_vals):
-        velocity = input_vals['velocity']
-        output_vals['rpm'] = self.rpm(velocity)
-
-    def compute_cp(self, input_vals, output_vals):
-        velocity = input_vals['velocity']
-        output_vals['cp'] = self.cp(velocity)
+        if 'velocity' in input_vals:
+            velocity = input_vals['velocity']
+            output_vals['ct'] = self.ct(velocity)
+            output_vals['rpm'] = self.rpm(velocity)
+            output_vals['cp'] = self.cp(velocity)
+            output_vals['torque'] = self.torque(velocity)
 
     def compute_derivatives(self, input_vals, outputs_vals, derivatives):
-        advance_ratio = input_vals['advance_ratio']
-        derivatives['ct', 'advance_ratio'] = np.diag(self.ct_derivative(advance_ratio))
-
-    def compute_rpm_derivatives(self, input_vals, outputs_vals, derivatives):
         velocity = input_vals['velocity']
+
+        derivatives['ct', 'velocity'] = np.diag(self.ct_derivative(velocity))
         derivatives['rpm', 'velocity'] = np.diag(self.rpm_derivative(velocity))
-
-    def compute_cp_derivatives(self, input_vals, outputs_vals, derivatives):
-        velocity = input_vals['velocity']
         derivatives['cp', 'velocity'] = np.diag(self.cp_derivative(velocity))
-
-    def compute_torque_derivatives(self, input_vals, outputs_vals, derivatives):
-        velocity = input_vals['velocity']
         derivatives['torque', 'velocity'] = np.diag(self.torque_derivative(velocity))
+
+
 
 class CruisePropCurve(csdl.CustomExplicitOperation):
 
@@ -1338,7 +1274,7 @@ class CruisePropCurve(csdl.CustomExplicitOperation):
             [0,0.1,0.4,0.6,0.8,1.0,1.2,1.3,1.4,1.6,1.8])
         Ct_data = np.array(
             [0,0.1831,0.1673,0.1422,0.1003,0.0479,-0.0085,-0.0366,-0.0057,0.0030,-0.0504])
-        self.ct = Akima1DInterpolator(J_data, Ct_data, method="akima")
+        self.ct = Akima1DInterpolator(V_inf_data, Ct_data, method="akima")
         self.ct_derivative = Akima1DInterpolator.derivative(self.ct)
         Cp_data = np.array([0,0.1155,0.1219,0.1195,0.0979,0.0563,-0.0021,-0.0365,0.0003,0.0134,-0.0756])
         self.cp = Akima1DInterpolator(V_inf_data, Cp_data, method="akima")
@@ -1348,99 +1284,52 @@ class CruisePropCurve(csdl.CustomExplicitOperation):
         self.torque_derivative = Akima1DInterpolator.derivative(self.torque)
 
     # def evaluate(self, inputs: csdl.VariableGroup):
-    def evaluate(self, advance_ratio: csdl.Variable):
-        # assign method inputs to input dictionary
-        self.declare_input('advance_ratio', advance_ratio)
-
-        # declare output variables
-        ct = self.create_output('ct', advance_ratio.shape)
-
-        # construct output of the model
+    def evaluate(self, velocity: csdl.Variable=None):
         outputs = csdl.VariableGroup()
-        outputs.ct = ct
+
+        if velocity is not None:
+            self.declare_input('velocity', velocity)
+            cp = self.create_output('cp', velocity.shape)
+            rpm = self.create_output('rpm', velocity.shape)
+            torque = self.create_output('torque', velocity.shape)
+            ct = self.create_output('ct', velocity.shape)
+
+
+            if hasattr(velocity, 'value') and (velocity.value is not None):
+                ct.set_value(self.ct(velocity.value))
+                cp.set_value(self.cp(velocity.value))
+                rpm.set_value(self.rpm(velocity.value))
+                torque.set_value(self.torque(velocity.value))
+
+            outputs.ct = ct
+            outputs.cp = cp
+            outputs.rpm = rpm
+            outputs.torque = torque
 
         return outputs
-    
-    def evaluate_cp(self, velocity:csdl.Variable):
-        self.declare_input('velocity', velocity)
-
-        # declare output variables
-        cp = self.create_output('cp', velocity.shape)
-
-        if hasattr(velocity, 'value') and (velocity.value is not None):
-            cp.set_value(self.cp(velocity.value))
-
-        # construct output of the model
-        outputs = csdl.VariableGroup()
-        outputs.cp = cp
-        return outputs
-
-    def evaluate_rpm(self, velocity: csdl.Variable):
-        # assign method inputs to input dictionary
-        self.declare_input('velocity', velocity)
-
-        # declare output variables
-        rpm = self.create_output('rpm', velocity.shape)
-    
-        if hasattr(velocity, 'value') and (velocity.value is not None):
-            rpm.set_value(self.rpm(velocity.value))
-
-        # construct output of the model
-        outputs = csdl.VariableGroup()
-        outputs.rpm = rpm
-
-        return outputs
-    
-    def evaluate_torque(self, velocity: csdl.Variable):
-        # assign method inputs to input dictionary
-        self.declare_input('velocity', velocity)
-
-        # declare output variables
-        torque = self.create_output('torque', velocity.shape)
-    
-        if hasattr(velocity, 'value') and (velocity.value is not None):
-            torque.set_value(self.torque(velocity.value))
-
-        # construct output of the model
-        outputs = csdl.VariableGroup()
-        outputs.torque = torque
-
-        return outputs
-    
+            
     def compute(self, input_vals, output_vals):
-        advance_ratio = input_vals['advance_ratio']
-        output_vals['ct'] = self.ct(advance_ratio)
 
-    def compute_rpm(self, input_vals, output_vals):
-        velocity = input_vals['velocity']
-        output_vals['rpm'] = self.rpm(velocity)
-
-    def compute_cp(self, input_vals, output_vals):
-        velocity = input_vals['velocity']
-        output_vals['cp'] = self.cp(velocity)
+        if 'velocity' in input_vals:
+            velocity = input_vals['velocity']
+            output_vals['ct'] = self.ct(velocity)
+            output_vals['rpm'] = self.rpm(velocity)
+            output_vals['cp'] = self.cp(velocity)
+            output_vals['torque'] = self.torque(velocity)
 
     def compute_derivatives(self, input_vals, outputs_vals, derivatives):
-        advance_ratio = input_vals['advance_ratio']
-        derivatives['ct', 'advance_ratio'] = np.diag(self.ct_derivative(advance_ratio))
-
-    def compute_rpm_derivatives(self, input_vals, outputs_vals, derivatives):
         velocity = input_vals['velocity']
+
+        derivatives['ct', 'velocity'] = np.diag(self.ct_derivative(velocity))
         derivatives['rpm', 'velocity'] = np.diag(self.rpm_derivative(velocity))
-
-    def compute_cp_derivatives(self, input_vals, outputs_vals, derivatives):
-        velocity = input_vals['velocity']
         derivatives['cp', 'velocity'] = np.diag(self.cp_derivative(velocity))
-
-    def compute_torque_derivatives(self, input_vals, outputs_vals, derivatives):
-        velocity = input_vals['velocity']
         derivatives['torque', 'velocity'] = np.diag(self.torque_derivative(velocity))
 
 
 class X57Propulsion(Loads):
 
-    def __init__(self, component, radius:Union[ureg.Quantity, csdl.Variable], prop_curve:Union[HLPropCurve, CruisePropCurve], **kwargs):
+    def __init__(self, radius:Union[ureg.Quantity, csdl.Variable], prop_curve:Union[HLPropCurve, CruisePropCurve], **kwargs):
         self.prop_curve = prop_curve
-        self.prop_axis = component.mass_properties.cg_vector.axis
 
         if radius is None:
             self.radius = csdl.Variable(name='radius', shape=(1,), value=1.89/2) 
@@ -1451,7 +1340,7 @@ class X57Propulsion(Loads):
 
 
 
-    def get_FM_localAxis(self, states, controls):
+    def get_FM_localAxis(self, states, controls, axis):
         """
         This is for the propeller models in the HLPropCurve and CruisePropCurve classes.
         The propeller model is based on the propeller data from the Mod-III and Mod-IV propeller data from the CFD database.
@@ -1479,7 +1368,7 @@ class X57Propulsion(Loads):
 
         # Compute RPM
         rpm_curve = type(self.prop_curve)() 
-        rpm = rpm_curve.evaluate_rpm(velocity=velocity).rpm * throttle
+        rpm = rpm_curve.evaluate(velocity=velocity).rpm * throttle
         omega_RAD = (rpm * 2 * np.pi) / 60.0  # rad/s
 
         # Compute advance ratio
@@ -1487,7 +1376,7 @@ class X57Propulsion(Loads):
 
         # Compute Ct
         ct_curve = type(self.prop_curve)()
-        ct = ct_curve.evaluate(advance_ratio=J).ct
+        ct = ct_curve.evaluate(velocity=velocity).ct
 
         # Compute Thrust
         T_raw = (ct * density * (rpm/60)**2 * ((self.radius*2)**4) * 4.44822) # lbf to N
@@ -1499,9 +1388,9 @@ class X57Propulsion(Loads):
         force_vector = Vector(vector=csdl.concatenate((T,
                                                        csdl.Variable(shape=(1,), value=0.),
                                                        csdl.Variable(shape=(1,), value=0.)),
-                                                      axis=0), axis=self.prop_axis)
+                                                      axis=0), axis=axis)
 
-        moment_vector = Vector(vector=csdl.Variable(shape=(3,), value=0.), axis=self.prop_axis)
+        moment_vector = Vector(vector=csdl.Variable(shape=(3,), value=0.), axis=axis)
         loads = ForcesMoments(force=force_vector, moment=moment_vector)
         return loads
 
@@ -1536,11 +1425,11 @@ class X57Propulsion(Loads):
 
         # Compute RPM
         rpm_curve = type(self.prop_curve)() 
-        rpm = rpm_curve.evaluate_rpm(velocity=velocity).rpm * throttle
+        rpm = rpm_curve.evaluate(velocity=velocity).rpm * throttle
         omega_RAD = (rpm * 2 * np.pi) / 60.0  # rad/s
 
         torque_curve = type(self.prop_curve)()
-        torque = torque_curve.evaluate_torque(velocity=velocity).torque
+        torque = torque_curve.evaluate(velocity=velocity).torque
 
         power_raw = (torque * (rpm/60) * 2 * np.pi)/737.56
 

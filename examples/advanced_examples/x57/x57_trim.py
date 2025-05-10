@@ -16,7 +16,7 @@ recorder.start()
 x57_folder_path = REPO_ROOT_FOLDER / 'examples' / 'advanced_examples' / 'x57'
 sys.path.append(str(x57_folder_path))
 
-from x57_vehicle_models import X57ControlSystem, fd_axis, build_aircraft, X57Propulsion, X57Aerodynamics
+from x57_vehicle_models import X57ControlSystem, fd_axis, build_aircraft, X57Propulsion, X57Aerodynamics, HL_motor_axes, cruise_motor_axes, wing_axis
 
 Aircraft = build_aircraft(do_geo_param=False)
 x57_controls = X57ControlSystem(hl_engine_count=12,cm_engine_count=2,symmetrical=True)
@@ -25,8 +25,6 @@ x57_controls.rudder.deflection = Aircraft.comps['Rudder'].parameters.actuate_ang
 x57_controls.aileron.deflection = Aircraft.comps['Left Aileron'].parameters.actuate_angle
 x57_controls.flap.deflection = Aircraft.comps['Left Flap'].parameters.actuate_angle
 x57_controls.trim_tab.deflection = Aircraft.comps['Trim Tab'].parameters.actuate_angle
-
-
 
 
 
@@ -44,9 +42,9 @@ x57_controls.rudder.deflection.set_as_design_variable(lower=-np.deg2rad(10), upp
 x57_controls.aileron.deflection.set_as_design_variable(lower=-np.deg2rad(10), upper=np.deg2rad(10))
 x57_controls.flap.deflection.set_as_design_variable(lower=-np.deg2rad(10), upper=np.deg2rad(10))
 x57_controls.trim_tab.deflection.set_as_design_variable(lower=-np.deg2rad(10), upper=np.deg2rad(10))
-cruise.parameters.pitch_angle.set_as_design_variable(lower=-np.deg2rad(10), upper=np.deg2rad(10))
-# cruiseCondition.parameters.altitude.set_as_design_variable(lower=1, upper=2000)
-# cruiseCondition.parameters.speed.set_as_design_variable(lower=0.1, upper=200)
+# cruise.parameters.pitch_angle.set_as_design_variable(lower=-np.deg2rad(10), upper=np.deg2rad(10))
+# cruise.parameters.altitude.set_as_design_variable(lower=1, upper=2000)
+# cruise.parameters.speed.set_as_design_variable(lower=0.1, upper=200)
 
 
 
@@ -55,15 +53,15 @@ for left_engine, right_engine in zip(x57_controls.hl_engines_left, x57_controls.
     right_engine.throttle.set_as_design_variable(lower=0.0, upper=0.0)
     hl_throt_diff = (right_engine.throttle - left_engine.throttle) # setting all engines to the same throttle setting, because of symmetry
     hl_throt_diff.name = f'HL Throttle Diff{left_engine.throttle.name} - {right_engine.throttle.name}'
-    hl_throt_diff.set_as_constraint(lower=-1e-6, upper=1e-6)
+    hl_throt_diff.set_as_constraint(equals=0)
 
 
 for left_engine, right_engine in zip(x57_controls.cm_engines_left, x57_controls.cm_engines_right):
-    left_engine.throttle.set_as_design_variable(lower=0.4, upper=1.0)
-    right_engine.throttle.set_as_design_variable(lower=0.4, upper=1.0)
+    left_engine.throttle.set_as_design_variable(lower=0.0, upper=1.0)
+    right_engine.throttle.set_as_design_variable(lower=0.0, upper=1.0)
     cm_thrott_diff = (right_engine.throttle - left_engine.throttle) # setting all engines to the same throttle setting, because of symmetry
     cm_thrott_diff.name = f'CM Throttle Diff{left_engine.throttle.name} - {right_engine.throttle.name}'
-    cm_thrott_diff.set_as_constraint(lower=-1e-6, upper=1e-6)
+    cm_thrott_diff.set_as_constraint(equals=0)
                         
 tf, tm = Aircraft.compute_total_loads(fd_state=cruise.ac_states,
                                             controls=cruise.controls)
@@ -72,7 +70,7 @@ print('Total Moments:', tm.value)
 
 J = cruise.evaluate_trim_res(component=Aircraft)
 J.name = 'J'
-J.set_as_constraint(lower=-1e-6, upper=1e-6, scaler=1e-4)
+J.set_as_constraint(equals=0, scaler=1e-2)
 
 
 hl_propulsions = []
@@ -96,36 +94,35 @@ for comp in Aircraft.comps.values():
 
 currentThrust = []
 currentPwr = []
-for hl in hl_propulsions:
-    propload = hl.get_FM_localAxis(states=cruise.ac_states, controls=x57_controls)
-    prop_pwr = hl.get_power(states=cruise.ac_states, controls=x57_controls)
+for i, hl in enumerate(hl_propulsions):
+    propload = hl.get_FM_localAxis(states=cruise.ac_states, controls=x57_controls, axis=HL_motor_axes[i])
+    prop_pwr_hl = hl.get_power(states=cruise.ac_states, controls=x57_controls)
     propload_new = propload.rotate_to_axis(fd_axis)
     thrust = propload_new.F.vector[0]
     currentThrust.append(thrust)
-    currentPwr.append(prop_pwr)
+    currentPwr.append(prop_pwr_hl)
 
-for cr in cruise_propulsions:
-    propload = cr.get_FM_localAxis(states=cruise.ac_states, controls=x57_controls)
-    prop_pwr = cr.get_power(states=cruise.ac_states, controls=x57_controls)
+for i, cr in enumerate(cruise_propulsions):
+    propload = cr.get_FM_localAxis(states=cruise.ac_states, controls=x57_controls, axis=cruise_motor_axes[i])
+    prop_pwr_cm = cr.get_power(states=cruise.ac_states, controls=x57_controls)
     propload_new = propload.rotate_to_axis(fd_axis)
     thrust = propload_new.F.vector[0]
     currentThrust.append(thrust)
-    currentPwr.append(prop_pwr)
+    currentPwr.append(prop_pwr_cm)
 
 TotalThrust = np.sum(currentThrust)
 TotalThrust.name = 'Total Thrust'
-
 TotalPwr = np.sum(currentPwr)
 TotalPwr.name = 'Total Power'
 
 
 
-loads = aero_loads.get_FM_localAxis(states=cruise.ac_states, controls=x57_controls)
+loads = aero_loads.get_FM_localAxis(states=cruise.ac_states, controls=x57_controls, axis=wing_axis)
 loads_new = loads.rotate_to_axis(fd_axis)
 drag = csdl.absolute(loads_new.F.vector[0])
 ThrustRequired = drag
 ThrustRequired.name = 'Thrust Required'
-ThrustRequired.set_as_objective()
+ThrustRequired.set_as_objective(scaler=1e-2)
         
 
 
@@ -142,7 +139,7 @@ TRequireds = []
 TAvails = []
 PAvails = []
 PReqs = []
-speeds = np.arange(10, 100, 10)
+speeds = np.arange(10, 30, 10)
 vtas_list = []
 
 for i, speed in enumerate(speeds):

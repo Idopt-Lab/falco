@@ -123,17 +123,17 @@ class Condition():
     def __repr__(self):
         try:
             ac_states = self.ac_states
-            u_val = ac_states.state_vector.u.value
-            v_val = ac_states.state_vector.v.value
-            w_val = ac_states.state_vector.w.value
-            p_val = ac_states.state_vector.p.value
-            q_val = ac_states.state_vector.q.value
-            r_val = ac_states.state_vector.r.value
+            u_val = ac_states.states.u.value
+            v_val = ac_states.states.v.value
+            w_val = ac_states.states.w.value
+            p_val = ac_states.states.p.value
+            q_val = ac_states.states.q.value
+            r_val = ac_states.states.r.value
             alt_val = ac_states.axis.translation_from_origin.z.value
             density = ac_states.atmospheric_states.density.value
             return (f"{self.__class__.__name__} | u={u_val} m/s, v={v_val} m/s, "
                     f"w={w_val} m/s, p={p_val} rad/s, q={q_val} rad/s, r={r_val} rad/s, "
-                    f"Altitude={alt_val} m, Density={density} kg/m^3")
+                    f"Altitude={-alt_val} m, Density={density} kg/m^3")
         except Exception:
             return f"{self.__class__.__name__} representation not available"
           
@@ -303,7 +303,7 @@ class ClimbCondition(Condition):
 
         axis.translation_from_origin.x = x
         axis.translation_from_origin.y = y
-        axis.translation_from_origin.z = h_mean
+        axis.translation_from_origin.z = -h_mean
 
         axis.euler_angles.phi = phi
         axis.euler_angles.theta = self.parameters.pitch_angle
@@ -369,7 +369,7 @@ class HoverCondition(Condition):
 
         axis.translation_from_origin.x = x
         axis.translation_from_origin.y = y
-        axis.translation_from_origin.z = hover_parameters.altitude
+        axis.translation_from_origin.z = -hover_parameters.altitude
 
         axis.euler_angles.phi = phi
         axis.euler_angles.theta = theta
