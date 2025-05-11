@@ -4,9 +4,13 @@ import csdl_alpha as csdl
 from flight_simulator.utils.euler_rotations import build_rotation_matrix
 
 class TestEulerRotations(unittest.TestCase):
-    def test_build_rotation_matrix(self):
+
+    def setUp(self):
         recorder = csdl.Recorder(inline=True)
         recorder.start()
+
+    def test_build_rotation_matrix(self):
+
         angles = csdl.Variable(shape=(3,), value=np.array([0., np.pi/2, 0.]))
         seq = np.array([3, 2, 1])
         R = build_rotation_matrix(angles, seq)
