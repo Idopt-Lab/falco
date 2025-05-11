@@ -15,7 +15,9 @@ class TestMassProperties(TestCase):
 
         self.axis = Axis(
             name='Inertial Axis',
-            translation=np.array([0, 0, 0]) * ureg.meter,
+            x=np.array([0, ]) * ureg.meter,
+            y=np.array([0, ]) * ureg.meter,
+            z=np.array([0, ]) * ureg.meter,
             phi=np.array([0, ]) * ureg.degree,
             theta=np.array([0, ]) * ureg.degree,
             psi=np.array([0, ]) * ureg.degree,
