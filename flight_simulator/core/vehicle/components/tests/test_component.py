@@ -8,7 +8,7 @@ import numpy as np
 from flight_simulator.core.dynamics.axis import Axis, ValidOrigins
 from flight_simulator.core.loads.forces_moments import Vector
 from flight_simulator.core.loads.mass_properties import MassProperties, MassMI
-from flight_simulator.core.component import Component, ComponentQuantities, ComponentParameters
+from flight_simulator.core.vehicle.components.component import Component, ComponentParameters
 from flight_simulator.utils.import_geometry import import_geometry
 
 
@@ -22,11 +22,16 @@ class TestComponentInitialization(TestCase):
         component = Component(name="custom_component")
         self.assertEqual(component._name, "custom_component")
         self.assertIsNone(component.geometry)
-        self.assertIsInstance(component.quantities, ComponentQuantities)
+        self.assertFalse(component.compute_surface_area_flag)
+        self.assertIsNone(component._parameterization_solver)
+        self.assertIsNone(component.mass_properties)
+        self.assertIsNone(component._ffd_geometric_variables)
         self.assertIsInstance(component.parameters, ComponentParameters)
         self.assertEqual(component.comps, {})
-        self.assertIsNone(component.quantities.surface_area)
-        self.assertFalse(component.compute_surface_area_flag)
+        self.assertEqual(component.surface_mesh, [])
+        self.assertEqual(component.load_solvers, [])
+        self.assertIsNone(component.surface_area)
+
 
     def test_kwargs_parameters(self):
         """Test initialization with user-defined parameters using kwargs."""
@@ -67,11 +72,6 @@ class TestComponentInitialization(TestCase):
         # Create a mass properties object
         mp = MassProperties(cg=cg, inertia=mi, mass=Q_(10, 'lb'))
 
-    #     component.quantities.mass_properties = mp
-    #     np.testing.assert_equal(component.quantities.mass_properties.inertia_tensor.inertia_tensor.value,
-    #                             np.zeros((3, 3)))
-    #     np.testing.assert_almost_equal(component.quantities.mass_properties.mass.value, desired=4.53592, decimal=5)
-
 
 class TestComponentGeometry(TestCase):
     def setUp(self):
@@ -84,7 +84,7 @@ class TestComponentGeometry(TestCase):
         wing_component = Component(name="Wing",
                                    geometry=self.wing_geometry,
                                    compute_surface_area_flag=True)
-        np.testing.assert_almost_equal(wing_component.quantities.surface_area.value, 97.229, decimal=3)
+        np.testing.assert_almost_equal(wing_component.surface_area.value, 97.229, decimal=3)
 
 
 class TestComponentHierarchy(TestCase):
@@ -129,7 +129,6 @@ class TestComponentHierarchy(TestCase):
         self.assertIn("sub_component2", parent_component.comps)
 
     def test_viz_component_hierarchy(self):
-        """Test removing a subcomponent from a Component."""
         parent_component = Component(name="parent_component")
         sub_component1 = Component(name="sub_component1")
         sub_component2 = Component(name="sub_component2")
