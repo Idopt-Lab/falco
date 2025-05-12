@@ -24,11 +24,11 @@ def get_geometry(inertial_axis):
     # region Engine Component
     engine_axis = Axis(
         name='Engine Axis',
-        x=Q_(0, 'ft'),
+        x=Q_(-5, 'ft'),
         y=Q_(0, 'ft'),
         z=Q_(0, 'ft'),
         phi=Q_(0, 'deg'),
-        theta=Q_(0, 'deg'),
+        theta=Q_(5, 'deg'),  # Engine is pitched up by 5 deg
         psi=Q_(0, 'deg'),
         sequence=np.array([3, 2, 1]),
         reference=inertial_axis,
@@ -47,6 +47,7 @@ def get_geometry(inertial_axis):
                                             cg=Vector(vector=Q_(np.array([0, 0, 0]), 'm'),
                                                       axis=engine_axis))
     engine_component.mass_properties = engine_mass_properties
+    fuselage_component.add_subcomponent(engine_component)
     # endregion
 
     # endregion
@@ -59,7 +60,7 @@ def get_geometry(inertial_axis):
         y=Q_(0, 'ft'),
         z=Q_(0, 'ft'),  # z is positive down in FD axis
         phi=Q_(0, 'deg'),
-        theta=Q_(0, 'deg'),
+        theta=Q_(0, 'deg'),  # This is incidence angle of the wing
         psi=Q_(0, 'deg'),
         sequence=np.array([3, 2, 1]),
         reference=inertial_axis,
@@ -80,12 +81,9 @@ def get_geometry(inertial_axis):
     wing_component.mass_properties = wing_mass_properties
     aircraft_component.add_subcomponent(wing_component)
     # endregion
-    return
+    return aircraft_component
 
-def get_control_system(elevator_deflection=0.0,
-                       aileron_deflection=0.0,
-                       rudder_deflection=0.0,
-                       engine_throttle=0.0):
+def get_control_system():
     control_system = ToyAircraftControlSystem()
 
     return control_system
@@ -99,7 +97,55 @@ def get_solvers():
     return
 
 
-class TestComponentInitialization(TestCase):
+class TestComponent(TestCase):
+    def setUp(self):
+        recorder = csdl.Recorder(inline=True)
+        recorder.start()
+
+        from flight_simulator.core.dynamics.axis import Axis, ValidOrigins
+
+        self.inertial_axis = Axis(
+            name='Inertial Axis',
+            origin=ValidOrigins.Inertial.value
+        )
+
+    def test_create_aircraft_component(self):
+        aircraft = get_geometry(self.inertial_axis)
+
+        self.assertEqual(list(aircraft.comps.keys()), ['Fuselage', 'Wing'])
+        self.assertEqual(list(aircraft.comps['Fuselage'].comps.keys()), ['Engine'])
+
+        engine_axis = aircraft.comps['Fuselage'].comps['Engine'].mass_properties.cg_vector.axis
+        self.assertEqual(engine_axis.name, 'Engine Axis')
+        np.testing.assert_almost_equal(engine_axis.translation_from_origin_vector.value,
+                                       desired=np.array([-1.524, 0, 0]))
+        np.testing.assert_almost_equal(engine_axis.euler_angles_vector.value,
+                                       desired=np.deg2rad(np.array([0, 5, 0])))
+
+        self.assertEqual(aircraft.comps['Wing'].mass_properties.mass.value, 500)
+
+    def test_modify_aircraft_component_axis(self):
+        aircraft = get_geometry(self.inertial_axis)
+
+        engine_axis = aircraft.comps['Fuselage'].comps['Engine'].mass_properties.cg_vector.axis
+        engine_axis.translation_from_origin_vector.set_value(value=np.array([0, 0, -5]))
+        engine_axis.euler_angles_vector.set_value(value=np.deg2rad(np.array([0, 10, 0])))
+
+        np.testing.assert_almost_equal(engine_axis.translation_from_origin_vector.value,
+                                       desired=np.array([0, 0, -5]))
+        np.testing.assert_almost_equal(engine_axis.euler_angles_vector.value,
+                                       desired=np.deg2rad(np.array([0, 10, 0])))
+
+    def test_modify_aircraft_component_values(self):
+        aircraft = get_geometry(self.inertial_axis)
+
+        self.assertEqual(aircraft.comps['Wing'].mass_properties.mass.value, 500)
+
+        aircraft.comps['Wing'].mass_properties.mass.set_value(value=600)
+        self.assertEqual(aircraft.comps['Wing'].mass_properties.mass.value, 600)
+
+
+class TestControlSystem(TestCase):
     def setUp(self):
         recorder = csdl.Recorder(inline=True)
         recorder.start()
