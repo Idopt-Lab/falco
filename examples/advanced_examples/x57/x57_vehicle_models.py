@@ -555,13 +555,14 @@ def build_aircraft(do_geo_param: bool = False):
 
     for i, HL_motor in enumerate(lift_rotors):
         HL_motor.mass_properties = MassProperties(mass=Q_(81.65/12, 'kg'), cg=Vector(vector=Q_(geo['MotorDisks'][i].value, 'm'), axis=HL_motor_axes[i]), inertia=MassMI(axis=HL_motor_axes[i]))
-        HL_motor_propulsion = X57Propulsion(radius=HL_radius_x57, prop_curve=HLPropCurve())
+        HL_motor_propulsion = X57Propulsion(radius=HL_radius_x57, prop_curve=HLPropCurve(), engine_index=i)
         HL_motor.load_solvers.append(HL_motor_propulsion)
 
 
     for i, cruise_motor in enumerate(cruise_motors):
+        engine_index = len(lift_rotors) + i
         cruise_motor.mass_properties = MassProperties(mass=Q_(106.14/2, 'kg'), cg=Vector(vector=Q_(geo['cruise_motors_base'][i].value, 'm'), axis=cruise_motor_axes[i]), inertia=MassMI(axis=cruise_motor_axes[i]))
-        cruise_motor_propulsion = X57Propulsion(radius=cruise_radius_x57, prop_curve=CruisePropCurve())
+        cruise_motor_propulsion = X57Propulsion(radius=cruise_radius_x57, prop_curve=CruisePropCurve(), engine_index=engine_index)
         cruise_motor.load_solvers.append(cruise_motor_propulsion)
 
 
@@ -588,17 +589,23 @@ def build_aircraft(do_geo_param: bool = False):
 
 class X57ControlSystem(VehicleControlSystem):
 
-    def __init__(self, hl_engine_count: int, cm_engine_count: int, symmetrical: bool = True)-> None:
+    def __init__(self, elevator_component, trim_tab_component, aileron_right_component, aileron_left_component, flap_left_component, flap_right_component, 
+                 rudder_component, hl_engine_count: int, cm_engine_count: int, symmetrical: bool = True)-> None:
         self.symmetrical = symmetrical
-        self.elevator = ControlSurface(name='Elevator',lb=-26, ub=28)
-        self.trim_tab = ControlSurface(name='Trim Tab', lb=-15, ub=15)
-        
-        if symmetrical:
-            self._init_symmetrical_controls()
-        else:
-            self._init_asymmetrical_controls()
 
-        self.rudder = ControlSurface(name='Rudder',lb=-15, ub=15)
+
+        self.elevator = ControlSurface('elevator', lb=-26, ub=28, component=elevator_component)
+        self.trim_tab = ControlSurface('trim_tab', lb=-15, ub=20, component=trim_tab_component)
+        if not symmetrical:
+            self.aileron_left = ControlSurface('aileron_left', lb=-15, ub=20, component=aileron_left_component)
+            self.aileron_right = ControlSurface('aileron_right', lb=-15, ub=20, component=aileron_right_component)
+            self.flap_left = ControlSurface('flap_left', lb=-15, ub=20, component=flap_left_component)
+            self.flap_right = ControlSurface('flap_right', lb=-15, ub=20, component=flap_right_component)
+        else:
+            self.aileron = ControlSurface('aileron', lb=-15, ub=20, component=aileron_right_component)
+            self.flap = ControlSurface('flap', lb=-15, ub=20, component=flap_right_component)
+        self.rudder = ControlSurface('rudder', lb=-16, ub=16, component=rudder_component)
+
         self.hl_engines = self._init_hl_engines(hl_engine_count)
         midpoint_hl = len(self.hl_engines) // 2
         self.hl_engines_left = self.hl_engines[:midpoint_hl]
@@ -608,40 +615,52 @@ class X57ControlSystem(VehicleControlSystem):
         self.cm_engines_left = self.cm_engines[:midpoint_cm]
         self.cm_engines_right = self.cm_engines[midpoint_cm:]
         self.engines = self.hl_engines + self.cm_engines
-        self.u = self._assemble_control_vector()
+
+        if symmetrical:
+            control=(
+                self.aileron.deflection,
+                -self.aileron.deflection,
+                self.flap.deflection,
+                -self.flap.deflection,
+                self.elevator.deflection,
+                self.trim_tab.deflection,
+                self.rudder.deflection
+            )
+            # Use all engine throttle values for control vector
+            engine_controls = tuple(engine.throttle for engine in self.engines)
+            self.u = csdl.concatenate(control + engine_controls, axis=0)
+        else:
+            control=(
+                self.left_aileron.deflection,
+                self.right_aileron.deflection,
+                self.left_flap.deflection,
+                self.right_flap.deflection,
+                self.elevator.deflection,
+                self.trim_tab.deflection,
+                self.rudder.deflection
+            )
+            # Use all engine throttle values for control vector
+            engine_controls = tuple(engine.throttle for engine in self.engines)
+            self.u = csdl.concatenate(control + engine_controls, axis=0)           
+
 
 
         if symmetrical:
             super().__init__(
-                pitch_control=[self.elevator],
+                pitch_control=[self.elevator, self.trim_tab],
                 roll_control=[self.aileron],
                 yaw_control=[self.rudder],
-                throttle_control=[self.engines[0]]
+                throttle_control=self.engines
             )
         else:
             super().__init__(
-                pitch_control=[self.elevator],
+                pitch_control=[self.elevator, self.trim_tab],
                 roll_control=[self.left_aileron, self.right_aileron],
                 yaw_control=[self.rudder],
                 throttle_control=self.engines
             )
 
 
-    def _init_symmetrical_controls(self) -> None:
-        """Initialize controls for a symmetrical configuration."""
-        self.aileron = ControlSurface(name='Aileron', lb=-15, ub=20)
-        self.flap = ControlSurface(name='Flap', lb=-15, ub=20)
-        self.left_aileron = self.aileron
-        self.right_aileron = self.aileron
-        self.left_flap = self.flap
-        self.right_flap = self.flap
-    
-    def _init_asymmetrical_controls(self) -> None:
-        """Initialize controls for an asymmetrical configuration."""
-        self.left_aileron = ControlSurface(name='Left Aileron', lb=-15, ub=20)
-        self.right_aileron = ControlSurface(name='Right Aileron', lb=-15, ub=20)
-        self.left_flap = ControlSurface(name='Left Flap', lb=-15, ub=20)
-        self.right_flap = ControlSurface(name='Right Flap', lb=-15, ub=20)
     
 
     def _init_hl_engines(self, count: int) -> list:
@@ -653,26 +672,6 @@ class X57ControlSystem(VehicleControlSystem):
         return [PropulsiveControl(name=f'Cruise_Motor{i+1}', throttle=1.0) for i in range(count)]
     
         
-
-
-    def _assemble_control_vector(self):
-        """
-        Assemble the control vector using the deflections of the surfaces.
-        
-        Returns:
-            The concatenated control vector.
-        """
-        controls = (
-            self.left_aileron.deflection,
-            self.right_aileron.deflection,
-            self.left_flap.deflection,
-            self.right_flap.deflection,
-            self.elevator.deflection,
-            self.rudder.deflection
-        )
-        # Use all engine throttle values for control vector
-        engine_controls = tuple(engine.throttle for engine in self.engines)
-        return csdl.concatenate(controls + engine_controls, axis=0)
         
     
     @property
@@ -1117,8 +1116,14 @@ class X57Aerodynamics(Loads):
             alpha = theta + self.i_wing
 
             dstab = controls.elevator.deflection
-            dflap = controls.left_flap.deflection
-            daileron = controls.left_aileron.deflection
+
+            if hasattr(controls, 'left_flap'):
+                dflap = controls.left_flap.deflection
+                daileron = controls.left_aileron.deflection
+            else:
+                dflap = controls.flap.deflection
+                daileron = controls.aileron.deflection
+
             dtrim = controls.trim_tab.deflection
             drudder = controls.rudder.deflection
 
@@ -1223,13 +1228,6 @@ class HLPropCurve(csdl.CustomExplicitOperation):
             torque = self.create_output('torque', velocity.shape)
             ct = self.create_output('ct', velocity.shape)
 
-
-            if hasattr(velocity, 'value') and (velocity.value is not None):
-                ct.set_value(self.ct(velocity.value))
-                cp.set_value(self.cp(velocity.value))
-                rpm.set_value(self.rpm(velocity.value))
-                torque.set_value(self.torque(velocity.value))
-
             outputs.ct = ct
             outputs.cp = cp
             outputs.rpm = rpm
@@ -1294,13 +1292,6 @@ class CruisePropCurve(csdl.CustomExplicitOperation):
             torque = self.create_output('torque', velocity.shape)
             ct = self.create_output('ct', velocity.shape)
 
-
-            if hasattr(velocity, 'value') and (velocity.value is not None):
-                ct.set_value(self.ct(velocity.value))
-                cp.set_value(self.cp(velocity.value))
-                rpm.set_value(self.rpm(velocity.value))
-                torque.set_value(self.torque(velocity.value))
-
             outputs.ct = ct
             outputs.cp = cp
             outputs.rpm = rpm
@@ -1328,8 +1319,9 @@ class CruisePropCurve(csdl.CustomExplicitOperation):
 
 class X57Propulsion(Loads):
 
-    def __init__(self, radius:Union[ureg.Quantity, csdl.Variable], prop_curve:Union[HLPropCurve, CruisePropCurve], **kwargs):
+    def __init__(self, radius:Union[ureg.Quantity, csdl.Variable], prop_curve:Union[HLPropCurve, CruisePropCurve], engine_index: int = 0, **kwargs):
         self.prop_curve = prop_curve
+        self.engine_index = engine_index  # Save the index for later lookup
 
         if radius is None:
             self.radius = csdl.Variable(name='radius', shape=(1,), value=1.89/2) 
@@ -1362,7 +1354,7 @@ class X57Propulsion(Loads):
         loads : ForcesMoments
             Computed forces and moments about the reference point.
         """
-        throttle = controls.u[6]
+        throttle = controls.u[7+self.engine_index]  # Get the throttle for the specific engine
         density = states.atmospheric_states.density * 0.00194032  # kg/m^3 to slugs/ft^3
         velocity = states.VTAS * 3.281  # m/s to ft/s
 
@@ -1419,7 +1411,7 @@ class X57Propulsion(Loads):
         torque : csdl.VariableGroup
             Computed torque required for the propulsion system.
         """
-        throttle = controls.u[6]
+        throttle = controls.u[7+self.engine_index]  # Get the throttle for the specific engine
         density = states.atmospheric_states.density * 0.00194032
         velocity = states.VTAS * 3.281  # m/s to ft/s
 
@@ -1431,7 +1423,9 @@ class X57Propulsion(Loads):
         torque_curve = type(self.prop_curve)()
         torque = torque_curve.evaluate(velocity=velocity).torque
 
-        power_raw = (torque * (rpm/60) * 2 * np.pi)/737.56
+        power_raw = (torque * (rpm/60) * 2 * np.pi) * 1.35582 # Convert to Watts (lbf-ft/s to W)
+
+        # power_raw = (torque * (rpm/60) * 2 * np.pi)/737.56 # Convert to horsepower (lbf-ft/s to hp)
 
 
         power_raw.value = np.nan_to_num(power_raw.value, nan=1e-6)  # Replace NaN with 1e-6 to prevent division by zero

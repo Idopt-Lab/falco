@@ -19,33 +19,38 @@ sys.path.append(str(x57_folder_path))
 from x57_vehicle_models import X57ControlSystem, fd_axis, build_aircraft, X57Propulsion, X57Aerodynamics, HL_motor_axes, cruise_motor_axes, wing_axis
 
 Aircraft = build_aircraft(do_geo_param=False)
-x57_controls = X57ControlSystem(hl_engine_count=12,cm_engine_count=2,symmetrical=True)
-x57_controls.elevator.deflection = Aircraft.comps['Elevator'].parameters.actuate_angle
-x57_controls.rudder.deflection = Aircraft.comps['Rudder'].parameters.actuate_angle
-x57_controls.aileron.deflection = Aircraft.comps['Left Aileron'].parameters.actuate_angle
-x57_controls.flap.deflection = Aircraft.comps['Left Flap'].parameters.actuate_angle
-x57_controls.trim_tab.deflection = Aircraft.comps['Trim Tab'].parameters.actuate_angle
+x57_controls = X57ControlSystem(elevator_component=Aircraft.comps['Elevator'],
+                                 rudder_component=Aircraft.comps['Rudder'],
+                                 aileron_left_component=Aircraft.comps['Left Aileron'],
+                                 aileron_right_component=Aircraft.comps['Right Aileron'],
+                                 trim_tab_component=Aircraft.comps['Trim Tab'],
+                                 flap_left_component=Aircraft.comps['Left Flap'],
+                                 flap_right_component=Aircraft.comps['Right Flap'],
+                                 hl_engine_count=12,cm_engine_count=2,symmetrical=True)
+
+
 
 
 
 cruise = aircraft_conditions.CruiseCondition(
     fd_axis=fd_axis,
     controls=x57_controls,
-    altitude=Q_(1000, 'm'),
+    altitude=Q_(2500, 'ft'),
     range=Q_(70, 'km'),
-    speed=Q_(100, 'mph'),
+    speed=Q_(150, 'fps'),
     pitch_angle=Q_(0, 'deg'))
 print(cruise)
+
 
 x57_controls.elevator.deflection.set_as_design_variable(lower=-np.deg2rad(10), upper=np.deg2rad(10))
 x57_controls.rudder.deflection.set_as_design_variable(lower=-np.deg2rad(10), upper=np.deg2rad(10))
 x57_controls.aileron.deflection.set_as_design_variable(lower=-np.deg2rad(10), upper=np.deg2rad(10))
 x57_controls.flap.deflection.set_as_design_variable(lower=-np.deg2rad(10), upper=np.deg2rad(10))
 x57_controls.trim_tab.deflection.set_as_design_variable(lower=-np.deg2rad(10), upper=np.deg2rad(10))
-# cruise.parameters.pitch_angle.set_as_design_variable(lower=-np.deg2rad(10), upper=np.deg2rad(10))
+cruise.parameters.pitch_angle.set_as_design_variable(lower=-np.deg2rad(10), upper=np.deg2rad(10))
+
 # cruise.parameters.altitude.set_as_design_variable(lower=1, upper=2000)
 # cruise.parameters.speed.set_as_design_variable(lower=0.1, upper=200)
-
 
 
 for left_engine, right_engine in zip(x57_controls.hl_engines_left, x57_controls.hl_engines_right):
@@ -65,13 +70,14 @@ for left_engine, right_engine in zip(x57_controls.cm_engines_left, x57_controls.
                         
 tf, tm = Aircraft.compute_total_loads(fd_state=cruise.ac_states,
                                             controls=cruise.controls)
-print('Total Forces:', tf.value)
-print('Total Moments:', tm.value)
+# print('Total Forces:', tf.value)
+# print('Total Moments:', tm.value)
+
+
 
 J = cruise.evaluate_trim_res(component=Aircraft)
-J.name = 'J'
-J.set_as_constraint(equals=0, scaler=1e-2)
-
+J.name = 'J: Trim Scalar'
+J.set_as_constraint(equals=0.0)
 
 hl_propulsions = []
 cruise_propulsions = []
@@ -80,6 +86,9 @@ if hasattr(Aircraft, 'load_solvers'):
     for solver in Aircraft.load_solvers:
         if isinstance(solver, X57Aerodynamics):
             aero_loads=solver
+            break
+    else:
+        raise ValueError("No X57Aerodynamics solver found in Aircraft.load_solvers")
 
 
 for comp in Aircraft.comps.values():
@@ -97,54 +106,60 @@ currentPwr = []
 for i, hl in enumerate(hl_propulsions):
     propload = hl.get_FM_localAxis(states=cruise.ac_states, controls=x57_controls, axis=HL_motor_axes[i])
     prop_pwr_hl = hl.get_power(states=cruise.ac_states, controls=x57_controls)
-    propload_new = propload.rotate_to_axis(fd_axis)
-    thrust = propload_new.F.vector[0]
+    propF, propM = propload.rotate_to_axis(F=propload.F.vector, M=propload.M.vector, euler_angles=fd_axis.euler_angles_vector, seq=fd_axis.sequence)
+    thrust = propF[0]
     currentThrust.append(thrust)
     currentPwr.append(prop_pwr_hl)
 
 for i, cr in enumerate(cruise_propulsions):
     propload = cr.get_FM_localAxis(states=cruise.ac_states, controls=x57_controls, axis=cruise_motor_axes[i])
     prop_pwr_cm = cr.get_power(states=cruise.ac_states, controls=x57_controls)
-    propload_new = propload.rotate_to_axis(fd_axis)
-    thrust = propload_new.F.vector[0]
+    propF, propM = propload.rotate_to_axis(F=propload.F.vector, M=propload.M.vector, euler_angles=fd_axis.euler_angles_vector, seq=fd_axis.sequence)
+    thrust = propF[0]
     currentThrust.append(thrust)
     currentPwr.append(prop_pwr_cm)
 
-TotalThrust = np.sum(currentThrust)
-TotalThrust.name = 'Total Thrust'
-TotalPwr = np.sum(currentPwr)
-TotalPwr.name = 'Total Power'
+
+TotalThrust = csdl.sum(*currentThrust)
+TotalThrust.name = 'Thrust Available'
+print('Available Thrust Available Before Optimization:', TotalThrust.value)
+TotalPwr = csdl.sum(*currentPwr)
+TotalPwr.name = 'Power Available'
+print('Available Power Available Before Optimization:', TotalPwr.value)
 
 
 
 loads = aero_loads.get_FM_localAxis(states=cruise.ac_states, controls=x57_controls, axis=wing_axis)
-loads_new = loads.rotate_to_axis(fd_axis)
-drag = csdl.absolute(loads_new.F.vector[0])
-ThrustRequired = drag
-ThrustRequired.name = 'Thrust Required'
-ThrustRequired.set_as_objective(scaler=1e-2)
-        
+aeroF, aeroM = loads.rotate_to_axis(F=loads.F.vector, M=loads.M.vector, euler_angles=fd_axis.euler_angles_vector, seq=fd_axis.sequence)
+Drag = csdl.absolute(aeroF[0]) # Thrust Required = Drag. Drag is in the x direction
+print('Drag Before Optimization:', Drag.value)
+Drag.name = 'Drag Required (N)'
+
+
+residual = csdl.absolute(tf[0]-Drag)
+residual.name = 'Thrust Residual'
+residual.set_as_objective(scaler=1e-4)
+
 
 
 sim = csdl.experimental.JaxSimulator(
     recorder=recorder,
     gpu=False,
     additional_inputs=[cruise.parameters.speed],
-    additional_outputs=[TotalThrust, ThrustRequired,TotalPwr, cruise.ac_states.VTAS],
+    additional_outputs=[TotalThrust, Drag, TotalPwr, cruise.ac_states.VTAS],
     derivatives_kwargs= {
-        "concatenate_ofs" : True
-    })
+        "concatenate_ofs" : True})
 
 TRequireds = []
 TAvails = []
 PAvails = []
 PReqs = []
-speeds = np.arange(10, 30, 10)
+speeds = np.arange(40, 45, 5)
 vtas_list = []
 
 for i, speed in enumerate(speeds):
-    sim[cruise.parameters.speed] = speed
 
+    sim[cruise.parameters.speed] = speed
 
     sim.check_optimization_derivatives()
     t1 = time.time()
@@ -154,7 +169,6 @@ for i, speed in enumerate(speeds):
     optimizer.print_results()
     t2 = time.time()
     print('Time to solve Optimization:', t2-t1)
-    # print('Total code run time:', t2-t0)
     recorder.execute()
     dv_save_dict = {}
     constraints_save_dict = {}
@@ -178,9 +192,15 @@ for i, speed in enumerate(speeds):
 
     TRequireds.append(obj.value[0])
     TAvails.append(TotalThrust.value[0])
-    PAvails.append(TotalPwr.value[0])
+    PAvails.append((TotalPwr.value[0])*1e-3)  # convert to kW
     PReqs.append((obj.value[0] * cruise.ac_states.VTAS.value[0])*1e-3) # convert to kW
     vtas_list.append(cruise.ac_states.VTAS.value[0])
+
+
+# Thrust Available and Power Available are CONSTANT in both of these cases because, for the Cruise Motors
+# the RPMs from the CFD data are constant or nearly constant, resulting in thrust and power available curves 
+# that are nearly completely insensitive to the throttle setting.
+
 
 plt.figure()
 plt.plot(vtas_list, TRequireds, marker='s', linestyle='--', label='Required Thrust')
@@ -197,7 +217,7 @@ plt.figure()
 plt.plot(vtas_list, PReqs, marker='s', linestyle='--', label='Required Power')
 plt.plot(vtas_list, PAvails, marker='o', linestyle='-', label='Available Power')
 plt.xlabel('True Airspeed (VTAS) [m/s]')
-plt.ylabel('Power (kW)')
+plt.ylabel('Power (W)')
 plt.title('Power vs. VTAS')
 plt.grid(True)
 plt.legend()
