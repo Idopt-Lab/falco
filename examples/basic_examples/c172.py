@@ -29,12 +29,12 @@ recorder.start()
 # region General Parameters
 h = 12000
 Vx = 138
-Vy = 6.605
-Throttle = 0.95
-PropRadius = 0.94
+Vy = 6.66
+Throttle = 0.94863
+PropRadius = 0.94902815
 Range = 10000
 M_Aircraft = 1043.2616
-delta_elevator = -1.23
+delta_elevator = -1.43
 # endregion
 
 # region Inertial Axis
@@ -805,19 +805,37 @@ aircraft_component.mass_properties = c172_mass_properties
 
 tf, tm = aircraft_component.compute_total_loads(fd_state=cruise_cond.ac_states,
                                                 controls=cruise_cond.controls)
+
+print(tf.value)
+print(tm.value)
 # FM = csdl.concatenate((tf, tm), axis=0)
+
+Lift_scaling = 1/ (M_Aircraft * 9.81)
+Drag_scaling = Lift_scaling / 10
+Moment_scaling = 10 * Lift_scaling
+
+
+FM = csdl.concatenate((Drag_scaling * tf[0], tf[1], Lift_scaling * tf[2], tm[0], Moment_scaling * tm[1], tm[2]), axis=0)
+
+
+
+
 
 thrust = tf[0]
 drag = 900
-residual = csdl.absolute(thrust-drag)
-
+residual = csdl.absolute(csdl.norm(FM, ord=2))
 residual.set_as_objective()
 
-c172_controls.engine.throttle.set_as_design_variable(lower=0.4,
+c172_controls.engine.throttle.set_as_design_variable(lower=0.8,
                                                      upper=1.0)
 
-# c172_controls.elevator.deflection.set_as_design_variable(lower=c172_controls.elevator.lower_bound*np.pi/180,
-#                                                      upper=c172_controls.elevator.upper_bound*np.pi/180)
+# c172_controls.elevator.deflection.set_as_design_variable(lower=-2*np.pi/180,
+#                                                      upper=2*np.pi/180)
+c172_controls.elevator.deflection.set_as_design_variable(lower=c172_controls.elevator.lower_bound*np.pi/180,
+                                                     upper=c172_controls.elevator.upper_bound*np.pi/180, scaler=100)
+#
+cruise_cond.parameters.pitch_angle.set_as_design_variable(lower=(-1)*np.pi/180,
+                                                     upper=4*np.pi/180, scaler=100)
 
 
 sim = csdl.experimental.JaxSimulator(
@@ -846,8 +864,20 @@ dv_dict = recorder.design_variables
 constraint_dict = recorder.constraints
 obj_dict = recorder.objectives
 
-pass
-# Create Aerodynamic Model
+# Print Cruise Trim Results:
+print("=====Aircraft States=====")
+print("Thrust")
+print(c172_controls.engine.throttle.value)
+print("Elevator Deflection (deg)")
+print(c172_controls.elevator.deflection.value * 180 / np.pi)
+print("Pitch Angle (deg)")
+print(cruise_cond.parameters.pitch_angle.value * 180 / np.pi)
+print("Residual Magnitude: (Net body forces and moments)")
+print(FM.value)
+print("Residual Norm")
+print(csdl.norm(FM, ord=2).value)
+
+
 
 
 
