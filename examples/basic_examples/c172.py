@@ -26,6 +26,17 @@ recorder.start()
 
 # region Axis
 
+# region General Parameters
+h = 12000
+Vx = 138
+Vy = 6.605
+Throttle = 0.95
+PropRadius = 0.94
+Range = 10000
+M_Aircraft = 1043.2616
+delta_elevator = -1.23
+# endregion
+
 # region Inertial Axis
 # I am picking the inertial axis location as the OpenVSP (0,0,0)
 inertial_axis = Axis(
@@ -40,7 +51,7 @@ fd_axis = Axis(
     name='Flight Dynamics Body Fixed Axis',
     x=Q_(0, 'ft'),
     y=Q_(0, 'ft'),
-    z=Q_(-12000, 'ft'),  # z is positive down in FD axis
+    z=Q_(-h, 'ft'),  # z is positive down in FD axis
     phi=Q_(0, 'deg'),
     theta=Q_(0, 'deg'),
     psi=Q_(0, 'deg'),
@@ -67,7 +78,7 @@ engine_axis = Axis(
     y=Q_(0, 'ft'),
     z=Q_(0, 'ft'),  # z is positive down in FD axis
     phi=Q_(0, 'deg'),
-    theta=Q_(60, 'deg'),
+    theta=Q_(0, 'deg'),
     psi=Q_(0, 'deg'),
     sequence=np.array([3, 2, 1]),
     reference=inertial_axis,
@@ -99,7 +110,7 @@ wing_axis = Axis(
     name='Wing Axis',
     x=Q_(0, 'ft'),
     y=Q_(0, 'ft'),
-    z=Q_(10, 'ft'),  # z is positive down in FD axis
+    z=Q_(0, 'ft'),  # z is positive down in FD axis
     phi=Q_(0, 'deg'),
     theta=Q_(0, 'deg'),
     psi=Q_(0, 'deg'),
@@ -129,7 +140,7 @@ rudder_component.parameters.actuate_angle = csdl.Variable(name="Rudder Actuate A
 # aircraft_component.add_subcomponent(rudder_component)
 
 elevator_component = Component(name='Elevator')
-elevator_component.parameters.actuate_angle = csdl.Variable(name="Elevator Actuate Angle", shape=(1,), value=np.deg2rad(0))
+elevator_component.parameters.actuate_angle = csdl.Variable(name="Elevator Actuate Angle", shape=(1,), value=np.deg2rad(delta_elevator))
 # aircraft_component.add_subcomponent(elevator_component)
 
 right_aileron_component = Component(name='Right Aileron')
@@ -151,7 +162,7 @@ class C172Control(VehicleControlSystem):
             self.aileron = ControlSurface('aileron', lb=-15, ub=20, component=aileron_right_component)
         self.rudder = ControlSurface('rudder', lb=-16, ub=16, component=rudder_component)
 
-        self.engine = PropulsiveControl(name='engine', throttle=0.99)
+        self.engine = PropulsiveControl(name='engine', throttle=Throttle)
 
         if symmetrical:
             self.u = csdl.concatenate((self.aileron.deflection,
@@ -662,10 +673,10 @@ class C172Aerodynamics(Loads):
 c172_aero_curves = AeroCurve()
 
 c172_aerodynamics = C172Aerodynamics(S=None, b=None, c=None, aero_curves=c172_aero_curves)
-state = AircraftStates(axis=fd_axis, u=Q_(120, 'mph'), w=Q_(1.5, 'mph'))
+state = AircraftStates(axis=fd_axis, u=Q_(Vx, 'mph'), w=Q_(Vy, 'mph'))
 # loads = c172_aerodynamics.get_FM_localAxis(states=state, controls=c172_controls)
 wing_component.load_solvers.append(c172_aerodynamics)
-wing_component.compute_total_loads(fd_state=state, controls=c172_controls)
+# wing_component.compute_total_loads(fd_state=state, controls=c172_controls)
 
 pass
 # endregion
@@ -724,7 +735,7 @@ class C172Propulsion(Loads):
         self.c172_prop_curve = prop_curve
 
         if radius is None:
-            self.radius = csdl.Variable(name='radius', shape=(1,), value=0.94)
+            self.radius = csdl.Variable(name='radius', shape=(1,), value=PropRadius)
         elif isinstance(radius, ureg.Quantity):
             self.radius = csdl.Variable(name='radius', shape=(1,), value=radius.to_base_units())
         else:
@@ -759,20 +770,22 @@ class C172Propulsion(Loads):
 
 
 c172_propulsion = C172Propulsion( radius=radius_c172, prop_curve=c172_prop_curve)
-state = AircraftStates(axis=fd_axis, u=Q_(125, 'mph'), w=Q_(5.2, 'mph'))
+state = AircraftStates(axis=fd_axis, u=Q_(Vx, 'mph'), w=Q_(Vy, 'mph'))
 # loads = c172_propulsion.get_FM_localAxis(states=state, controls=c172_controls, axis=engine_axis)
 
 engine_component.load_solvers.append(c172_propulsion)
-engine_component.compute_total_loads(fd_state=state, controls=c172_controls)
+# engine_component.compute_total_loads(fd_state=state, controls=c172_controls)
 # endregion
 
 
 # region Create Conditions
 
 # region Cruise Condition
+
 cruise_cond = CruiseCondition(fd_axis=fd_axis, controls=c172_controls,
-                              altitude=Q_(12000, 'ft'), mach_number=Q_(0.1, 'dimensionless'),
-                              range=Q_(10000, 'm'))
+                              speed=Q_(np.sqrt(Vx**2 + Vy**2), 'mph'), pitch_angle=Q_(np.arctan(Vy/Vx), 'radians'),
+                              altitude=Q_(h, 'ft'),
+                              range=Q_(Range, 'm'))
 
 # Create a Mass Properties object with given values
 c172_mi = MassMI(axis=cruise_cond.ac_states.axis,
@@ -782,7 +795,7 @@ c172_mi = MassMI(axis=cruise_cond.ac_states.axis,
                  Ixy=Q_(0, 'kg*(m*m)'),
                  Ixz=Q_(0, 'kg*(m*m)'),
                  Iyz=Q_(0, 'kg*(m*m)'))
-c172_mass_properties = MassProperties(mass=Q_(1043.2616, 'kg'),
+c172_mass_properties = MassProperties(mass=Q_(M_Aircraft, 'kg'),
                                       inertia=c172_mi,
                                       cg=Vector(vector=Q_(np.array([0, 0, 0]), 'm'), axis=fd_axis))
 aircraft_component.mass_properties = c172_mass_properties
@@ -792,6 +805,7 @@ aircraft_component.mass_properties = c172_mass_properties
 
 tf, tm = aircraft_component.compute_total_loads(fd_state=cruise_cond.ac_states,
                                                 controls=cruise_cond.controls)
+# FM = csdl.concatenate((tf, tm), axis=0)
 
 thrust = tf[0]
 drag = 900
@@ -800,7 +814,11 @@ residual = csdl.absolute(thrust-drag)
 residual.set_as_objective()
 
 c172_controls.engine.throttle.set_as_design_variable(lower=0.4,
-                                                     upper=0.8)
+                                                     upper=1.0)
+
+# c172_controls.elevator.deflection.set_as_design_variable(lower=c172_controls.elevator.lower_bound*np.pi/180,
+#                                                      upper=c172_controls.elevator.upper_bound*np.pi/180)
+
 
 sim = csdl.experimental.JaxSimulator(
         recorder=recorder,

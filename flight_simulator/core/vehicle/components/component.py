@@ -160,7 +160,7 @@ class Component:
                 elif fm.F.axis.name == 'Wind Axis':
                     # Implement R cross F
                     fm_fd_axis_component_origin = fm.transform_to_axis(fd_state.axis, translate_flag=False,
-                                                                    rotate_flag=True)
+                                                                    rotate_flag=True, reverse_flag=True)
 
                     F_trans, M_trans = ForcesMoments.translate_to_axis(fm_fd_axis_component_origin.F.vector, fm_fd_axis_component_origin.M.vector, local_axis.translation)
 

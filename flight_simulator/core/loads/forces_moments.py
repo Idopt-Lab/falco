@@ -15,7 +15,7 @@ class ForcesMoments:
 
 
 
-    def transform_to_axis(self, parent_or_child_axis, translate_flag = True, rotate_flag=True):
+    def transform_to_axis(self, parent_or_child_axis, translate_flag = True, rotate_flag=True, reverse_flag=False):
 
         # We have a parent axis (B1) and a child axis B2
         # 1. The forces and moments are in the B2 frame and we want to transform to the B1 frame
@@ -30,7 +30,7 @@ class ForcesMoments:
 
                 # First perform rotation
                 if rotate_flag:
-                    inter_force, inter_moment = self.rotate_to_axis(orig_force, orig_moment, euler, seq)
+                    inter_force, inter_moment = self.rotate_to_axis(orig_force, orig_moment, euler, seq, reverse=reverse_flag)
                 else:
                     inter_force = orig_force
                     inter_moment = orig_moment
