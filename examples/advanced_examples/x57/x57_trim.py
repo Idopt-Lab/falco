@@ -54,11 +54,11 @@ cruise.parameters.pitch_angle.set_as_design_variable(lower=-np.deg2rad(10), uppe
 
 
 for left_engine, right_engine in zip(x57_controls.hl_engines_left, x57_controls.hl_engines_right):
-    left_engine.throttle.set_as_design_variable(lower=0.0, upper=0.0)
-    right_engine.throttle.set_as_design_variable(lower=0.0, upper=0.0)
+    left_engine.throttle.set_as_design_variable(lower=0, upper=1e-6)
+    right_engine.throttle.set_as_design_variable(lower=0, upper=1e-6)
     hl_throt_diff = (right_engine.throttle - left_engine.throttle) # setting all engines to the same throttle setting, because of symmetry
     hl_throt_diff.name = f'HL Throttle Diff{left_engine.throttle.name} - {right_engine.throttle.name}'
-    hl_throt_diff.set_as_constraint(equals=0)
+    hl_throt_diff.set_as_constraint(equals=0, scaler=1e-3)  # Allow a small difference due to numerical precision
 
 
 for left_engine, right_engine in zip(x57_controls.cm_engines_left, x57_controls.cm_engines_right):
@@ -66,7 +66,7 @@ for left_engine, right_engine in zip(x57_controls.cm_engines_left, x57_controls.
     right_engine.throttle.set_as_design_variable(lower=0.0, upper=1.0)
     cm_thrott_diff = (right_engine.throttle - left_engine.throttle) # setting all engines to the same throttle setting, because of symmetry
     cm_thrott_diff.name = f'CM Throttle Diff{left_engine.throttle.name} - {right_engine.throttle.name}'
-    cm_thrott_diff.set_as_constraint(equals=0)
+    cm_thrott_diff.set_as_constraint(equals=0, scaler=1e-3)  # Allow a small difference due to numerical precision
                         
 tf, tm = Aircraft.compute_total_loads(fd_state=cruise.ac_states,
                                             controls=cruise.controls)
@@ -118,27 +118,35 @@ for i, cr in enumerate(cruise_propulsions):
 
 TotalThrust = csdl.sum(*currentThrust)
 TotalThrust.name = 'Thrust Available'
-print('Available Thrust Available Before Optimization:', TotalThrust.value)
+print('Available Thrust Before Optimization:', TotalThrust.value)
 TotalPwr = csdl.sum(*currentPwr)
 TotalPwr.name = 'Power Available'
-print('Available Power Available Before Optimization:', TotalPwr.value)
-
+print('Available Power Before Optimization:', TotalPwr.value)
 
 J = cruise.evaluate_trim_res(component=Aircraft)
 J.name = 'J: Trim Scalar'
-J.set_as_objective()
+J.set_as_constraint(lower=-1e-6, upper=1e-6, scaler=1e-3)  # Set as objective to minimize the trim scalar
 
-
-
+# Objective: Minimize the drag (or thrust required) to achieve the trim condition
 loads = aero_loads.get_FM_localAxis(states=cruise.ac_states, controls=x57_controls, axis=wing_axis)
 aeroF, aeroM = loads.rotate_to_axis(F=loads.F.vector, M=loads.M.vector, euler_angles=fd_axis.euler_angles_vector, seq=fd_axis.sequence)
-Drag = csdl.absolute(aeroF[0]) # Thrust Required = Drag. Drag is in the x direction
-print('Drag Before Optimization:', Drag.value)
-Drag.name = 'Drag Required (N)'
-# Drag.set_as_objective()
+Drag = -aeroF[0] # Thrust Required = Drag. Drag is in the x direction
+print('Thrust Required Before Optimization:', Drag.value)
+Drag.name = 'Thrust Required (N)'
+Drag.set_as_objective(scaler=1e-5)
 
 
+residual1 = tf[0]  # Residual for Fx Balance
+residual1.name = 'Fx = 0'
+residual1.set_as_constraint(lower=-1e-6, upper=1e-6, scaler=1e-5)  
+ 
+residual2 = tf[2]  # Residual for Fz Balance
+residual2.name = 'Fz = 0'
+residual2.set_as_constraint(lower=-1e-6, upper=1e-6, scaler=1e-5) 
 
+residual3 = tm[1]  # Residual for Moment Balance
+residual3.name = 'My = 0'
+residual3.set_as_constraint(lower=-1e-6, upper=1e-6, scaler=1e-6)  
 
 
 
@@ -155,7 +163,7 @@ TRequireds = []
 TAvails = []
 PAvails = []
 PReqs = []
-speeds = np.arange(40, 45, 5)
+speeds = np.arange(40, 50, 10)
 vtas_list = []
 
 for i, speed in enumerate(speeds):
@@ -179,6 +187,8 @@ for i, speed in enumerate(speeds):
     constraint_dict = recorder.constraints
     obj_dict = recorder.objectives
 
+    print("=====Aircraft States=====")
+
     for dv in dv_dict.keys():
         dv_save_dict[dv.name] = dv.value
         print("Design Variable", dv.name, dv.value)
@@ -196,6 +206,7 @@ for i, speed in enumerate(speeds):
     PAvails.append((TotalPwr.value[0])*1e-3)  # convert to kW
     PReqs.append((obj.value[0] * cruise.ac_states.VTAS.value[0])*1e-3) # convert to kW
     vtas_list.append(cruise.ac_states.VTAS.value[0])
+
 
 
 # Thrust Available and Power Available are CONSTANT in both of these cases because, for the Cruise Motors
