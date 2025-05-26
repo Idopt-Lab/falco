@@ -75,10 +75,6 @@ tf, tm = Aircraft.compute_total_loads(fd_state=cruise.ac_states,
 
 
 
-J = cruise.evaluate_trim_res(component=Aircraft)
-J.name = 'J: Trim Scalar'
-J.set_as_constraint(equals=0.0)
-
 hl_propulsions = []
 cruise_propulsions = []
 
@@ -128,17 +124,22 @@ TotalPwr.name = 'Power Available'
 print('Available Power Available Before Optimization:', TotalPwr.value)
 
 
+J = cruise.evaluate_trim_res(component=Aircraft)
+J.name = 'J: Trim Scalar'
+J.set_as_objective()
+
+
 
 loads = aero_loads.get_FM_localAxis(states=cruise.ac_states, controls=x57_controls, axis=wing_axis)
 aeroF, aeroM = loads.rotate_to_axis(F=loads.F.vector, M=loads.M.vector, euler_angles=fd_axis.euler_angles_vector, seq=fd_axis.sequence)
 Drag = csdl.absolute(aeroF[0]) # Thrust Required = Drag. Drag is in the x direction
 print('Drag Before Optimization:', Drag.value)
 Drag.name = 'Drag Required (N)'
+# Drag.set_as_objective()
 
 
-residual = csdl.absolute(tf[0]-Drag)
-residual.name = 'Thrust Residual'
-residual.set_as_objective(scaler=1e-4)
+
+
 
 
 
