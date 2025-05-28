@@ -159,7 +159,7 @@ TRequireds = []
 TAvails = []
 PAvails = []
 PReqs = []
-speeds = np.arange(40, 100, 10) # in m/s
+speeds = np.arange(40, 50, 10) # in m/s
 vtas_list = []
 
 for i, speed in enumerate(speeds):
