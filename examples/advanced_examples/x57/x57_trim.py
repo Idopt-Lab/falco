@@ -70,8 +70,8 @@ for left_engine, right_engine in zip(x57_controls.cm_engines_left, x57_controls.
                         
 tf, tm = Aircraft.compute_total_loads(fd_state=cruise.ac_states,
                                             controls=cruise.controls)
-# print('Total Forces:', tf.value)
-# print('Total Moments:', tm.value)
+print('Total Forces:', tf.value)
+print('Total Moments:', tm.value)
 
 
 
