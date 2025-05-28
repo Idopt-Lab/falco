@@ -527,6 +527,12 @@ def build_aircraft(do_geo_param: bool = False):
     LandingGear = Component(name='Landing Gear')
     Aircraft.add_subcomponent(LandingGear)
 
+    Pilots = Component(name='Pilots')
+    Aircraft.add_subcomponent(Pilots)
+
+    Miscellaneous = Component(name='Miscellaneous')
+    Aircraft.add_subcomponent(Miscellaneous)
+
 
     HL_radius_x57 = csdl.Variable(name="high_lift_motor_radius",shape=(1,), value=1.89/2) # HL propeller radius in ft
     cruise_radius_x57 = csdl.Variable(name="cruise_lift_motor_radius",shape=(1,), value=5/2) # cruise propeller radius in ft
@@ -536,22 +542,23 @@ def build_aircraft(do_geo_param: bool = False):
     Wing.parameters.actuate_angle = csdl.Variable(name="wing_incidence",shape=(1,), value=np.deg2rad(2)) # Wing incidence angle in radians
 
     Wing.mass_properties = MassProperties(mass=Q_(152.88, 'kg'), cg=Vector(vector=Q_(geo['wing_le_center'].value, 'm'), axis=wing_axis), inertia=MassMI(axis=wing_axis))
-    LeftAileron.mass_properties = MassProperties(mass=Q_(1, 'kg'), cg=Vector(vector=Q_(geo['left_aileron_le_center'].value, 'm'), axis=left_aileron_axis), inertia=MassMI(axis=left_aileron_axis))
-    RightAileron.mass_properties = MassProperties(mass=Q_(1, 'kg'), cg=Vector(vector=Q_(geo['right_aileron_le_center'].value, 'm'), axis=right_aileron_axis), inertia=MassMI(axis=right_aileron_axis))
+    LeftAileron.mass_properties = MassProperties(mass=Q_(0.1, 'kg'), cg=Vector(vector=Q_(geo['left_aileron_le_center'].value, 'm'), axis=left_aileron_axis), inertia=MassMI(axis=left_aileron_axis))
+    RightAileron.mass_properties = MassProperties(mass=Q_(0.1, 'kg'), cg=Vector(vector=Q_(geo['right_aileron_le_center'].value, 'm'), axis=right_aileron_axis), inertia=MassMI(axis=right_aileron_axis))
 
-    LeftFlap.mass_properties = MassProperties(mass=Q_(1, 'kg'), cg=Vector(vector=Q_(geo['left_flap_le_center'].value, 'm'), axis=left_flap_axis), inertia=MassMI(axis=left_flap_axis))
-    RightFlap.mass_properties = MassProperties(mass=Q_(1, 'kg'), cg=Vector(vector=Q_(geo['right_flap_le_center'].value, 'm'), axis=right_flap_axis), inertia=MassMI(axis=right_flap_axis))
+    LeftFlap.mass_properties = MassProperties(mass=Q_(0.1, 'kg'), cg=Vector(vector=Q_(geo['left_flap_le_center'].value, 'm'), axis=left_flap_axis), inertia=MassMI(axis=left_flap_axis))
+    RightFlap.mass_properties = MassProperties(mass=Q_(0.1, 'kg'), cg=Vector(vector=Q_(geo['right_flap_le_center'].value, 'm'), axis=right_flap_axis), inertia=MassMI(axis=right_flap_axis))
 
-    Fuselage.mass_properties = MassProperties(mass=Q_(235.87, 'kg'), cg=Vector(vector=Q_(geo['fuselage_wing_qc'].value, 'm'), axis=wing_axis), inertia=MassMI(axis=wing_axis))
+    Fuselage.mass_properties = MassProperties(mass=Q_(235.87, 'kg'), cg=Vector(vector=Q_(geo['fuselage_wing_qc'].value + np.array([0,0,2.6]), 'm'), axis=wing_axis), inertia=MassMI(axis=wing_axis))
     HorTail.mass_properties = MassProperties(mass=Q_(27.3/2, 'kg'), cg=Vector(vector=Q_(geo['ht_le_center'].value, 'm'), axis=ht_tail_axis), inertia=MassMI(axis=ht_tail_axis))
-    TrimTab.mass_properties = MassProperties(mass=Q_(1, 'kg'), cg=Vector(vector=Q_(geo['trimTab_le_center'].value, 'm'), axis=trimTab_axis), inertia=MassMI(axis=trimTab_axis))
+    TrimTab.mass_properties = MassProperties(mass=Q_(0.1, 'kg'), cg=Vector(vector=Q_(geo['trimTab_le_center'].value, 'm'), axis=trimTab_axis), inertia=MassMI(axis=trimTab_axis))
 
     VertTail.mass_properties = MassProperties(mass=Q_(27.3/2, 'kg'), cg=Vector(vector=Q_(geo['vt_le_mid'].value, 'm'), axis=vt_tail_axis), inertia=MassMI(axis=vt_tail_axis))
-    Rudder.mass_properties = MassProperties(mass=Q_(1, 'kg'), cg=Vector(vector=Q_(geo['rudder_le_mid'].value, 'm'), axis=rudder_axis), inertia=MassMI(axis=rudder_axis))
-    Battery.mass_properties = MassProperties(mass=Q_(390.08, 'kg'), cg=Vector(vector=Q_(geo['wing_le_center'].value + np.array([0,0,2]), 'm'), axis=wing_axis), inertia=MassMI(axis=wing_axis))
-    LandingGear.mass_properties = MassProperties(mass=Q_(61.15, 'kg'), cg=Vector(vector=Q_(geo['wing_le_center'].value + np.array([0,0,2]), 'm'), axis=wing_axis), inertia=MassMI(axis=wing_axis))
-
-
+    Rudder.mass_properties = MassProperties(mass=Q_(0.1, 'kg'), cg=Vector(vector=Q_(geo['rudder_le_mid'].value, 'm'), axis=rudder_axis), inertia=MassMI(axis=rudder_axis))
+    
+    Battery.mass_properties = MassProperties(mass=Q_(390.08, 'kg'), cg=Vector(vector=Q_(geo['fuselage_wing_qc'].value + np.array([0.1,0,2.6]), 'm'), axis=wing_axis), inertia=MassMI(axis=wing_axis))
+    LandingGear.mass_properties = MassProperties(mass=Q_(61.15, 'kg'), cg=Vector(vector=Q_(geo['fuselage_wing_qc'].value + np.array([0,0,2.6]), 'm'), axis=wing_axis), inertia=MassMI(axis=wing_axis))
+    Pilots.mass_properties = MassProperties(mass=Q_(170, 'kg'), cg=Vector(vector=Q_(geo['fuselage_wing_qc'].value + np.array([1,0,2]), 'm'), axis=wing_axis), inertia=MassMI(axis=wing_axis))
+    Miscellaneous.mass_properties = MassProperties(mass=Q_(135.7, 'kg'), cg=Vector(vector=Q_(geo['fuselage_wing_qc'].value + np.array([1,0,2.6]), 'm'), axis=wing_axis), inertia=MassMI(axis=wing_axis))
 
     for i, HL_motor in enumerate(lift_rotors):
         HL_motor.mass_properties = MassProperties(mass=Q_(81.65/12, 'kg'), cg=Vector(vector=Q_(geo['MotorDisks'][i].value, 'm'), axis=HL_motor_axes[i]), inertia=MassMI(axis=HL_motor_axes[i]))
@@ -1035,7 +1042,7 @@ class X57Aerodynamics(Loads):
         return CL
 
     def AC_CD(self, alpha, i_w, i_stab, AR, flap, blow_num, trimtab):
-        # assumining all other parameters as functions of cref_wing
+        # assuming all other parameters as functions of cref_wing
         stabi_alpha = self.stab_alpha(alpha, i_w, i_stab, AR, flap, blow_num)
         CD = flap * self.flap_CD_tot(alpha) + blow_num / 12 * self.blow_CD_tot(alpha) + \
              self.Wing_tipNacelle_CD_tot(alpha) + self.HLN_CD_tot(alpha) + \
@@ -1185,7 +1192,76 @@ class X57Aerodynamics(Loads):
             loads = ForcesMoments(force=force_vector, moment=moment_vector)
             return loads
     
+## WORK IN PROGRESS - HINGE MOMENTS
+    def get_hinge_moments(self, states, controls):
+        """
+        Compute hinge moments for control surfaces.
 
+        Parameters
+        ----------
+        states : csdl.VariableGroup
+            Flight-dynamic state (x̄) which should include:
+            - density
+            - VTAS
+            - states.theta
+        controls : csdl.VariableGroup
+            Control input (ū) which should include:
+            - deflections of control surfaces
+
+        Returns
+        -------
+        hinge_moments : HM
+            Computed hinge moments for control surfaces.
+        """
+        density = states.atmospheric_states.density
+        velocity = states.VTAS
+        
+        Cme_de  = self.aeroDer['Cme_de'][0][0]
+        Cma_da  = self.aeroDer['Cma_da'][0][0]
+        Cmr_dr  = self.aeroDer['Cmr_dr'][0][0]
+
+        S_e = self.Sref_stab
+        c_e = self.cref_stab
+        S_a = self.Sref_wing
+        c_a = self.cref_wing
+        S_r = self.Sref_VT
+        c_r = self.cref_VT
+
+
+        delta_e = controls.elevator.deflection
+        delta_tt = controls.trim_tab.deflection
+
+
+        if hasattr(controls, 'left_aileron'):
+            delta_aL = controls.left_aileron.deflection
+            delta_aR = controls.right_aileron.deflection
+            delta_fL = controls.left_flap.deflection
+            delta_fR = controls.right_flap.deflection
+
+        else:
+            delta_a = controls.aileron.deflection
+            delta_f = controls.flap.deflection
+        
+        
+        delta_r = controls.rudder.deflection
+
+        Ch_f = CH0_f + (CH_alpha_f * alpha_f) + (Ch_delta_f * delta_f) + (Ch_delta_tt * delta_tt) # Flap Hinge Moment Coefficient
+        Ch_a = Ch0_a + (Ch_alpha_a * alpha) + (Ch_delta_a * delta_a) + (Ch_delta_tt * delta_tt) # Aileron Hinge Moment Coefficient
+        Ch_e = Ch0_e + (Ch_alpha_e * alpha_HT) + (Ch_delta_e * delta_e) + (Ch_delta_tt * delta_tt) # Elevator Hinge Moment Coefficient
+        Ch_r = Ch0_r + (Ch_beta_r * beta) + (Ch_delta_r * delta_r) + (Ch_delta_tt * delta_tt) # Rudder Hinge Moment Coefficient
+
+        Hf = 0.5 * density * velocity**2 * S_a * c_a * Ch_f
+        Ha = 0.5 * density * velocity**2 * S_a * c_a * Ch_a
+        He = 0.5 * density * velocity**2 * S_e * c_e * Ch_e
+        Hr = 0.5 * density * velocity**2 * S_r * c_r * Ch_r
+
+        return {
+            'elevator': He,
+            'aileron':  Ha,
+            'rudder':   Hr,
+            'flap':     Hf
+        }
+        
 
 
 class HLPropCurve(csdl.CustomExplicitOperation):
@@ -1388,7 +1464,7 @@ class X57Propulsion(Loads):
 
    
 
-    def get_power(self, states, controls):
+    def get_torque_power(self, states, controls):
         """
         Compute power required for the propulsion system.
 
@@ -1432,7 +1508,7 @@ class X57Propulsion(Loads):
 
         power = csdl.Variable(shape=(1,), value=power_raw.value)  
 
-        return power
+        return torque, power
         
 
 # if __name__ == "__main__":
