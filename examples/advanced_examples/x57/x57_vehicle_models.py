@@ -725,26 +725,26 @@ class X57Aerodynamics(Loads):
         self.i_wing = component.comps['Wing'].parameters.actuate_angle
         self.Sref_wing = component.comps['Wing'].parameters.S_ref
         self.span_wing = component.comps['Wing'].parameters.span
-        self.bref_wing = self.span_wing/2
+        self.bref_wing = self.span_wing
         self.taper_wing = component.comps['Wing'].parameters.taper_ratio
         self.cref_wing = 2 * self.Sref_wing/((1 + self.taper_wing) * self.span_wing)
 
         self.Sref_stab = component.comps['Elevator'].parameters.S_ref
         self.span_stab = component.comps['Elevator'].parameters.span
-        self.bref_stab = self.span_stab/2
+        self.bref_stab = self.span_stab
         self.taper_stab = component.comps['Elevator'].parameters.taper_ratio
         self.cref_stab = 2 * self.Sref_stab/((1 + self.taper_stab) * self.span_stab)
 
 
         self.Sref_VT = component.comps['Vertical Tail'].parameters.S_ref
         self.span_VT = component.comps['Vertical Tail'].parameters.span
-        self.bref_VT = self.span_VT/2
+        self.bref_VT = self.span_VT
         self.taper_VT = component.comps['Vertical Tail'].parameters.taper_ratio
         self.cref_VT = 2 * self.Sref_VT/((1 + self.taper_VT) * self.span_VT)
 
-        self.HT_axis = component.comps['Elevator'].mass_properties.cg_vector
-        self.VT_axis = component.comps['Vertical Tail'].mass_properties.cg_vector
-        self.Wing_axis = component.comps['Wing'].mass_properties.cg_vector
+        self.HT_axis = component.comps['Elevator'].mass_properties.cg_vector.vector  
+        self.VT_axis = component.comps['Vertical Tail'].mass_properties.cg_vector.vector 
+        self.Wing_axis = component.comps['Wing'].mass_properties.cg_vector.vector 
 
         self.wind_axis = wind_axis
 
@@ -1034,6 +1034,11 @@ class X57Aerodynamics(Loads):
 
     def AC_CL(self, alpha, i_w, i_stab, AR, flap, blow_num, trimtab):
         # assumining all other parameters as functions of cref_wing
+        alpha = alpha * (np.pi / 180)  # convert to radians
+        i_w = i_w * (np.pi / 180)  # convert to radians
+        i_stab = i_stab * (np.pi / 180)  # convert to radians
+        trimtab = trimtab * (np.pi / 180)  # convert to radians
+
         stabi_alpha = self.stab_alpha(alpha, i_w, i_stab, AR, flap, blow_num)
         CL = flap * self.flap_CL_tot(alpha) + blow_num / 12 * self.blow_CL_tot(alpha) + \
              self.Wing_tipNacelle_CL_tot(alpha) + self.HLN_CL_tot(alpha) + \
@@ -1043,6 +1048,10 @@ class X57Aerodynamics(Loads):
 
     def AC_CD(self, alpha, i_w, i_stab, AR, flap, blow_num, trimtab):
         # assuming all other parameters as functions of cref_wing
+        alpha = alpha * (np.pi / 180)  # convert to radians
+        i_w = i_w * (np.pi / 180)  # convert to radians
+        i_stab = i_stab * (np.pi / 180)  # convert to radians
+        trimtab = trimtab * (np.pi / 180)  # convert to radians
         stabi_alpha = self.stab_alpha(alpha, i_w, i_stab, AR, flap, blow_num)
         CD = flap * self.flap_CD_tot(alpha) + blow_num / 12 * self.blow_CD_tot(alpha) + \
              self.Wing_tipNacelle_CD_tot(alpha) + self.HLN_CD_tot(alpha) + \
@@ -1056,10 +1065,15 @@ class X57Aerodynamics(Loads):
         # assume all lift generated at wing and stabilator c/4
         # pos vector from wing c/4 to HT c/4
 
+        alpha = alpha * (np.pi / 180)  # convert to radians
+        i_w = i_w * (np.pi / 180)  # convert to radians
+        i_stab = i_stab * (np.pi / 180)  # convert to radians
+        trimtab = trimtab * (np.pi / 180)  # convert to radians
+
         r = csdl.Variable(name='r', shape=(3,), value=0)
-        r1 = self.HT_axis.vector[0] + self.cref_stab / 4 - (self.Wing_axis.vector[0] + self.cref_wing / 4)
+        r1 = self.HT_axis[0] + self.cref_stab / 4 - (self.Wing_axis[0] + self.cref_wing / 4)
         r2 = 0
-        r3 = self.HT_axis.vector[2] - self.Wing_axis.vector[2]
+        r3 = self.HT_axis[2] - self.Wing_axis[2]
         r.set(csdl.slice[0], r1)
         r.set(csdl.slice[1], r2)
         r.set(csdl.slice[2], r3)
@@ -1120,9 +1134,11 @@ class X57Aerodynamics(Loads):
             q = states.states.q
             r = states.states.r
             beta = states.beta
-            alpha = theta + self.i_wing
+            i_wing = self.i_wing * 180/np.pi
+            alpha = states.alpha * 180/np.pi
+            AOA = alpha + i_wing
 
-            dstab = controls.elevator.deflection
+            dstab = controls.elevator.deflection * 180/np.pi
 
             if hasattr(controls, 'left_flap'):
                 dflap = controls.left_flap.deflection
@@ -1131,7 +1147,7 @@ class X57Aerodynamics(Loads):
                 dflap = controls.flap.deflection
                 daileron = controls.aileron.deflection
 
-            dtrim = controls.trim_tab.deflection
+            dtrim = controls.trim_tab.deflection * 180/np.pi
             drudder = controls.rudder.deflection
 
 
@@ -1140,9 +1156,9 @@ class X57Aerodynamics(Loads):
                 blow_num += 1
 
 
-            CL = self.AC_CL(alpha=alpha, i_w=self.i_wing, i_stab=dstab, AR=self.AR_wing, flap=dflap, blow_num=blow_num, trimtab=dtrim)
-            CD = self.AC_CD(alpha=alpha, i_w=self.i_wing, i_stab=dstab, AR=self.AR_wing, flap=dflap, blow_num=blow_num, trimtab=dtrim)
-            CM = self.AC_CM(alpha=alpha, i_w=self.i_wing, i_stab=dstab, AR=self.AR_wing, flap=dflap, blow_num=blow_num, trimtab=dtrim)
+            CL = self.AC_CL(alpha=AOA, i_w=i_wing, i_stab=dstab, AR=self.AR_wing, flap=dflap, blow_num=blow_num, trimtab=dtrim)
+            CD = self.AC_CD(alpha=AOA, i_w=i_wing, i_stab=dstab, AR=self.AR_wing, flap=dflap, blow_num=blow_num, trimtab=dtrim)
+            CM = self.AC_CM(alpha=AOA, i_w=i_wing, i_stab=dstab, AR=self.AR_wing, flap=dflap, blow_num=blow_num, trimtab=dtrim)
 
             L = 0.5 * density * velocity**2 * self.Sref_wing * CL
             D = 0.5 * density * velocity**2 * self.Sref_wing * CD
@@ -1270,26 +1286,26 @@ class HLPropCurve(csdl.CustomExplicitOperation):
         super().__init__()
 
         V_inf_data = np.array(
-            [0,61.3,87.6,101.6,113.8,131.3,157.6,175])
+            [61.3,87.6,101.6,113.8,131.3,157.6,175])
         RPM_data = np.array(
-        [0,3545,4661,4702,4379,3962,3428,3451])
+        [3545,4661,4702,4379,3962,3428,3451])
         self.rpm = Akima1DInterpolator(V_inf_data, RPM_data, method="akima")
         self.rpm_derivative = Akima1DInterpolator.derivative(self.rpm)
         self.min_RPM = min(RPM_data)
         self.max_RPM = max(RPM_data)
         # Obtained Mod-IV Propeller Data from CFD database
         J_data = np.array(
-            [0,0.5490,0.5966,0.6860,0.8250,1.0521,1.4595,1.6098])
+            [0.5490,0.5966,0.6860,0.8250,1.0521,1.4595,1.6098])
         Ct_data = np.array(
-            [0,0.3125,0.3058,0.2848,0.2473,0.1788,0.0366,-0.0198])
+            [0.3125,0.3058,0.2848,0.2473,0.1788,0.0366,-0.0198])
         self.ct = Akima1DInterpolator(V_inf_data, Ct_data, method="akima")
         self.ct_derivative = Akima1DInterpolator.derivative(self.ct)
 
-        Cp_data = np.array([0,0.3134,0.3152,0.3075,0.2874,0.2367,0.0809,0.0018])
+        Cp_data = np.array([0.3134,0.3152,0.3075,0.2874,0.2367,0.0809,0.0018])
         self.cp = Akima1DInterpolator(V_inf_data, Cp_data, method="akima")
         self.cp_derivative = Akima1DInterpolator.derivative(self.cp)
 
-        Torque_data = np.array([0,9.3,16.1,16.0,13.0,8.7,2.2,0.0])
+        Torque_data = np.array([9.3,16.1,16.0,13.0,8.7,2.2,0.0])
         self.torque = Akima1DInterpolator(V_inf_data, Torque_data, method="akima")
         self.torque_derivative = Akima1DInterpolator.derivative(self.torque)
 
@@ -1337,23 +1353,23 @@ class CruisePropCurve(csdl.CustomExplicitOperation):
 
         # Obtained Mod-III Propeller Data from CFD database
         V_inf_data = np.array(
-            [0,18.75,75,112.5,150,187.5,225,243.75,262.5,266.67,300])
+            [18.75,75,112.5,150,187.5,225,243.75,262.5,266.67,300])
         RPM_data = np.array(
-        [0,2250,2250,2250,2250,2250,2250,2250,2250,2000,2000])
+        [2250,2250,2250,2250,2250,2250,2250,2250,2000,2000])
         self.rpm = Akima1DInterpolator(V_inf_data, RPM_data, method="akima")
         self.rpm_derivative = Akima1DInterpolator.derivative(self.rpm)
         self.min_RPM = min(RPM_data)
         self.max_RPM = max(RPM_data)
         J_data = np.array(
-            [0,0.1,0.4,0.6,0.8,1.0,1.2,1.3,1.4,1.6,1.8])
+            [0.1,0.4,0.6,0.8,1.0,1.2,1.3,1.4,1.6,1.8])
         Ct_data = np.array(
-            [0,0.1831,0.1673,0.1422,0.1003,0.0479,-0.0085,-0.0366,-0.0057,0.0030,-0.0504])
+            [0.1831,0.1673,0.1422,0.1003,0.0479,-0.0085,-0.0366,-0.0057,0.0030,-0.0504])
         self.ct = Akima1DInterpolator(V_inf_data, Ct_data, method="akima")
         self.ct_derivative = Akima1DInterpolator.derivative(self.ct)
-        Cp_data = np.array([0,0.1155,0.1219,0.1195,0.0979,0.0563,-0.0021,-0.0365,0.0003,0.0134,-0.0756])
+        Cp_data = np.array([0.1155,0.1219,0.1195,0.0979,0.0563,-0.0021,-0.0365,0.0003,0.0134,-0.0756])
         self.cp = Akima1DInterpolator(V_inf_data, Cp_data, method="akima")
         self.cp_derivative = Akima1DInterpolator.derivative(self.cp)
-        Torque_data = np.array([0,178.38,188.26,184.47,151.25,73.56,-2.79,-47.67,0.35,11.10,-62.45])
+        Torque_data = np.array([178.38,188.26,184.47,151.25,73.56,-2.79,-47.67,0.35,11.10,-62.45])
         self.torque = Akima1DInterpolator(V_inf_data, Torque_data, method="akima")
         self.torque_derivative = Akima1DInterpolator.derivative(self.torque)
 
