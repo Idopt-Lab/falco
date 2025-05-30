@@ -1,19 +1,15 @@
-import time
 import lsdo_function_spaces as lfs
 import csdl_alpha as csdl
 import numpy as np
 from flight_simulator.utils.import_geometry import import_geometry
 from flight_simulator import REPO_ROOT_FOLDER, Q_
+from lsdo_geo.core.geometry.geometry import Geometry
+from flight_simulator.core.dynamics.axis import Axis, ValidOrigins
+from flight_simulator.core.dynamics.axis_lsdogeo import AxisLsdoGeo
 
-
-
-
-t0 = time.time()
 lfs.num_workers = 1
 
 debug = False
-
-
 
 in2m=0.0254
 ft2m = 0.3048
@@ -27,7 +23,6 @@ def get_geometry():
         scale=in2m,
         rotate_to_body_fixed_frame=True
     )
-
 
     wing = geometry.declare_component(function_search_names=['Wing_Sec1','Wing_Sec2','Wing_Sec3','Wing_Sec4'], name='wing')
     aileronR = geometry.declare_component(function_search_names=['Rt_Aileron'], name='aileronR')
@@ -89,9 +84,6 @@ def get_geometry():
                                                                 'HL_Spinner12, 1','HL_Spinner11, 1','HL_Spinner10, 1','HL_Spinner9, 1','HL_Spinner8, 1','HL_Spinner7, 1',
                                                                 'HL_Spinner12, 0','HL_Spinner11, 0','HL_Spinner10, 0','HL_Spinner9, 0','HL_Spinner8, 0','HL_Spinner7, 0',
                                                                 'CruiseNacelle-Spinner, 0','CruiseNacelle-Spinner, 1', 'Flap_Cover_7','Flap_Cover_9','Flap_Cover_11'], name='CompleteWing')
-
-                                                        
-
 
     cruise_motor =  geometry.declare_component(function_search_names=['CruiseNacelle-Motor'], name='cruise_motor')
     cruise_nacelle =  geometry.declare_component(function_search_names=['CruiseNacelle-Tail'], name='cruise_nacelle')
@@ -570,9 +562,6 @@ def get_geometry():
     M11_pylon_on_wing = pylon11.project(M11_pylon_pt, plot=False)
     M12_pylon_on_wing = pylon12.project(M12_pylon_pt, plot=False)
 
-
-
-
     fuselage_nose_guess = np.array([-1.75, 0, -4])*ft2m
     fuselage_rear_guess = np.array([-29.5, 0, -5.5])*ft2m
     fuselage_nose_pts_parametric = fuselage.project(fuselage_nose_guess, grid_search_density_parameter=20, plot=False)
@@ -605,10 +594,333 @@ def get_geometry():
     return locals()
 
 
+def get_geometry_related_axis(geo_dict: dict):
+
+    # region Inertial and OpenVSP axis
+    # Inertial Axis
+    inertial_axis = Axis(
+        name='Inertial Axis',
+        origin=ValidOrigins.Inertial.value
+    )
+
+    # OpenVSP Axis
+    openvsp_axis = Axis(
+        name='OpenVSP Axis',
+        x=Q_(0, 'm'),
+        y=Q_(0, 'm'),
+        z=Q_(0, 'm'),
+        origin=ValidOrigins.OpenVSP.value
+    )
+    # endregion
+
+    # region Wing region axis
+    wing_axis = AxisLsdoGeo(
+        name='Wing Axis',
+        geometry=geo_dict['wing'],
+        parametric_coords=geo_dict['wing_le_center_parametric'],
+        sequence=np.array([3, 2, 1]),
+        phi=Q_(0, 'deg'),
+        theta=Q_(0, 'deg'),
+        psi=Q_(0, 'deg'),
+        reference=openvsp_axis,
+        origin=ValidOrigins.OpenVSP.value
+    )
+
+    left_flap_axis = AxisLsdoGeo(
+        name='Left Flap Axis',
+        geometry=geo_dict['flapL'],
+        parametric_coords=geo_dict['left_flap_le_center_parametric'],
+        sequence=np.array([3, 2, 1]),
+        phi=Q_(0, 'deg'),
+        theta=Q_(0, 'deg'),
+        psi=Q_(0, 'deg'),
+        reference=openvsp_axis,
+        origin=ValidOrigins.OpenVSP.value
+    )
+
+    right_flap_axis = AxisLsdoGeo(
+        name='Right Flap Axis',
+        geometry=geo_dict['flapR'],
+        parametric_coords=geo_dict['right_flap_le_center_parametric'],
+        sequence=np.array([3, 2, 1]),
+        phi=Q_(0, 'deg'),
+        theta=Q_(0, 'deg'),
+        psi=Q_(0, 'deg'),
+        reference=openvsp_axis,
+        origin=ValidOrigins.OpenVSP.value
+    )
+
+    left_aileron_axis = AxisLsdoGeo(
+        name='Left Aileron Axis',
+        geometry=geo_dict['aileronL'],
+        parametric_coords=geo_dict['left_aileron_le_center_parametric'],
+        sequence=np.array([3, 2, 1]),
+        phi=Q_(0, 'deg'),
+        theta=Q_(0, 'deg'),
+        psi=Q_(0, 'deg'),
+        reference=openvsp_axis,
+        origin=ValidOrigins.OpenVSP.value
+    )
+
+    right_aileron_axis = AxisLsdoGeo(
+        name='Right Aileron Axis',
+        geometry=geo_dict['aileronR'],
+        parametric_coords=geo_dict['right_aileron_le_center_parametric'],
+        sequence=np.array([3, 2, 1]),
+        phi=Q_(0, 'deg'),
+        theta=Q_(0, 'deg'),
+        psi=Q_(0, 'deg'),
+        reference=openvsp_axis,
+        origin=ValidOrigins.OpenVSP.value
+    )
+    # endregion
+
+    # region Empennage region axis
+
+    ht_tail_axis = AxisLsdoGeo(
+        name='Horizontal Tail Axis',
+        geometry=geo_dict['h_tail'],
+        parametric_coords=geo_dict['ht_le_center_parametric'],
+        sequence=np.array([3, 2, 1]),
+        phi=Q_(0, 'deg'),
+        theta=Q_(0, 'deg'),
+        psi=Q_(0, 'deg'),
+        reference=openvsp_axis,
+        origin=ValidOrigins.OpenVSP.value
+    )
+
+    trim_tab_axis = AxisLsdoGeo(
+        name='Trim Tab Axis',
+        geometry=geo_dict['trimTab'],
+        parametric_coords=geo_dict['trimTab_le_center_parametric'],
+        sequence=np.array([3, 2, 1]),
+        phi=Q_(0, 'deg'),
+        theta=Q_(0, 'deg'),
+        psi=Q_(0, 'deg'),
+        reference=ht_tail_axis,
+        origin=ValidOrigins.OpenVSP.value
+    )
+
+    vt_tail_axis = AxisLsdoGeo(
+        name='Vertical Tail Axis',
+        geometry=geo_dict['vertTail'],
+        parametric_coords=geo_dict['vt_le_mid_parametric'],
+        sequence=np.array([3, 2, 1]),
+        phi=Q_(0, 'deg'),
+        theta=Q_(0, 'deg'),
+        psi=Q_(0, 'deg'),
+        reference=openvsp_axis,
+        origin=ValidOrigins.OpenVSP.value
+    )
+
+    rudder_axis = AxisLsdoGeo(
+        name='Rudder Axis',
+        geometry=geo_dict['rudder'],
+        parametric_coords=geo_dict['rudder_le_mid_parametric'],
+        sequence=np.array([3, 2, 1]),
+        phi=Q_(0, 'deg'),
+        theta=Q_(0, 'deg'),
+        psi=Q_(0, 'deg'),
+        reference=openvsp_axis,
+        origin=ValidOrigins.OpenVSP.value
+    )
+    # endregion
+
+    # region HLP axis
+    M1_axis = AxisLsdoGeo(
+        name='Motor 1 Axis',
+        geometry=geo_dict['spinner1'],
+        parametric_coords=geo_dict['M1_disk_on_wing'],
+        sequence=np.array([3, 2, 1]),
+        phi=Q_(0, 'deg'),
+        theta=Q_(0, 'deg'),
+        psi=Q_(0, 'deg'),
+        reference=openvsp_axis,
+        origin=ValidOrigins.OpenVSP.value
+    )
+
+    M2_axis = AxisLsdoGeo(
+        name='Motor 2 Axis',
+        geometry=geo_dict['spinner2'],
+        parametric_coords=geo_dict['M2_disk_on_wing'],
+        sequence=np.array([3, 2, 1]),
+        phi=Q_(0, 'deg'),
+        theta=Q_(0, 'deg'),
+        psi=Q_(0, 'deg'),
+        reference=openvsp_axis,
+        origin=ValidOrigins.OpenVSP.value
+    )
+
+    M3_axis = AxisLsdoGeo(
+        name='Motor 3 Axis',
+        geometry=geo_dict['spinner3'],
+        parametric_coords=geo_dict['M3_disk_on_wing'],
+        sequence=np.array([3, 2, 1]),
+        phi=Q_(0, 'deg'),
+        theta=Q_(0, 'deg'),
+        psi=Q_(0, 'deg'),
+        reference=openvsp_axis,
+        origin=ValidOrigins.OpenVSP.value
+    )
+
+    M4_axis = AxisLsdoGeo(
+        name='Motor 4 Axis',
+        geometry=geo_dict['spinner4'],
+        parametric_coords=geo_dict['M4_disk_on_wing'],
+        sequence=np.array([3, 2, 1]),
+        phi=Q_(0, 'deg'),
+        theta=Q_(0, 'deg'),
+        psi=Q_(0, 'deg'),
+        reference=openvsp_axis,
+        origin=ValidOrigins.OpenVSP.value
+    )
+
+    M5_axis = AxisLsdoGeo(
+        name='Motor 5 Axis',
+        geometry=geo_dict['spinner5'],
+        parametric_coords=geo_dict['M5_disk_on_wing'],
+        sequence=np.array([3, 2, 1]),
+        phi=Q_(0, 'deg'),
+        theta=Q_(0, 'deg'),
+        psi=Q_(0, 'deg'),
+        reference=openvsp_axis,
+        origin=ValidOrigins.OpenVSP.value
+    )
+
+    M6_axis = AxisLsdoGeo(
+        name='Motor 6 Axis',
+        geometry=geo_dict['spinner6'],
+        parametric_coords=geo_dict['M6_disk_on_wing'],
+        sequence=np.array([3, 2, 1]),
+        phi=Q_(0, 'deg'),
+        theta=Q_(0, 'deg'),
+        psi=Q_(0, 'deg'),
+        reference=openvsp_axis,
+        origin=ValidOrigins.OpenVSP.value
+    )
+
+    M7_axis = AxisLsdoGeo(
+        name='Motor 7 Axis',
+        geometry=geo_dict['spinner7'],
+        parametric_coords=geo_dict['M7_disk_on_wing'],
+        sequence=np.array([3, 2, 1]),
+        phi=Q_(0, 'deg'),
+        theta=Q_(0, 'deg'),
+        psi=Q_(0, 'deg'),
+        reference=openvsp_axis,
+        origin=ValidOrigins.OpenVSP.value
+    )
+
+    M8_axis = AxisLsdoGeo(
+        name='Motor 8 Axis',
+        geometry=geo_dict['spinner8'],
+        parametric_coords=geo_dict['M8_disk_on_wing'],
+        sequence=np.array([3, 2, 1]),
+        phi=Q_(0, 'deg'),
+        theta=Q_(0, 'deg'),
+        psi=Q_(0, 'deg'),
+        reference=openvsp_axis,
+        origin=ValidOrigins.OpenVSP.value
+    )
+
+    M9_axis = AxisLsdoGeo(
+        name='Motor 9 Axis',
+        geometry=geo_dict['spinner9'],
+        parametric_coords=geo_dict['M9_disk_on_wing'],
+        sequence=np.array([3, 2, 1]),
+        phi=Q_(0, 'deg'),
+        theta=Q_(0, 'deg'),
+        psi=Q_(0, 'deg'),
+        reference=openvsp_axis,
+        origin=ValidOrigins.OpenVSP.value
+    )
+
+    M10_axis = AxisLsdoGeo(
+        name='Motor 10 Axis',
+        geometry=geo_dict['spinner10'],
+        parametric_coords=geo_dict['M10_disk_on_wing'],
+        sequence=np.array([3, 2, 1]),
+        phi=Q_(0, 'deg'),
+        theta=Q_(0, 'deg'),
+        psi=Q_(0, 'deg'),
+        reference=openvsp_axis,
+        origin=ValidOrigins.OpenVSP.value
+    )
+
+    M11_axis = AxisLsdoGeo(
+        name='Motor 11 Axis',
+        geometry=geo_dict['spinner11'],
+        parametric_coords=geo_dict['M11_disk_on_wing'],
+        sequence=np.array([3, 2, 1]),
+        phi=Q_(0, 'deg'),
+        theta=Q_(0, 'deg'),
+        psi=Q_(0, 'deg'),
+        reference=openvsp_axis,
+        origin=ValidOrigins.OpenVSP.value
+    )
+
+    M12_axis = AxisLsdoGeo(
+        name='Motor 12 Axis',
+        geometry=geo_dict['spinner12'],
+        parametric_coords=geo_dict['M12_disk_on_wing'],
+        sequence=np.array([3, 2, 1]),
+        phi=Q_(0, 'deg'),
+        theta=Q_(0, 'deg'),
+        psi=Q_(0, 'deg'),
+        reference=openvsp_axis,
+        origin=ValidOrigins.OpenVSP.value
+    )
+
+    hl_motor_axes = [M1_axis, M2_axis, M3_axis, M4_axis, M5_axis, M6_axis, M7_axis, M8_axis, M9_axis, M10_axis,
+                     M11_axis, M12_axis]
+    # endregion
+
+    # region CM axis
+    cruise_motor1_axis = AxisLsdoGeo(
+        name='Cruise Motor 1 Axis',
+        geometry=geo_dict['cruise_spinner1'],
+        parametric_coords=geo_dict['cruise_motor1_tip_parametric'],
+        sequence=np.array([3, 2, 1]),
+        phi=Q_(0, 'deg'),
+        theta=Q_(0, 'deg'),
+        psi=Q_(0, 'deg'),
+        reference=openvsp_axis,
+        origin=ValidOrigins.OpenVSP.value
+    )
+
+    cruise_motor2_axis = AxisLsdoGeo(
+        name='Cruise Motor 2 Axis',
+        geometry=geo_dict['cruise_spinner2'],
+        parametric_coords=geo_dict['cruise_motor2_tip_parametric'],
+        sequence=np.array([3, 2, 1]),
+        phi=Q_(0, 'deg'),
+        theta=Q_(0, 'deg'),
+        psi=Q_(0, 'deg'),
+        reference=openvsp_axis,
+        origin=ValidOrigins.OpenVSP.value
+    )
+    cruise_motor_axes = [cruise_motor1_axis, cruise_motor2_axis]
+    # endregion
+
+    axis_dict = {
+        'inertial_axis': inertial_axis, 'openvsp_axis': openvsp_axis,
+        'wing_axis': wing_axis, 'left_flap_axis': left_flap_axis, 'right_flap_axis': right_flap_axis,
+        'left_aileron_axis': left_aileron_axis, 'right_aileron_axis': right_aileron_axis,
+        'ht_tail_axis': ht_tail_axis, 'trim_tab_axis': trim_tab_axis, 'vt_tail_axis': vt_tail_axis,
+        'rudder_axis': rudder_axis, 'hl_motor_axes': hl_motor_axes, 'cruise_motor_axes': cruise_motor_axes
+    }
+
+    return axis_dict
+
 
 if __name__ == "__main__":
     recorder = csdl.Recorder(inline=True, expand_ops=True, debug=False)
     recorder.start()
+
     geometry_data = get_geometry()
     print("Geometry computed successfully")
+
+    axis_dict = get_geometry_related_axis(geometry_data)
+    print("Axis computed successfully")
+
     recorder.stop()
