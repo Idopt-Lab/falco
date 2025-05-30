@@ -1,6 +1,7 @@
 
 
-
+tf, tm = aircraft_component.compute_total_loads(fd_state=cruise_cond.ac_states,
+                                                controls=cruise_cond.controls)
 
 # Mass properties alone test
 # - Loads due to mass properties at 0 pitch angle
