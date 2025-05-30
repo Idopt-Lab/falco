@@ -721,6 +721,8 @@ class X57Aerodynamics(Loads):
 
     def __init__(self, component):
 
+        self.component = component
+
         self.AR_wing = component.comps['Wing'].parameters.AR.value
         self.i_wing = component.comps['Wing'].parameters.actuate_angle
         self.Sref_wing = component.comps['Wing'].parameters.S_ref
@@ -1160,6 +1162,8 @@ class X57Aerodynamics(Loads):
             CD = self.AC_CD(alpha=AOA, i_w=i_wing, i_stab=dstab, AR=self.AR_wing, flap=dflap, blow_num=blow_num, trimtab=dtrim)
             CM = self.AC_CM(alpha=AOA, i_w=i_wing, i_stab=dstab, AR=self.AR_wing, flap=dflap, blow_num=blow_num, trimtab=dtrim)
 
+            self.CL = CL            
+
             L = 0.5 * density * velocity**2 * self.Sref_wing * CL
             D = 0.5 * density * velocity**2 * self.Sref_wing * CD
             M = 0.5 * density * velocity**2 * self.Sref_wing * CM * self.cref_wing
@@ -1208,6 +1212,54 @@ class X57Aerodynamics(Loads):
             loads = ForcesMoments(force=force_vector, moment=moment_vector)
             return loads
     
+    def get_v_speeds(self, states, controls):
+
+        """
+        Compute V speeds for the aircraft.
+
+        Parameters
+        ----------
+        states : csdl.VariableGroup
+            Flight-dynamic state (x̄) which should include:
+            - density
+            - VTAS
+            - states.theta
+        controls : csdl.VariableGroup
+            Control input (ū) which should include:
+            - deflections of control surfaces
+
+        Returns
+        -------
+        v_speeds : dict
+            Dictionary containing computed V speeds.
+        """
+        density = states.atmospheric_states.density
+        velocity = states.VTAS
+
+
+    
+        CL_max = self.CL # Assuming this for now - need to be updated with actual CL_max calculation
+        
+        v_stall = csdl.sqrt(2 * self.component.mass_properties.mass * 9.81 / (density * self.Sref_wing * CL_max))
+
+        v_h = velocity * csdl.cos(states.gamma) # Horizontal velocity from AVD notes
+
+        v_v = velocity * csdl.sin(states.gamma) # Rate of climb or vertical velocity from AVD notes
+
+        v_r = 1.2 * v_stall  # rotation speed from Nicolai
+
+        v_TO = 1.1 * v_stall  # takeoff speed from Nicolai
+
+        v_TD = 1.15 * v_stall  # touchdown speed from Nicolai
+
+        return {
+            'stall': v_stall,
+            'horizontal': v_h,
+            'vertical': v_v,
+            'rotation': v_r,
+            'takeoff': v_TO,
+            'touchdown': v_TD
+        }    
 ## WORK IN PROGRESS - HINGE MOMENTS
     def get_hinge_moments(self, states, controls):
         """
@@ -1453,10 +1505,10 @@ class X57Propulsion(Loads):
         # Compute RPM
         rpm_curve = type(self.prop_curve)() 
         rpm = rpm_curve.evaluate(velocity=velocity).rpm * throttle
-        omega_RAD = (rpm * 2 * np.pi) / 60.0  # rad/s
+        # omega_RAD = (rpm * 2 * np.pi) / 60.0  # rad/s
 
         # Compute advance ratio
-        J = (np.pi * velocity) / (omega_RAD * self.radius)   # non-dimensional
+        J = (velocity) / ((rpm/60) * (self.radius * 2))   # non-dimensional
 
         # Compute Ct
         ct_curve = type(self.prop_curve)()
@@ -1482,12 +1534,12 @@ class X57Propulsion(Loads):
 
     def get_torque_power(self, states, controls):
         """
-        Compute power required for the propulsion system.
+        Compute power available for the propulsion system.
 
         Parameters
         ----------
-        torque : 
-            Power required for the propulsion system (P) which should include:
+        shaft_power : 
+            Shaft power for the propulsion system (P) which should include:
             - power
         
         rpm :
@@ -1501,7 +1553,11 @@ class X57Propulsion(Loads):
         Returns
         -------
         torque : csdl.VariableGroup
-            Computed torque required for the propulsion system.
+            Computed torque for the propulsion system.
+        power_avail : csdl.VariableGroup
+            Computed power available for the propulsion system.
+        power_shaft : csdl.VariableGroup
+            Computed shaft power for the propulsion system.
         """
         throttle = controls.u[7+self.engine_index]  # Get the throttle for the specific engine
         density = states.atmospheric_states.density * 0.00194032
@@ -1512,20 +1568,41 @@ class X57Propulsion(Loads):
         rpm = rpm_curve.evaluate(velocity=velocity).rpm * throttle
         omega_RAD = (rpm * 2 * np.pi) / 60.0  # rad/s
 
+        J = (velocity) / ((rpm/60) * (self.radius * 2))   # non-dimensional
+        # Compute Ct
+        ct_curve = type(self.prop_curve)()
+        ct = ct_curve.evaluate(velocity=velocity).ct
+
+        cp_curve = type(self.prop_curve)()
+        cp = cp_curve.evaluate(velocity=velocity).cp
+
+        eta_raw = (ct/cp) * J
+
+        eta_raw.value = np.nan_to_num(eta_raw.value, nan=1e-6)  # Replace NaN with 1e-6 to prevent division by zero
+
+        eta = csdl.Variable(shape=(1,), value=eta_raw.value)
+
+
         torque_curve = type(self.prop_curve)()
         torque = torque_curve.evaluate(velocity=velocity).torque
 
-        power_raw = (torque * (rpm/60) * 2 * np.pi) * 1.35582 # Convert to Watts (lbf-ft/s to W)
+        shaft_power_raw = (torque * (rpm/60) * 2 * np.pi) * 1.35582 # Convert to Watts (lbf-ft/s to W)
 
-        # power_raw = (torque * (rpm/60) * 2 * np.pi)/737.56 # Convert to horsepower (lbf-ft/s to hp)
+        shaft_power_raw.value = np.nan_to_num(shaft_power_raw.value, nan=1e-6)  # Replace NaN with 1e-6 to prevent division by zero
+
+        shaft_power = csdl.Variable(shape=(1,), value=shaft_power_raw.value)  
 
 
-        power_raw.value = np.nan_to_num(power_raw.value, nan=1e-6)  # Replace NaN with 1e-6 to prevent division by zero
 
-        power = csdl.Variable(shape=(1,), value=power_raw.value)  
+        power_avail = shaft_power * eta
 
-        return torque, power
-        
+        power_avail = csdl.Variable(shape=(1,), value=power_avail.value)
+
+
+        return torque, power_avail, shaft_power
+  
+
+
 
 # if __name__ == "__main__":
 #     recorder = csdl.Recorder(inline=True, expand_ops=True, debug=False)
