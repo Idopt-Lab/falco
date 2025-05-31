@@ -102,8 +102,8 @@ def add_mp_to_components(aircraft_component: Component, geo_dict: dict, axis_dic
 
     aircraft_component.mass_properties = MassProperties(
         mass=Q_(0, 'kg'),
-        cg=Vector(vector=Q_(0, 'm'), axis=axis_dict['wing_axis']),
-        inertia=MassMI(axis=axis_dict['wing_axis'])
+        cg=Vector(vector=Q_(np.array([0, 0, 0]), 'm'), axis=axis_dict['fd_axis']),
+        inertia=MassMI(axis=axis_dict['fd_axis'])
     )
 
     return
