@@ -95,6 +95,10 @@ x57_controlsA = X57ControlSystem(elevator_component=aircraft_component.comps['El
                                 flap_right_component=aircraft_component.comps['Wing'].comps['Right Flap'],
                                 hl_engine_count=12,cm_engine_count=2)
 
+for left_engine, right_engine in zip(x57_controlsA.hl_engines_left, x57_controlsA.hl_engines_right):
+    left_engine.throttle.value = 0.0
+    right_engine.throttle.value=0.0
+
 x57_controlsB = X57ControlSystem(elevator_component=aircraft_component.comps['Elevator'],
                                 rudder_component=aircraft_component.comps['Vertical Tail'].comps['Rudder'],
                                 aileron_left_component=aircraft_component.comps['Wing'].comps['Left Aileron'],
@@ -102,7 +106,7 @@ x57_controlsB = X57ControlSystem(elevator_component=aircraft_component.comps['El
                                 trim_tab_component=aircraft_component.comps['Elevator'].comps['Trim Tab'],
                                 flap_left_component=aircraft_component.comps['Wing'].comps['Left Flap'],
                                 flap_right_component=aircraft_component.comps['Wing'].comps['Right Flap'],
-                                hl_engine_count=0,cm_engine_count=2)
+                                hl_engine_count=12,cm_engine_count=2)
 
 cruise3A = aircraft_conditions.CruiseCondition(
     fd_axis=axis_dict['fd_axis'],
@@ -120,6 +124,8 @@ cruise3B = aircraft_conditions.CruiseCondition(
     speed=Q_(100, 'm/s'),
     pitch_angle=Q_(0, 'deg'))
 
+print('Wing Axis:',aircraft_component2.comps['Wing'].mass_properties.cg_vector.vector.value)
+
 x57_aerodynamics = X57Aerodynamics(component=aircraft_component2)
 aircraft_component2.comps['Wing'].load_solvers.append(x57_aerodynamics)
 
@@ -128,13 +134,13 @@ tf3B, tm3B = aircraft_component2.compute_total_loads(fd_state=cruise3B.ac_states
 
 tf3A = tf3A - tf1
 tm3A = tm3A - tm1
-print("Total aero loads and aero loads alone, with HLP on:")
+print("Total aero loads and aero loads alone, with HLP off:")
 print("Force:", tf3A.value)
 print("Moment:", tm3A.value)
 
 tf3B = tf3B - tf1
 tm3B = tm3B - tm1
-print("Total aero loads and aero loads alone, with HLP off:")
+print("Total aero loads and aero loads alone, with HLP on:")
 print("Force:", tf3B.value)
 print("Moment:", tm3B.value)
 
@@ -181,8 +187,8 @@ cruise4 = aircraft_conditions.CruiseCondition(
     fd_axis=axis_dict['fd_axis'],
     controls=x57_controls,
     altitude=Q_(2500, 'ft'),
-    range=Q_(160, 'km'),
-    speed=Q_(40, 'm/s'),
+    range=Q_(100, 'km'),
+    speed=Q_(44.08789, 'm/s'),
     pitch_angle=Q_(0, 'deg'))
 
 
