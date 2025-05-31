@@ -25,6 +25,7 @@ aircraft_component = build_aircraft_component(geo_dict=geometry_data, do_geo_par
 add_mp_to_components(aircraft_component, geometry_data, axis_dict)
 
 aircraft_component.mass_properties = aircraft_component.compute_total_mass_properties()
+print(repr(aircraft_component))
 
 x57_controls = X57ControlSystem(elevator_component=aircraft_component.comps['Elevator'],
                                 rudder_component=aircraft_component.comps['Vertical Tail'].comps['Rudder'],
@@ -110,10 +111,10 @@ tf, tm = aircraft_component.compute_total_loads(fd_state=cruise.ac_states,contro
 M_aircraft = aircraft_component.compute_total_mass_properties()
 
 Lift_scaling = 1/(M_aircraft.mass.value*9.81)
-Drag_scaling = Lift_scaling * 10
-Moment_scaling = Lift_scaling / 10
+Drag_scaling = Lift_scaling / 10
+Moment_scaling = Lift_scaling * 10
 
-FM = csdl.concatenate((Drag_scaling * tf[0], tf[1], Lift_scaling * tf[2], Moment_scaling * tm[0], Moment_scaling * tm[1], Moment_scaling * tm[2]), axis=0)
+FM = csdl.concatenate((Drag_scaling * tf[0], tf[1], Lift_scaling * tf[2], tm[0], Moment_scaling * tm[1], tm[2]), axis=0)
 residual = csdl.absolute(csdl.norm(FM, ord=2))
 residual.name = 'Trim Residual'
 residual.set_as_objective()
