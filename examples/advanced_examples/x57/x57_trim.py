@@ -39,21 +39,21 @@ x57_controls = X57ControlSystem(elevator_component=aircraft_component.comps['Ele
 cruise = aircraft_conditions.CruiseCondition(
     fd_axis=axis_dict['fd_axis'],
     controls=x57_controls,
-    altitude=Q_(8000, 'ft'),
+    altitude=Q_(2438.4, 'm'),
     range=Q_(160, 'km'),
     speed=Q_(76.8909, 'm/s'),
     pitch_angle=Q_(0, 'deg'))
 
 
 
-x57_controls.elevator.deflection.set_as_design_variable(lower=-np.deg2rad(15), upper=np.deg2rad(15),scaler=100)
+x57_controls.elevator.deflection.set_as_design_variable(lower=x57_controls.elevator.lower_bound*np.pi/180, upper=x57_controls.elevator.upper_bound*np.pi/180,scaler=100)
 # x57_controls.rudder.deflection.set_as_design_variable(lower=-np.deg2rad(10), upper=np.deg2rad(10),scaler=10)
 # x57_controls.aileron_left.deflection.set_as_design_variable(lower=-np.deg2rad(10), upper=np.deg2rad(10),scaler=10)
 # x57_controls.aileron_right.deflection.set_as_design_variable(lower=-np.deg2rad(10), upper=np.deg2rad(10),scaler=10)
 # x57_controls.flap_left.deflection.set_as_design_variable(lower=-np.deg2rad(10), upper=np.deg2rad(10),scaler=10)
 # x57_controls.flap_right.deflection.set_as_design_variable(lower=-np.deg2rad(10), upper=np.deg2rad(10),scaler=10)
 # x57_controls.trim_tab.deflection.set_as_design_variable(lower=-np.deg2rad(10), upper=np.deg2rad(10),scaler=10)
-cruise.parameters.pitch_angle.set_as_design_variable(lower=-np.deg2rad(5), upper=np.deg2rad(5),scaler=100)
+cruise.parameters.pitch_angle.set_as_design_variable(lower=(-1)*np.pi/180, upper=4*np.pi/180, scaler=100)
 
 flap_diff = (x57_controls.flap_right.deflection - x57_controls.flap_left.deflection)
 flap_diff.name = f'Flap Diff{x57_controls.flap_left.deflection.name} - {x57_controls.flap_right.deflection.name}'
@@ -111,10 +111,10 @@ tf, tm = aircraft_component.compute_total_loads(fd_state=cruise.ac_states,contro
 
 M_aircraft = aircraft_component.compute_total_mass_properties()
 
-Lift_scaling = 1/(M_aircraft.mass.value*9.81)
-Drag_scaling = Lift_scaling * 10
-Moment_scaling = Lift_scaling / 10
-Y_sideforce_scaling = Lift_scaling * 10000
+Lift_scaling = 1 / (M_aircraft.mass.value * 9.81)
+Drag_scaling = Lift_scaling / 1e3
+Moment_scaling = Lift_scaling / 1e3
+Y_sideforce_scaling = Lift_scaling / 1e4
 
 FM = csdl.concatenate((Drag_scaling * tf[0], Y_sideforce_scaling * tf[1], Lift_scaling * tf[2], Moment_scaling * tm[0], Moment_scaling * tm[1], Moment_scaling * tm[2]), axis=0)
 residual = csdl.absolute(csdl.norm(FM, ord=2))
