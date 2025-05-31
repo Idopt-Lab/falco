@@ -446,7 +446,7 @@ class X57Aerodynamics(Loads):
 
             blow_num = 0
             for engine in controls.hl_engines:
-                blow_num += 1
+                blow_num += engine.throttle.value
 
 
             CL = self.AC_CL(alpha=AOA, i_w=i_wing, i_stab=dstab, AR=self.AR_wing, flap=dflap, blow_num=blow_num, trimtab=dtrim)
