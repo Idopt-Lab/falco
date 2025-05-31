@@ -75,8 +75,8 @@ for left_engine, right_engine in zip(x57_controls.hl_engines_left, x57_controls.
 
 
 for left_engine, right_engine in zip(x57_controls.cm_engines_left, x57_controls.cm_engines_right):
-    left_engine.throttle.set_as_design_variable(lower=0.0, upper=1.0)
-    right_engine.throttle.set_as_design_variable(lower=0.0, upper=1.0)
+    left_engine.throttle.set_as_design_variable(lower=0.7, upper=1.0)
+    right_engine.throttle.set_as_design_variable(lower=0.7, upper=1.0)
     cm_thrott_diff = (right_engine.throttle - left_engine.throttle) # setting all engines to the same throttle setting, because of symmetry
     cm_thrott_diff.name = f'CM Throttle Diff{left_engine.throttle.name} - {right_engine.throttle.name}'
     cm_thrott_diff.set_as_constraint(equals=0, scaler=1e-3)  # Allow a small difference due to numerical precision
@@ -108,9 +108,8 @@ for i, cruise_motor in enumerate(cruise_motors):
 tf, tm = aircraft_component.compute_total_loads(fd_state=cruise.ac_states,controls=x57_controls)
 
 
-M_aircraft = aircraft_component.compute_total_mass_properties()
 
-Lift_scaling = 1/(M_aircraft.mass.value*9.81)
+Lift_scaling = 1/(aircraft_component.mass_properties.mass.value*9.81)
 Drag_scaling = Lift_scaling / 10
 Moment_scaling = Lift_scaling * 10
 
