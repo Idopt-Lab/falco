@@ -902,12 +902,28 @@ def get_geometry_related_axis(geo_dict: dict):
     cruise_motor_axes = [cruise_motor1_axis, cruise_motor2_axis]
     # endregion
 
+    # region Aircraft FD Axis
+
+    fd_axis = Axis(
+        name='Flight Dynamics Body Fixed Axis',
+        x=Q_(0, 'ft'),
+        y=Q_(0, 'ft'),
+        z=Q_(0, 'ft'),  
+        phi=Q_(0, 'deg'),
+        theta=Q_(0, 'deg'),
+        psi=Q_(0, 'deg'),
+        sequence=np.array([3, 2, 1]),
+        reference=inertial_axis,
+        origin=ValidOrigins.Inertial.value
+    )
+    # endregion
     axis_dict = {
         'inertial_axis': inertial_axis, 'openvsp_axis': openvsp_axis,
         'wing_axis': wing_axis, 'left_flap_axis': left_flap_axis, 'right_flap_axis': right_flap_axis,
         'left_aileron_axis': left_aileron_axis, 'right_aileron_axis': right_aileron_axis,
         'ht_tail_axis': ht_tail_axis, 'trim_tab_axis': trim_tab_axis, 'vt_tail_axis': vt_tail_axis,
-        'rudder_axis': rudder_axis, 'hl_motor_axes': hl_motor_axes, 'cruise_motor_axes': cruise_motor_axes
+        'rudder_axis': rudder_axis, 'hl_motor_axes': hl_motor_axes, 'cruise_motor_axes': cruise_motor_axes,
+        'fd_axis': fd_axis
     }
 
     return axis_dict
