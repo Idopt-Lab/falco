@@ -85,24 +85,24 @@ def build_aircraft_component(geo_dict: dict, do_geo_param: bool = False):
     # Left aileron
     left_aileron = Component(name='Left Aileron')
     left_aileron.parameters.actuate_angle = csdl.Variable(name="left_aileron_actuate_angle", shape=(1,),
-                                                          value=np.deg2rad(15))
+                                                          value=np.deg2rad(0))
     wing.add_subcomponent(left_aileron)
 
     # Right aileron
     right_aileron = Component(name='Right Aileron')
     right_aileron.parameters.actuate_angle = csdl.Variable(name="right_aileron_actuate_angle", shape=(1,),
-                                                           value=np.deg2rad(15))
+                                                           value=np.deg2rad(0))
     wing.add_subcomponent(right_aileron)
 
     # Left flap
     left_flap = Component(name='Left Flap')
-    left_flap.parameters.actuate_angle = csdl.Variable(name="left_flap_actuate_angle", shape=(1,), value=np.deg2rad(10))
+    left_flap.parameters.actuate_angle = csdl.Variable(name="left_flap_actuate_angle", shape=(1,), value=np.deg2rad(0))
     wing.add_subcomponent(left_flap)
 
     # Right flap
     right_flap = Component(name='Right Flap')
     right_flap.parameters.actuate_angle = csdl.Variable(name="right_flap_actuate_angle", shape=(1,),
-                                                        value=np.deg2rad(10))
+                                                        value=np.deg2rad(0))
     wing.add_subcomponent(right_flap)
     # endregion
 
