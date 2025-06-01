@@ -46,22 +46,22 @@ cruise = aircraft_conditions.CruiseCondition(
 
 
 
-x57_controls.elevator.deflection.set_as_design_variable(lower=x57_controls.elevator.lower_bound*np.pi/180, upper=x57_controls.elevator.upper_bound*np.pi/180,scaler=100)
-# x57_controls.rudder.deflection.set_as_design_variable(lower=-np.deg2rad(10), upper=np.deg2rad(10),scaler=10)
-# x57_controls.aileron_left.deflection.set_as_design_variable(lower=-np.deg2rad(10), upper=np.deg2rad(10),scaler=10)
-# x57_controls.aileron_right.deflection.set_as_design_variable(lower=-np.deg2rad(10), upper=np.deg2rad(10),scaler=10)
-# x57_controls.flap_left.deflection.set_as_design_variable(lower=-np.deg2rad(10), upper=np.deg2rad(10),scaler=10)
-# x57_controls.flap_right.deflection.set_as_design_variable(lower=-np.deg2rad(10), upper=np.deg2rad(10),scaler=10)
-# x57_controls.trim_tab.deflection.set_as_design_variable(lower=-np.deg2rad(10), upper=np.deg2rad(10),scaler=10)
-cruise.parameters.pitch_angle.set_as_design_variable(lower=(-1)*np.pi/180, upper=4*np.pi/180, scaler=100)
+x57_controls.elevator.deflection.set_as_design_variable(lower=x57_controls.elevator.lower_bound*np.pi/180, upper=x57_controls.elevator.upper_bound*np.pi/180,scaler=1e2)
+# x57_controls.rudder.deflection.set_as_design_variable(lower=x57_controls.rudder.lower_bound*np.pi/180, upper=x57_controls.rudder.upper_bound*np.pi/180,scaler=100)
+# x57_controls.aileron_left.deflection.set_as_design_variable(lower=x57_controls.aileron_left.lower_bound*np.pi/180, upper=x57_controls.aileron_left.upper_bound*np.pi/180,scaler=100)
+# x57_controls.aileron_right.deflection.set_as_design_variable(lower=x57_controls.aileron_right.lower_bound*np.pi/180, upper=x57_controls.aileron_right.upper_bound*np.pi/180,scaler=100)
+# x57_controls.flap_left.deflection.set_as_design_variable(lower=x57_controls.flap_left.lower_bound*np.pi/180, upper=x57_controls.flap_left.upper_bound*np.pi/180,scaler=100)
+# x57_controls.flap_right.deflection.set_as_design_variable(lower=x57_controls.flap_right.lower_bound*np.pi/180, upper=x57_controls.flap_right.upper_bound*np.pi/180,scaler=100)
+# x57_controls.trim_tab.deflection.set_as_design_variable(lower=x57_controls.trim_tab.lower_bound*np.pi/180, upper=x57_controls.trim_tab.upper_bound*np.pi/180,scaler=100)
+cruise.parameters.pitch_angle.set_as_design_variable(lower=(-5)*np.pi/180, upper=5*np.pi/180, scaler=1e2)
 
 flap_diff = (x57_controls.flap_right.deflection - x57_controls.flap_left.deflection)
 flap_diff.name = f'Flap Diff{x57_controls.flap_left.deflection.name} - {x57_controls.flap_right.deflection.name}'
-# flap_diff.set_as_constraint(equals=0,scaler=1e-3)  # Allow a small difference due to numerical precision
+# flap_diff.set_as_constraint(equals=0) 
 
 aileron_diff = (x57_controls.aileron_right.deflection - x57_controls.aileron_left.deflection)
 aileron_diff.name = f'Aileron Diff{x57_controls.aileron_left.deflection.name} - {x57_controls.aileron_right.deflection.name}'
-# aileron_diff.set_as_constraint(equals=0,scaler=1e-3)  # Allow a small difference due to numerical precision
+# aileron_diff.set_as_constraint(equals=0)  
 
 
 # cruise.parameters.altitude.set_as_design_variable(lower=1, upper=2000)
@@ -73,7 +73,7 @@ for left_engine, right_engine in zip(x57_controls.hl_engines_left, x57_controls.
     right_engine.throttle.value=0.0
     hl_throt_diff = (right_engine.throttle - left_engine.throttle) # setting all engines to the same throttle setting, because of symmetry
     hl_throt_diff.name = f'HL Throttle Diff{left_engine.throttle.name} - {right_engine.throttle.name}'
-    # hl_throt_diff.set_as_constraint(equals=0,scaler=1e-3)  # Allow a small difference due to numerical precision
+    # hl_throt_diff.set_as_constraint(equals=0)  
 
 
 for left_engine, right_engine in zip(x57_controls.cm_engines_left, x57_controls.cm_engines_right):
@@ -81,7 +81,7 @@ for left_engine, right_engine in zip(x57_controls.cm_engines_left, x57_controls.
     right_engine.throttle.set_as_design_variable(lower=0.8, upper=1.0)
     cm_thrott_diff = (right_engine.throttle - left_engine.throttle) # setting all engines to the same throttle setting, because of symmetry
     cm_thrott_diff.name = f'CM Throttle Diff{left_engine.throttle.name} - {right_engine.throttle.name}'
-    cm_thrott_diff.set_as_constraint(equals=0, scaler=1e-3)  # Allow a small difference due to numerical precision
+    cm_thrott_diff.set_as_constraint(equals=0)  
 
 
 x57_aerodynamics = X57Aerodynamics(component=aircraft_component)
@@ -112,11 +112,10 @@ tf, tm = aircraft_component.compute_total_loads(fd_state=cruise.ac_states,contro
 M_aircraft = aircraft_component.compute_total_mass_properties()
 
 Lift_scaling = 1 / (M_aircraft.mass.value * 9.81)
-Drag_scaling = Lift_scaling / 1e3
-Moment_scaling = Lift_scaling / 1e3
-Y_sideforce_scaling = Lift_scaling / 1e4
+Drag_scaling = Lift_scaling / 1e1
+Moment_scaling = Lift_scaling / 1e2
 
-FM = csdl.concatenate((Drag_scaling * tf[0], Y_sideforce_scaling * tf[1], Lift_scaling * tf[2], Moment_scaling * tm[0], Moment_scaling * tm[1], Moment_scaling * tm[2]), axis=0)
+FM = csdl.concatenate((Drag_scaling * tf[0], tf[1], Lift_scaling * tf[2], Moment_scaling * tm[0], Moment_scaling * tm[1], Moment_scaling * tm[2]), axis=0)
 residual = csdl.absolute(csdl.norm(FM, ord=2))
 residual.name = 'Trim Residual'
 residual.set_as_objective()
@@ -128,7 +127,7 @@ sim = csdl.experimental.JaxSimulator(
     recorder=recorder,
     gpu=False,
     additional_inputs=[cruise.parameters.speed],
-    additional_outputs=[cruise.ac_states.VTAS, tf[0], tf[1], tf[2], tm[0], tm[1], tm[2]],
+    additional_outputs=[cruise.ac_states.VTAS],
     derivatives_kwargs= {
         "concatenate_ofs" : True})
 
@@ -153,7 +152,7 @@ for i, speed in enumerate(speeds):
     sim.check_optimization_derivatives()
     t1 = time.time()
     prob = CSDLAlphaProblem(problem_name='trim_optimization', simulator=sim)
-    optimizer = IPOPT(problem=prob)
+    optimizer = SLSQP(problem=prob)
     optimizer.solve()
     optimizer.print_results()
     t2 = time.time()
@@ -173,6 +172,18 @@ for i, speed in enumerate(speeds):
         print(engine.throttle.value)    
     print("Elevator Deflection (deg)")
     print(x57_controls.elevator.deflection.value * 180 / np.pi)
+    # print("Rudder Deflection (deg)")
+    # print(x57_controls.rudder.deflection.value * 180 / np.pi)
+    # print("Left Aileron Deflection (deg)")
+    # print(x57_controls.aileron_left.deflection.value * 180 / np.pi)
+    # print("Right Aileron Deflection (deg)")
+    # print(x57_controls.aileron_right.deflection.value * 180 / np.pi)
+    # print("Left Flap Deflection (deg)")
+    # print(x57_controls.flap_left.deflection.value * 180 / np.pi)
+    # print("Right Flap Deflection (deg)")
+    # print(x57_controls.flap_right.deflection.value * 180 / np.pi)
+    # print("Trim Tab Deflection (deg)")
+    # print(x57_controls.trim_tab.deflection.value * 180 / np.pi)
     print("Pitch Angle (deg)")
     print(cruise.parameters.pitch_angle.value * 180 / np.pi)
     print("Residual Magnitude: (Net body forces and moments)")
