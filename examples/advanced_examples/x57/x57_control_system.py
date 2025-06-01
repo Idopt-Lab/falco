@@ -52,11 +52,11 @@ class X57ControlSystem(VehicleControlSystem):
 
     def _init_hl_engines(self, count: int) -> list:
         """Initialize high-lift engines."""
-        return [PropulsiveControl(name=f'HL_Motor{i + 1}', throttle=1.0) for i in range(count)]
+        return [PropulsiveControl(name=f'HL_Motor{i + 1}', throttle=0.0) for i in range(count)]
 
     def _init_cm_engines(self, count: int) -> list:
         """Initialize cruise engines."""
-        return [PropulsiveControl(name=f'Cruise_Motor{i + 1}', throttle=1.0) for i in range(count)]
+        return [PropulsiveControl(name=f'Cruise_Motor{i + 1}', throttle=0.0) for i in range(count)]
 
     @property
     def control_order(self) -> List[str]:

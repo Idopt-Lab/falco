@@ -144,6 +144,8 @@ print("Total aero loads and aero loads alone, with HLP on:")
 print("Force:", tf3B.value)
 print("Moment:", tm3B.value)
 
+
+
 # endregion
 
 
@@ -232,7 +234,24 @@ print("Force:", tf6.value)
 print("Moment:", tm6.value)
 
 
+for left_engine, right_engine in zip(x57_controlsA.cm_engines_left, x57_controlsA.cm_engines_right):
+    left_engine.throttle.value = 0.0
+    right_engine.throttle.value=0.0
 
+cruise4B = aircraft_conditions.CruiseCondition(
+    fd_axis=axis_dict['fd_axis'],
+    controls=x57_controls,
+    altitude=Q_(2500, 'ft'),
+    range=Q_(100, 'km'),
+    speed=Q_(44.08789, 'm/s'),
+    pitch_angle=Q_(0, 'deg'))
+
+tf7, tm7 = aircraft_component5.compute_total_loads(fd_state=cruise4B.ac_states, controls=x57_controls)
+tf7 = tf7 - tf1
+tm7 = tm7 - tm1
+print("Total prop loads and prop loads alone with both CM1 and CM2 prop, with engines off:")
+print("Force:", tf7.value)
+print("Moment:", tm7.value)
 
 # endregion
 

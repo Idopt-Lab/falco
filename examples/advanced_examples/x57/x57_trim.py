@@ -44,6 +44,8 @@ cruise = aircraft_conditions.CruiseCondition(
     speed=Q_(76.8909, 'm/s'),
     pitch_angle=Q_(0, 'deg'))
 
+print(cruise)
+
 
 
 x57_controls.elevator.deflection.set_as_design_variable(lower=x57_controls.elevator.lower_bound*np.pi/180, upper=x57_controls.elevator.upper_bound*np.pi/180,scaler=1e2)
@@ -53,7 +55,7 @@ x57_controls.elevator.deflection.set_as_design_variable(lower=x57_controls.eleva
 # x57_controls.flap_left.deflection.set_as_design_variable(lower=x57_controls.flap_left.lower_bound*np.pi/180, upper=x57_controls.flap_left.upper_bound*np.pi/180,scaler=100)
 # x57_controls.flap_right.deflection.set_as_design_variable(lower=x57_controls.flap_right.lower_bound*np.pi/180, upper=x57_controls.flap_right.upper_bound*np.pi/180,scaler=100)
 # x57_controls.trim_tab.deflection.set_as_design_variable(lower=x57_controls.trim_tab.lower_bound*np.pi/180, upper=x57_controls.trim_tab.upper_bound*np.pi/180,scaler=100)
-cruise.parameters.pitch_angle.set_as_design_variable(lower=(-5)*np.pi/180, upper=5*np.pi/180, scaler=1e2)
+cruise.parameters.pitch_angle.set_as_design_variable(lower=(-1)*np.pi/180, upper=4*np.pi/180, scaler=1e2)
 
 flap_diff = (x57_controls.flap_right.deflection - x57_controls.flap_left.deflection)
 flap_diff.name = f'Flap Diff{x57_controls.flap_left.deflection.name} - {x57_controls.flap_right.deflection.name}'
@@ -109,11 +111,10 @@ for i, cruise_motor in enumerate(cruise_motors):
 
 tf, tm = aircraft_component.compute_total_loads(fd_state=cruise.ac_states,controls=x57_controls)
 
-M_aircraft = aircraft_component.compute_total_mass_properties()
 
-Lift_scaling = 1 / (M_aircraft.mass.value * 9.81)
-Drag_scaling = Lift_scaling / 1e1
-Moment_scaling = Lift_scaling / 1e2
+Lift_scaling = 1e-8/(aircraft_component.mass_properties.mass * 9.81)
+Drag_scaling = Lift_scaling
+Moment_scaling = Lift_scaling
 
 FM = csdl.concatenate((Drag_scaling * tf[0], tf[1], Lift_scaling * tf[2], Moment_scaling * tm[0], Moment_scaling * tm[1], Moment_scaling * tm[2]), axis=0)
 residual = csdl.absolute(csdl.norm(FM, ord=2))
@@ -152,7 +153,7 @@ for i, speed in enumerate(speeds):
     sim.check_optimization_derivatives()
     t1 = time.time()
     prob = CSDLAlphaProblem(problem_name='trim_optimization', simulator=sim)
-    optimizer = SLSQP(problem=prob)
+    optimizer = IPOPT(problem=prob)
     optimizer.solve()
     optimizer.print_results()
     t2 = time.time()
@@ -172,18 +173,18 @@ for i, speed in enumerate(speeds):
         print(engine.throttle.value)    
     print("Elevator Deflection (deg)")
     print(x57_controls.elevator.deflection.value * 180 / np.pi)
-    # print("Rudder Deflection (deg)")
-    # print(x57_controls.rudder.deflection.value * 180 / np.pi)
-    # print("Left Aileron Deflection (deg)")
-    # print(x57_controls.aileron_left.deflection.value * 180 / np.pi)
-    # print("Right Aileron Deflection (deg)")
-    # print(x57_controls.aileron_right.deflection.value * 180 / np.pi)
-    # print("Left Flap Deflection (deg)")
-    # print(x57_controls.flap_left.deflection.value * 180 / np.pi)
-    # print("Right Flap Deflection (deg)")
-    # print(x57_controls.flap_right.deflection.value * 180 / np.pi)
-    # print("Trim Tab Deflection (deg)")
-    # print(x57_controls.trim_tab.deflection.value * 180 / np.pi)
+    print("Rudder Deflection (deg)")
+    print(x57_controls.rudder.deflection.value * 180 / np.pi)
+    print("Left Aileron Deflection (deg)")
+    print(x57_controls.aileron_left.deflection.value * 180 / np.pi)
+    print("Right Aileron Deflection (deg)")
+    print(x57_controls.aileron_right.deflection.value * 180 / np.pi)
+    print("Left Flap Deflection (deg)")
+    print(x57_controls.flap_left.deflection.value * 180 / np.pi)
+    print("Right Flap Deflection (deg)")
+    print(x57_controls.flap_right.deflection.value * 180 / np.pi)
+    print("Trim Tab Deflection (deg)")
+    print(x57_controls.trim_tab.deflection.value * 180 / np.pi)
     print("Pitch Angle (deg)")
     print(cruise.parameters.pitch_angle.value * 180 / np.pi)
     print("Residual Magnitude: (Net body forces and moments)")
