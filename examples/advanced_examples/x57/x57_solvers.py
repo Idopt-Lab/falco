@@ -301,7 +301,7 @@ class X57Aerodynamics(Loads):
             if blow_num:
                 downwash = (downwash_C11_blow + downwash_fusVtail) * (np.pi/180)
             else:
-                downwash = downwash_C11_noblow + downwash_fusVtail * (np.pi/180)
+                downwash = (downwash_C11_noblow + downwash_fusVtail) * (np.pi/180)
         else:
             downwash = downwash_C12 * (np.pi/180)
         return downwash
