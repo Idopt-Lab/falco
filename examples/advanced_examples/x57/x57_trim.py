@@ -39,7 +39,7 @@ x57_controls = X57ControlSystem(elevator_component=aircraft_component.comps['Ele
 cruise = aircraft_conditions.CruiseCondition(
     fd_axis=axis_dict['fd_axis'],
     controls=x57_controls,
-    altitude=Q_(2438.4, 'm'),
+    altitude=Q_(8000, 'ft'),
     range=Q_(160, 'km'),
     speed=Q_(76.8909, 'm/s'),
     pitch_angle=Q_(0, 'deg'))
@@ -48,7 +48,7 @@ print(cruise)
 
 
 
-x57_controls.elevator.deflection.set_as_design_variable(lower=x57_controls.elevator.lower_bound*np.pi/180, upper=x57_controls.elevator.upper_bound*np.pi/180,scaler=1e2)
+x57_controls.elevator.deflection.set_as_design_variable(lower=-np.deg2rad(10), upper=np.deg2rad(10),scaler=1e2)
 # x57_controls.rudder.deflection.set_as_design_variable(lower=x57_controls.rudder.lower_bound*np.pi/180, upper=x57_controls.rudder.upper_bound*np.pi/180,scaler=100)
 # x57_controls.aileron_left.deflection.set_as_design_variable(lower=x57_controls.aileron_left.lower_bound*np.pi/180, upper=x57_controls.aileron_left.upper_bound*np.pi/180,scaler=100)
 # x57_controls.aileron_right.deflection.set_as_design_variable(lower=x57_controls.aileron_right.lower_bound*np.pi/180, upper=x57_controls.aileron_right.upper_bound*np.pi/180,scaler=100)
@@ -112,9 +112,9 @@ for i, cruise_motor in enumerate(cruise_motors):
 tf, tm = aircraft_component.compute_total_loads(fd_state=cruise.ac_states,controls=x57_controls)
 
 
-Lift_scaling = 1e-8/(aircraft_component.mass_properties.mass * 9.81)
-Drag_scaling = Lift_scaling
-Moment_scaling = Lift_scaling
+Lift_scaling = 1e-6 / (aircraft_component.mass_properties.mass * 9.81)
+Drag_scaling = Lift_scaling / 10
+Moment_scaling = Lift_scaling * 10
 
 FM = csdl.concatenate((Drag_scaling * tf[0], tf[1], Lift_scaling * tf[2], Moment_scaling * tm[0], Moment_scaling * tm[1], Moment_scaling * tm[2]), axis=0)
 residual = csdl.absolute(csdl.norm(FM, ord=2))
@@ -139,16 +139,28 @@ TRequireds = []
 TAvails = []
 PAvails = []
 PReqs = []
-# speeds = np.arange(10, 110, 10) # in m/s
-speeds = [76.8909]  # in m/s, this is the cruise speed from the X57 CFD data
+speeds = np.linspace(10, 130, 20) # in m/s
+# speeds = [76.8909]  # in m/s, this is the cruise speed from the X57 CFD data
 Drags = []
 Lifts = []
 LD_ratios = []
+LD_ratios_no_opt = []   # Baseline/unoptimized L/D ratios
+ThrustR_no_opt = []
+PowerReq_no_opt = []
 vtas_list = []
 
 for i, speed in enumerate(speeds):
 
     sim[cruise.parameters.speed] = speed
+
+    recorder.execute()
+
+    baseline_Drag = -tf[0].value[0]
+    baseline_Lift = tf[2].value[0]
+    LD_no_opt = baseline_Lift / baseline_Drag
+    ThrustR_no_opt.append(baseline_Drag)
+    PowerReq_no_opt.append(baseline_Drag * cruise.ac_states.VTAS.value[0] * 1e-3)  # in kW
+    LD_ratios_no_opt.append(LD_no_opt)
 
     sim.check_optimization_derivatives()
     t1 = time.time()
@@ -159,6 +171,19 @@ for i, speed in enumerate(speeds):
     t2 = time.time()
     print('Time to solve Optimization:', t2-t1)
     recorder.execute()
+
+    Drag =  -tf[0]
+    ThrustR = Drag
+    Lift = tf[2] 
+
+    PowerReq = ThrustR * cruise.ac_states.VTAS * 1e-3  # in kW
+
+    CLmax = 3.85
+
+    # Vs = csdl.sqrt((2* aircraft_component.mass_properties.mass * 9.81) / (cruise.ac_states.atmospheric_states.density * aircraft_component.comps["Wing"].parameters.S_ref * CLmax)) # in m/s
+
+    # V_H = cruise.ac_states.VTAS * 
+
     dv_save_dict = {}
     constraints_save_dict = {}
     obj_save_dict = {}
@@ -166,6 +191,18 @@ for i, speed in enumerate(speeds):
     dv_dict = recorder.design_variables
     constraint_dict = recorder.constraints
     obj_dict = recorder.objectives
+
+    for dv in dv_dict.keys():
+        dv_save_dict[dv.name] = dv.value
+        # print("Design Variable", dv.name, dv.value)
+
+    for c in constraint_dict.keys():
+        constraints_save_dict[c.name] = c.value
+        # print("Constraint", c.name, c.value)
+
+    for obj in obj_dict.keys():
+        obj_save_dict[obj.name] = obj.value
+        # print("Objective", obj.name, obj.value)
 
     print("=====Aircraft States=====")
     print("Thrust")
@@ -194,8 +231,49 @@ for i, speed in enumerate(speeds):
 
 
     vtas_list.append(cruise.ac_states.VTAS.value[0])
+    TRequireds.append(ThrustR.value[0])
+    PReqs.append(PowerReq.value[0])
+    Drags.append(Drag.value[0])
+    Lifts.append(Lift.value[0])
+    LD_ratios.append(Lift.value[0] / Drag.value[0])
+
+    print("TF[0]", tf[0].value)
+    print("TF[1]", tf[1].value)
+    print("TF[2]", tf[2].value)
+
+import matplotlib.pyplot as plt
+plt.figure()
+plt.plot(vtas_list, TRequireds, marker='s', linestyle='--', label='Required Thrust')
+plt.plot(vtas_list, ThrustR_no_opt, marker='o', linestyle='-', label='Thrust (No Optimization)')
+plt.xlabel('True Airspeed (VTAS) [m/s]')
+plt.ylabel('Thrust (N)')
+plt.title('Thrust vs. VTAS')
+plt.grid(True)
+plt.legend()
+plt.show()
+
+plt.figure()
+plt.plot(vtas_list, PReqs, marker='s', linestyle='--', label='Required Power')
+plt.plot(vtas_list, PowerReq_no_opt, marker='o', linestyle='-', label='Power (No Optimization)')
+plt.xlabel('True Airspeed (VTAS) [m/s]')
+plt.ylabel('Power (kW)')
+plt.title('Power vs. VTAS')
+plt.grid(True)
+plt.legend()
+plt.show()
 
 
+plt.figure()
+plt.plot(vtas_list, LD_ratios, marker='s', linestyle='--', label='L/D Ratio')
+plt.plot(vtas_list, LD_ratios_no_opt, marker='o', linestyle='-', label='L/D Ratio (No Optimization)')
+plt.xlabel('True Airspeed (VTAS) [m/s]')
+plt.ylim(4,16)
+plt.xlim(40, 100)
+plt.ylabel('L/D Ratio')
+plt.title('L/D Ratio vs. VTAS')
+plt.grid(True)
+plt.legend()
+plt.show()
 
 
 
