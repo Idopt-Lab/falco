@@ -189,8 +189,33 @@ class Component:
 
         return total_forces, total_moments
     
+    def compute_total_torque_total_power(self, fd_state, controls):
+        """
+        Compute the total propulsion torque and shaft power of this component by summing
+        the contributions from propulsion load solvers and from all subcomponents.
 
+        Returns:
+            total_torque (csdl.Variable): Total torque.
+            total_power (csdl.Variable): Total shaft power.
+        """
+        total_torque = csdl.Variable(shape=(1,), value=0.)
+        total_power  = csdl.Variable(shape=(1,), value=0.)
 
+        if bool(self.load_solvers):
+            for ls in self.load_solvers:
+                # Check if the load solver has propulsion capabilities.
+                if hasattr(ls, "get_torque_power"):
+                    torque, shaft_power = ls.get_torque_power(fd_state, controls)
+                    total_torque += torque
+                    total_power  += shaft_power
+
+        for comp in self.comps.values():
+            t, p = comp.compute_total_torque_total_power(fd_state, controls)
+            total_torque += t 
+            total_power  += p
+
+        return total_torque, total_power
+    
     def compute_total_mass_properties(self):
     
         """
