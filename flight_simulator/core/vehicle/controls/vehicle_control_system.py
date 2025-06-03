@@ -40,6 +40,20 @@ class PropulsiveControl:
     @property
     def upper_bound(self):
         return self._ub
+    
+class PropulsiveControlRPM:
+    def __init__(self, name, lb: float=0., ub: float=1., rpm:float=0.):
+        self._lb = lb
+        self._ub = ub
+        self.rpm = csdl.Variable(name=name+'_rpm', shape=(1, ), value=rpm)
+
+    @property
+    def lower_bound(self):
+        return self._lb
+
+    @property
+    def upper_bound(self):
+        return self._ub
 
 
 class VehicleControlSystem(ABC):
@@ -47,11 +61,11 @@ class VehicleControlSystem(ABC):
     def __init__(self, pitch_control: list,
                  roll_control: list,
                  yaw_control: list,
-                 throttle_control: list):
+                 rpm_control: list):
         self.pitch_control_vector = self._create_pitch_control_vector(pitch_control=pitch_control)
         self.roll_control = roll_control
         self.yaw_control = yaw_control
-        self.throttle_control = throttle_control
+        self.rpm_control = rpm_control
         pass
 
     def _create_pitch_control_vector(self, pitch_control):
