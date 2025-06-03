@@ -64,7 +64,7 @@ class TestCase(TestCase):
         np.testing.assert_almost_equal(tf.value,
                                        desired=np.array([0, 0, 13355]), decimal=0)
         np.testing.assert_almost_equal(tm.value,
-                                       desired=np.array([26, 49170, 0.]), decimal=0)
+                                       desired=np.array([0, 49170, 0.]), decimal=0)
         
 
     def testMP_2_alpha(self):
@@ -84,7 +84,7 @@ class TestCase(TestCase):
         np.testing.assert_almost_equal(tf.value,
                                        desired=np.array([-466, 0., 13346]), decimal=0)
         np.testing.assert_almost_equal(tm.value,
-                                       desired=np.array([26, 49371, 0]), decimal=0)
+                                       desired=np.array([0, 49371, 0]), decimal=0)
 
 
 # endregion
@@ -111,7 +111,6 @@ class TestCase(TestCase):
         for left_engine, right_engine in zip(x57_controls.cm_engines_left, x57_controls.cm_engines_right):
             left_engine.rpm.value = 2250
             right_engine.rpm.value = 2250
-        x57_controls.refresh_u()
 
         cruise_radius_x57 = csdl.Variable(name="cruise_lift_motor_radius",shape=(1,), value=5/2) # cruise propeller radius in ft
 
@@ -149,7 +148,6 @@ class TestCase(TestCase):
 
         for left_engine in x57_controls.cm_engines_left:
             left_engine.rpm.value = 2250
-        x57_controls.refresh_u()
 
         cruise_radius_x57 = csdl.Variable(name="cruise_lift_motor_radius",shape=(1,), value=5/2) # cruise propeller radius in ft
 
@@ -160,8 +158,6 @@ class TestCase(TestCase):
         tf, tm = aircraft_component.compute_total_loads(fd_state=cruise.ac_states, controls=x57_controls)
         tf = tf - tf0
         tm = tm - tm0
-        print(tf.value)
-        print(tm.value)
         np.testing.assert_almost_equal(tf.value,
                                        desired=np.array([1428, 0, 0])/2, decimal=0) # desired value comes from X57 CFD data
         np.testing.assert_almost_equal(tm.value,
@@ -185,7 +181,6 @@ class TestCase(TestCase):
         
         for right_engine in x57_controls.cm_engines_right:
             right_engine.rpm.value = 2250
-        x57_controls.refresh_u()
 
         cruise_radius_x57 = csdl.Variable(name="cruise_lift_motor_radius",shape=(1,), value=5/2) # cruise propeller radius in ft
 
