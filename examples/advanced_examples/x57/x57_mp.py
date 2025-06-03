@@ -61,7 +61,7 @@ def add_mp_to_components(aircraft_component: Component, geo_dict: dict, axis_dic
 
     # region Empennage
     aircraft_component.comps['Elevator'].mass_properties = MassProperties(mass=Q_(27.3 / 2, 'kg'),
-                                              cg=Vector(vector=Q_(geo_dict['ht_le_center'].value, 'm'),
+                                              cg=Vector(vector=Q_(geo_dict['ht_le_center'].value - np.array([0,0.1965899,0]), 'm'),
                                                         axis=axis_dict['ht_tail_axis']), inertia=MassMI(axis=axis_dict['ht_tail_axis']))
     aircraft_component.comps['Elevator'].comps['Trim Tab'].mass_properties = MassProperties(mass=Q_(0.1, 'kg'),
                                               cg=Vector(vector=Q_(geo_dict['trimTab_le_center'].value, 'm'),
@@ -130,6 +130,10 @@ if __name__ == "__main__":
 
     aircraft_component.mass_properties = aircraft_component.compute_total_mass_properties()
     print(repr(aircraft_component))
+
+    for comp in aircraft_component.comps.values():
+        if hasattr(comp, 'mass_properties'):
+            print(f"{comp._name} mass properties: {comp.mass_properties.cg_vector.vector.value}")
 
     # aircraft_component.compute_total_loads()
 
