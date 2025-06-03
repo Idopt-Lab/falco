@@ -44,18 +44,16 @@ cruise = aircraft_conditions.CruiseCondition(
     speed=Q_(76.8909, 'm/s'),
     pitch_angle=Q_(0, 'deg'))
 
-print(cruise)
 
 
-
-x57_controls.elevator.deflection.set_as_design_variable(lower=-np.deg2rad(10), upper=np.deg2rad(10),scaler=1e2)
+x57_controls.elevator.deflection.set_as_design_variable(lower=x57_controls.elevator.lower_bound*np.pi/180, upper=x57_controls.elevator.upper_bound*np.pi/180,scaler=1e2)
 # x57_controls.rudder.deflection.set_as_design_variable(lower=x57_controls.rudder.lower_bound*np.pi/180, upper=x57_controls.rudder.upper_bound*np.pi/180,scaler=100)
 # x57_controls.aileron_left.deflection.set_as_design_variable(lower=x57_controls.aileron_left.lower_bound*np.pi/180, upper=x57_controls.aileron_left.upper_bound*np.pi/180,scaler=100)
 # x57_controls.aileron_right.deflection.set_as_design_variable(lower=x57_controls.aileron_right.lower_bound*np.pi/180, upper=x57_controls.aileron_right.upper_bound*np.pi/180,scaler=100)
 # x57_controls.flap_left.deflection.set_as_design_variable(lower=x57_controls.flap_left.lower_bound*np.pi/180, upper=x57_controls.flap_left.upper_bound*np.pi/180,scaler=100)
 # x57_controls.flap_right.deflection.set_as_design_variable(lower=x57_controls.flap_right.lower_bound*np.pi/180, upper=x57_controls.flap_right.upper_bound*np.pi/180,scaler=100)
 # x57_controls.trim_tab.deflection.set_as_design_variable(lower=x57_controls.trim_tab.lower_bound*np.pi/180, upper=x57_controls.trim_tab.upper_bound*np.pi/180,scaler=100)
-cruise.parameters.pitch_angle.set_as_design_variable(lower=(-1)*np.pi/180, upper=4*np.pi/180, scaler=1e2)
+cruise.parameters.pitch_angle.set_as_design_variable(lower=(-10)*np.pi/180, upper=10*np.pi/180, scaler=1e2)
 
 flap_diff = (x57_controls.flap_right.deflection - x57_controls.flap_left.deflection)
 flap_diff.name = f'Flap Diff{x57_controls.flap_left.deflection.name} - {x57_controls.flap_right.deflection.name}'
@@ -71,19 +69,21 @@ aileron_diff.name = f'Aileron Diff{x57_controls.aileron_left.deflection.name} - 
 
 
 for left_engine, right_engine in zip(x57_controls.hl_engines_left, x57_controls.hl_engines_right):
-    left_engine.throttle.value = 0.0
-    right_engine.throttle.value=0.0
-    hl_throt_diff = (right_engine.throttle - left_engine.throttle) # setting all engines to the same throttle setting, because of symmetry
-    hl_throt_diff.name = f'HL Throttle Diff{left_engine.throttle.name} - {right_engine.throttle.name}'
-    # hl_throt_diff.set_as_constraint(equals=0)  
+    left_engine.rpm.value = 0
+    right_engine.rpm.value= 0
+    # left_engine.rpm.set_as_design_variable(lower=left_engine.lower_bound, upper=left_engine.upper_bound,scaler=1e-4)
+    # right_engine.rpm.set_as_design_variable(lower=right_engine.lower_bound, upper=right_engine.upper_bound,scaler=1e-4)
+    hl_rpm_diff = (right_engine.rpm - left_engine.rpm) # setting all engines to the same rpm setting, because of symmetry
+    hl_rpm_diff.name = f'HL rpm Diff{left_engine.rpm.name} - {right_engine.rpm.name}'
+    # hl_rpm_diff.set_as_constraint(equals=0)  
 
 
 for left_engine, right_engine in zip(x57_controls.cm_engines_left, x57_controls.cm_engines_right):
-    left_engine.throttle.set_as_design_variable(lower=0.8, upper=1.0)
-    right_engine.throttle.set_as_design_variable(lower=0.8, upper=1.0)
-    cm_thrott_diff = (right_engine.throttle - left_engine.throttle) # setting all engines to the same throttle setting, because of symmetry
-    cm_thrott_diff.name = f'CM Throttle Diff{left_engine.throttle.name} - {right_engine.throttle.name}'
-    cm_thrott_diff.set_as_constraint(equals=0)  
+    left_engine.rpm.set_as_design_variable(lower=left_engine.lower_bound, upper=left_engine.upper_bound,scaler=1e-4)
+    right_engine.rpm.set_as_design_variable(lower=right_engine.lower_bound, upper=right_engine.upper_bound,scaler=1e-4)
+    cm_rpm_diff = (right_engine.rpm - left_engine.rpm) # setting all engines to the same rpm setting, because of symmetry
+    cm_rpm_diff.name = f'CM rpm Diff{left_engine.rpm.name} - {right_engine.rpm.name}'
+    cm_rpm_diff.set_as_constraint(equals=0)  
 
 
 x57_aerodynamics = X57Aerodynamics(component=aircraft_component)
@@ -95,9 +95,9 @@ cruise_radius_x57 = csdl.Variable(name="cruise_lift_motor_radius",shape=(1,), va
 
 hl_motors = [comp for comp in aircraft_component.comps['Wing'].comps.values() if comp._name.startswith('HL Motor')]
 
-for i, hl_motor in enumerate(hl_motors):
-    hl_prop = X57Propulsion(radius=HL_radius_x57, prop_curve=HLPropCurve(),engine_index=i)
-    hl_motor.load_solvers.append(hl_prop)
+# for i, hl_motor in enumerate(hl_motors):
+#     hl_prop = X57Propulsion(radius=HL_radius_x57, prop_curve=HLPropCurve(),engine_index=i)
+#     hl_motor.load_solvers.append(hl_prop)
 
 
 cruise_motors = [comp for comp in aircraft_component.comps['Wing'].comps.values() if comp._name.startswith('Cruise Motor')]
@@ -112,23 +112,36 @@ for i, cruise_motor in enumerate(cruise_motors):
 tf, tm = aircraft_component.compute_total_loads(fd_state=cruise.ac_states,controls=x57_controls)
 
 
-Lift_scaling = 1e-6 / (aircraft_component.mass_properties.mass * 9.81)
+Lift_scaling = 1 / (aircraft_component.mass_properties.mass * 9.81)
 Drag_scaling = Lift_scaling / 10
 Moment_scaling = Lift_scaling * 10
 
-FM = csdl.concatenate((Drag_scaling * tf[0], tf[1], Lift_scaling * tf[2], Moment_scaling * tm[0], Moment_scaling * tm[1], Moment_scaling * tm[2]), axis=0)
-residual = csdl.absolute(csdl.norm(FM, ord=2))
-residual.name = 'Trim Residual'
-residual.set_as_objective()
+# res1 = tf[0]
+# res1.name = 'Fx=0'
+# res1.set_as_constraint(equals=0,scaler=Drag_scaling.value)
+
+res2 = tf[2]
+res2.name = 'Fz=0'
+res2.set_as_constraint(equals=0,scaler=Lift_scaling.value)    
+
+res3 = tm[1]
+res3.name = 'My=0'
+res3.set_as_constraint(equals=0,scaler=Moment_scaling.value)
 
 
 
+Total_torque_req, Total_power_req = aircraft_component.compute_total_torque_total_power(fd_state=cruise.ac_states,controls=x57_controls)
+# print("Total Torque Required:", Total_torque_req.value)
+# print("Total Power Required:", Total_power_req.value)
+Total_power_req = Total_power_req * (Lift_scaling / 10)
+Total_power_req.name = 'Total Power Required'
+Total_power_req.set_as_objective()
 
 sim = csdl.experimental.JaxSimulator(
     recorder=recorder,
     gpu=False,
     additional_inputs=[cruise.parameters.speed],
-    additional_outputs=[cruise.ac_states.VTAS],
+    additional_outputs=[cruise.ac_states.VTAS, tf[0], tf[1], tf[2], tm[0], tm[1], tm[2], Total_power_req],
     derivatives_kwargs= {
         "concatenate_ofs" : True})
 
@@ -139,8 +152,8 @@ TRequireds = []
 TAvails = []
 PAvails = []
 PReqs = []
-speeds = np.linspace(10, 130, 20) # in m/s
-# speeds = [76.8909]  # in m/s, this is the cruise speed from the X57 CFD data
+# speeds = np.linspace(10, 130, 20) # in m/s
+speeds = [76.8909]  # in m/s, this is the cruise speed from the X57 CFD data
 Drags = []
 Lifts = []
 LD_ratios = []
@@ -159,7 +172,7 @@ for i, speed in enumerate(speeds):
     baseline_Lift = tf[2].value[0]
     LD_no_opt = baseline_Lift / baseline_Drag
     ThrustR_no_opt.append(baseline_Drag)
-    PowerReq_no_opt.append(baseline_Drag * cruise.ac_states.VTAS.value[0] * 1e-3)  # in kW
+    PowerReq_no_opt.append(Total_power_req.value[0])  # in kW
     LD_ratios_no_opt.append(LD_no_opt)
 
     sim.check_optimization_derivatives()
@@ -174,9 +187,9 @@ for i, speed in enumerate(speeds):
 
     Drag =  -tf[0]
     ThrustR = Drag
-    Lift = tf[2] 
+    Lift = -tf[2] 
 
-    PowerReq = ThrustR * cruise.ac_states.VTAS * 1e-3  # in kW
+
 
     CLmax = 3.85
 
@@ -205,9 +218,11 @@ for i, speed in enumerate(speeds):
         # print("Objective", obj.name, obj.value)
 
     print("=====Aircraft States=====")
-    print("Thrust")
+    print("Aircraft Conditions")
+    print(cruise)
+    print("RPMs")
     for engine in x57_controls.engines:
-        print(engine.throttle.value)    
+        print(engine.rpm.value)    
     print("Elevator Deflection (deg)")
     print(x57_controls.elevator.deflection.value * 180 / np.pi)
     print("Rudder Deflection (deg)")
@@ -224,15 +239,15 @@ for i, speed in enumerate(speeds):
     print(x57_controls.trim_tab.deflection.value * 180 / np.pi)
     print("Pitch Angle (deg)")
     print(cruise.parameters.pitch_angle.value * 180 / np.pi)
-    print("Residual Magnitude: (Net body forces and moments)")
-    print(FM.value)
+    print("Residual Magnitude: (Power Required Minimization)")
+    print(Total_power_req.value)
     print("Residual Norm")
-    print(csdl.norm(FM, ord=2).value)
+    print(csdl.norm(Total_power_req, ord=2).value)
 
 
     vtas_list.append(cruise.ac_states.VTAS.value[0])
     TRequireds.append(ThrustR.value[0])
-    PReqs.append(PowerReq.value[0])
+    PReqs.append(Total_power_req.value[0] * 1e-3)  # Convert to kW
     Drags.append(Drag.value[0])
     Lifts.append(Lift.value[0])
     LD_ratios.append(Lift.value[0] / Drag.value[0])
@@ -240,6 +255,9 @@ for i, speed in enumerate(speeds):
     print("TF[0]", tf[0].value)
     print("TF[1]", tf[1].value)
     print("TF[2]", tf[2].value)
+    print("TM[0]", tm[0].value)
+    print("TM[1]", tm[1].value)
+    print("TM[2]", tm[2].value)
 
 import matplotlib.pyplot as plt
 plt.figure()
