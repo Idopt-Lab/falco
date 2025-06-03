@@ -1,5 +1,5 @@
 from flight_simulator.core.vehicle.components.component import Component
-from flight_simulator.core.vehicle.controls.vehicle_control_system import VehicleControlSystem, ControlSurface, PropulsiveControl
+from flight_simulator.core.vehicle.controls.vehicle_control_system import VehicleControlSystem, ControlSurface, PropulsiveControl, PropulsiveControlRPM
 import csdl_alpha as csdl
 import numpy as np
 from typing import List
@@ -29,6 +29,57 @@ class X57ControlSystem(VehicleControlSystem):
         self.cm_engines_right = self.cm_engines[midpoint_cm:]
         self.engines = self.hl_engines + self.cm_engines
 
+        # control = (
+        #     self.aileron_left.deflection,
+        #     self.aileron_right.deflection,
+        #     self.flap_left.deflection,
+        #     self.flap_right.deflection,
+        #     self.elevator.deflection,
+        #     self.trim_tab.deflection,
+        #     self.rudder.deflection
+        # )
+        # # Use all engine rpm values for control vector
+        # engine_controls = tuple(engine.rpm for engine in self.engines)
+        # self.u = csdl.concatenate(control + engine_controls, axis=0)
+
+
+        super().__init__(
+            pitch_control=[self.elevator, self.trim_tab],
+            roll_control=[self.aileron_left, self.aileron_right],
+            yaw_control=[self.rudder],
+            rpm_control=self.engines
+        )
+
+    # def update_u(self):
+    #     control = (
+    #         self.aileron_left.deflection,
+    #         self.aileron_right.deflection,
+    #         self.flap_left.deflection,
+    #         self.flap_right.deflection,
+    #         self.elevator.deflection,
+    #         self.trim_tab.deflection,
+    #         self.rudder.deflection
+    #     )
+    #     engine_controls = tuple(engine.rpm for engine in self.engines)
+    #     self.u = csdl.concatenate(control + engine_controls, axis=0)
+
+
+    def _init_hl_engines(self, count: int) -> list:
+        """Initialize high-lift engines."""
+        #Found on pg. 7 of x57_DiTTo_manuscript-v6.pdf
+        return [PropulsiveControlRPM(name=f'HL_Motor{i + 1}', rpm=1500, lb=1500, ub=5400) for i in range(count)]
+    
+    def _init_cm_engines(self, count: int) -> list:
+        """Initialize cruise engines."""
+        #Found on pg. 7 of x57_DiTTo_manuscript-v6.pdf
+        return [PropulsiveControlRPM(name=f'Cruise_Motor{i + 1}', rpm=1700, lb=1700, ub=2700) for i in range(count)]
+
+    @property
+    def control_order(self) -> List[str]:
+        return ['roll', 'pitch', 'yaw', 'rpm']
+    
+    @property
+    def u(self):
         control = (
             self.aileron_left.deflection,
             self.aileron_right.deflection,
@@ -38,29 +89,9 @@ class X57ControlSystem(VehicleControlSystem):
             self.trim_tab.deflection,
             self.rudder.deflection
         )
-        # Use all engine throttle values for control vector
-        engine_controls = tuple(engine.throttle for engine in self.engines)
-        self.u = csdl.concatenate(control + engine_controls, axis=0)
-
-
-        super().__init__(
-            pitch_control=[self.elevator, self.trim_tab],
-            roll_control=[self.aileron_left, self.aileron_right],
-            yaw_control=[self.rudder],
-            throttle_control=self.engines
-        )
-
-    def _init_hl_engines(self, count: int) -> list:
-        """Initialize high-lift engines."""
-        return [PropulsiveControl(name=f'HL_Motor{i + 1}', throttle=0.0) for i in range(count)]
-
-    def _init_cm_engines(self, count: int) -> list:
-        """Initialize cruise engines."""
-        return [PropulsiveControl(name=f'Cruise_Motor{i + 1}', throttle=0.0) for i in range(count)]
-
-    @property
-    def control_order(self) -> List[str]:
-        return ['roll', 'pitch', 'yaw', 'throttle']
+        engine_controls = tuple(engine.rpm for engine in self.engines)
+        return csdl.concatenate(control + engine_controls, axis=0)
+    
 
     @property
     def min_values(self):
