@@ -446,7 +446,7 @@ class X57Aerodynamics(Loads):
 
             blow_num = 0
             for engine in controls.hl_engines:
-                blow_num += engine.throttle.value
+                blow_num += 1
 
 
             CL = self.AC_CL(alpha=AOA, i_w=i_wing, i_stab=dstab, AR=self.AR_wing, flap=dflap, blow_num=blow_num, trimtab=dtrim)
@@ -469,7 +469,7 @@ class X57Aerodynamics(Loads):
              self.aeroDer['Clr'][0][0] * rhat + \
              self.aeroDer['Clbeta'][0][0] * beta
 
-            L_roll = 0.5 * density * velocity**2 * self.Sref_wing * self.bref_wing * Cl  # net rolling moment
+            L_roll = 0.5 * density * velocity**2 * self.Sref_wing * self.bref_wing * Cl # net rolling moment
 
             Cn = self.aeroDer['Cnda'][0][0] * daileron + \
                 self.aeroDer['Cndr'][0][0] * drudder + \
@@ -477,7 +477,7 @@ class X57Aerodynamics(Loads):
                 self.aeroDer['Cnr'][0][0] * rhat + \
                 self.aeroDer['Cnbeta'][0][0] * beta
 
-            N_yaw = 0.5 * density * velocity**2 * self.Sref_wing * self.bref_wing * Cn  # net yawing moment
+            N_yaw = 0.5 * density * velocity**2 * self.Sref_wing * self.bref_wing * Cn # net yawing moment
 
             CY = self.aeroDer['CYda'][0][0] * daileron + \
                 self.aeroDer['CYdr'][0][0] * drudder + \
@@ -485,7 +485,7 @@ class X57Aerodynamics(Loads):
                 self.aeroDer['CYr'][0][0] * rhat + \
                 self.aeroDer['CYbeta'][0][0] * beta
 
-            Y_sideforce = 0.5 * density * velocity**2 * self.Sref_wing * CY  # net sideforce
+            Y_sideforce = 0.5 * density * velocity**2 * self.Sref_wing * CY # net sideforce
 
             wind_axis = states.windAxis
 
@@ -581,65 +581,52 @@ class HLPropCurve(csdl.CustomExplicitOperation):
     def __init__(self):
         super().__init__()
 
-        V_inf_data = np.array(
-            [61.3,87.6,101.6,113.8,131.3,157.6,175])
-        RPM_data = np.array(
-        [3545,4661,4702,4379,3962,3428,3451])
-        self.rpm = Akima1DInterpolator(V_inf_data, RPM_data, method="akima")
-        self.rpm_derivative = Akima1DInterpolator.derivative(self.rpm)
-        self.min_RPM = min(RPM_data)
-        self.max_RPM = max(RPM_data)
         # Obtained Mod-IV Propeller Data from CFD database
         J_data = np.array(
             [0.5490,0.5966,0.6860,0.8250,1.0521,1.4595,1.6098])
         Ct_data = np.array(
             [0.3125,0.3058,0.2848,0.2473,0.1788,0.0366,-0.0198])
-        self.ct = Akima1DInterpolator(V_inf_data, Ct_data, method="akima")
+        self.ct = Akima1DInterpolator(J_data, Ct_data, method="akima")
         self.ct_derivative = Akima1DInterpolator.derivative(self.ct)
 
         Cp_data = np.array([0.3134,0.3152,0.3075,0.2874,0.2367,0.0809,0.0018])
-        self.cp = Akima1DInterpolator(V_inf_data, Cp_data, method="akima")
+        self.cp = Akima1DInterpolator(J_data, Cp_data, method="akima")
         self.cp_derivative = Akima1DInterpolator.derivative(self.cp)
 
-        Torque_data = np.array([9.3,16.1,16.0,13.0,8.7,2.2,0.0])
-        self.torque = Akima1DInterpolator(V_inf_data, Torque_data, method="akima")
-        self.torque_derivative = Akima1DInterpolator.derivative(self.torque)
+        Cq_data = np.array([0.0499,0.0502,0.0489,0.0457,0.0377,0.0129,0.0003])
+        self.cq = Akima1DInterpolator(J_data, Cq_data, method="akima")
+        self.cq_derivative = Akima1DInterpolator.derivative(self.cq)
 
         # def evaluate(self, inputs: csdl.VariableGroup):
-    def evaluate(self, velocity: csdl.Variable=None):
+    def evaluate(self, J_data: csdl.Variable=None):
         outputs = csdl.VariableGroup()
 
-        if velocity is not None:
-            self.declare_input('velocity', velocity)
-            cp = self.create_output('cp', velocity.shape)
-            rpm = self.create_output('rpm', velocity.shape)
-            torque = self.create_output('torque', velocity.shape)
-            ct = self.create_output('ct', velocity.shape)
+        if J_data is not None:
+            self.declare_input('J_data', J_data)
+            cp = self.create_output('cp', J_data.shape)
+            cq = self.create_output('cq', J_data.shape)
+            ct = self.create_output('ct', J_data.shape)
 
             outputs.ct = ct
             outputs.cp = cp
-            outputs.rpm = rpm
-            outputs.torque = torque
+            outputs.cq = cq
 
         return outputs
             
     def compute(self, input_vals, output_vals):
 
-        if 'velocity' in input_vals:
-            velocity = input_vals['velocity']
-            output_vals['ct'] = self.ct(velocity)
-            output_vals['rpm'] = self.rpm(velocity)
-            output_vals['cp'] = self.cp(velocity)
-            output_vals['torque'] = self.torque(velocity)
+        if 'J_data' in input_vals:
+            J_data = input_vals['J_data']
+            output_vals['ct'] = self.ct(J_data)
+            output_vals['cp'] = self.cp(J_data)
+            output_vals['cq'] = self.cq(J_data)
 
     def compute_derivatives(self, input_vals, outputs_vals, derivatives):
-        velocity = input_vals['velocity']
+        J_data = input_vals['J_data']
 
-        derivatives['ct', 'velocity'] = np.diag(self.ct_derivative(velocity))
-        derivatives['rpm', 'velocity'] = np.diag(self.rpm_derivative(velocity))
-        derivatives['cp', 'velocity'] = np.diag(self.cp_derivative(velocity))
-        derivatives['torque', 'velocity'] = np.diag(self.torque_derivative(velocity))
-
+        derivatives['ct', 'J_data'] = np.diag(self.ct_derivative(J_data))
+        derivatives['cp', 'J_data'] = np.diag(self.cp_derivative(J_data))
+        derivatives['cq', 'J_data'] = np.diag(self.cq_derivative(J_data))
 
 
 class CruisePropCurve(csdl.CustomExplicitOperation):
@@ -648,61 +635,53 @@ class CruisePropCurve(csdl.CustomExplicitOperation):
         super().__init__()
 
         # Obtained Mod-III Propeller Data from CFD database
-        V_inf_data = np.array(
-            [18.75,75,112.5,150,187.5,225,243.75,262.5,266.67,300])
-        RPM_data = np.array(
-        [2250,2250,2250,2250,2250,2250,2250,2250,2000,2000])
-        self.rpm = Akima1DInterpolator(V_inf_data, RPM_data, method="akima")
-        self.rpm_derivative = Akima1DInterpolator.derivative(self.rpm)
-        self.min_RPM = min(RPM_data)
-        self.max_RPM = max(RPM_data)
+
+        # Pull the data for blade pitch is 26 and alpha is 2, beta is 0, aileron is 0, and flap is 0.
+        # From 1.6 onwards, it is at a 30 degree blade pitch, with everything else the same as the condition above.
+
         J_data = np.array(
-            [0.1,0.4,0.6,0.8,1.0,1.2,1.3,1.4,1.6,1.8])
+            [0.1,0.4,0.6,0.8, 1.0, 1.2, 1.3, 1.4, 1.6, 1.8])
         Ct_data = np.array(
-            [0.1831,0.1673,0.1422,0.1003,0.0479,-0.0085,-0.0366,-0.0057,0.0030,-0.0504])
-        self.ct = Akima1DInterpolator(V_inf_data, Ct_data, method="akima")
+            [0.1897,0.1857,0.1744,0.1466, 0.1021, 0.0498, 0.0223, -0.0057, 0.0030, -0.0504])
+        self.ct = Akima1DInterpolator(J_data, Ct_data, method="akima")
         self.ct_derivative = Akima1DInterpolator.derivative(self.ct)
-        Cp_data = np.array([0.1155,0.1219,0.1195,0.0979,0.0563,-0.0021,-0.0365,0.0003,0.0134,-0.0756])
-        self.cp = Akima1DInterpolator(V_inf_data, Cp_data, method="akima")
+        Cp_data = np.array([0.1360,0.1487,0.1579,0.1514, 0.1201, 0.0686, 0.0364, 0.0003, 0.0134, -0.0756])
+        self.cp = Akima1DInterpolator(J_data, Cp_data, method="akima")
         self.cp_derivative = Akima1DInterpolator.derivative(self.cp)
-        Torque_data = np.array([178.38,188.26,184.47,151.25,73.56,-2.79,-47.67,0.35,11.10,-62.45])
-        self.torque = Akima1DInterpolator(V_inf_data, Torque_data, method="akima")
-        self.torque_derivative = Akima1DInterpolator.derivative(self.torque)
+        Cq_data = np.array([0.0216,0.0237,0.0251,0.0241, 0.0191, 0.0109, 0.0058, 0.0001, 0.0021, -0.0120])
+        self.cq = Akima1DInterpolator(J_data, Cq_data, method="akima")
+        self.cq_derivative = Akima1DInterpolator.derivative(self.cq)
 
     # def evaluate(self, inputs: csdl.VariableGroup):
-    def evaluate(self, velocity: csdl.Variable=None):
+    def evaluate(self, J_data: csdl.Variable=None):
         outputs = csdl.VariableGroup()
 
-        if velocity is not None:
-            self.declare_input('velocity', velocity)
-            cp = self.create_output('cp', velocity.shape)
-            rpm = self.create_output('rpm', velocity.shape)
-            torque = self.create_output('torque', velocity.shape)
-            ct = self.create_output('ct', velocity.shape)
+        if J_data is not None:
+            self.declare_input('J_data', J_data)
+            cp = self.create_output('cp', J_data.shape)
+            cq = self.create_output('cq', J_data.shape)
+            ct = self.create_output('ct', J_data.shape)
 
             outputs.ct = ct
             outputs.cp = cp
-            outputs.rpm = rpm
-            outputs.torque = torque
+            outputs.cq = cq
 
         return outputs
             
     def compute(self, input_vals, output_vals):
 
-        if 'velocity' in input_vals:
-            velocity = input_vals['velocity']
-            output_vals['ct'] = self.ct(velocity)
-            output_vals['rpm'] = self.rpm(velocity)
-            output_vals['cp'] = self.cp(velocity)
-            output_vals['torque'] = self.torque(velocity)
+        if 'J_data' in input_vals:
+            J_data = input_vals['J_data']
+            output_vals['ct'] = self.ct(J_data)
+            output_vals['cp'] = self.cp(J_data)
+            output_vals['cq'] = self.cq(J_data)
 
     def compute_derivatives(self, input_vals, outputs_vals, derivatives):
-        velocity = input_vals['velocity']
+        J_data = input_vals['J_data']
 
-        derivatives['ct', 'velocity'] = np.diag(self.ct_derivative(velocity))
-        derivatives['rpm', 'velocity'] = np.diag(self.rpm_derivative(velocity))
-        derivatives['cp', 'velocity'] = np.diag(self.cp_derivative(velocity))
-        derivatives['torque', 'velocity'] = np.diag(self.torque_derivative(velocity))
+        derivatives['ct', 'J_data'] = np.diag(self.ct_derivative(J_data))
+        derivatives['cp', 'J_data'] = np.diag(self.cp_derivative(J_data))
+        derivatives['cq', 'J_data'] = np.diag(self.cq_derivative(J_data))
 
 
 class X57Propulsion(Loads):
@@ -735,35 +714,37 @@ class X57Propulsion(Loads):
             - states.theta
         u_bar : csdl.Variable or csdl.VariableGroup
             Control input (ū) which should include:
-            - throttle
+            - rpm
 
         Returns
         -------
         loads : ForcesMoments
             Computed forces and moments about the reference point.
         """
-        throttle = controls.u[7+self.engine_index]  # Get the throttle for the specific engine
+        u = controls.u
+        rpm = u[7+self.engine_index]  # Get the rpm for the specific engine
         density = states.atmospheric_states.density * 0.00194032  # kg/m^3 to slugs/ft^3
         velocity = states.VTAS * 3.281  # m/s to ft/s
-
-        # Compute RPM
-        rpm_curve = type(self.prop_curve)() 
-        rpm = rpm_curve.evaluate(velocity=velocity).rpm * throttle
-        # omega_RAD = (rpm * 2 * np.pi) / 60.0  # rad/s
+        # print(f"RPM: {rpm.value}, Density: {density.value}, Velocity: {velocity.value}")
 
         # Compute advance ratio
         J = (velocity) / ((rpm/60) * (self.radius * 2))   # non-dimensional
+        # print(f"Advance Ratio J: {J.value}")
 
         # Compute Ct
-        ct_curve = type(self.prop_curve)()
-        ct = ct_curve.evaluate(velocity=velocity).ct
+        prop_curve_obj = type(self.prop_curve)()
+        prop_out = prop_curve_obj.evaluate(J_data=J)
+        ct = prop_out.ct
+        cp = prop_out.cp
+        cq = prop_out.cq
+        # print(f"Advance Ratio J: {J.value}, Computed Ct: {ct.value}") 
+
+        # print(f"Computed Ct: {ct.value}")
 
         # Compute Thrust
-        T_raw = (ct * density * (rpm/60)**2 * ((self.radius*2)**4) * 4.44822) # lbf to N
-        
-        T_raw.value = np.nan_to_num(T_raw.value, nan=1e-6)  # Replace NaN with 1e-6 to prevent division by zero
-
-        T = csdl.Variable(shape=(1,), value=T_raw.value)  
+        T = (ct * density * (rpm/60)**2 * ((self.radius*2)**4) * 4.44822) # lbf to N
+    
+        # print(f"Computed Thrust T: {T.value} Newtons")
     
         force_vector = Vector(vector=csdl.concatenate((T,
                                                        csdl.Variable(shape=(1,), value=0.),
@@ -803,46 +784,26 @@ class X57Propulsion(Loads):
         power_shaft : csdl.VariableGroup
             Computed shaft power for the propulsion system.
         """
-        throttle = controls.u[7+self.engine_index]  # Get the throttle for the specific engine
+        u = controls.u
+        rpm = u[7+self.engine_index]  # Get the rpm for the specific engine
         density = states.atmospheric_states.density * 0.00194032
         velocity = states.VTAS * 3.281  # m/s to ft/s
 
-        # Compute RPM
-        rpm_curve = type(self.prop_curve)() 
-        rpm = rpm_curve.evaluate(velocity=velocity).rpm * throttle
-        omega_RAD = (rpm * 2 * np.pi) / 60.0  # rad/s
 
         J = (velocity) / ((rpm/60) * (self.radius * 2))   # non-dimensional
-        # Compute Ct
-        ct_curve = type(self.prop_curve)()
-        ct = ct_curve.evaluate(velocity=velocity).ct
 
-        cp_curve = type(self.prop_curve)()
-        cp = cp_curve.evaluate(velocity=velocity).cp
+        prop_curve_obj = type(self.prop_curve)()
+        prop_out = prop_curve_obj.evaluate(J_data=J)
+        ct = prop_out.ct
+        cp = prop_out.cp
+        cq = prop_out.cq
 
-        eta_raw = (ct/cp) * J
+        torque = cq*(density * (rpm/60)**2 * ((self.radius*2)**5))
 
-        eta_raw.value = np.nan_to_num(eta_raw.value, nan=1e-6)  # Replace NaN with 1e-6 to prevent division by zero
-
-        eta = csdl.Variable(shape=(1,), value=eta_raw.value)
-
-
-        torque_curve = type(self.prop_curve)()
-        torque = torque_curve.evaluate(velocity=velocity).torque
-
-        shaft_power_raw = (torque * (rpm/60) * 2 * np.pi) * 1.35582 # Convert to Watts (lbf-ft/s to W)
-
-        shaft_power_raw.value = np.nan_to_num(shaft_power_raw.value, nan=1e-6)  # Replace NaN with 1e-6 to prevent division by zero
-
-        shaft_power = csdl.Variable(shape=(1,), value=shaft_power_raw.value)  
+        shaft_power = (torque * (rpm/60) * 2 * np.pi) * 1.35582 # Convert to Watts (lbf-ft/s to W)
 
 
 
-        power_avail = shaft_power * eta
-
-        power_avail = csdl.Variable(shape=(1,), value=power_avail.value)
-
-
-        return torque, power_avail, shaft_power
+        return torque, shaft_power
     
 
