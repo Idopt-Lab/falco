@@ -61,11 +61,11 @@ class VehicleControlSystem(ABC):
     def __init__(self, pitch_control: list,
                  roll_control: list,
                  yaw_control: list,
-                 rpm_control: list):
+                 throttle_control: list):
         self.pitch_control_vector = self._create_pitch_control_vector(pitch_control=pitch_control)
         self.roll_control = roll_control
         self.yaw_control = yaw_control
-        self.rpm_control = rpm_control
+        self.throttle_control = throttle_control
         pass
 
     def _create_pitch_control_vector(self, pitch_control):
