@@ -205,9 +205,9 @@ class Component:
             for ls in self.load_solvers:
                 # Check if the load solver has propulsion capabilities.
                 if hasattr(ls, "get_torque_power"):
-                    torque, shaft_power = ls.get_torque_power(fd_state, controls)
-                    total_torque += torque
-                    total_power  += shaft_power
+                    results = ls.get_torque_power(fd_state, controls)
+                    total_torque += results['torque']
+                    total_power  += results['power']
 
         for comp in self.comps.values():
             t, p = comp.compute_total_torque_total_power(fd_state, controls)
