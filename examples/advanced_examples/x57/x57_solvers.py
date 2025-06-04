@@ -40,7 +40,7 @@ class X57Aerodynamics(Loads):
 
         self.HT_axis = component.comps['Elevator'].mass_properties.cg_vector.vector  
         self.VT_axis = component.comps['Vertical Tail'].mass_properties.cg_vector.vector 
-        self.Wing_axis = component.comps['Wing'].mass_properties.cg_vector.vector 
+        self.Wing_axis = component.comps['Wing'].mass_properties.cg_vector.vector
         
         package_dir = os.path.dirname(os.path.abspath(__file__))
         thefile = os.path.join(package_dir, 'X57_aeroDer.mat')
@@ -420,6 +420,7 @@ class X57Aerodynamics(Loads):
             loads : ForcesMoments
                 Computed forces and moments about the reference point.
             """
+            u = controls.u
             density = states.atmospheric_states.density
             velocity = states.VTAS
             theta = states.states.theta
@@ -428,25 +429,18 @@ class X57Aerodynamics(Loads):
             r = states.states.r
             beta = states.beta
             i_wing = self.i_wing * 180/np.pi
-            alpha = states.alpha * 180/np.pi
-            AOA = alpha + i_wing
+            AOA = states.alpha * 180/np.pi
+            dstab = u[4] * 180/np.pi
+            dflap = u[2]
+            daileron = u[0]
+            dtrim = u[5] * 180/np.pi
+            drudder = u[6]
 
-            dstab = controls.elevator.deflection * 180/np.pi
-
-            if hasattr(controls, 'flap_left'):
-                dflap = controls.flap_left.deflection
-                daileron = controls.aileron_left.deflection
-            else:
-                dflap = controls.flap.deflection
-                daileron = controls.aileron.deflection
-
-            dtrim = controls.trim_tab.deflection * 180/np.pi
-            drudder = controls.rudder.deflection
-
-
+            # blowing affect if HL engines are active
             blow_num = 0
             for engine in controls.hl_engines:
-                blow_num += 1
+                if engine.throttle.value != 0:
+                    blow_num += 1
 
 
             CL = self.AC_CL(alpha=AOA, i_w=i_wing, i_stab=dstab, AR=self.AR_wing, flap=dflap, blow_num=blow_num, trimtab=dtrim)
@@ -642,13 +636,13 @@ class CruisePropCurve(csdl.CustomExplicitOperation):
         J_data = np.array(
             [0.1,0.4,0.6,0.8, 1.0, 1.2, 1.3, 1.4, 1.6, 1.8])
         Ct_data = np.array(
-            [0.1897,0.1857,0.1744,0.1466, 0.1021, 0.0498, 0.0223, -0.0057, 0.0030, -0.0504])
+            [0.1897,0.1857,0.1744,0.1466, 0.1021, 0.0498, 0.0223, 0.0567, 0.0030, 0.1234])
         self.ct = Akima1DInterpolator(J_data, Ct_data, method="akima")
         self.ct_derivative = Akima1DInterpolator.derivative(self.ct)
-        Cp_data = np.array([0.1360,0.1487,0.1579,0.1514, 0.1201, 0.0686, 0.0364, 0.0003, 0.0134, -0.0756])
+        Cp_data = np.array([0.1360,0.1487,0.1579,0.1514, 0.1201, 0.0686, 0.0364, 0.0003, 0.0134, 0.2537])
         self.cp = Akima1DInterpolator(J_data, Cp_data, method="akima")
         self.cp_derivative = Akima1DInterpolator.derivative(self.cp)
-        Cq_data = np.array([0.0216,0.0237,0.0251,0.0241, 0.0191, 0.0109, 0.0058, 0.0001, 0.0021, -0.0120])
+        Cq_data = np.array([0.0216,0.0237,0.0251,0.0241, 0.0191, 0.0109, 0.0058, 0.0001, 0.0021, 0.0404])
         self.cq = Akima1DInterpolator(J_data, Cq_data, method="akima")
         self.cq_derivative = Akima1DInterpolator.derivative(self.cq)
 
@@ -686,9 +680,11 @@ class CruisePropCurve(csdl.CustomExplicitOperation):
 
 class X57Propulsion(Loads):
 
-    def __init__(self, radius:Union[ureg.Quantity, csdl.Variable], prop_curve:Union[HLPropCurve, CruisePropCurve], engine_index: int = 0, **kwargs):
+    def __init__(self, RPMmin, RPMmax, radius:Union[ureg.Quantity, csdl.Variable], prop_curve:Union[HLPropCurve, CruisePropCurve], engine_index: int = 0, **kwargs):
         self.prop_curve = prop_curve
         self.engine_index = engine_index  # Save the index for later lookup
+        self.RPMmin = RPMmin
+        self.RPMmax = RPMmax
 
         if radius is None:
             self.radius = csdl.Variable(name='radius', shape=(1,), value=1.89/2) 
@@ -722,9 +718,10 @@ class X57Propulsion(Loads):
             Computed forces and moments about the reference point.
         """
         u = controls.u
-        rpm = u[7+self.engine_index]  # Get the rpm for the specific engine
+        throttle = u[6+self.engine_index]  # Get the throttle for the specific engine
         density = states.atmospheric_states.density * 0.00194032  # kg/m^3 to slugs/ft^3
         velocity = states.VTAS * 3.281  # m/s to ft/s
+        rpm = self.RPMmin + (self.RPMmax - self.RPMmin) * throttle  # RPM based on throttle input
         # print(f"RPM: {rpm.value}, Density: {density.value}, Velocity: {velocity.value}")
 
         # Compute advance ratio
@@ -785,9 +782,10 @@ class X57Propulsion(Loads):
             Computed shaft power for the propulsion system.
         """
         u = controls.u
-        rpm = u[7+self.engine_index]  # Get the rpm for the specific engine
+        throttle = u[6+self.engine_index]  # Get the rpm for the specific engine
         density = states.atmospheric_states.density * 0.00194032
         velocity = states.VTAS * 3.281  # m/s to ft/s
+        rpm = self.RPMmin + (self.RPMmax - self.RPMmin) * throttle  # RPM based on throttle input
 
 
         J = (velocity) / ((rpm/60) * (self.radius * 2))   # non-dimensional
@@ -801,9 +799,16 @@ class X57Propulsion(Loads):
         torque = cq*(density * (rpm/60)**2 * ((self.radius*2)**5))
 
         shaft_power = (torque * (rpm/60) * 2 * np.pi) * 1.35582 # Convert to Watts (lbf-ft/s to W)
+        eta = J * (ct / cp)  # Efficiency of the propeller
 
-
-
-        return torque, shaft_power
+        return {
+            'torque': torque,
+            'cq': cq,
+            'power': shaft_power,
+            'ct': ct,
+            'cp': cp,
+            'eta': eta,
+            'J': J
+        }
     
 
