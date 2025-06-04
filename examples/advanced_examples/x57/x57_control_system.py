@@ -47,7 +47,7 @@ class X57ControlSystem(VehicleControlSystem):
             pitch_control=[self.elevator, self.trim_tab],
             roll_control=[self.aileron_left, self.aileron_right],
             yaw_control=[self.rudder],
-            rpm_control=self.engines
+            throttle_control=self.engines
         )
 
     # def update_u(self):
@@ -67,16 +67,16 @@ class X57ControlSystem(VehicleControlSystem):
     def _init_hl_engines(self, count: int) -> list:
         """Initialize high-lift engines."""
         #Found on pg. 7 of x57_DiTTo_manuscript-v6.pdf
-        return [PropulsiveControlRPM(name=f'HL_Motor{i + 1}', rpm=1500, lb=1500, ub=5400) for i in range(count)]
+        return [PropulsiveControl(name=f'HL_Motor{i + 1}', throttle=0.0) for i in range(count)]
     
     def _init_cm_engines(self, count: int) -> list:
         """Initialize cruise engines."""
         #Found on pg. 7 of x57_DiTTo_manuscript-v6.pdf
-        return [PropulsiveControlRPM(name=f'Cruise_Motor{i + 1}', rpm=1700, lb=1700, ub=2700) for i in range(count)]
+        return [PropulsiveControl(name=f'Cruise_Motor{i + 1}', throttle=0.0) for i in range(count)]
 
     @property
     def control_order(self) -> List[str]:
-        return ['roll', 'pitch', 'yaw', 'rpm']
+        return ['roll', 'pitch', 'yaw', 'throttle_control']
     
     @property
     def u(self):
@@ -89,7 +89,7 @@ class X57ControlSystem(VehicleControlSystem):
             self.trim_tab.deflection,
             self.rudder.deflection
         )
-        engine_controls = tuple(engine.rpm for engine in self.engines)
+        engine_controls = tuple(engine.throttle for engine in self.engines)
         return csdl.concatenate(control + engine_controls, axis=0)
     
 
