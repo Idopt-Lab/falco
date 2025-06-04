@@ -100,8 +100,8 @@ tf, tm = aircraft_component.compute_total_loads(fd_state=cruise.ac_states,contro
 
 
 Lift_scaling = 1 / (aircraft_component.mass_properties.mass * 9.81)
-Drag_scaling = Lift_scaling / 10
-Moment_scaling = Lift_scaling * 10
+Drag_scaling = Lift_scaling * 10
+Moment_scaling = Lift_scaling / 10
 
 
 FM = csdl.concatenate((Drag_scaling * tf[0], tf[1], Lift_scaling * tf[2], Moment_scaling * tm[0], Moment_scaling * tm[1], Moment_scaling * tm[2]), axis=0)
@@ -132,14 +132,11 @@ TRequireds = []
 TAvails = []
 PAvails = []
 PReqs = []
-# speeds = np.linspace(10, 76.8909, 10) # in m/s
-speeds = [76.8909]  # in m/s, this is the cruise speed from the X57 CFD data
+speeds = np.linspace(10, 76.8909, 10) # in m/s
+# speeds = [76.8909]  # in m/s, this is the cruise speed from the X57 CFD data
 Drags = []
 Lifts = []
 LD_ratios = []
-LD_ratios_no_opt = []   # Baseline/unoptimized L/D ratios
-ThrustR_no_opt = []
-PowerReq_no_opt = []
 vtas_list = []
 eta_list = []
 Jval_list = []
@@ -160,8 +157,8 @@ for i, speed in enumerate(speeds):
     recorder.execute()
 
     Drag =  -tf[0]
-    ThrustR = Drag
-    Lift = -tf[2] 
+    ThrustR = tf[0]
+    Lift = -tf[2]
     results = cruise_prop.get_torque_power(states=cruise.ac_states, controls=x57_controls)
     prop_efficiency = results['eta'] 
     eta_list.append(prop_efficiency.value[0])
