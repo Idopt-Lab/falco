@@ -12,7 +12,6 @@ from flight_simulator import REPO_ROOT_FOLDER, Q_, ureg
 class X57Aerodynamics(Loads):
 
     # TODO: Improve aerodynamic model to include more complex aerodynamic effects
-
     def __init__(self, component):
 
         self.component = component
@@ -38,10 +37,9 @@ class X57Aerodynamics(Loads):
         self.taper_VT = component.comps['Vertical Tail'].parameters.taper_ratio
         self.cref_VT = 2 * self.Sref_VT/((1 + self.taper_VT) * self.span_VT)
 
-        self.HT_axis = component.comps['Elevator'].mass_properties.cg_vector.vector  
-        self.VT_axis = component.comps['Vertical Tail'].mass_properties.cg_vector.vector 
+        self.HT_axis = component.comps['Elevator'].mass_properties.cg_vector.vector 
+        self.VT_axis = component.comps['Vertical Tail'].mass_properties.cg_vector.vector
         self.Wing_axis = component.comps['Wing'].mass_properties.cg_vector.vector
-        
         package_dir = os.path.dirname(os.path.abspath(__file__))
         thefile = os.path.join(package_dir, 'X57_aeroDer.mat')
         self.aeroDer = sio.loadmat(thefile)
@@ -364,36 +362,29 @@ class X57Aerodynamics(Loads):
         trimtab = trimtab * (np.pi / 180)  # convert to radians
 
         r = csdl.Variable(name='r', shape=(3,), value=0)
-        r1 = self.HT_axis[0] + self.cref_stab / 4 - (self.Wing_axis[0] + self.cref_wing / 4)
+        r1 = self.HT_axis[0] + self.cref_stab / 4 - self.Wing_axis[0] + self.cref_wing / 4
         r2 = 0
         r3 = self.HT_axis[2] - self.Wing_axis[2]
-        r.set(csdl.slice[0], r1)
-        r.set(csdl.slice[1], r2)
-        r.set(csdl.slice[2], r3)
+        r = csdl.concatenate([r1, r2, r3], axis=0)
 
-        
         stabi_alpha = self.stab_alpha(alpha, i_w, i_stab, AR, flap, blow_num)
         
         # Build f_hat using csdl operations so that csdl.cross works as expected
         f1 = -csdl.sin(stabi_alpha)
         f2 = 0
         f3 = csdl.cos(stabi_alpha)
-
-        f_hat = csdl.Variable(name='f_hat', shape=(3,), value=0)
-        f_hat.set(csdl.slice[0], f1)
-        f_hat.set(csdl.slice[1], f2)
-        f_hat.set(csdl.slice[2], f3)
+        f_hat = csdl.concatenate([f1, f2, f3], axis=0)
 
         
         CL_stabi = self.Stab_CL_tot(stabi_alpha, trimtab)
         CM_stabi_wingcby4 = csdl.cross(r, f_hat) * (CL_stabi * self.Sref_stab) / (self.Sref_wing * self.cref_wing)
         
-        Cm = (flap * self.flap_Cm_tot(alpha) +
-            blow_num / 12 * self.blow_Cm_tot(alpha) +
-            self.Wing_tipNacelle_Cm_tot(alpha) +
-            self.HLN_Cm_tot(alpha) +
-            self.Fus_Vtail_Cm_tot(alpha) +
-            self.Stab_Cm_tot(stabi_alpha, trimtab) * self.Sref_stab * self.cref_stab / (self.Sref_wing * self.cref_wing) +
+        Cm = (flap * self.flap_Cm_tot(alpha) + \
+            blow_num / 12 * self.blow_Cm_tot(alpha) + \
+            self.Wing_tipNacelle_Cm_tot(alpha) + \
+            self.HLN_Cm_tot(alpha) + \
+            self.Fus_Vtail_Cm_tot(alpha) + \
+            self.Stab_Cm_tot(stabi_alpha, trimtab) * self.Sref_stab * self.cref_stab / (self.Sref_wing * self.cref_wing) + \
             CM_stabi_wingcby4[1])
     
 
@@ -430,11 +421,11 @@ class X57Aerodynamics(Loads):
             beta = states.beta
             i_wing = self.i_wing * 180/np.pi
             AOA = states.alpha * 180/np.pi
-            dstab = u[4] * 180/np.pi
-            dflap = u[2]
-            daileron = u[0]
-            dtrim = u[5] * 180/np.pi
-            drudder = u[6]
+            dstab = controls.pitch_control['Elevator'].deflection
+            dflap = controls.high_lift_control['Left Flap'].flag or controls.high_lift_control['Right Flap'].flag      
+            daileron = controls.roll_control['Left Aileron'].deflection            
+            dtrim = controls.pitch_control['Trim Tab'].deflection
+            drudder = controls.yaw_control['Rudder'].deflection
 
             # blowing affect if HL engines are active
             blow_num = 0
@@ -446,7 +437,6 @@ class X57Aerodynamics(Loads):
             CL = self.AC_CL(alpha=AOA, i_w=i_wing, i_stab=dstab, AR=self.AR_wing, flap=dflap, blow_num=blow_num, trimtab=dtrim)
             CD = self.AC_CD(alpha=AOA, i_w=i_wing, i_stab=dstab, AR=self.AR_wing, flap=dflap, blow_num=blow_num, trimtab=dtrim)
             CM = self.AC_CM(alpha=AOA, i_w=i_wing, i_stab=dstab, AR=self.AR_wing, flap=dflap, blow_num=blow_num, trimtab=dtrim)
-
             L = 0.5 * density * velocity**2 * self.Sref_wing * CL
             D = 0.5 * density * velocity**2 * self.Sref_wing * CD
             M = 0.5 * density * velocity**2 * self.Sref_wing * CM * self.cref_wing
@@ -718,7 +708,7 @@ class X57Propulsion(Loads):
             Computed forces and moments about the reference point.
         """
         u = controls.u
-        throttle = u[6+self.engine_index]  # Get the throttle for the specific engine
+        throttle = u[5+self.engine_index]  # Get the throttle for the specific engine
         density = states.atmospheric_states.density * 0.00194032  # kg/m^3 to slugs/ft^3
         velocity = states.VTAS * 3.281  # m/s to ft/s
         rpm = self.RPMmin + (self.RPMmax - self.RPMmin) * throttle  # RPM based on throttle input
@@ -782,7 +772,7 @@ class X57Propulsion(Loads):
             Computed shaft power for the propulsion system.
         """
         u = controls.u
-        throttle = u[6+self.engine_index]  # Get the rpm for the specific engine
+        throttle = u[5+self.engine_index]  # Get the rpm for the specific engine
         density = states.atmospheric_states.density * 0.00194032
         velocity = states.VTAS * 3.281  # m/s to ft/s
         rpm = self.RPMmin + (self.RPMmax - self.RPMmin) * throttle  # RPM based on throttle input
