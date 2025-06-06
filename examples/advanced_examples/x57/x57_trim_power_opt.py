@@ -208,7 +208,7 @@ for i, speed in enumerate(speeds):
     RoD = cruise.ac_states.VTAS * csdl.sin(cruise.ac_states.states.theta)
     RoD_list.append(RoD.value[0])  # Rate of Descent in m/s
 
-    P_excess = RoD * (aircraft_component.mass_properties.mass * 9.81)
+    P_excess = Total_power_avail - PowerR
     
     results = cruise_prop.get_torque_power(states=cruise.ac_states, controls=x57_controls)
     prop_efficiency = results['eta'] 
