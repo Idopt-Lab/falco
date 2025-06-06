@@ -207,7 +207,7 @@ class Component:
                 if hasattr(ls, "get_torque_power"):
                     results = ls.get_torque_power(fd_state, controls)
                     total_torque += results['torque']
-                    total_power  += results['power']
+                    total_power  += results['power_avail']
 
         for comp in self.comps.values():
             t, p = comp.compute_total_torque_total_power(fd_state, controls)

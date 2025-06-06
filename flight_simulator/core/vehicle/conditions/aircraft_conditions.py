@@ -27,11 +27,13 @@ class HoverParameters(csdl.VariableGroup):
         if self._metadata[name]['type'] is not None:
             if type(value) not in self._metadata[name]['type']:
                 raise ValueError(f"Variable {name} must be of type {self._metadata[name]['type']}.")
+
         if self._metadata[name]['variablize']:
             if isinstance(value, ureg.Quantity):
                 value_si = value.to_base_units()
                 value = csdl.Variable(value=value_si.magnitude, shape=(1,), name=name)
                 value.add_tag(tag=str(value_si.units))
+
         if self._metadata[name]['shape'] is not None:
             if value.shape != self._metadata[name]['shape']:
                 raise ValueError(f"Variable {name} must have shape {self._metadata[name]['shape']}.")
@@ -65,11 +67,13 @@ class ClimbParameters(csdl.VariableGroup):
         if self._metadata[name]['type'] is not None:
             if type(value) not in self._metadata[name]['type']:
                 raise ValueError(f"Variable {name} must be of type {self._metadata[name]['type']}.")
+
         if self._metadata[name]['variablize']:
             if isinstance(value, ureg.Quantity):
                 value_si = value.to_base_units()
                 value = csdl.Variable(value=value_si.magnitude, shape=(1,), name=name)
                 value.add_tag(tag=str(value_si.units))
+
         if self._metadata[name]['shape'] is not None:
             if value.shape != self._metadata[name]['shape']:
                 raise ValueError(f"Variable {name} must have shape {self._metadata[name]['shape']}.")
@@ -84,12 +88,14 @@ class CruiseParameters(csdl.VariableGroup):
     pitch_angle: csdl.Variable
     range: csdl.Variable
     time: csdl.Variable
+    flight_path_angle: csdl.Variable
 
     def define_checks(self):
         self.add_check('altitude', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
         self.add_check('speed', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
         self.add_check('mach_number', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
         self.add_check('pitch_angle', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
+        self.add_check('flight_path_angle', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
         self.add_check('range', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
         self.add_check('time', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
 
@@ -97,11 +103,13 @@ class CruiseParameters(csdl.VariableGroup):
         if self._metadata[name]['type'] is not None:
             if type(value) not in self._metadata[name]['type']:
                 raise ValueError(f"Variable {name} must be of type {self._metadata[name]['type']}.")
+
         if self._metadata[name]['variablize']:
             if isinstance(value, ureg.Quantity):
                 value_si = value.to_base_units()
                 value = csdl.Variable(value=value_si.magnitude, shape=(1,), name=name)
                 value.add_tag(tag=str(value_si.units))
+
         if self._metadata[name]['shape'] is not None:
             if value.shape != self._metadata[name]['shape']:
                 raise ValueError(f"Variable {name} must have shape {self._metadata[name]['shape']}.")
@@ -147,9 +155,13 @@ class Condition():
 
         return total_forces, total_moments
 
-    def evaluate_eom(self, component: Component):
+    def evaluate_eom(self, component: Component, forces=None, moments=None):
         
-        tf, tm = self.assemble_forces_moments(component=component)
+        if forces is None or moments is None:
+            tf, tm = self.assemble_forces_moments(component=component)
+        else:
+            tf = forces
+            tm = moments
         mp = component.mass_properties
         st = self.ac_states
 
@@ -176,15 +188,19 @@ class CruiseCondition(Condition):
                  altitude: Union[ureg.Quantity, csdl.Variable] = Q_(0, 'm'),
                  range: Union[ureg.Quantity, csdl.Variable] = Q_(0, 'm'),
                  pitch_angle: Union[ureg.Quantity, csdl.Variable] = Q_(0, 'rad'),
+                 flight_path_angle: Union[ureg.Quantity, csdl.Variable] = Q_(0, 'rad'),
                  speed: Union[ureg.Quantity, csdl.Variable] = Q_(0, 'm/s'),
                  mach_number: Union[ureg.Quantity, csdl.Variable] = Q_(0, 'dimensionless'),
                  time: Union[ureg.Quantity, csdl.Variable] = Q_(0, 's')):
+        
+        
 
         self.parameters: CruiseParameters = CruiseParameters(
             altitude=altitude,
             speed=speed,
             range=range,
             pitch_angle=pitch_angle,
+            flight_path_angle=flight_path_angle,
             mach_number=mach_number,
             time=time,
         )
@@ -210,12 +226,14 @@ class CruiseCondition(Condition):
         axis.translation_from_origin.x = x
         axis.translation_from_origin.y = y
         axis.translation_from_origin.z = -self.parameters.altitude  # FD axis z points down
-
         axis.euler_angles.phi = phi
         axis.euler_angles.theta = self.parameters.pitch_angle
         axis.euler_angles.psi = psi
-
         ac_states = AircraftStates(axis=axis)
+
+        gamma = self.parameters.flight_path_angle
+        hi = axis.translation_from_origin.z
+        hf = axis.translation_from_origin.z
         atmos_states = ac_states.atmospheric_states
         mach_number = self.parameters.mach_number
         speed = self.parameters.speed
@@ -244,9 +262,16 @@ class CruiseCondition(Condition):
             range = V * time
             self.parameters.range = range
         else:
-            raise NotImplementedError
-        u = V * csdl.cos(self.parameters.pitch_angle)
-        w = V * csdl.sin(self.parameters.pitch_angle)
+            w_val = (hf - hi) / time
+            u_val = w_val / csdl.tan(gamma)
+            V = (u_val**2 + w_val**2)**0.5
+            mach_number = V / atmos_states.speed_of_sound
+            self.parameters.mach_number = mach_number
+            self.parameters.speed = V
+
+        alfa = axis.euler_angles.theta - gamma
+        u = V * csdl.cos(alfa)
+        w = V * csdl.sin(alfa)
         ac_states = AircraftStates(axis=axis, u=u, v=v, w=w, p=p, q=q, r=r)
         return ac_states
 

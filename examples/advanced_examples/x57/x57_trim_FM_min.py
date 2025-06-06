@@ -49,7 +49,7 @@ cruise = aircraft_conditions.CruiseCondition(
 
 
 x57_controls.elevator.deflection.set_as_design_variable(lower=np.deg2rad(x57_controls.elevator.lower_bound), upper=np.deg2rad(x57_controls.elevator.upper_bound),scaler=1e2)
-cruise.parameters.pitch_angle.set_as_design_variable(lower=(-10)*np.pi/180, upper=10*np.pi/180, scaler=1e2)
+cruise.parameters.pitch_angle.set_as_design_variable(lower=(-20)*np.pi/180, upper=20*np.pi/180, scaler=1e2)
 
 
 
@@ -60,7 +60,7 @@ for left_engine, right_engine in zip(x57_controls.hl_engines_left, x57_controls.
     right_engine.throttle.value= 0
     hl_throt_diff = (right_engine.throttle - left_engine.throttle) # setting all engines to the same throttle setting, because of symmetry
     hl_throt_diff.name = f'HL throttle Diff{left_engine.throttle.name} - {right_engine.throttle.name}'
-    # hl_throttle_diff.set_as_constraint(equals=0)  
+    # hl_throt_diff.set_as_constraint(equals=0)  
 
 
 for left_engine, right_engine in zip(x57_controls.cm_engines_left, x57_controls.cm_engines_right):
@@ -74,15 +74,19 @@ for left_engine, right_engine in zip(x57_controls.cm_engines_left, x57_controls.
 x57_aerodynamics = X57Aerodynamics(component=aircraft_component)
 aircraft_component.comps['Wing'].load_solvers.append(x57_aerodynamics)
 
-HL_radius_x57 = csdl.Variable(name="high_lift_motor_radius",shape=(1,), value=1.89/2) # HL propeller radius in ft
-cruise_radius_x57 = csdl.Variable(name="cruise_lift_motor_radius",shape=(1,), value=5/2) # cruise propeller radius in ft
+HL_radius_x57 = Q_(1.89/2, 'ft') # HL propeller radius in ft
+cruise_radius_x57 = Q_(5/2, 'ft') # cruise propeller radius in ft
 
 
 hl_motors = [comp for comp in aircraft_component.comps['Wing'].comps.values() if comp._name.startswith('HL Motor')]
 
-# for i, hl_motor in enumerate(hl_motors):
-#     hl_prop = X57Propulsion(radius=HL_radius_x57, prop_curve=HLPropCurve(),engine_index=i)
-#     hl_motor.load_solvers.append(hl_prop)
+for i, hl_motor in enumerate(hl_motors):
+    hl_prop = X57Propulsion(radius=HL_radius_x57, prop_curve=HLPropCurve(),engine_index=i,RPMmin=1500, RPMmax=5400)
+    hl_motor.load_solvers.append(hl_prop)
+    results = hl_prop.get_torque_power(states=cruise.ac_states, controls=x57_controls)
+    hl_engine_torque = results['torque']
+    hl_engine_torque.name = f'HL_Engine_{i}_Torque'
+    hl_engine_torque.set_as_constraint(lower=0.0, upper=20.5, scaler=1/20.5) # values from High-Lift Propeller Operating Conditions v2 paper
 
 
 cruise_motors = [comp for comp in aircraft_component.comps['Wing'].comps.values() if comp._name.startswith('Cruise Motor')]
@@ -91,6 +95,10 @@ for i, cruise_motor in enumerate(cruise_motors):
     engine_index = len(hl_motors) + i
     cruise_prop = X57Propulsion(radius=cruise_radius_x57, prop_curve=CruisePropCurve(),engine_index=engine_index, RPMmin=1700, RPMmax=2700)
     cruise_motor.load_solvers.append(cruise_prop)
+    results = cruise_prop.get_torque_power(states=cruise.ac_states, controls=x57_controls)
+    cm_engine_torque = results['torque']
+    cm_engine_torque.name = f'Cruise_Engine_{i}_Torque'
+    cm_engine_torque.set_as_constraint(lower=1.0, upper=225, scaler=1/225) # values from x57_DiTTo_manuscript paper
 
 x57_controls.update_controls(x57_controls.u)
 
@@ -104,36 +112,34 @@ Drag_scaling = Lift_scaling * 10
 Moment_scaling = Lift_scaling / 10
 
 
-FM = csdl.concatenate((Drag_scaling * tf[0], tf[1], Lift_scaling * tf[2], Moment_scaling * tm[0], Moment_scaling * tm[1], Moment_scaling * tm[2]), axis=0)
+FM = csdl.concatenate((Drag_scaling * tf[0], tf[1], Lift_scaling * tf[2], tm[0], Moment_scaling * tm[1], tm[2]), axis=0)
 residual = csdl.absolute(csdl.norm(FM, ord=2))
 residual.name = 'FM Minimization'
-# residual.set_as_constraint()
 residual.set_as_objective()
 
 
-Total_torque_req, Total_power_req = aircraft_component.compute_total_torque_total_power(fd_state=cruise.ac_states,controls=x57_controls)
-# print("Total Torque Required:", Total_torque_req.value)
-# print("Total Power Required:", Total_power_req.value)
-Total_power_req.name = 'Total Power Required'
-# Total_power_req.set_as_objective()
+Total_torque_avail, Total_power_avail = aircraft_component.compute_total_torque_total_power(fd_state=cruise.ac_states,controls=x57_controls)
+# print("Total Torque Available:", Total_torque_avail.value)
+# print("Total Power Available:", Total_power_avail.value)
+Total_power_avail.name = 'Total Power Available'
+
+
 
 sim = csdl.experimental.JaxSimulator(
     recorder=recorder,
     gpu=False,
     additional_inputs=[cruise.parameters.speed],
-    additional_outputs=[cruise.ac_states.VTAS, Total_power_req],
+    additional_outputs=[cruise.ac_states.VTAS, Total_power_avail],
     derivatives_kwargs= {
         "concatenate_ofs" : True})
-
-
 
 
 TRequireds = []
 TAvails = []
 PAvails = []
 PReqs = []
-speeds = np.linspace(10, 76.8909, 10) # in m/s
-# speeds = [76.8909]  # in m/s, this is the cruise speed from the X57 CFD data
+# speeds = np.linspace(10, 76.8909, 5) # in m/s
+speeds = [76.8909]  # in m/s, this is the cruise speed from the X57 CFD data
 Drags = []
 Lifts = []
 LD_ratios = []
@@ -148,7 +154,7 @@ for i, speed in enumerate(speeds):
 
     sim.check_optimization_derivatives()
     t1 = time.time()
-    prob = CSDLAlphaProblem(problem_name='trim_optimization', simulator=sim)
+    prob = CSDLAlphaProblem(problem_name='trim_FM_min_opt', simulator=sim)
     optimizer = IPOPT(problem=prob)
     optimizer.solve()
     optimizer.print_results()
@@ -191,9 +197,17 @@ for i, speed in enumerate(speeds):
     print(cruise)
     print("Throttle")
     for engine in x57_controls.engines:
-        print(engine.throttle.value)    
+        print(engine.throttle.value)
+    print("High Lift Engine Torque (N*m)")
+    for engine in x57_controls.hl_engines:  
+        print(hl_engine_torque.value)  
+    print("Cruise Engine Torque (N*m)")
+    for engine in x57_controls.cm_engines:
+        print(cm_engine_torque.value)
+    print("Total Torque Available (N*m)")
+    print(Total_torque_avail.value)    
     print("Elevator Deflection (deg)")
-    print(x57_controls.pitch_control['Elevator'].deflection.value)
+    print(x57_controls.pitch_control['Elevator'].deflection.value * 180 / np.pi)
     print("Pitch Angle (deg)")
     print(cruise.parameters.pitch_angle.value * 180 / np.pi)
     print("Residual Magnitude: (FM Minimization)")
@@ -204,7 +218,8 @@ for i, speed in enumerate(speeds):
 
     vtas_list.append(cruise.ac_states.VTAS.value[0])
     TRequireds.append(ThrustR.value[0])
-    PReqs.append(Total_power_req.value[0] * 1e-3)  # Convert to kW
+    PReqs.append(ThrustR.value[0] * cruise.ac_states.VTAS.value[0] * 1e-3)  # Convert to kW
+    PAvails.append(Total_power_avail.value[0] * 1e-3)  # Convert to kW
     Drags.append(Drag.value[0])
     Lifts.append(Lift.value[0])
     LD_ratios.append(Lift.value[0] / Drag.value[0])
@@ -241,6 +256,7 @@ plt.show()
 
 plt.figure()
 plt.plot(vtas_list, PReqs, marker='s', linestyle='--', label='Required Power')
+plt.plot(vtas_list, PAvails, marker='s', linestyle='--', label='Available Power')
 plt.xlabel('True Airspeed (VTAS) [m/s]')
 plt.ylabel('Power (kW)')
 plt.title('Power vs. VTAS')
@@ -252,8 +268,6 @@ plt.show()
 plt.figure()
 plt.plot(vtas_list, LD_ratios, marker='s', linestyle='--', label='L/D Ratio')
 plt.xlabel('True Airspeed (VTAS) [m/s]')
-plt.ylim(4,16)
-plt.xlim(40, 100)
 plt.ylabel('L/D Ratio')
 plt.title('L/D Ratio vs. VTAS')
 plt.grid(True)

@@ -440,6 +440,7 @@ class X57Aerodynamics(Loads):
             L = 0.5 * density * velocity**2 * self.Sref_wing * CL
             D = 0.5 * density * velocity**2 * self.Sref_wing * CD
             M = 0.5 * density * velocity**2 * self.Sref_wing * CM * self.cref_wing
+            # print(f"CL: {CL.value}, CD: {CD.value}, CM: {CM.value}, L: {L.value}, D: {D.value}, M: {M.value}")
 
 
             phat = p * self.bref_wing / (2 * velocity)
@@ -677,9 +678,9 @@ class X57Propulsion(Loads):
         self.RPMmax = RPMmax
 
         if radius is None:
-            self.radius = csdl.Variable(name='radius', shape=(1,), value=1.89/2) 
+            self.radius = csdl.Variable(name='radius', shape=(1,), value=(1.89/2)*0.308) 
         elif isinstance(radius, ureg.Quantity):
-            self.radius = csdl.Variable(name='radius', shape=(1,), value=radius.to_base_units())
+            self.radius = csdl.Variable(name='radius', shape=(1,), value=radius.to_base_units().magnitude)
         else:
             self.radius = radius
 
@@ -709,13 +710,15 @@ class X57Propulsion(Loads):
         """
         u = controls.u
         throttle = u[5+self.engine_index]  # Get the throttle for the specific engine
-        density = states.atmospheric_states.density * 0.00194032  # kg/m^3 to slugs/ft^3
-        velocity = states.VTAS * 3.281  # m/s to ft/s
+        density = states.atmospheric_states.density  # kg/m^3
+        velocity = states.VTAS  # m/s 
         rpm = self.RPMmin + (self.RPMmax - self.RPMmin) * throttle  # RPM based on throttle input
         # print(f"RPM: {rpm.value}, Density: {density.value}, Velocity: {velocity.value}")
 
+        omega = (rpm / 60)  # Convert RPM to rev/s
+
         # Compute advance ratio
-        J = (velocity) / ((rpm/60) * (self.radius * 2))   # non-dimensional
+        J = (velocity) / ((omega) * (self.radius * 2))   # non-dimensional
         # print(f"Advance Ratio J: {J.value}")
 
         # Compute Ct
@@ -724,13 +727,15 @@ class X57Propulsion(Loads):
         ct = prop_out.ct
         cp = prop_out.cp
         cq = prop_out.cq
-        # print(f"Advance Ratio J: {J.value}, Computed Ct: {ct.value}") 
-
         # print(f"Computed Ct: {ct.value}")
 
         # Compute Thrust
-        T = (ct * density * (rpm/60)**2 * ((self.radius*2)**4) * 4.44822) # lbf to N
+        T = (ct * density * (omega)**2 * ((self.radius*2)**4)) # N
     
+        # print(f"Computed Thrust T: {T.value} Newtons")
+        if np.isnan(T.value):
+            T = csdl.Variable(shape=(1,), value=0.)
+        
         # print(f"Computed Thrust T: {T.value} Newtons")
     
         force_vector = Vector(vector=csdl.concatenate((T,
@@ -773,12 +778,13 @@ class X57Propulsion(Loads):
         """
         u = controls.u
         throttle = u[5+self.engine_index]  # Get the rpm for the specific engine
-        density = states.atmospheric_states.density * 0.00194032
-        velocity = states.VTAS * 3.281  # m/s to ft/s
+        density = states.atmospheric_states.density
+        velocity = states.VTAS # m/s to ft/s
         rpm = self.RPMmin + (self.RPMmax - self.RPMmin) * throttle  # RPM based on throttle input
+        omega = (rpm / 60)  # Convert RPM to rev/s
 
 
-        J = (velocity) / ((rpm/60) * (self.radius * 2))   # non-dimensional
+        J = (velocity) / ((omega) * (self.radius * 2))   # non-dimensional
 
         prop_curve_obj = type(self.prop_curve)()
         prop_out = prop_curve_obj.evaluate(J_data=J)
@@ -786,19 +792,32 @@ class X57Propulsion(Loads):
         cp = prop_out.cp
         cq = prop_out.cq
 
-        torque = cq*(density * (rpm/60)**2 * ((self.radius*2)**5))
+        torque = cq*(density * (omega)**2 * ((self.radius*2)**5)) #  Nm
 
-        shaft_power = (torque * (rpm/60) * 2 * np.pi) * 1.35582 # Convert to Watts (lbf-ft/s to W)
-        eta = J * (ct / cp)  # Efficiency of the propeller
+        if np.isnan(torque.value):
+            torque = csdl.Variable(shape=(1,), value=0.)
+
+        shaft_power = (torque * (omega) * 2 * np.pi) # Watts 
+
+        if np.isnan(shaft_power.value):
+            shaft_power = csdl.Variable(shape=(1,), value=0.)
+
+        if np.isnan(cp.value) and np.isnan(ct.value):
+            eta = csdl.Variable(shape=(1,), value=0.)
+        else:
+            eta = J * (ct / cp)  # Efficiency of the propeller
+
+        power_avail = shaft_power * eta  # Power available for the propulsion system
 
         return {
             'torque': torque,
             'cq': cq,
-            'power': shaft_power,
+            'shaft_power': shaft_power,
             'ct': ct,
             'cp': cp,
             'eta': eta,
-            'J': J
+            'J': J,
+            'power_avail': power_avail
         }
     
 

@@ -54,8 +54,8 @@ class X57ControlSystem(VehicleControlSystem):
                  flap_left_component, flap_right_component,
                  rudder_component, hl_engine_count: int, cm_engine_count: int, high_lift_blower_component: Blower) -> None:
 
-        self.elevator = ControlSurface('elevator', lb=-26, ub=28, component=elevator_component)
-        self.trim_tab = ControlSurface('trim_tab', lb=-15, ub=20, component=trim_tab_component)
+        self.elevator = ControlSurface('elevator', lb=-30, ub=30, component=elevator_component)
+        self.trim_tab = ControlSurface('trim_tab', lb=-30, ub=30, component=trim_tab_component)
         self.aileron_left = ControlSurface('aileron_left', lb=-15, ub=20, component=aileron_left_component)
         self.aileron_right = ControlSurface('aileron_right', lb=-15, ub=20, component=aileron_right_component)
         self.flap_left = OnOffControlSurface('flap_left', lb=-15, ub=20, component=flap_left_component)
