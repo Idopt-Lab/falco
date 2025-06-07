@@ -38,7 +38,7 @@ x57_controls = X57ControlSystem(elevator_component=aircraft_component.comps['Ele
                                 flap_right_component=aircraft_component.comps['Wing'].comps['Right Flap'],
                                 hl_engine_count=12,cm_engine_count=2, high_lift_blower_component=hlb)
 
-cruise = aircraft_conditions.CruiseCondition(
+cruise = aircraft_conditions.RateofClimb(
     fd_axis=axis_dict['fd_axis'],
     controls=x57_controls,
     altitude=Q_(8000, 'ft'),
@@ -115,12 +115,10 @@ tf, tm = aircraft_component.compute_total_loads(fd_state=cruise.ac_states,contro
 Drag =  -tf[0]
 ThrustR = tf[0]
 Lift = -tf[2]
-PowerR = (ThrustR * cruise.ac_states.VTAS)
 
 Lift_scaling = 1 / (aircraft_component.mass_properties.mass * 9.81)
 Drag_scaling = Lift_scaling * 10
 Moment_scaling = Lift_scaling / 10
-PowerR_scaling = 1e-4 # scaling factor for power, based on the PowerR output for cruise condition
 
 
 res1 = tf[0] * Drag_scaling
@@ -137,9 +135,6 @@ res3.set_as_constraint(equals=0)
 
 
 
-PowerR_residual = PowerR * PowerR_scaling
-PowerR_residual.name = 'Power Required Residual'
-PowerR_residual.set_as_constraint(equals=0)
 
 cruise_r, cruise_x = cruise.evaluate_eom(component=aircraft_component, forces=tf, moments=tm)
 h_dot = cruise_r[11]
@@ -153,7 +148,6 @@ h_dot_residual.set_as_objective()
 Total_torque_avail, Total_power_avail = aircraft_component.compute_total_torque_total_power(fd_state=cruise.ac_states,controls=x57_controls)
 Total_torque_avail.name = 'Total Torque Available'
 Total_power_avail.name = 'Total Power Available'
-# (-Total_power_avail * (Lift_scaling/10)).set_as_objective()
 
 
 
@@ -162,7 +156,7 @@ sim = csdl.experimental.JaxSimulator(
     recorder=recorder,
     gpu=False,
     additional_inputs=[cruise.parameters.speed],
-    additional_outputs=[cruise.ac_states.VTAS, PowerR, Total_power_avail, Total_torque_avail],
+    additional_outputs=[cruise.ac_states.VTAS, Total_power_avail, Total_torque_avail],
     derivatives_kwargs= {
         "concatenate_ofs" : True})
 
@@ -177,7 +171,7 @@ PReqs = []
 # simulation is run in a loop, the sim[cruise.parameters.speed] assumes that the value has already been converted to SI units.
 
 
-# speeds = np.linspace(10, 76.8909, 5) # this has to be in SI units or else the following sim evaluation will fail
+# speeds = np.linspace(10, 76.8909, 15) # this has to be in SI units or else the following sim evaluation will fail
 speeds = [76.8909]
 Drags = []
 Lifts = []
@@ -197,7 +191,7 @@ for i, speed in enumerate(speeds):
 
     sim.check_optimization_derivatives()
     t1 = time.time()
-    prob = CSDLAlphaProblem(problem_name='trim_power_opt', simulator=sim)
+    prob = CSDLAlphaProblem(problem_name='trim_power_avail_max_opt', simulator=sim)
     optimizer = IPOPT(problem=prob)
     optimizer.solve()
     optimizer.print_results()
@@ -205,10 +199,8 @@ for i, speed in enumerate(speeds):
     print('Time to solve Optimization:', t2-t1)
     recorder.execute()
 
-    RoD = cruise.ac_states.VTAS * csdl.sin(cruise.ac_states.states.theta)
+    RoD = h_dot
     RoD_list.append(RoD.value[0])  # Rate of Descent in m/s
-
-    P_excess = Total_power_avail - PowerR
     
     results = cruise_prop.get_torque_power(states=cruise.ac_states, controls=x57_controls)
     prop_efficiency = results['eta'] 
@@ -218,9 +210,7 @@ for i, speed in enumerate(speeds):
 
     vtas_list.append(cruise.ac_states.VTAS.value[0])
     TRequireds.append(ThrustR.value[0])
-    PReqs.append(PowerR.value[0] * 1e-3)  # Convert to kW
     PAvails.append(Total_power_avail.value[0] * 1e-3)  # Convert to kW
-    P_excess_list.append(P_excess.value[0] * 1e-3)  # Convert to kW
     Drags.append(Drag.value[0])
     Lifts.append(Lift.value[0])
     LD_ratios.append(Lift.value[0] / Drag.value[0])
@@ -271,10 +261,6 @@ for i, speed in enumerate(speeds):
     print(cruise.ac_states.alpha.value * 180 / np.pi)
     print("Total Power Available (W):")
     print(Total_power_avail.value)
-    print("Total Power Excess (W):")
-    print(P_excess.value)  
-    print('Reqired Power:')
-    print(PowerR.value)
     print("Negative H Dot Minimization (which maximizes h_dot) Magnitude:")
     print(h_dot_residual.value)
 
@@ -318,7 +304,6 @@ plt.legend()
 plt.show()
 
 plt.figure()
-plt.plot(vtas_list, PReqs, marker='s', linestyle='--', label='Required Power')
 plt.plot(vtas_list, PAvails, marker='o', linestyle='-', label='Available Power')
 plt.xlabel('True Airspeed (VTAS) [m/s]')
 plt.ylabel('Power (kW)')

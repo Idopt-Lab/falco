@@ -88,6 +88,40 @@ class CruiseParameters(csdl.VariableGroup):
     pitch_angle: csdl.Variable
     range: csdl.Variable
     time: csdl.Variable
+
+    def define_checks(self):
+        self.add_check('altitude', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
+        self.add_check('speed', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
+        self.add_check('mach_number', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
+        self.add_check('pitch_angle', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
+        self.add_check('range', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
+        self.add_check('time', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
+
+    def _check_parameters(self, name, value):
+        if self._metadata[name]['type'] is not None:
+            if type(value) not in self._metadata[name]['type']:
+                raise ValueError(f"Variable {name} must be of type {self._metadata[name]['type']}.")
+
+        if self._metadata[name]['variablize']:
+            if isinstance(value, ureg.Quantity):
+                value_si = value.to_base_units()
+                value = csdl.Variable(value=value_si.magnitude, shape=(1,), name=name)
+                value.add_tag(tag=str(value_si.units))
+
+        if self._metadata[name]['shape'] is not None:
+            if value.shape != self._metadata[name]['shape']:
+                raise ValueError(f"Variable {name} must have shape {self._metadata[name]['shape']}.")
+        return value
+
+
+@dataclass
+class RateofClimbParameters(csdl.VariableGroup):
+    altitude: csdl.Variable
+    speed: csdl.Variable
+    mach_number: csdl.Variable
+    pitch_angle: csdl.Variable
+    range: csdl.Variable
+    time: csdl.Variable
     flight_path_angle: csdl.Variable
 
     def define_checks(self):
@@ -188,7 +222,6 @@ class CruiseCondition(Condition):
                  altitude: Union[ureg.Quantity, csdl.Variable] = Q_(0, 'm'),
                  range: Union[ureg.Quantity, csdl.Variable] = Q_(0, 'm'),
                  pitch_angle: Union[ureg.Quantity, csdl.Variable] = Q_(0, 'rad'),
-                 flight_path_angle: Union[ureg.Quantity, csdl.Variable] = Q_(0, 'rad'),
                  speed: Union[ureg.Quantity, csdl.Variable] = Q_(0, 'm/s'),
                  mach_number: Union[ureg.Quantity, csdl.Variable] = Q_(0, 'dimensionless'),
                  time: Union[ureg.Quantity, csdl.Variable] = Q_(0, 's')):
@@ -196,6 +229,93 @@ class CruiseCondition(Condition):
         
 
         self.parameters: CruiseParameters = CruiseParameters(
+            altitude=altitude,
+            speed=speed,
+            range=range,
+            pitch_angle=pitch_angle,
+            mach_number=mach_number,
+            time=time,
+        )
+
+        ac_states = self._setup_condition(fd_axis)
+        eom = EquationsOfMotion()
+        super().__init__(states=ac_states, controls=controls, eom=eom)
+
+    def _setup_condition(self, fd_axis: Union[Axis, AxisLsdoGeo]):
+        axis = fd_axis.copy(new_name="Cruise Axis")
+
+        conflicting_attributes_1 = ["speed", "mach_number"]
+        conflicting_attributes_2 = ["speed", "time", "range"]
+        conflicting_attributes_3 = ["mach_number", "time", "range"]
+        if all(getattr(self.parameters, attr).value != 0 for attr in conflicting_attributes_1):
+            raise Exception("Cannot specify 'mach_number' and 'speed' at the same time")
+        if all(getattr(self.parameters, attr).value != 0 for attr in conflicting_attributes_2):
+            raise Exception("Cannot specify 'speed', 'time', and 'range' at the same time")
+        if all(getattr(self.parameters, attr).value != 0 for attr in conflicting_attributes_3):
+            raise Exception("Cannot specify 'mach_number', 'time', and 'range' at the same time")
+        x = y = v = phi = psi = p = q = r = csdl.Variable(value=0.)
+        
+        axis.translation_from_origin.x = x
+        axis.translation_from_origin.y = y
+        axis.translation_from_origin.z = -self.parameters.altitude  # FD axis z points down
+        axis.euler_angles.phi = phi
+        axis.euler_angles.theta = self.parameters.pitch_angle
+        axis.euler_angles.psi = psi
+        ac_states = AircraftStates(axis=axis)
+
+        atmos_states = ac_states.atmospheric_states
+        mach_number = self.parameters.mach_number
+        speed = self.parameters.speed
+        time = self.parameters.time
+        range = self.parameters.range
+        if mach_number.value != 0 and range.value != 0:
+            V = atmos_states.speed_of_sound * mach_number
+            self.parameters.speed = V
+            time = range / V
+            self.parameters.time = time
+        elif mach_number.value != 0 and time.value != 0:
+            V = atmos_states.speed_of_sound * mach_number
+            self.parameters.speed = V
+            range = V * time
+            self.parameters.range = range
+        elif speed.value != 0 and range.value != 0:
+            V = speed
+            mach_number = V / atmos_states.speed_of_sound
+            self.parameters.mach_number = mach_number
+            time = range / V
+            self.parameters.time = time
+        elif speed.value != 0 and time.value != 0:
+            V = speed
+            mach_number = V / atmos_states.speed_of_sound
+            self.parameters.mach_number = mach_number
+            range = V * time
+            self.parameters.range = range
+        else:
+            raise NotImplementedError
+        u = V * csdl.cos(self.parameters.pitch_angle)
+        w = V * csdl.sin(self.parameters.pitch_angle)
+        ac_states = AircraftStates(axis=axis, u=u, v=v, w=w, p=p, q=q, r=r)
+        return ac_states
+
+class RateofClimb(Condition):
+    """Cruise condition: intended for steady analyses.
+
+    Note: cannot specify all parameters at once (e.g., cannot specify speed and mach_number simultaneously)
+    """
+    def __init__(self,
+                 fd_axis: Union[Axis, AxisLsdoGeo],
+                 controls: VehicleControlSystem,
+                 altitude: Union[ureg.Quantity, csdl.Variable] = Q_(0, 'm'),
+                 range: Union[ureg.Quantity, csdl.Variable] = Q_(0, 'm'),
+                 pitch_angle: Union[ureg.Quantity, csdl.Variable] = Q_(0, 'rad'),
+                 flight_path_angle: Union[ureg.Quantity, csdl.Variable] = Q_(0, 'rad'),
+                 speed: Union[ureg.Quantity, csdl.Variable] = Q_(0, 'm/s'),
+                 mach_number: Union[ureg.Quantity, csdl.Variable] = Q_(0, 'dimensionless'),
+                 time: Union[ureg.Quantity, csdl.Variable] = Q_(0, 's')):
+        
+        
+
+        self.parameters: RateofClimbParameters = RateofClimbParameters(
             altitude=altitude,
             speed=speed,
             range=range,
@@ -274,8 +394,6 @@ class CruiseCondition(Condition):
         w = V * csdl.sin(alfa)
         ac_states = AircraftStates(axis=axis, u=u, v=v, w=w, p=p, q=q, r=r)
         return ac_states
-
-
 
 
 class ClimbCondition(Condition):
