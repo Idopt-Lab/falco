@@ -26,12 +26,7 @@ class OnOffControlSurface:
     def upper_bound(self):
         return self._ub
 
-    def get_flag(self):
-        return self._flag
 
-    def set_flag(self, flag_bool: bool):
-        assert isinstance(flag_bool, bool)
-        self._flag = flag_bool
 
         
 
@@ -40,12 +35,6 @@ class Blower:
         self.name = name
         self.flag = flag_bool
 
-    def get_flag(self):
-        return self._flag
-
-    def set_flag(self, flag_bool: bool):
-        assert isinstance(flag_bool, bool)
-        self._flag = flag_bool
 
 
 class X57ControlSystem(VehicleControlSystem):
@@ -142,10 +131,12 @@ class X57ControlSystem(VehicleControlSystem):
                             self.rudder.max_value
                         ] + [engine.max_value for engine in self.engines])
     
-    def update_high_lift_control(self, flap_flag: bool, blower_flag: bool = None):
+    def update_high_lift_control(self, flap_flag, blower_flag):
         # Instead of using a property setter for flag, call an explicit method.
-        self.high_lift_control['Left Flap'].set_flag(flap_flag)
-        self.high_lift_control['Right Flap'].set_flag(flap_flag)
+        assert isinstance(flap_flag, bool)
+        assert isinstance(blower_flag, bool)
+        self.high_lift_control['Left Flap'].flag = flap_flag
+        self.high_lift_control['Right Flap'].flag = flap_flag
         if 'Blower' in self.high_lift_control and blower_flag is not None:
-            self.high_lift_control['Blower'].set_flag(blower_flag)
+            self.high_lift_control['Blower'].flag = blower_flag
 ...

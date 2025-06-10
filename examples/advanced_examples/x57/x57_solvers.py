@@ -422,16 +422,18 @@ class X57Aerodynamics(Loads):
             i_wing = self.i_wing * 180/np.pi
             AOA = states.alpha * 180/np.pi
             dstab = controls.pitch_control['Elevator'].deflection
-            dflap = controls.high_lift_control['Left Flap'].flag or controls.high_lift_control['Right Flap'].flag      
+            dflap = controls.high_lift_control['Left Flap'].flag or controls.high_lift_control['Right Flap'].flag 
+            blow = controls.high_lift_control['Blower'].flag    
             daileron = controls.roll_control['Left Aileron'].deflection            
             dtrim = controls.pitch_control['Trim Tab'].deflection
             drudder = controls.yaw_control['Rudder'].deflection
 
             # blowing affect if HL engines are active
             blow_num = 0
-            for engine in controls.hl_engines:
-                if engine.throttle.value != 0:
-                    blow_num += 1
+            if blow:
+                for engine in controls.hl_engines:
+                    if engine.throttle.value != 0:
+                        blow_num += 1
 
 
             CL = self.AC_CL(alpha=AOA, i_w=i_wing, i_stab=dstab, AR=self.AR_wing, flap=dflap, blow_num=blow_num, trimtab=dtrim)
@@ -486,7 +488,13 @@ class X57Aerodynamics(Loads):
             aero_moment = aero_moment.set(csdl.slice[2], N_yaw)
             moment_vector = Vector(vector=aero_moment, axis=wind_axis)
             loads_wind_axis = ForcesMoments(force=force_vector, moment=moment_vector)
-            return loads_wind_axis
+            # return loads_wind_axis
+            return {
+            'loads': loads_wind_axis,
+            'CL':  CL,
+            'CD':   CD,
+            'CM':     CM
+        }
     
 
 ## WORK IN PROGRESS - HINGE MOMENTS
@@ -729,12 +737,11 @@ class X57Propulsion(Loads):
         cq = prop_out.cq
         # print(f"Computed Ct: {ct.value}")
 
-        # Compute Thrust
-        T = (ct * density * (omega)**2 * ((self.radius*2)**4)) # N
-    
-        # print(f"Computed Thrust T: {T.value} Newtons")
-        if np.isnan(T.value):
+        if np.isnan(ct.value):
             T = csdl.Variable(shape=(1,), value=0.)
+        else:
+            # Compute Thrust
+            T = (ct * density * (omega)**2 * ((self.radius*2)**4)) # N
         
         # print(f"Computed Thrust T: {T.value} Newtons")
     
@@ -745,7 +752,9 @@ class X57Propulsion(Loads):
 
         moment_vector = Vector(vector=csdl.Variable(shape=(3,), value=0.), axis=axis)
         loads = ForcesMoments(force=force_vector, moment=moment_vector)
-        return loads
+        return {
+            'loads': loads
+        }
 
    
 
@@ -777,7 +786,7 @@ class X57Propulsion(Loads):
             Computed shaft power for the propulsion system.
         """
         u = controls.u
-        throttle = u[5+self.engine_index]  # Get the rpm for the specific engine
+        throttle = u[5+self.engine_index]  # Get the throttle for the specific engine
         density = states.atmospheric_states.density
         velocity = states.VTAS # m/s to ft/s
         rpm = self.RPMmin + (self.RPMmax - self.RPMmin) * throttle  # RPM based on throttle input
@@ -786,29 +795,27 @@ class X57Propulsion(Loads):
 
         J = (velocity) / ((omega) * (self.radius * 2))   # non-dimensional
 
+
         prop_curve_obj = type(self.prop_curve)()
-        prop_out = prop_curve_obj.evaluate(J_data=J)
+        prop_out = prop_curve_obj.evaluate(J_data=J)        
         ct = prop_out.ct
         cp = prop_out.cp
         cq = prop_out.cq
 
-        torque = cq*(density * (omega)**2 * ((self.radius*2)**5)) #  Nm
-
-        if np.isnan(torque.value):
+        if np.isnan(cq.value):
             torque = csdl.Variable(shape=(1,), value=0.)
+        else:
+            torque = cq*(density * (omega)**2 * ((self.radius*2)**5)) #  Nm
+
 
         shaft_power = (torque * (omega) * 2 * np.pi) # Watts 
 
-        if np.isnan(shaft_power.value):
-            shaft_power = csdl.Variable(shape=(1,), value=0.)
-
-        if np.isnan(cp.value) and np.isnan(ct.value):
+        if np.isnan(ct.value) or np.isnan(cp.value):
             eta = csdl.Variable(shape=(1,), value=0.)
         else:
             eta = J * (ct / cp)  # Efficiency of the propeller
 
         power_avail = shaft_power * eta  # Power available for the propulsion system
-
         return {
             'torque': torque,
             'cq': cq,
@@ -817,7 +824,8 @@ class X57Propulsion(Loads):
             'cp': cp,
             'eta': eta,
             'J': J,
-            'power_avail': power_avail
+            'power_avail': power_avail,
+            'rpm': rpm
         }
     
 

@@ -154,6 +154,9 @@ class Component:
                 local_axis = self.mass_properties.cg_vector.axis
                 fm = ls.get_FM_localAxis(states=fd_state, controls=controls, axis=local_axis)
 
+                if isinstance(fm, dict):
+                    fm = fm['loads']
+
                 if fm.F.axis.reference.name == 'Inertial Axis' or fm.F.axis.reference.name == 'OpenVSP Axis':
                     # Let's rotate the forces and moments to the inertial axis
                     fm_fd_axis = fm.transform_to_axis(local_axis.reference, translate_flag=True, rotate_flag=True)

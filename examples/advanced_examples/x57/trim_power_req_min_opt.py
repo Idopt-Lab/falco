@@ -5,6 +5,8 @@ from flight_simulator.core.vehicle.conditions import aircraft_conditions
 from modopt import CSDLAlphaProblem, SLSQP, IPOPT, SNOPT, PySLSQP
 from flight_simulator import REPO_ROOT_FOLDER, Q_
 import sys
+import pandas as pd
+
 
 x57_folder_path = REPO_ROOT_FOLDER / 'examples' / 'advanced_examples' / 'x57'
 sys.path.append(str(x57_folder_path))
@@ -41,23 +43,32 @@ x57_controls = X57ControlSystem(elevator_component=aircraft_component.comps['Ele
 cruise = aircraft_conditions.CruiseCondition(
     fd_axis=axis_dict['fd_axis'],
     controls=x57_controls,
-    altitude=Q_(8000, 'ft'),
+    altitude=Q_(2438.4, 'm'),
     range=Q_(160, 'km'),
     speed=Q_(76.8909, 'm/s'),  # Cruise speed from X57 CFD data
-    pitch_angle=Q_(0, 'rad'))
+    pitch_angle=Q_(1, 'deg'))
 
 
 
 x57_controls.elevator.deflection.set_as_design_variable(lower=np.deg2rad(x57_controls.elevator.lower_bound), upper=np.deg2rad(x57_controls.elevator.upper_bound),scaler=1e2)
-cruise.parameters.pitch_angle.set_as_design_variable(lower=np.deg2rad(-30), upper=np.deg2rad(30), scaler=1e2)
+x57_controls.rudder.deflection.set_as_design_variable(lower=np.deg2rad(x57_controls.rudder.lower_bound), upper=np.deg2rad(x57_controls.rudder.upper_bound),scaler=1e2)
+x57_controls.aileron_left.deflection.set_as_design_variable(lower=np.deg2rad(x57_controls.aileron_left.lower_bound), upper=np.deg2rad(x57_controls.aileron_left.upper_bound),scaler=1e2)
+x57_controls.aileron_right.deflection.set_as_design_variable(lower=np.deg2rad(x57_controls.aileron_right.lower_bound), upper=np.deg2rad(x57_controls.aileron_right.upper_bound),scaler=1e2)
+x57_controls.flap_left.deflection.set_as_design_variable(lower=np.deg2rad(x57_controls.flap_left.lower_bound), upper=np.deg2rad(x57_controls.flap_left.upper_bound),scaler=1e2)
+x57_controls.flap_right.deflection.set_as_design_variable(lower=np.deg2rad(x57_controls.flap_right.lower_bound), upper=np.deg2rad(x57_controls.flap_right.upper_bound),scaler=1e2)
+x57_controls.trim_tab.deflection.set_as_design_variable(lower=np.deg2rad(x57_controls.trim_tab.lower_bound), upper=np.deg2rad(x57_controls.trim_tab.upper_bound),scaler=1e2)
+cruise.parameters.pitch_angle.set_as_design_variable(lower=np.deg2rad(-5), upper=np.deg2rad(10), scaler=1e2)
 
+aileron_diff = x57_controls.aileron_right.deflection - x57_controls.aileron_left.deflection
+aileron_diff.name = 'Aileron Diff'
+aileron_diff.set_as_constraint(equals=0)  # setting all ailerons to the same deflection, because of symmetry
 
 for left_engine, right_engine in zip(x57_controls.hl_engines_left, x57_controls.hl_engines_right):
-    left_engine.throttle.value = 0
-    right_engine.throttle.value= 0
+    left_engine.throttle.set_as_design_variable(lower=0.0, upper=1e-6)
+    right_engine.throttle.set_as_design_variable(lower=0.0, upper=1e-6)
     hl_throt_diff = (right_engine.throttle - left_engine.throttle) # setting all engines to the same throttle setting, because of symmetry
     hl_throt_diff.name = f'HL throttle Diff{left_engine.throttle.name} - {right_engine.throttle.name}'
-    # hl_throttle_diff.set_as_constraint(equals=0)  
+    # hl_throt_diff.set_as_constraint(equals=0)  
 
 
 for left_engine, right_engine in zip(x57_controls.cm_engines_left, x57_controls.cm_engines_right):
@@ -70,6 +81,10 @@ for left_engine, right_engine in zip(x57_controls.cm_engines_left, x57_controls.
 
 x57_aerodynamics = X57Aerodynamics(component=aircraft_component)
 aircraft_component.comps['Wing'].load_solvers.append(x57_aerodynamics)
+aero_results = x57_aerodynamics.get_FM_localAxis(states=cruise.ac_states, controls=x57_controls, axis=axis_dict['fd_axis'])
+CL = aero_results['CL']
+CD = aero_results['CD']
+
 
 
 
@@ -109,25 +124,33 @@ tf, tm = aircraft_component.compute_total_loads(fd_state=cruise.ac_states,contro
 Drag =  -tf[0]
 ThrustR = tf[0]
 Lift = -tf[2]
-PowerR = Drag * cruise.ac_states.VTAS
+PowerR = ThrustR * cruise.ac_states.VTAS
 
 Lift_scaling = 1 / (aircraft_component.mass_properties.mass * 9.81)
 Drag_scaling = Lift_scaling * 10
 Moment_scaling = Lift_scaling / 10
-PowerR_scaling = 1e-4 # scaling factor for power, based on the PowerR output for cruise condition
+PowerR_scaling = 1/(PowerR * 1e1) # scaling factor for power, based on the PowerR output for cruise condition
 
 
 res1 = tf[0] * Drag_scaling
 res1.name = 'Fx Force'
-res1.set_as_constraint(equals=0)
+res1.set_as_constraint(equals=0.0)  # setting a small value to ensure the thrust is close to zero
 
 res2 = tf[2] * Lift_scaling
 res2.name = 'Fz Force'
-res2.set_as_constraint(equals=0)
+res2.set_as_constraint(equals=0.0)
 
-res3 = tm[1] * Moment_scaling
-res3.name = 'My Moment'
-res3.set_as_constraint(equals=0)
+res3 = tm[0] * Moment_scaling
+res3.name = 'Mx Moment'
+res3.set_as_constraint(equals=0.0)
+
+res4 = tm[1] * Moment_scaling
+res4.name = 'My Moment'
+res4.set_as_constraint(equals=0.0)
+
+res5 = tm[2] * Moment_scaling
+res5.name = 'Mz Moment'
+res5.set_as_constraint(equals=0.0)
 
 
 PowerR_residual = PowerR * PowerR_scaling
@@ -156,17 +179,18 @@ PReqs = []
 # simulation is run in a loop, the sim[cruise.parameters.speed] assumes that the value has already been converted to SI units.
 
 
-# speeds = np.linspace(10, 76.8909, 15) # this has to be in SI units or else the following sim evaluation will fail
-speeds = [76.8909]
+speeds = np.linspace(10, 76.8909, 20) # this has to be in SI units or else the following sim evaluation will fail
+# speeds = [76.8909]
 Drags = []
 Lifts = []
 LD_ratios = []
 vtas_list = []
 eta_list = []
 Jval_list = []
-RoD_list = []
-torque_list = []
-P_excess_list = []
+CL_list = []
+CD_list = []
+
+
 
 for i, speed in enumerate(speeds):
 
@@ -197,6 +221,8 @@ for i, speed in enumerate(speeds):
     Drags.append(Drag.value[0])
     Lifts.append(Lift.value[0])
     LD_ratios.append(Lift.value[0] / Drag.value[0])
+    CL_list.append(CL.value[0])
+    CD_list.append(CD.value[0])
 
 
     dv_save_dict = {}
@@ -233,6 +259,18 @@ for i, speed in enumerate(speeds):
         print(cm_engine_torque.value)
     print("Elevator Deflection (deg)")
     print(x57_controls.pitch_control['Elevator'].deflection.value * 180 / np.pi)
+    print("Rudder Deflection (deg)")
+    print(x57_controls.yaw_control['Rudder'].deflection.value * 180 / np.pi)
+    print("Left Aileron Deflection (deg)")
+    print(x57_controls.roll_control['Left Aileron'].deflection.value * 180 / np.pi)
+    print("Right Aileron Deflection (deg)")
+    print(x57_controls.roll_control['Rigt Aileron'].deflection.value * 180 / np.pi)
+    print("Left Flap Deflection (deg)")
+    print(x57_controls.high_lift_control['Left Flap'].deflection.value * 180 / np.pi)
+    print("Right Flap Deflection (deg)")
+    print(x57_controls.high_lift_control['Right Flap'].deflection.value * 180 / np.pi)
+    print("Trim Tab Deflection (deg)")
+    print(x57_controls.pitch_control['Trim Tab'].deflection.value * 180 / np.pi)
     print("Pitch Angle (deg)")
     print(cruise.parameters.pitch_angle.value * 180 / np.pi)
     print('Angle of Attack (deg)')
@@ -241,6 +279,10 @@ for i, speed in enumerate(speeds):
     print(PowerR.value[0])
     print('Power Required Residual')
     print(PowerR_residual.value[0])
+    print('CL')
+    print(CL.value[0])
+    print('CD')
+    print(CD.value[0])
 
 
 
@@ -250,6 +292,31 @@ for i, speed in enumerate(speeds):
     print("TM[0]", tm[0].value)
     print("TM[1]", tm[1].value)
     print("TM[2]", tm[2].value)
+
+
+
+# Create a dictionary with your results lists
+results_dict = {
+    'VTAS': vtas_list,
+    'Required Thrust': TRequireds,
+    'Required Power (kW)': PReqs,
+    'Drag': Drags,
+    'Lift': Lifts,
+    'L/D Ratio': LD_ratios,
+    'Propeller Efficiency': eta_list,
+    'J Value': Jval_list,
+    'CL': CL_list,
+    'CD': CD_list,
+}
+
+# Convert the dictionary to a DataFrame
+results_df = pd.DataFrame(results_dict)
+
+# Save the DataFrame to a CSV file
+results_df.to_csv('power_req_trim_sim_results.csv', index=False)
+
+
+
 
 import matplotlib.pyplot as plt
 

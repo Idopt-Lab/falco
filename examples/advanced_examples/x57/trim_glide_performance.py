@@ -67,26 +67,30 @@ aileron_diff.name = 'Aileron Diff'
 aileron_diff.set_as_constraint(equals=0)  # setting all ailerons to the same deflection, because of symmetry
 
 
-
 for left_engine, right_engine in zip(x57_controls.hl_engines_left, x57_controls.hl_engines_right):
-    left_engine.throttle.set_as_design_variable(lower=0.0, upper=1e-6)
-    right_engine.throttle.set_as_design_variable(lower=0.0, upper=1e-6)
+    left_engine.throttle.set_as_design_variable(lower=0.0, upper=1e-12)
+    right_engine.throttle.set_as_design_variable(lower=0.0, upper=1e-12)
     hl_throt_diff = (right_engine.throttle - left_engine.throttle) # setting all engines to the same throttle setting, because of symmetry
     hl_throt_diff.name = f'HL throttle Diff{left_engine.throttle.name} - {right_engine.throttle.name}'
     # hl_throt_diff.set_as_constraint(equals=0)  
 
 
 for left_engine, right_engine in zip(x57_controls.cm_engines_left, x57_controls.cm_engines_right):
-    left_engine.throttle.set_as_design_variable(lower=0.7, upper=1.0)
-    right_engine.throttle.set_as_design_variable(lower=0.7, upper=1.0)
+    left_engine.throttle.set_as_design_variable(lower=0.0, upper=1.0)
+    right_engine.throttle.set_as_design_variable(lower=0.0, upper=1.0)
     cm_throttle_diff = (right_engine.throttle - left_engine.throttle) # setting all engines to the same throttle setting, because of symmetry
     cm_throttle_diff.name = f'CM throttle Diff{left_engine.throttle.name} - {right_engine.throttle.name}'
     cm_throttle_diff.set_as_constraint(equals=0)  
 
 
+
+x57_controls.update_controls(x57_controls.u)       
+
 x57_aerodynamics = X57Aerodynamics(component=aircraft_component)
 aircraft_component.comps['Wing'].load_solvers.append(x57_aerodynamics)
-
+aero_results = x57_aerodynamics.get_FM_localAxis(states=cruise.ac_states, controls=x57_controls, axis=axis_dict['fd_axis'])
+CL = aero_results['CL']
+CD = aero_results['CD']
 
 
 HL_radius_x57 = Q_(1.89/2, 'ft') # HL propeller radius in ft
@@ -101,8 +105,7 @@ for i, hl_motor in enumerate(hl_motors):
     results = hl_prop.get_torque_power(states=cruise.ac_states, controls=x57_controls)
     hl_engine_torque = results['torque']
     hl_engine_torque.name = f'HL_Engine_{i}_Torque'
-    hl_engine_torque.set_as_constraint(lower=0.0, upper=20.5, scaler=1e-2) # values from High-Lift Propeller Operating Conditions v2 paper
-
+    hl_engine_torque.set_as_constraint(equals=0.0)  # setting the torque to 0 for the glide condition
 
 cruise_motors = [comp for comp in aircraft_component.comps['Wing'].comps.values() if comp._name.startswith('Cruise Motor')]
 
@@ -113,13 +116,16 @@ for i, cruise_motor in enumerate(cruise_motors):
     results = cruise_prop.get_torque_power(states=cruise.ac_states, controls=x57_controls)
     cm_engine_torque = results['torque']
     cm_engine_torque.name = f'Cruise_Engine_{i}_Torque'
-    cm_engine_torque.set_as_constraint(lower=0.0, upper=225, scaler=1e-3) # values from x57_DiTTo_manuscript paper
+    cm_engine_torque.set_as_constraint(upper=0.0)  # setting the torque to 0 for the glide condition 
 
-x57_controls.update_controls(x57_controls.u)
 
 x57_controls.update_high_lift_control(flap_flag=False, blower_flag=False)
 
 tf, tm = aircraft_component.compute_total_loads(fd_state=cruise.ac_states,controls=x57_controls)
+
+cruise_r, cruise_x = cruise.evaluate_eom(component=aircraft_component, forces=tf, moments=tm)
+h_dot = cruise_r[11]
+
 
 
 Drag =  -tf[0]
@@ -151,21 +157,12 @@ res5 = tm[2] * Moment_scaling
 res5.name = 'Mz Moment'
 res5.set_as_constraint(equals=0.0)
 
+max_LD = 1 / (csdl.tan((cruise.ac_states.gamma))) # L/D ratio is 1/tan(gamma) where gamma is the flight path angle
+negative_max_LD = -max_LD * (1e-2) # scaling to make it a minimization problem
+negative_max_LD.name = 'Negative Max L/D Ratio'
+negative_max_LD.set_as_objective()
 
 
-
-cruise_r, cruise_x = cruise.evaluate_eom(component=aircraft_component, forces=tf, moments=tm)
-h_dot = cruise_r[11]
-h_dot_scaling = 1e-1  # scaling factor for the rate of climb, should be in m/s
-# h_dot is the rate of climb in m/s, we want to maximize this, so we will minimize its negative value
-h_dot_residual = -h_dot * h_dot_scaling
-h_dot_residual.name = 'Negative Rate of Climb Residual'
-h_dot_residual.set_as_objective()
-
-
-Total_torque_avail, Total_power_avail = aircraft_component.compute_total_torque_total_power(fd_state=cruise.ac_states,controls=x57_controls)
-Total_torque_avail.name = 'Total Torque Available'
-Total_power_avail.name = 'Total Power Available'
 
 
 
@@ -174,7 +171,7 @@ sim = csdl.experimental.JaxSimulator(
     recorder=recorder,
     gpu=False,
     additional_inputs=[cruise.parameters.speed],
-    additional_outputs=[cruise.ac_states.VTAS, Total_power_avail, Total_torque_avail],
+    additional_outputs=[cruise.ac_states.VTAS],
     derivatives_kwargs= {
         "concatenate_ofs" : True})
 
@@ -197,9 +194,11 @@ LD_ratios = []
 vtas_list = []
 eta_list = []
 Jval_list = []
-RoD_list = []
+min_sinkRate_list = []
+sinkRate_list = []
 torque_list = []
-P_excess_list = []
+CL_list = []
+CD_list = []
 
 for i, speed in enumerate(speeds):
 
@@ -209,16 +208,15 @@ for i, speed in enumerate(speeds):
 
     sim.check_optimization_derivatives()
     t1 = time.time()
-    prob = CSDLAlphaProblem(problem_name='trim_power_avail_max_opt', simulator=sim)
+    prob = CSDLAlphaProblem(problem_name='trim_glide_perf_opt', simulator=sim)
     optimizer = IPOPT(problem=prob)
     optimizer.solve()
     optimizer.print_results()
     t2 = time.time()
     print('Time to solve Optimization:', t2-t1)
     recorder.execute()
+    print("max L/D Ratio:", max_LD.value)
 
-    RoD = h_dot
-    RoD_list.append(RoD.value[0])  # Rate of Descent in m/s
     
     results = cruise_prop.get_torque_power(states=cruise.ac_states, controls=x57_controls)
     prop_efficiency = results['eta'] 
@@ -228,13 +226,13 @@ for i, speed in enumerate(speeds):
 
     vtas_list.append(cruise.ac_states.VTAS.value[0])
     TRequireds.append(ThrustR.value[0])
-    PReqs.append(ThrustR.value[0] * cruise.ac_states.VTAS.value[0] * 1e-3)  # Convert to kW
-    PAvails.append(Total_power_avail.value[0] * 1e-3)  # Convert to kW
     Drags.append(Drag.value[0])
     Lifts.append(Lift.value[0])
     LD_ratios.append(Lift.value[0] / Drag.value[0])
-    torque_list.append(Total_torque_avail.value[0])
-
+    min_sinkRate_list.append(cruise.ac_states.VTAS.value[0]/max_LD.value[0]) 
+    sinkRate_list.append(h_dot.value[0])
+    CL_list.append(CL.value[0])
+    CD_list.append(CD.value[0])
 
     dv_save_dict = {}
     constraints_save_dict = {}
@@ -268,8 +266,6 @@ for i, speed in enumerate(speeds):
     print("Cruise Engine Torque (N*m)")
     for engine in x57_controls.cm_engines:
         print(cm_engine_torque.value)
-    print("Total Torque Available (N*m)")
-    print(Total_torque_avail.value)
     print("Elevator Deflection (deg)")
     print(x57_controls.pitch_control['Elevator'].deflection.value * 180 / np.pi)
     print("Rudder Deflection (deg)")
@@ -286,14 +282,12 @@ for i, speed in enumerate(speeds):
     print(x57_controls.pitch_control['Trim Tab'].deflection.value * 180 / np.pi)
     print("Pitch Angle (deg)")
     print(cruise.parameters.pitch_angle.value * 180 / np.pi)
-    print('Flight Path Angle (deg)')
-    print(cruise.ac_states.gamma.value * 180 / np.pi)
     print('Angle of Attack (deg)')
     print(cruise.ac_states.alpha.value * 180 / np.pi)
-    print("Total Power Available (W):")
-    print(Total_power_avail.value)
-    print("Negative H Dot Minimization (which maximizes h_dot) Magnitude:")
-    print(h_dot_residual.value)
+    print("Negative Max L/D Ratio Optimization - (minimize -L/D Ratio gives max L/D Ratio)")
+    print(negative_max_LD.value)
+
+
 
 
     print("TF[0]", tf[0].value)
@@ -304,26 +298,28 @@ for i, speed in enumerate(speeds):
     print("TM[2]", tm[2].value)
 
 
+
 # Create a dictionary with your results lists
 results_dict = {
     'VTAS': vtas_list,
-    'Required Thrust': TRequireds,
-    'Required Power (kW)': PReqs,
-    'Total Torque': torque_list,
-    'Available Power (kW)': PAvails,
     'Drag': Drags,
     'Lift': Lifts,
     'L/D Ratio': LD_ratios,
-    'Rate of Descent': RoD_list,
     'Propeller Efficiency': eta_list,
     'J Value': Jval_list,
+    'Sink Rate': sinkRate_list,
+    'Minimum Sink Rate': min_sinkRate_list,
+    'CL': CL_list,
+    'CD': CD_list,
 }
 
 # Convert the dictionary to a DataFrame
 results_df = pd.DataFrame(results_dict)
 
 # Save the DataFrame to a CSV file
-results_df.to_csv('power_avail_trim_sim_results.csv', index=False)
+results_df.to_csv('glide_perf_trim_sim_results.csv', index=False)
+
+
 
 
 import matplotlib.pyplot as plt
@@ -336,16 +332,7 @@ plt.ylabel('Propeller Efficiency')
 plt.title('Propeller Efficiency vs. Advaced Ratio (J)')
 plt.grid(True)
 plt.legend()
-plt.show()
 
-plt.figure()
-plt.plot(vtas_list, torque_list, marker='s', linestyle='--', label='Total Torque Required')
-plt.xlabel('True Airspeed (VTAS) [m/s]')
-plt.ylabel('Torque (N*m)')
-plt.title('Torque vs. VTAS')
-plt.grid(True)
-plt.legend()
-plt.show()
 
 
 plt.figure()
@@ -355,35 +342,24 @@ plt.ylabel('Thrust (N)')
 plt.title('Thrust vs. VTAS')
 plt.grid(True)
 plt.legend()
-plt.show()
-
-plt.figure()
-plt.plot(vtas_list, PAvails, marker='o', linestyle='-', label='Available Power')
-plt.xlabel('True Airspeed (VTAS) [m/s]')
-plt.ylabel('Power (kW)')
-plt.title('Power vs. VTAS')
-plt.grid(True)
-plt.legend()
-plt.show()
-
 
 plt.figure()
 plt.plot(vtas_list, LD_ratios, marker='s', linestyle='--', label='L/D Ratio')
 plt.xlabel('True Airspeed (VTAS) [m/s]')
 plt.ylabel('L/D Ratio')
-plt.title('L/D Ratio vs. VTAS')
+plt.title('L/D vs. VTAS')
+plt.grid(True)
+plt.legend()
+
+plt.figure()
+plt.plot(vtas_list, sinkRate_list, marker='s', linestyle='--', label='Sink Rate')
+plt.xlabel('True Airspeed (VTAS) [m/s]')
+plt.ylabel('Sink Rate (m/s)')
+plt.title('Sink Rate vs. VTAS')
 plt.grid(True)
 plt.legend()
 plt.show()
 
-plt.figure()
-plt.plot(vtas_list, RoD_list, marker='s', linestyle='--', label='Rate of Descent')
-plt.xlabel('True Airspeed (VTAS) [m/s]')
-plt.ylabel('Rate of Descent (m/s)')
-plt.title('Rate of Descent vs. VTAS')
-plt.grid(True)
-plt.legend()
-plt.show()
 
 
 
