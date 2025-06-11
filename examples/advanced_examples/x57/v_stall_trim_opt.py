@@ -39,7 +39,7 @@ x57_controls = X57ControlSystem(elevator_component=aircraft_component.comps['Ele
                                 flap_left_component=aircraft_component.comps['Wing'].comps['Left Flap'],
                                 flap_right_component=aircraft_component.comps['Wing'].comps['Right Flap'],
                                 hl_engine_count=12,cm_engine_count=2, high_lift_blower_component=hlb)
-x57_controls.update_high_lift_control(flap_flag=False, blower_flag=False)
+x57_controls.update_high_lift_control(flap_flag=True, blower_flag=True)
 
 
 cruise = aircraft_conditions.CruiseCondition(
@@ -53,16 +53,15 @@ cruise = aircraft_conditions.CruiseCondition(
 
 
 x57_controls.elevator.deflection.set_as_design_variable(lower=np.deg2rad(x57_controls.elevator.lower_bound), upper=np.deg2rad(x57_controls.elevator.upper_bound),scaler=1e2)
-cruise.parameters.pitch_angle.set_as_design_variable(lower=np.deg2rad(-5), upper=np.deg2rad(5),scaler=1e2)
 
 
 
 for left_engine, right_engine in zip(x57_controls.hl_engines_left, x57_controls.hl_engines_right):
-    left_engine.throttle.set_as_design_variable(lower=0.0, upper=1e-12)
-    right_engine.throttle.set_as_design_variable(lower=0.0, upper=1e-12)
+    left_engine.throttle.set_as_design_variable(lower=0.0, upper=1)
+    right_engine.throttle.set_as_design_variable(lower=0.0, upper=1)
     hl_throt_diff = (right_engine.throttle - left_engine.throttle) # setting all engines to the same throttle setting, because of symmetry
     hl_throt_diff.name = f'HL throttle Diff{left_engine.throttle.name} - {right_engine.throttle.name}'
-    # hl_throt_diff.set_as_constraint(equals=0)  
+    hl_throt_diff.set_as_constraint(equals=0)  
 
 
 for left_engine, right_engine in zip(x57_controls.cm_engines_left, x57_controls.cm_engines_right):
@@ -95,7 +94,7 @@ for i, hl_motor in enumerate(hl_motors):
     results = hl_prop.get_torque_power(states=cruise.ac_states, controls=x57_controls)
     hl_engine_torque = results['torque']
     hl_engine_torque.name = f'HL_Engine_{i}_Torque'
-    hl_engine_torque.set_as_constraint(lower=0.0, upper=20.5, scaler=1e-2) # values from High-Lift Propeller Operating Conditions v2 paper
+    hl_engine_torque.set_as_constraint(lower=0.0, upper=20.5, scaler=1/20.5) # values from High-Lift Propeller Operating Conditions v2 paper
 
 cruise_motors = [comp for comp in aircraft_component.comps['Wing'].comps.values() if comp._name.startswith('Cruise Motor')]
 
@@ -106,7 +105,7 @@ for i, cruise_motor in enumerate(cruise_motors):
     results = cruise_prop.get_torque_power(states=cruise.ac_states, controls=x57_controls)
     cm_engine_torque = results['torque']
     cm_engine_torque.name = f'Cruise_Engine_{i}_Torque'
-    cm_engine_torque.set_as_constraint(lower=0.0, upper=225, scaler=1e-3) # values from x57_DiTTo_manuscript paper
+    cm_engine_torque.set_as_constraint(lower=0.0, upper=225, scaler=1/225) # values from x57_DiTTo_manuscript paper
 
 
 
@@ -146,14 +145,17 @@ res4.set_as_constraint(equals=0.0)
 # res5.name = 'Mz Moment'
 # res5.set_as_constraint(equals=0.0)
 
-CL_max = 4 # Maximum CL from https://ntrs.nasa.gov/api/citations/20210011034/downloads/NASA-TM-20210011034.pdf for powered landing configuration with HL motors
+CL_residual = -CL
+CL_residual.name = 'Negative CL Minimization Residual'
+CL_residual.set_as_objective()
 
-V_stall = csdl.sqrt(2 * aircraft_component.mass_properties.mass * 9.81 / (cruise.ac_states.atmospheric_states.density * aircraft_component.comps['Wing'].parameters.S_ref * CL_max))
+# CL_max = 2.58 for unpowered flight and 4 for powered landing from https://ntrs.nasa.gov/api/citations/20210011034/downloads/NASA-TM-20210011034.pdf
 
 
-V_stall_residual = -V_stall * 1e-2
-V_stall_residual.name = 'Negative V_stall Minimization Residual'
-V_stall_residual.set_as_objective()
+
+# V_stall_residual = V_stall * 1e-2
+# V_stall_residual.name = 'V_stall Minimization Residual'
+# V_stall_residual.set_as_objective()
 
 
 
@@ -163,7 +165,7 @@ V_stall_residual.set_as_objective()
 sim = csdl.experimental.JaxSimulator(
     recorder=recorder,
     gpu=False,
-    additional_inputs=[cruise.parameters.speed],
+    additional_inputs=[cruise.parameters.speed, cruise.parameters.altitude, cruise.parameters.pitch_angle],
     additional_outputs=[cruise.ac_states.VTAS, cruise.ac_states.alpha, cruise.ac_states.atmospheric_states.density, cruise.ac_states.gamma],
     derivatives_kwargs= {
         "concatenate_ofs" : True})
@@ -171,153 +173,184 @@ sim = csdl.experimental.JaxSimulator(
 
 
 
-# speeds = [76.8909] # in m/s, this is the cruise speed from the X57 CFD data
 # any values being swept through must be in SI units because even though the condition will accept imperial units as inputs, when the 
 # simulation is run in a loop, the sim[cruise.parameters.speed] assumes that the value has already been converted to SI units.
 
 
-# speeds = np.linspace(10, 76.8909, 20) # this has to be in SI units or else the following sim evaluation will fail
-speeds = np.array([76.8909])
-Drags = []
-Lifts = []
-vtas_list = []
-CL_list = []
-CD_list = []
-Vh_list = []
-Vy_list = []
-V_stall_list = []
+# speeds = np.linspace(10, 76.8909, 1) # this has to be in SI units or else the following sim evaluation will fail
+# altitudes = np.linspace(1, 2438.4, 2) # in m, this is the altitude from the X57 CFD data
+speeds = [76.8909]
+# pitch_angles = np.linspace(-1, 5, 1) * np.pi / 180 # in radians, this is the pitch angle range for the optimization
+pitch_angles = np.array([10]) * np.pi / 180 # in radians, this is the pitch angle range for the optimization
+altitudes = [2438.4] # in m, this is the altitude from the X57 CFD data
 
-for i, speed in enumerate(speeds):
-
-
-    sim[cruise.parameters.speed] = speed
-
-
-    sim.check_optimization_derivatives()
-    t1 = time.time()
-    prob = CSDLAlphaProblem(problem_name='v_stall_trim_opt', simulator=sim)
-    optimizer = IPOPT(problem=prob)
-    optimizer.solve()
-    optimizer.print_results()
-    t2 = time.time()
-    print('Time to solve Optimization:', t2-t1)
-    recorder.execute()
-
-
-
-    vtas_list.append(cruise.ac_states.VTAS.value[0])
-    Drags.append(Drag.value[0])
-    Lifts.append(Lift.value[0])
-    CL_list.append(CL.value[0])
-    CD_list.append(CD.value[0])
-    V_h = cruise.ac_states.VTAS * csdl.cos(cruise.ac_states.gamma)
-    Vy = cruise.ac_states.VTAS * csdl.sin(cruise.ac_states.gamma)
-    Vh_list.append(V_h.value[0])  # Horizontal component of velocity
-    Vy_list.append(Vy.value[0])  # Vertical component of velocity
-    V_stall_list.append(V_stall.value[0])  # Stall speed
-
-
-    dv_save_dict = {}
-    constraints_save_dict = {}
-    obj_save_dict = {}
-
-    dv_dict = recorder.design_variables
-    constraint_dict = recorder.constraints
-    obj_dict = recorder.objectives
-
-    for dv in dv_dict.keys():
-        dv_save_dict[dv.name] = dv.value
-        # print("Design Variable", dv.name, dv.value)
-
-    for c in constraint_dict.keys():
-        constraints_save_dict[c.name] = c.value
-        # print("Constraint", c.name, c.value)
-
-    for obj in obj_dict.keys():
-        obj_save_dict[obj.name] = obj.value
-        # print("Objective", obj.name, obj.value)
-
-    print("=====Aircraft States=====")
-    print("Aircraft Conditions")
-    print(cruise)
-    print("Throttle")
-    for engine in x57_controls.engines:
-        print(engine.throttle.value)
-    print("High Lift Engine Torque (N*m)")
-    for engine in x57_controls.hl_engines:  
-        print(hl_engine_torque.value)  
-    print("Cruise Engine Torque (N*m)")
-    for engine in x57_controls.cm_engines:
-        print(cm_engine_torque.value)
-    print("Elevator Deflection (deg)")
-    print(x57_controls.pitch_control['Elevator'].deflection.value * 180 / np.pi)
-    print("Rudder Deflection (deg)")
-    print(x57_controls.yaw_control['Rudder'].deflection.value * 180 / np.pi)
-    print("Left Aileron Deflection (deg)")
-    print(x57_controls.roll_control['Left Aileron'].deflection.value * 180 / np.pi)
-    print("Right Aileron Deflection (deg)")
-    print(x57_controls.roll_control['Right Aileron'].deflection.value * 180 / np.pi)
-    print("Left Flap Deflection (deg)")
-    print(x57_controls.high_lift_control['Left Flap'].deflection.value * 180 / np.pi)
-    print("Right Flap Deflection (deg)")
-    print(x57_controls.high_lift_control['Right Flap'].deflection.value * 180 / np.pi)
-    print("Trim Tab Deflection (deg)")
-    print(x57_controls.pitch_control['Trim Tab'].deflection.value * 180 / np.pi)
-    print("Pitch Angle (deg)")
-    print(cruise.parameters.pitch_angle.value * 180 / np.pi)
-    print('Angle of Attack (deg)')
-    print(cruise.ac_states.alpha.value * 180 / np.pi)
-    print("V_stall (m/s)")
-    print(V_stall.value[0])
-    print('Negative V_stall Residual')
-    print(V_stall_residual.value)
-    print('CL')
-    print(CL.value)
-    print('CD')
-    print(CD.value)
-    print('V_h (m/s)')
-    print(V_h.value)
-    print('Vy (m/s)')
-    print(Vy.value)
-
-
-
-
-    print("TF[0]", tf[0].value)
-    print("TF[1]", tf[1].value)
-    print("TF[2]", tf[2].value)
-    print("TM[0]", tm[0].value)
-    print("TM[1]", tm[1].value)
-    print("TM[2]", tm[2].value)
-
-
-
-# Create a dictionary with your results lists
-results_dict = {
-    'VTAS': vtas_list,
-    'Drag': Drags,
-    'Lift': Lifts,
-    'CL': CL_list,
-    'CD': CD_list,
-    'V_h': Vh_list,
-    'Vy': Vy_list,
-
+results = {
+    'VTAS': [],
+    'Altitude': [],
+    'Drag': [],
+    'Lift': [],
+    'CL': [],
+    'CD': [],
+    'V_h': [],
+    'Vy': [],
+    'V_stall': [],
 }
+
+for j, speed in enumerate(speeds):
+
+    for i, alt in enumerate(altitudes):
+
+        for k, alpha in enumerate(pitch_angles):
+            
+            sim[cruise.parameters.pitch_angle] = alpha
+            sim[cruise.parameters.altitude] = alt
+            sim[cruise.parameters.speed] = speed
+
+
+            sim.check_optimization_derivatives()
+            t1 = time.time()
+            prob = CSDLAlphaProblem(problem_name='v_stall_trim_opt', simulator=sim)
+            optimizer = IPOPT(problem=prob)
+            optimizer.solve()
+            optimizer.print_results()
+            t2 = time.time()
+            print('Time to solve Optimization:', t2-t1)
+            recorder.execute()
+
+
+
+
+            V_h = cruise.ac_states.VTAS * csdl.cos(cruise.ac_states.gamma)
+            Vy = cruise.ac_states.VTAS * csdl.sin(cruise.ac_states.gamma)
+
+
+
+            results['VTAS'].append(cruise.ac_states.VTAS.value[0])
+            results['Altitude'].append(cruise.parameters.altitude.value[0])
+            results['Drag'].append(Drag.value[0])
+            results['Lift'].append(Lift.value[0])
+            results['CL'].append(CL.value[0])
+            results['CD'].append(CD.value[0])
+            results['V_h'].append(V_h.value[0])
+            results['Vy'].append(Vy.value[0])
+
+
+
+            dv_save_dict = {}
+            constraints_save_dict = {}
+            obj_save_dict = {}
+
+            dv_dict = recorder.design_variables
+            constraint_dict = recorder.constraints
+            obj_dict = recorder.objectives
+
+            for dv in dv_dict.keys():
+                dv_save_dict[dv.name] = dv.value
+                # print("Design Variable", dv.name, dv.value)
+
+            for c in constraint_dict.keys():
+                constraints_save_dict[c.name] = c.value
+                # print("Constraint", c.name, c.value)
+
+            for obj in obj_dict.keys():
+                obj_save_dict[obj.name] = obj.value
+                # print("Objective", obj.name, obj.value)
+
+            print("=====Aircraft States=====")
+            print("Aircraft Conditions")
+            print(cruise)
+            print("Throttle")
+            for engine in x57_controls.engines:
+                print(engine.throttle.value)
+            print("High Lift Engine Torque (N*m)")
+            for engine in x57_controls.hl_engines:  
+                print(hl_engine_torque.value)  
+            print("Cruise Engine Torque (N*m)")
+            for engine in x57_controls.cm_engines:
+                print(cm_engine_torque.value)
+            print("Elevator Deflection (deg)")
+            print(x57_controls.pitch_control['Elevator'].deflection.value * 180 / np.pi)
+            print("Rudder Deflection (deg)")
+            print(x57_controls.yaw_control['Rudder'].deflection.value * 180 / np.pi)
+            print("Left Aileron Deflection (deg)")
+            print(x57_controls.roll_control['Left Aileron'].deflection.value * 180 / np.pi)
+            print("Right Aileron Deflection (deg)")
+            print(x57_controls.roll_control['Right Aileron'].deflection.value * 180 / np.pi)
+            print("Left Flap Deflection (deg)")
+            print(x57_controls.high_lift_control['Left Flap'].deflection.value * 180 / np.pi)
+            print("Right Flap Deflection (deg)")
+            print(x57_controls.high_lift_control['Right Flap'].deflection.value * 180 / np.pi)
+            print("Trim Tab Deflection (deg)")
+            print(x57_controls.pitch_control['Trim Tab'].deflection.value * 180 / np.pi)
+            print("Pitch Angle (deg)")
+            print(cruise.parameters.pitch_angle.value * 180 / np.pi)
+            print('Angle of Attack (deg)')
+            print(cruise.ac_states.alpha.value * 180 / np.pi)
+            # print('Negative CL Residual')
+            # print(CL_residual.value)
+            print('CL')
+            print(CL.value)
+            print('CD')
+            print(CD.value)
+            print('V_h (m/s)')
+            print(V_h.value)
+            print('Vy (m/s)')
+            print(Vy.value)
+
+
+
+
+            print("TF[0]", tf[0].value)
+            print("TF[1]", tf[1].value)
+            print("TF[2]", tf[2].value)
+            print("TM[0]", tm[0].value)
+            print("TM[1]", tm[1].value)
+            print("TM[2]", tm[2].value)
+        
+        CL_max = csdl.maximum(CL.value[0])
+        print("CL_max")
+        print(CL_max.value[0])
+        V_stall = csdl.sqrt(2 * aircraft_component.mass_properties.mass * 9.81 / (cruise.ac_states.atmospheric_states.density * aircraft_component.comps['Wing'].parameters.S_ref * CL_max))
+        print("V_stall (m/s)")
+        print(V_stall.value[0])
+        results['V_stall'].append(V_stall.value[0])
+
+
+
 
 
 
 
 # Convert the dictionary to a DataFrame
-results_df = pd.DataFrame(results_dict)
+results_df = pd.DataFrame(results)
 
 # Save the DataFrame to a CSV file
 results_df.to_csv('v_stall_trim_opt.csv', index=False)
 
 
-
-
+from mpl_toolkits.mplot3d import Axes3D  # for 3D plotting
 import matplotlib.pyplot as plt
 
+n_alt = len(altitudes)
+n_speed = len(speeds)
+VTAS_grid     = np.array(results['VTAS']).reshape(n_alt, n_speed)
+Altitude_grid = np.array(results['Altitude']).reshape(n_alt, n_speed)
+Vstall_grid   = np.array(results['V_stall']).reshape(n_alt, n_speed)
+
+fig = plt.figure(figsize=(10,8))
+ax = fig.add_subplot(111, projection='3d')
+
+for i in range(n_alt):
+    ax.plot(VTAS_grid[i, :], Altitude_grid[i, :], Vstall_grid[i, :],
+            marker='o',
+            label=f'V_stall = {Vstall_grid[i,0]:.1f} m/s')
+
+ax.set_xlabel("VTAS (m/s)")
+ax.set_ylabel("Altitude (m)")
+ax.set_zlabel("V_stall (m/s)")
+plt.title("V_stall vs VTAS Curves at Various Altitudes")
+plt.legend()
+plt.show()
 
 
 
