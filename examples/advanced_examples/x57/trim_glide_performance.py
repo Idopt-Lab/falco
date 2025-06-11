@@ -52,19 +52,9 @@ cruise = aircraft_conditions.RateofClimb(
 
 
 x57_controls.elevator.deflection.set_as_design_variable(lower=np.deg2rad(x57_controls.elevator.lower_bound), upper=np.deg2rad(x57_controls.elevator.upper_bound),scaler=1e2)
-x57_controls.rudder.deflection.set_as_design_variable(lower=np.deg2rad(x57_controls.rudder.lower_bound), upper=np.deg2rad(x57_controls.rudder.upper_bound),scaler=1e2)
-x57_controls.aileron_left.deflection.set_as_design_variable(lower=np.deg2rad(x57_controls.aileron_left.lower_bound), upper=np.deg2rad(x57_controls.aileron_left.upper_bound),scaler=1e2)
-x57_controls.aileron_right.deflection.set_as_design_variable(lower=np.deg2rad(x57_controls.aileron_right.lower_bound), upper=np.deg2rad(x57_controls.aileron_right.upper_bound),scaler=1e2)
-x57_controls.flap_left.deflection.set_as_design_variable(lower=np.deg2rad(x57_controls.flap_left.lower_bound), upper=np.deg2rad(x57_controls.flap_left.upper_bound),scaler=1e2)
-x57_controls.flap_right.deflection.set_as_design_variable(lower=np.deg2rad(x57_controls.flap_right.lower_bound), upper=np.deg2rad(x57_controls.flap_right.upper_bound),scaler=1e2)
-x57_controls.trim_tab.deflection.set_as_design_variable(lower=np.deg2rad(x57_controls.trim_tab.lower_bound), upper=np.deg2rad(x57_controls.trim_tab.upper_bound),scaler=1e2)
 cruise.parameters.pitch_angle.set_as_design_variable(lower=np.deg2rad(-5), upper=np.deg2rad(10), scaler=1e2)
 cruise.parameters.flight_path_angle.set_as_design_variable(lower=np.deg2rad(-10), upper=np.deg2rad(10), scaler=1e2)
 
-
-aileron_diff = x57_controls.aileron_right.deflection - x57_controls.aileron_left.deflection
-aileron_diff.name = 'Aileron Diff'
-aileron_diff.set_as_constraint(equals=0)  # setting all ailerons to the same deflection, because of symmetry
 
 
 for left_engine, right_engine in zip(x57_controls.hl_engines_left, x57_controls.hl_engines_right):
@@ -145,17 +135,17 @@ res2 = tf[2] * Lift_scaling
 res2.name = 'Fz Force'
 res2.set_as_constraint(equals=0.0)
 
-res3 = tm[0] * Moment_scaling
-res3.name = 'Mx Moment'
-res3.set_as_constraint(equals=0.0)
+# res3 = tm[0] * Moment_scaling
+# res3.name = 'Mx Moment'
+# res3.set_as_constraint(equals=0.0)
 
 res4 = tm[1] * Moment_scaling
 res4.name = 'My Moment'
 res4.set_as_constraint(equals=0.0)
 
-res5 = tm[2] * Moment_scaling
-res5.name = 'Mz Moment'
-res5.set_as_constraint(equals=0.0)
+# res5 = tm[2] * Moment_scaling
+# res5.name = 'Mz Moment'
+# res5.set_as_constraint(equals=0.0)
 
 max_LD = 1 / (csdl.tan((cruise.ac_states.gamma))) # L/D ratio is 1/tan(gamma) where gamma is the flight path angle
 negative_max_LD = -max_LD * (1e-2) # scaling to make it a minimization problem
@@ -273,7 +263,7 @@ for i, speed in enumerate(speeds):
     print("Left Aileron Deflection (deg)")
     print(x57_controls.roll_control['Left Aileron'].deflection.value * 180 / np.pi)
     print("Right Aileron Deflection (deg)")
-    print(x57_controls.roll_control['Rigt Aileron'].deflection.value * 180 / np.pi)
+    print(x57_controls.roll_control['Right Aileron'].deflection.value * 180 / np.pi)
     print("Left Flap Deflection (deg)")
     print(x57_controls.high_lift_control['Left Flap'].deflection.value * 180 / np.pi)
     print("Right Flap Deflection (deg)")
