@@ -57,8 +57,14 @@ plt.show()
 
 plt.figure()
 # Plot CL/CD Ratio vs VTAS
-plt.plot(results_df1['VTAS'], results_df1['CL']/results_df1['CD'], marker='o', linestyle='-', label=r'$\frac{C_{L}}{C_{D}}$')
-plt.plot(results_df1['VTAS'], (results_df1['CL']**(3/2))/results_df1['CD'], marker='s', linestyle='--', label=r'$\frac{C_{L}^\frac{3}{2}}{C_{D}}$')
+ld_curve1 = results_df1['CL'] / results_df1['CD']
+ld_curve2 = (results_df1['CL']**(3/2)) / results_df1['CD']
+Vbe_x = results_df1['VTAS'].iloc[ld_curve1.idxmax()]
+Vbr_x = results_df1['VTAS'].iloc[ld_curve2.idxmax()]
+plt.plot(results_df1['VTAS'], ld_curve1, marker='o', linestyle='-', label=r'$\frac{C_{L}}{C_{D}}$')
+plt.plot(results_df1['VTAS'], ld_curve2, marker='s', linestyle='-', label=r'$\frac{C_{L}^\frac{3}{2}}{C_{D}}$')
+plt.axvline(x=Vbe_x, color='red', linestyle='--', label='Best Endurance VTAS')
+plt.axvline(x=Vbr_x, color='green', linestyle='--', label='Best Range VTAS')
 plt.xlabel('VTAS (m/s)')
 plt.ylabel('CL/CD Ratio')
 plt.title('CL/CD Ratio vs VTAS')
