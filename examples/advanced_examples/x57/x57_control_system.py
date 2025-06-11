@@ -64,7 +64,7 @@ class X57ControlSystem(VehicleControlSystem):
 
 
         self.pitch_control = {'Elevator': self.elevator, 'Trim Tab': self.trim_tab}
-        self.roll_control = {'Left Aileron': self.aileron_left, 'Rigt Aileron': self.aileron_right}
+        self.roll_control = {'Left Aileron': self.aileron_left, 'Right Aileron': self.aileron_right}
         self.yaw_control = {'Rudder': self.rudder}
         self.throttle_control = {'Cruise Engines': self.cm_engines, 'High Lift Engines': self.hl_engines}
         self.high_lift_control = {'Left Flap': self.flap_left, 
@@ -92,7 +92,7 @@ class X57ControlSystem(VehicleControlSystem):
         self.throttle_control = tuple(engine.throttle for engine in self.engines)
         control = (
             self.roll_control['Left Aileron'].deflection,
-            self.roll_control['Rigt Aileron'].deflection,
+            self.roll_control['Right Aileron'].deflection,
             self.pitch_control['Elevator'].deflection,
             self.pitch_control['Trim Tab'].deflection,
             self.yaw_control['Rudder'].deflection) +  self.throttle_control
