@@ -39,6 +39,7 @@ x57_controls = X57ControlSystem(elevator_component=aircraft_component.comps['Ele
                                 flap_left_component=aircraft_component.comps['Wing'].comps['Left Flap'],
                                 flap_right_component=aircraft_component.comps['Wing'].comps['Right Flap'],
                                 hl_engine_count=12,cm_engine_count=2, high_lift_blower_component=hlb)
+x57_controls.update_high_lift_control(flap_flag=False, blower_flag=False)
 
 cruise = aircraft_conditions.CruiseCondition(
     fd_axis=axis_dict['fd_axis'],
@@ -51,7 +52,7 @@ cruise = aircraft_conditions.CruiseCondition(
 
 
 x57_controls.elevator.deflection.set_as_design_variable(lower=np.deg2rad(x57_controls.elevator.lower_bound), upper=np.deg2rad(x57_controls.elevator.upper_bound),scaler=1e2)
-cruise.parameters.pitch_angle.set_as_design_variable(lower=np.deg2rad(-5), upper=np.deg2rad(10), scaler=1e2)
+cruise.parameters.pitch_angle.set_as_design_variable(lower=np.deg2rad(-20), upper=np.deg2rad(20), scaler=1e2)
 
 
 for left_engine, right_engine in zip(x57_controls.hl_engines_left, x57_controls.hl_engines_right):
@@ -63,8 +64,8 @@ for left_engine, right_engine in zip(x57_controls.hl_engines_left, x57_controls.
 
 
 for left_engine, right_engine in zip(x57_controls.cm_engines_left, x57_controls.cm_engines_right):
-    left_engine.throttle.set_as_design_variable(lower=0.7, upper=1.0)
-    right_engine.throttle.set_as_design_variable(lower=0.7, upper=1.0)
+    left_engine.throttle.set_as_design_variable(lower=0.0, upper=1.0)
+    right_engine.throttle.set_as_design_variable(lower=0.0, upper=1.0)
     cm_throttle_diff = (right_engine.throttle - left_engine.throttle) # setting all engines to the same throttle setting, because of symmetry
     cm_throttle_diff.name = f'CM throttle Diff{left_engine.throttle.name} - {right_engine.throttle.name}'
     cm_throttle_diff.set_as_constraint(equals=0)  
@@ -107,15 +108,16 @@ for i, cruise_motor in enumerate(cruise_motors):
 
 x57_controls.update_controls(x57_controls.u)
 
-x57_controls.update_high_lift_control(flap_flag=False, blower_flag=False)
-
 tf, tm = aircraft_component.compute_total_loads(fd_state=cruise.ac_states,controls=x57_controls)
 
 
 Drag =  -tf[0]
 ThrustR = tf[0]
 Lift = -tf[2]
-PowerR = ThrustR * cruise.ac_states.VTAS
+# PowerR = Drag * cruise.ac_states.VTAS
+
+DragPR= - x57_aerodynamics.get_FM_localAxis(states=cruise.ac_states, controls=x57_controls, axis=axis_dict['fd_axis'])['loads'].F.vector[0]
+PowerR = DragPR * cruise.ac_states.VTAS
 
 Lift_scaling = 1 / (aircraft_component.mass_properties.mass * 9.81)
 Drag_scaling = Lift_scaling * 10
