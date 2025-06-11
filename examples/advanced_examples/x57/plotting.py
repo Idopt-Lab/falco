@@ -67,20 +67,20 @@ plt.legend()
 plt.show()
 
 
-# csv_file4 = 'alpha_vs_CL_WITHOUT.csv'
-# results_df4 = pd.read_csv(csv_file4)
-# csv_file5 = 'alpha_vs_CL_WITH.csv'
-# results_df5 = pd.read_csv(csv_file5)
+csv_file4 = 'alpha_vs_CL_WITHOUT.csv'
+results_df4 = pd.read_csv(csv_file4)
+csv_file5 = 'alpha_vs_CL_WITH.csv'
+results_df5 = pd.read_csv(csv_file5)
 
-# plt.figure()
-# plt.plot(results_df4['Alpha (degrees)'], results_df4['CL'], marker='o', linestyle='-', label='Without Blowers')
-# plt.plot(results_df5['Alpha (degrees)'], results_df5['CL'], marker='s', linestyle='--', label='With Blowers')
-# plt.xlabel('Angle of Attack (degrees)')
-# plt.ylabel('Lift Coefficient (CL)')
-# plt.title('Lift Coefficient vs Angle of Attack')
-# plt.grid(True)
-# plt.legend()
-# plt.show()
+plt.figure()
+plt.plot(results_df4['Alpha'] * 180/np.pi, results_df4['CL'], marker='o', linestyle='-', label='Without Blowers')
+plt.plot(results_df5['Alpha'] * 180/np.pi, results_df5['CL'], marker='s', linestyle='--', label='With Blowers')
+plt.xlabel('Angle of Attack (degrees)')
+plt.ylabel('Lift Coefficient (CL)')
+plt.title('Lift Coefficient vs Angle of Attack')
+plt.grid(True)
+plt.legend()
+plt.show()
 
 
 
