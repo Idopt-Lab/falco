@@ -808,14 +808,14 @@ class X57Propulsion(Loads):
             torque = cq*(density * (omega)**2 * ((self.radius*2)**5)) #  Nm
 
 
-        shaft_power = (torque * (omega) * 2 * np.pi) # Watts 
-
         if np.isnan(ct.value) or np.isnan(cp.value):
             eta = csdl.Variable(shape=(1,), value=0.)
         else:
             eta = J * (ct / cp)  # Efficiency of the propeller
 
-        power_avail = shaft_power * eta  # Power available for the propulsion system
+        power_avail = (torque * (omega) * 2 * np.pi)  # Power available for the propulsion system
+
+        shaft_power = power_avail/eta
         return {
             'torque': torque,
             'cq': cq,
