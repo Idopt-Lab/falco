@@ -41,18 +41,21 @@ x57_controls = X57ControlSystem(elevator_component=aircraft_component.comps['Ele
                                 hl_engine_count=12,cm_engine_count=2, high_lift_blower_component=hlb)
 x57_controls.update_high_lift_control(flap_flag=False, blower_flag=False)
 
-cruise = aircraft_conditions.CruiseCondition(
+cruise = aircraft_conditions.RateofClimb(
     fd_axis=axis_dict['fd_axis'],
     controls=x57_controls,
     altitude=Q_(2438.4, 'm'),
     range=Q_(160, 'km'),
     speed=Q_(76.8909, 'm/s'),  # Cruise speed from X57 CFD data
-    pitch_angle=Q_(1, 'deg'))
+    pitch_angle=Q_(1, 'deg'),
+    flight_path_angle= Q_(0.5, 'deg'))
 
 
 
 x57_controls.elevator.deflection.set_as_design_variable(lower=np.deg2rad(x57_controls.elevator.lower_bound), upper=np.deg2rad(x57_controls.elevator.upper_bound),scaler=1e2)
 cruise.parameters.pitch_angle.set_as_design_variable(lower=np.deg2rad(-20), upper=np.deg2rad(20), scaler=1e2)
+cruise.parameters.flight_path_angle.set_as_design_variable(lower=np.deg2rad(-20), upper=np.deg2rad(20), scaler=1e2)
+
 
 
 for left_engine, right_engine in zip(x57_controls.hl_engines_left, x57_controls.hl_engines_right):
@@ -60,12 +63,12 @@ for left_engine, right_engine in zip(x57_controls.hl_engines_left, x57_controls.
     right_engine.throttle.set_as_design_variable(lower=0.0, upper=1e-6)
     hl_throt_diff = (right_engine.throttle - left_engine.throttle) # setting all engines to the same throttle setting, because of symmetry
     hl_throt_diff.name = f'HL throttle Diff{left_engine.throttle.name} - {right_engine.throttle.name}'
-    # hl_throt_diff.set_as_constraint(equals=0)  
+    hl_throt_diff.set_as_constraint(equals=0)  
 
 
 for left_engine, right_engine in zip(x57_controls.cm_engines_left, x57_controls.cm_engines_right):
-    left_engine.throttle.set_as_design_variable(lower=0.0, upper=1.0)
-    right_engine.throttle.set_as_design_variable(lower=0.0, upper=1.0)
+    left_engine.throttle.set_as_design_variable(lower=0.1, upper=1.0)
+    right_engine.throttle.set_as_design_variable(lower=0.1, upper=1.0)
     cm_throttle_diff = (right_engine.throttle - left_engine.throttle) # setting all engines to the same throttle setting, because of symmetry
     cm_throttle_diff.name = f'CM throttle Diff{left_engine.throttle.name} - {right_engine.throttle.name}'
     cm_throttle_diff.set_as_constraint(equals=0)  
@@ -92,7 +95,7 @@ for i, hl_motor in enumerate(hl_motors):
     results = hl_prop.get_torque_power(states=cruise.ac_states, controls=x57_controls)
     hl_engine_torque = results['torque']
     hl_engine_torque.name = f'HL_Engine_{i}_Torque'
-    hl_engine_torque.set_as_constraint(lower=0.0, upper=20.5, scaler=1/20.5) # values from High-Lift Propeller Operating Conditions v2 paper
+    # hl_engine_torque.set_as_constraint(lower=0.0, upper=20.5, scaler=1/20.5) # values from High-Lift Propeller Operating Conditions v2 paper
 
 
 cruise_motors = [comp for comp in aircraft_component.comps['Wing'].comps.values() if comp._name.startswith('Cruise Motor')]
@@ -104,34 +107,30 @@ for i, cruise_motor in enumerate(cruise_motors):
     results = cruise_prop.get_torque_power(states=cruise.ac_states, controls=x57_controls)
     cm_engine_torque = results['torque']
     cm_engine_torque.name = f'Cruise_Engine_{i}_Torque'
-    cm_engine_torque.set_as_constraint(lower=0.0, upper=225, scaler=1/225) # values from x57_DiTTo_manuscript paper
+    # cm_engine_torque.set_as_constraint(lower=0, upper=225, scaler=1/225) # values from x57_DiTTo_manuscript paper
 
 x57_controls.update_controls(x57_controls.u)
 
 tf, tm = aircraft_component.compute_total_loads(fd_state=cruise.ac_states,controls=x57_controls)
 
 
-Drag =  -tf[0]
-ThrustR = tf[0]
-Lift = -tf[2]
-# PowerR = Drag * cruise.ac_states.VTAS
+Drag = - x57_aerodynamics.get_FM_localAxis(states=cruise.ac_states, controls=x57_controls, axis=axis_dict['wing_axis'])['loads'].F.vector[0]
+Lift = - x57_aerodynamics.get_FM_localAxis(states=cruise.ac_states, controls=x57_controls, axis=axis_dict['wing_axis'])['loads'].F.vector[2]
 
-DragPR= - x57_aerodynamics.get_FM_localAxis(states=cruise.ac_states, controls=x57_controls, axis=axis_dict['fd_axis'])['loads'].F.vector[0]
-PowerR = DragPR * cruise.ac_states.VTAS
+PowerR = Drag * cruise.ac_states.VTAS
 
 Lift_scaling = 1 / (aircraft_component.mass_properties.mass * 9.81)
 Drag_scaling = Lift_scaling * 10
 Moment_scaling = Lift_scaling / 10
-PowerR_scaling = 1/(PowerR * 1e1) # scaling factor for power, based on the PowerR output for cruise condition
 
 
 res1 = tf[0] * Drag_scaling
 res1.name = 'Fx Force'
-res1.set_as_constraint(equals=0.0)  # setting a small value to ensure the thrust is close to zero
+res1.set_as_constraint(lower=-1e-6,upper=1e-6)  # setting a small value to ensure the thrust is close to zero
 
 res2 = tf[2] * Lift_scaling
 res2.name = 'Fz Force'
-res2.set_as_constraint(equals=0.0)
+res2.set_as_constraint(lower=-1e-6,upper=1e-6)
 
 # res3 = tm[0] * Moment_scaling
 # res3.name = 'Mx Moment'
@@ -139,16 +138,17 @@ res2.set_as_constraint(equals=0.0)
 
 res4 = tm[1] * Moment_scaling
 res4.name = 'My Moment'
-res4.set_as_constraint(equals=0.0)
+res4.set_as_constraint(lower=-1e-6,upper=1e-6)
 
 # res5 = tm[2] * Moment_scaling
 # res5.name = 'Mz Moment'
 # res5.set_as_constraint(equals=0.0)
 
 
-PowerR_residual = PowerR * PowerR_scaling
+PowerR_residual = PowerR
 PowerR_residual.name = 'Power Required Residual'
 PowerR_residual.set_as_objective()
+
 
 
 
@@ -172,8 +172,8 @@ PReqs = []
 # simulation is run in a loop, the sim[cruise.parameters.speed] assumes that the value has already been converted to SI units.
 
 
-speeds = np.linspace(10, 76.8909, 20) # this has to be in SI units or else the following sim evaluation will fail
-# speeds = [76.8909]
+speeds = np.linspace(30, 76.8909, 20) # this has to be in SI units or else the following sim evaluation will fail
+# speeds = [45]
 Drags = []
 Lifts = []
 LD_ratios = []
@@ -209,7 +209,7 @@ for i, speed in enumerate(speeds):
     Jval_list.append(Jval.value[0])
 
     vtas_list.append(cruise.ac_states.VTAS.value[0])
-    TRequireds.append(ThrustR.value[0])
+    TRequireds.append(Drag.value[0])
     PReqs.append(PowerR.value[0] * 1e-3)  # Convert to kW
     Drags.append(Drag.value[0])
     Lifts.append(Lift.value[0])
@@ -270,8 +270,8 @@ for i, speed in enumerate(speeds):
     print(cruise.ac_states.alpha.value * 180 / np.pi)
     print('Power Required (kW)')
     print(PowerR.value[0])
-    print('Power Required Residual')
-    print(PowerR_residual.value[0])
+    # print('Power Required Residual')
+    # print(PowerR_residual.value[0])
     print('CL')
     print(CL.value[0])
     print('CD')
