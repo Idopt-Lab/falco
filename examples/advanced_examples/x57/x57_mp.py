@@ -131,7 +131,7 @@ if __name__ == "__main__":
     aircraft_component.mass_properties = aircraft_component.compute_total_mass_properties()
     print(repr(aircraft_component))
 
-    for comp in aircraft_component.comps.values():
+    for comp in aircraft_component.comps['Wing'].comps.values():
         if hasattr(comp, 'mass_properties'):
             print(f"{comp._name} mass properties: {comp.mass_properties.cg_vector.vector.value}")
 

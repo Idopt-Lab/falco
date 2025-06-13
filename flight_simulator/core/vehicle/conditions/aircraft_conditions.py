@@ -471,8 +471,8 @@ class ClimbCondition(Condition):
             mach_number = V / atmos_states.speed_of_sound
             self.parameters.mach_number = mach_number
             self.parameters.speed = V
-        if time.value != 0:
-            h = abs(hf - hi)
+        if time.value == 0:
+            h = csdl.absolute(hf - hi)
             d = h / csdl.tan(gamma)
             time = ((d**2 + h**2)**0.5) / V
             self.parameters.time = time

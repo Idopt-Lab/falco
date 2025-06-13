@@ -172,7 +172,7 @@ sim = csdl.experimental.JaxSimulator(
 
 # speeds = np.linspace(10, 76.8909, 20) # this has to be in SI units or else the following sim evaluation will fail
 speeds = np.array([76.8909])
-pitch_angles = np.linspace(-30, 30, 20) * np.pi / 180  # Convert degrees to radians for angle of attack
+pitch_angles = np.linspace(-30, 30, 5) * np.pi / 180  # Convert degrees to radians for angle of attack
 Drags = []
 Lifts = []
 vtas_list = []
@@ -284,6 +284,12 @@ results_dict = {
     'CD': CD_list,
     'Alpha': alpha_list,
 }
+
+CLmax = max(CL_list)
+print(f'Maximum CL: {CLmax}')
+
+Vstall = csdl.sqrt(2 * aircraft_component.mass_properties.mass * 9.81 / (aircraft_component.comps['Wing'].parameters.S_ref * CLmax))
+
 
 # Convert the dictionary to a DataFrame
 results_df = pd.DataFrame(results_dict)

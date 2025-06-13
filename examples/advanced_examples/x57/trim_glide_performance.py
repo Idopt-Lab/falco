@@ -39,6 +39,7 @@ x57_controls = X57ControlSystem(elevator_component=aircraft_component.comps['Ele
                                 flap_left_component=aircraft_component.comps['Wing'].comps['Left Flap'],
                                 flap_right_component=aircraft_component.comps['Wing'].comps['Right Flap'],
                                 hl_engine_count=12,cm_engine_count=2, high_lift_blower_component=hlb)
+x57_controls.update_high_lift_control(flap_flag=False, blower_flag=False)
 
 cruise = aircraft_conditions.RateofClimb(
     fd_axis=axis_dict['fd_axis'],
@@ -52,8 +53,8 @@ cruise = aircraft_conditions.RateofClimb(
 
 
 x57_controls.elevator.deflection.set_as_design_variable(lower=np.deg2rad(x57_controls.elevator.lower_bound), upper=np.deg2rad(x57_controls.elevator.upper_bound),scaler=1e2)
-cruise.parameters.pitch_angle.set_as_design_variable(lower=np.deg2rad(-5), upper=np.deg2rad(10), scaler=1e2)
-cruise.parameters.flight_path_angle.set_as_design_variable(lower=np.deg2rad(-10), upper=np.deg2rad(10), scaler=1e2)
+cruise.parameters.pitch_angle.set_as_design_variable(lower=np.deg2rad(-20), upper=np.deg2rad(10), scaler=1e2)
+cruise.parameters.flight_path_angle.set_as_design_variable(lower=np.deg2rad(-30), upper=np.deg2rad(30), scaler=1e2)
 
 
 
@@ -95,7 +96,7 @@ for i, hl_motor in enumerate(hl_motors):
     results = hl_prop.get_torque_power(states=cruise.ac_states, controls=x57_controls)
     hl_engine_torque = results['torque']
     hl_engine_torque.name = f'HL_Engine_{i}_Torque'
-    hl_engine_torque.set_as_constraint(equals=0.0)  # setting the torque to 0 for the glide condition
+    hl_engine_torque.set_as_constraint(upper=1e-6)  # setting the torque to 0 for the glide condition
 
 cruise_motors = [comp for comp in aircraft_component.comps['Wing'].comps.values() if comp._name.startswith('Cruise Motor')]
 
@@ -106,21 +107,21 @@ for i, cruise_motor in enumerate(cruise_motors):
     results = cruise_prop.get_torque_power(states=cruise.ac_states, controls=x57_controls)
     cm_engine_torque = results['torque']
     cm_engine_torque.name = f'Cruise_Engine_{i}_Torque'
-    cm_engine_torque.set_as_constraint(upper=0.0)  # setting the torque to 0 for the glide condition 
+    cm_engine_torque.set_as_constraint(upper=1e-6)  # setting the torque to 0 for the glide condition 
 
 
-x57_controls.update_high_lift_control(flap_flag=False, blower_flag=False)
 
 tf, tm = aircraft_component.compute_total_loads(fd_state=cruise.ac_states,controls=x57_controls)
 
 cruise_r, cruise_x = cruise.evaluate_eom(component=aircraft_component, forces=tf, moments=tm)
 h_dot = cruise_r[11]
+h_dot.name = 'dzdt'
 
 
 
-Drag =  -tf[0]
-ThrustR = tf[0]
-Lift = -tf[2]
+Drag = - x57_aerodynamics.get_FM_localAxis(states=cruise.ac_states, controls=x57_controls, axis=axis_dict['fd_axis'])['loads'].F.vector[0]
+Lift = - x57_aerodynamics.get_FM_localAxis(states=cruise.ac_states, controls=x57_controls, axis=axis_dict['fd_axis'])['loads'].F.vector[2]
+ThrustR = Drag
 
 Lift_scaling = 1 / (aircraft_component.mass_properties.mass * 9.81)
 Drag_scaling = Lift_scaling * 10
@@ -129,11 +130,11 @@ Moment_scaling = Lift_scaling / 10
 
 res1 = tf[0] * Drag_scaling
 res1.name = 'Fx Force'
-res1.set_as_constraint(equals=0.0)  # setting a small value to ensure the thrust is close to zero
+res1.set_as_constraint(lower=-1e-6, upper=1e-6)  # setting a small value to ensure the thrust is close to zero
 
 res2 = tf[2] * Lift_scaling
 res2.name = 'Fz Force'
-res2.set_as_constraint(equals=0.0)
+res2.set_as_constraint(lower=-1e-6, upper=1e-6)
 
 # res3 = tm[0] * Moment_scaling
 # res3.name = 'Mx Moment'
@@ -141,14 +142,14 @@ res2.set_as_constraint(equals=0.0)
 
 res4 = tm[1] * Moment_scaling
 res4.name = 'My Moment'
-res4.set_as_constraint(equals=0.0)
+res4.set_as_constraint(lower=-1e-6, upper=1e-6)
 
 # res5 = tm[2] * Moment_scaling
 # res5.name = 'Mz Moment'
 # res5.set_as_constraint(equals=0.0)
 
-max_LD = 1 / (csdl.tan((cruise.ac_states.gamma))) # L/D ratio is 1/tan(gamma) where gamma is the flight path angle
-negative_max_LD = -max_LD * (1e-2) # scaling to make it a minimization problem
+max_LD = csdl.absolute(1 / (csdl.tan((cruise.ac_states.gamma)))) # L/D ratio is 1/tan(gamma) where gamma is the flight path angle
+negative_max_LD = -max_LD  # scaling to make it a minimization problem
 negative_max_LD.name = 'Negative Max L/D Ratio'
 negative_max_LD.set_as_objective()
 
@@ -161,7 +162,7 @@ sim = csdl.experimental.JaxSimulator(
     recorder=recorder,
     gpu=False,
     additional_inputs=[cruise.parameters.speed],
-    additional_outputs=[cruise.ac_states.VTAS],
+    additional_outputs=[cruise.ac_states.VTAS, h_dot],
     derivatives_kwargs= {
         "concatenate_ofs" : True})
 
@@ -177,26 +178,27 @@ PReqs = []
 
 
 speeds = np.linspace(10, 76.8909, 20) # this has to be in SI units or else the following sim evaluation will fail
-# speeds = [76.8909]
+# speeds = [45]
 Drags = []
 Lifts = []
 LD_ratios = []
 vtas_list = []
 eta_list = []
 Jval_list = []
-min_sinkRate_list = []
 sinkRate_list = []
 torque_list = []
 CL_list = []
 CD_list = []
+dSinkdVTAS_list = []
 
 for i, speed in enumerate(speeds):
 
 
     sim[cruise.parameters.speed] = speed
 
-
     sim.check_optimization_derivatives()
+    derivatives = sim.compute_totals()
+    dsinkdVTAS = derivatives[h_dot, cruise.parameters.speed]
     t1 = time.time()
     prob = CSDLAlphaProblem(problem_name='trim_glide_perf_opt', simulator=sim)
     optimizer = IPOPT(problem=prob)
@@ -219,10 +221,10 @@ for i, speed in enumerate(speeds):
     Drags.append(Drag.value[0])
     Lifts.append(Lift.value[0])
     LD_ratios.append(Lift.value[0] / Drag.value[0])
-    min_sinkRate_list.append(cruise.ac_states.VTAS.value[0]/max_LD.value[0]) 
     sinkRate_list.append(h_dot.value[0])
     CL_list.append(CL.value[0])
     CD_list.append(CD.value[0])
+    dSinkdVTAS_list.append(dsinkdVTAS)
 
     dv_save_dict = {}
     constraints_save_dict = {}
@@ -298,9 +300,9 @@ results_dict = {
     'Propeller Efficiency': eta_list,
     'J Value': Jval_list,
     'Sink Rate': sinkRate_list,
-    'Minimum Sink Rate': min_sinkRate_list,
     'CL': CL_list,
     'CD': CD_list,
+    'dSink/dVTAS': dSinkdVTAS_list,
 }
 
 # Convert the dictionary to a DataFrame
@@ -322,6 +324,7 @@ plt.ylabel('Propeller Efficiency')
 plt.title('Propeller Efficiency vs. Advaced Ratio (J)')
 plt.grid(True)
 plt.legend()
+plt.show()
 
 
 
@@ -332,6 +335,7 @@ plt.ylabel('Thrust (N)')
 plt.title('Thrust vs. VTAS')
 plt.grid(True)
 plt.legend()
+plt.show()
 
 plt.figure()
 plt.plot(vtas_list, LD_ratios, marker='s', linestyle='--', label='L/D Ratio')
@@ -340,6 +344,7 @@ plt.ylabel('L/D Ratio')
 plt.title('L/D vs. VTAS')
 plt.grid(True)
 plt.legend()
+plt.show()
 
 plt.figure()
 plt.plot(vtas_list, sinkRate_list, marker='s', linestyle='--', label='Sink Rate')

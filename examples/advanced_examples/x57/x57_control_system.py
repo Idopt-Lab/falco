@@ -26,7 +26,13 @@ class OnOffControlSurface:
     def upper_bound(self):
         return self._ub
 
+    @property
+    def min_value(self):
+        return self.lower_bound
 
+    @property
+    def max_value(self):
+        return self.upper_bound
 
         
 

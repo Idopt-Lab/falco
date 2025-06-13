@@ -46,7 +46,7 @@ cruise = aircraft_conditions.RateofClimb(
     controls=x57_controls,
     altitude=Q_(2438.4, 'm'),
     range=Q_(160, 'km'),
-    speed=Q_(76.8909, 'm/s'),  # Cruise speed from X57 CFD data
+    speed=Q_(76.8909, 'm/s'),  # cruise speed from the X57 CFD data
     pitch_angle=Q_(1, 'deg'),
     flight_path_angle= Q_(0.5, 'deg'))
 
@@ -157,7 +157,7 @@ sim = csdl.experimental.JaxSimulator(
     recorder=recorder,
     gpu=False,
     additional_inputs=[cruise.parameters.speed],
-    additional_outputs=[cruise.ac_states.VTAS, PowerR],
+    additional_outputs=[cruise.ac_states.VTAS, cruise.parameters.mach_number],
     derivatives_kwargs= {
         "concatenate_ofs" : True})
 
@@ -174,6 +174,8 @@ PReqs = []
 
 speeds = np.linspace(30, 76.8909, 20) # this has to be in SI units or else the following sim evaluation will fail
 # speeds = [45]
+# machs = np.linspace(0.15, 0.23, 20)
+machs=[0.1]
 Drags = []
 Lifts = []
 LD_ratios = []
@@ -182,6 +184,7 @@ eta_list = []
 Jval_list = []
 CL_list = []
 CD_list = []
+machs = []
 
 
 
@@ -216,6 +219,7 @@ for i, speed in enumerate(speeds):
     LD_ratios.append(Lift.value[0] / Drag.value[0])
     CL_list.append(CL.value[0])
     CD_list.append(CD.value[0])
+    machs.append(cruise.parameters.mach_number.value[0])
 
 
     dv_save_dict = {}
@@ -300,6 +304,7 @@ results_dict = {
     'J Value': Jval_list,
     'CL': CL_list,
     'CD': CD_list,
+    'Mach Number': machs,
 }
 
 # Convert the dictionary to a DataFrame

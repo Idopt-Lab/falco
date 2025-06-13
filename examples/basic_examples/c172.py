@@ -876,7 +876,10 @@ print("Residual Magnitude: (Net body forces and moments)")
 print(FM.value)
 print("Residual Norm")
 print(csdl.norm(FM, ord=2).value)
-
+print("Force Vector (N)")
+print(tf.value)
+print("Moment Vector (N*m)")
+print(tm.value)
 
 
 
