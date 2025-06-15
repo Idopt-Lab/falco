@@ -41,21 +41,22 @@ x57_controls = X57ControlSystem(elevator_component=aircraft_component.comps['Ele
                                 hl_engine_count=12,cm_engine_count=2, high_lift_blower_component=hlb)
 x57_controls.update_high_lift_control(flap_flag=False, blower_flag=False)
 
-cruise = aircraft_conditions.RateofClimb(
+glide = aircraft_conditions.ClimbCondition(
     fd_axis=axis_dict['fd_axis'],
     controls=x57_controls,
-    altitude=Q_(2438.4, 'm'),
-    range=Q_(160, 'km'),
-    speed=Q_(76.8909, 'm/s'),  # Cruise speed from X57 CFD data
-    pitch_angle=Q_(0.5, 'deg'),
-    flight_path_angle=Q_(2, 'deg'))
+    initial_altitude=Q_(100, 'm'),
+    final_altitude=Q_(1, 'm'),  # Altitude from X57 CFD data
+    speed=Q_(50, 'm/s'),
+    flight_path_angle=Q_(0.5, 'deg'))  # Flight path angle from X57 CFD data
 
 
-
-x57_controls.elevator.deflection.set_as_design_variable(lower=np.deg2rad(x57_controls.elevator.lower_bound), upper=np.deg2rad(x57_controls.elevator.upper_bound),scaler=1e2)
-cruise.parameters.pitch_angle.set_as_design_variable(lower=np.deg2rad(-20), upper=np.deg2rad(10), scaler=1e2)
-cruise.parameters.flight_path_angle.set_as_design_variable(lower=np.deg2rad(-30), upper=np.deg2rad(30), scaler=1e2)
-
+x57_controls.elevator.deflection.set_as_design_variable(lower=np.deg2rad(-50), upper=np.deg2rad(50),scaler=1e2)
+x57_controls.flap_left.deflection.set_as_design_variable(lower=np.deg2rad(x57_controls.flap_left.lower_bound), upper=np.deg2rad(x57_controls.flap_left.upper_bound),scaler=1e2)
+x57_controls.flap_right.deflection.set_as_design_variable(lower=np.deg2rad(x57_controls.flap_right.lower_bound), upper=np.deg2rad(x57_controls.flap_right.upper_bound),scaler=1e2)
+glide.parameters.pitch_angle.set_as_design_variable(lower=np.deg2rad(-20), upper=np.deg2rad(20),scaler=1e2) # in radians, this is the pitch angle range for the optimization
+glide.parameters.flight_path_angle.set_as_design_variable(lower=np.deg2rad(-20), upper=np.deg2rad(20),scaler=1e2) # in radians, this is the pitch angle range for the optimization
+glide.parameters.rate_of_climb.set_as_design_variable(lower=-10, upper=10, scaler=1e-2) 
+glide.parameters.climb_gradient.set_as_design_variable(lower=-10, upper=10, scaler=1e-2) 
 
 
 for left_engine, right_engine in zip(x57_controls.hl_engines_left, x57_controls.hl_engines_right):
@@ -79,7 +80,7 @@ x57_controls.update_controls(x57_controls.u)
 
 x57_aerodynamics = X57Aerodynamics(component=aircraft_component)
 aircraft_component.comps['Wing'].load_solvers.append(x57_aerodynamics)
-aero_results = x57_aerodynamics.get_FM_localAxis(states=cruise.ac_states, controls=x57_controls, axis=axis_dict['fd_axis'])
+aero_results = x57_aerodynamics.get_FM_localAxis(states=glide.ac_states, controls=x57_controls, axis=axis_dict['fd_axis'])
 CL = aero_results['CL']
 CD = aero_results['CD']
 
@@ -93,7 +94,7 @@ hl_motors = [comp for comp in aircraft_component.comps['Wing'].comps.values() if
 for i, hl_motor in enumerate(hl_motors):
     hl_prop = X57Propulsion(radius=HL_radius_x57, prop_curve=HLPropCurve(),engine_index=i,RPMmin=1500, RPMmax=5400)
     hl_motor.load_solvers.append(hl_prop)
-    results = hl_prop.get_torque_power(states=cruise.ac_states, controls=x57_controls)
+    results = hl_prop.get_torque_power(states=glide.ac_states, controls=x57_controls)
     hl_engine_torque = results['torque']
     hl_engine_torque.name = f'HL_Engine_{i}_Torque'
     hl_engine_torque.set_as_constraint(upper=1e-6)  # setting the torque to 0 for the glide condition
@@ -104,23 +105,23 @@ for i, cruise_motor in enumerate(cruise_motors):
     engine_index = len(hl_motors) + i
     cruise_prop = X57Propulsion(radius=cruise_radius_x57, prop_curve=CruisePropCurve(),engine_index=engine_index, RPMmin=1700, RPMmax=2700)
     cruise_motor.load_solvers.append(cruise_prop)
-    results = cruise_prop.get_torque_power(states=cruise.ac_states, controls=x57_controls)
+    results = cruise_prop.get_torque_power(states=glide.ac_states, controls=x57_controls)
     cm_engine_torque = results['torque']
     cm_engine_torque.name = f'Cruise_Engine_{i}_Torque'
     cm_engine_torque.set_as_constraint(upper=1e-6)  # setting the torque to 0 for the glide condition 
 
 
 
-tf, tm = aircraft_component.compute_total_loads(fd_state=cruise.ac_states,controls=x57_controls)
+tf, tm = aircraft_component.compute_total_loads(fd_state=glide.ac_states,controls=x57_controls)
 
-cruise_r, cruise_x = cruise.evaluate_eom(component=aircraft_component, forces=tf, moments=tm)
+cruise_r, cruise_x = glide.evaluate_eom(component=aircraft_component, forces=tf, moments=tm)
 h_dot = cruise_r[11]
 h_dot.name = 'dzdt'
 
 
 
-Drag = - x57_aerodynamics.get_FM_localAxis(states=cruise.ac_states, controls=x57_controls, axis=axis_dict['fd_axis'])['loads'].F.vector[0]
-Lift = - x57_aerodynamics.get_FM_localAxis(states=cruise.ac_states, controls=x57_controls, axis=axis_dict['fd_axis'])['loads'].F.vector[2]
+Drag = - x57_aerodynamics.get_FM_localAxis(states=glide.ac_states, controls=x57_controls, axis=axis_dict['fd_axis'])['loads'].F.vector[0]
+Lift = - x57_aerodynamics.get_FM_localAxis(states=glide.ac_states, controls=x57_controls, axis=axis_dict['fd_axis'])['loads'].F.vector[2]
 ThrustR = Drag
 
 Lift_scaling = 1 / (aircraft_component.mass_properties.mass * 9.81)
@@ -148,7 +149,7 @@ res4.set_as_constraint(lower=-1e-6, upper=1e-6)
 # res5.name = 'Mz Moment'
 # res5.set_as_constraint(equals=0.0)
 
-max_LD = csdl.absolute(1 / (csdl.tan((cruise.ac_states.gamma)))) # L/D ratio is 1/tan(gamma) where gamma is the flight path angle
+max_LD = csdl.absolute(1 / (csdl.tan((glide.ac_states.gamma)))) # L/D ratio is 1/tan(gamma) where gamma is the flight path angle
 negative_max_LD = -max_LD  # scaling to make it a minimization problem
 negative_max_LD.name = 'Negative Max L/D Ratio'
 negative_max_LD.set_as_objective()
@@ -161,8 +162,8 @@ negative_max_LD.set_as_objective()
 sim = csdl.experimental.JaxSimulator(
     recorder=recorder,
     gpu=False,
-    additional_inputs=[cruise.parameters.speed],
-    additional_outputs=[cruise.ac_states.VTAS, h_dot],
+    additional_inputs=[glide.parameters.speed, glide.parameters.initial_altitude],
+    additional_outputs=[glide.ac_states.VTAS, h_dot],
     derivatives_kwargs= {
         "concatenate_ofs" : True})
 
@@ -177,8 +178,10 @@ PReqs = []
 # simulation is run in a loop, the sim[cruise.parameters.speed] assumes that the value has already been converted to SI units.
 
 
-speeds = np.linspace(10, 76.8909, 20) # this has to be in SI units or else the following sim evaluation will fail
+speeds = np.array([76.8909]) # this has to be in SI units or else the following sim evaluation will fail
 # speeds = [45]
+initial_altitudes = np.array([8000]) * 0.3048
+time_duration = np.array([40])
 Drags = []
 Lifts = []
 LD_ratios = []
@@ -194,11 +197,13 @@ dSinkdVTAS_list = []
 for i, speed in enumerate(speeds):
 
 
-    sim[cruise.parameters.speed] = speed
+    sim[glide.parameters.speed] = speed
+    sim[glide.parameters.initial_altitude] = initial_altitudes
 
+    recorder.execute()
     sim.check_optimization_derivatives()
     derivatives = sim.compute_totals()
-    dsinkdVTAS = derivatives[h_dot, cruise.parameters.speed]
+    dsinkdVTAS = derivatives[h_dot, glide.parameters.speed]
     t1 = time.time()
     prob = CSDLAlphaProblem(problem_name='trim_glide_perf_opt', simulator=sim)
     optimizer = IPOPT(problem=prob)
@@ -210,13 +215,13 @@ for i, speed in enumerate(speeds):
     print("max L/D Ratio:", max_LD.value)
 
     
-    results = cruise_prop.get_torque_power(states=cruise.ac_states, controls=x57_controls)
+    results = cruise_prop.get_torque_power(states=glide.ac_states, controls=x57_controls)
     prop_efficiency = results['eta'] 
     eta_list.append(prop_efficiency.value[0])
     Jval = results['J']
     Jval_list.append(Jval.value[0])
 
-    vtas_list.append(cruise.ac_states.VTAS.value[0])
+    vtas_list.append(glide.ac_states.VTAS.value[0])
     TRequireds.append(ThrustR.value[0])
     Drags.append(Drag.value[0])
     Lifts.append(Lift.value[0])
@@ -248,7 +253,13 @@ for i, speed in enumerate(speeds):
 
     print("=====Aircraft States=====")
     print("Aircraft Conditions")
-    print(cruise)
+    print(glide)
+    print("Aircraft Mach Number")
+    print(glide.ac_states.Mach.value)
+    print("Time to Reach Final Altitude (min)")
+    print((glide.parameters.initial_altitude.value / (glide.ac_states.VTAS.value / (CL.value / CD.value)))/60)
+    print("Sink Rate (m/s)")
+    print(glide.ac_states.VTAS.value / (CL.value / CD.value))
     print("Throttle")
     for engine in x57_controls.engines:
         print(engine.throttle.value)
@@ -273,9 +284,9 @@ for i, speed in enumerate(speeds):
     print("Trim Tab Deflection (deg)")
     print(x57_controls.pitch_control['Trim Tab'].deflection.value * 180 / np.pi)
     print("Pitch Angle (deg)")
-    print(cruise.parameters.pitch_angle.value * 180 / np.pi)
+    print(glide.parameters.pitch_angle.value * 180 / np.pi)
     print('Angle of Attack (deg)')
-    print(cruise.ac_states.alpha.value * 180 / np.pi)
+    print(glide.ac_states.alpha.value * 180 / np.pi)
     print("Negative Max L/D Ratio Optimization - (minimize -L/D Ratio gives max L/D Ratio)")
     print(negative_max_LD.value)
 
