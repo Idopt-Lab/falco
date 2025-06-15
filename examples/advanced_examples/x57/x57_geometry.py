@@ -18,7 +18,7 @@ def get_geometry():
 
     geometry = import_geometry(
         file_name="x57.stp",
-        file_path= REPO_ROOT_FOLDER / 'examples'/ 'advanced_examples' / 'Joeys_X57',
+        file_path= REPO_ROOT_FOLDER / 'examples'/ 'advanced_examples' / 'x57',
         refit=False,
         scale=in2m,
         rotate_to_body_fixed_frame=True
