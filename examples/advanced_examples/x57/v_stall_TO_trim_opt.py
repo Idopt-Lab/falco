@@ -172,8 +172,8 @@ Vstall_residual.name = 'V_stall Residual'
 Vstall_residual.set_as_objective()
 
 Vx = (tf[0] / (aircraft_component.mass_properties.mass * 9.81)) * takeoff.ac_states.VTAS
-V_h = takeoff.ac_states.VTAS * csdl.cos(takeoff.ac_states.gamma)
-Vy = takeoff.ac_states.VTAS * csdl.sin(takeoff.ac_states.gamma)
+V_h = takeoff.parameters.climb_gradient
+Vy = takeoff.parameters.rate_of_climb
 
 # from Senior Design Code:
 V_mc = 1.2 * V_stall
