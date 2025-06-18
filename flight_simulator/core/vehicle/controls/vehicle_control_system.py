@@ -63,6 +63,7 @@ class VehicleControlSystem(ABC):
                  yaw_control: list,
                  throttle_control: list):
         self.pitch_control_vector = self._create_pitch_control_vector(pitch_control=pitch_control)
+        self.pitch_control = pitch_control
         self.roll_control = roll_control
         self.yaw_control = yaw_control
         self.throttle_control = throttle_control
