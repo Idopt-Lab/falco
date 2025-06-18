@@ -37,9 +37,9 @@ class X57Aerodynamics(Loads):
         self.taper_VT = component.comps['Vertical Tail'].parameters.taper_ratio
         self.cref_VT = 2 * self.Sref_VT/((1 + self.taper_VT) * self.span_VT)
 
-        self.HT_axis = component.comps['Elevator'].mass_properties.cg_vector.vector 
-        self.VT_axis = component.comps['Vertical Tail'].mass_properties.cg_vector.vector
-        self.Wing_axis = component.comps['Wing'].mass_properties.cg_vector.vector
+        self.HT_axis = component.comps['Elevator'].mass_properties.cg_vector.vector * np.array([-1, 0, -1]) # multplying by -1 for x and z so that the vector has positive values to match delphi's model
+        self.VT_axis = component.comps['Vertical Tail'].mass_properties.cg_vector.vector * np.array([-1, 0, -1]) # multplying by -1 for x and z so that the vector has positive values to match delphi's model
+        self.Wing_axis = component.comps['Wing'].mass_properties.cg_vector.vector * np.array([-1, 0, -1]) # multplying by -1 for x and z so that the vector has positive values to match delphi's model
         package_dir = os.path.dirname(os.path.abspath(__file__))
         thefile = os.path.join(package_dir, 'X57_aeroDer.mat')
         self.aeroDer = sio.loadmat(thefile)

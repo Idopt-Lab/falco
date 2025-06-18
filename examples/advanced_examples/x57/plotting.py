@@ -76,7 +76,7 @@ mask = KTAS >= 88 # VSTALL from https://ntrs.nasa.gov/api/citations/20240010807/
 plt.plot(KTAS[mask], -FPM[mask] / ((results_df3['CL'] / results_df3['CD'])[mask]),
          marker='^', linestyle='--', label='Sink Rate')
 plt.plot(x_values, y_values, marker='o', linestyle='-')
-plt.vlines(141, ymin=-1000, ymax=-868, colors='black', linestyles='--', label=r'$V_{BG}$')
+plt.vlines(130, ymin=-1000, ymax=-800, colors='black', linestyles='--', label=r'$V_{BG}$')
 plt.xlabel('KTAS (knots)')
 plt.ylim(-1000, 0)
 plt.ylabel('Sink Rate (ft/min)')
