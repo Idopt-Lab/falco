@@ -144,8 +144,9 @@ res4.set_as_constraint(lower=-1e-6, upper=1e-6)
 
 cruise_r, cruise_x = cruise.evaluate_eom(component=aircraft_component, forces=tf, moments=tm)
 h_dot = cruise_r[11]
+h_dot_scaling = 1/csdl.absolute(h_dot)
 # h_dot is the rate of climb in m/s, we want to maximize this, so we will minimize its negative value
-h_dot_residual = -csdl.absolute(h_dot)
+h_dot_residual = -csdl.absolute(h_dot) * h_dot_scaling
 h_dot_residual.name = 'Negative Rate of Climb Objective'
 h_dot_residual.set_as_objective()
 
@@ -160,217 +161,150 @@ Total_power_avail.name = 'Total Power Available'
 sim = csdl.experimental.JaxSimulator(
     recorder=recorder,
     gpu=False,
-    additional_inputs=[cruise.parameters.speed],
+    additional_inputs=[cruise.parameters.speed, cruise.parameters.altitude],
     additional_outputs=[cruise.ac_states.VTAS, Total_power_avail, Total_torque_avail],
     derivatives_kwargs= {
         "concatenate_ofs" : True})
 
 
-TRequireds = []
-TAvails = []
-PAvails = []
-PReqs = []
+
 
 # speeds = [76.8909] # in m/s, this is the cruise speed from the X57 CFD data
 # any values being swept through must be in SI units because even though the condition will accept imperial units as inputs, when the 
 # simulation is run in a loop, the sim[cruise.parameters.speed] assumes that the value has already been converted to SI units.
 
 
-speeds = np.linspace(30, 76.8909, 20) # this has to be in SI units or else the following sim evaluation will fail
-# speeds = [76.8909]
-Drags = []
-Lifts = []
-LD_ratios = []
-vtas_list = []
-eta_list = []
-Jval_list = []
-RoD_list = []
-torque_list = []
-P_excess_list = []
-
-for i, speed in enumerate(speeds):
-
-
-    sim[cruise.parameters.speed] = speed
-
-
-    sim.check_optimization_derivatives()
-    t1 = time.time()
-    prob = CSDLAlphaProblem(problem_name='trim_power_avail_max_opt', simulator=sim)
-    optimizer = IPOPT(problem=prob)
-    optimizer.solve()
-    optimizer.print_results()
-    t2 = time.time()
-    print('Time to solve Optimization:', t2-t1)
-    recorder.execute()
-
-    RoD = h_dot
-    RoD_list.append(RoD.value[0])  # Rate of Descent in m/s
-    
-    results = cruise_prop.get_torque_power(states=cruise.ac_states, controls=x57_controls)
-    prop_efficiency = results['eta'] 
-    eta_list.append(prop_efficiency.value[0])
-    Jval = results['J']
-    Jval_list.append(Jval.value[0])
-
-    vtas_list.append(cruise.ac_states.VTAS.value[0])
-    TRequireds.append(Drag.value[0])
-    PReqs.append(Drag.value[0] * cruise.ac_states.VTAS.value[0] * 1e-3)  # Convert to kW
-    PAvails.append(Total_power_avail.value[0] * 1e-3)  # Convert to kW
-    Drags.append(Drag.value[0])
-    Lifts.append(Lift.value[0])
-    LD_ratios.append(Lift.value[0] / Drag.value[0])
-    torque_list.append(Total_torque_avail.value[0])
-
-
-    dv_save_dict = {}
-    constraints_save_dict = {}
-    obj_save_dict = {}
-
-    dv_dict = recorder.design_variables
-    constraint_dict = recorder.constraints
-    obj_dict = recorder.objectives
-
-    for dv in dv_dict.keys():
-        dv_save_dict[dv.name] = dv.value
-        # print("Design Variable", dv.name, dv.value)
-
-    for c in constraint_dict.keys():
-        constraints_save_dict[c.name] = c.value
-        # print("Constraint", c.name, c.value)
-
-    for obj in obj_dict.keys():
-        obj_save_dict[obj.name] = obj.value
-        # print("Objective", obj.name, obj.value)
-
-    print("=====Aircraft States=====")
-    print("Aircraft Conditions")
-    print(cruise)
-    print("Throttle")
-    for engine in x57_controls.engines:
-        print(engine.throttle.value)
-    print("High Lift Engine Torque (N*m)")
-    for engine in x57_controls.hl_engines:  
-        print(hl_engine_torque.value)  
-    print("Cruise Engine Torque (N*m)")
-    for engine in x57_controls.cm_engines:
-        print(cm_engine_torque.value)
-    print("Total Torque Available (N*m)")
-    print(Total_torque_avail.value)
-    print("Elevator Deflection (deg)")
-    print(x57_controls.pitch_control['Elevator'].deflection.value * 180 / np.pi)
-    print("Rudder Deflection (deg)")
-    print(x57_controls.yaw_control['Rudder'].deflection.value * 180 / np.pi)
-    print("Left Aileron Deflection (deg)")
-    print(x57_controls.roll_control['Left Aileron'].deflection.value * 180 / np.pi)
-    print("Right Aileron Deflection (deg)")
-    print(x57_controls.roll_control['Right Aileron'].deflection.value * 180 / np.pi)
-    print("Left Flap Deflection (deg)")
-    print(x57_controls.high_lift_control['Left Flap'].deflection.value * 180 / np.pi)
-    print("Right Flap Deflection (deg)")
-    print(x57_controls.high_lift_control['Right Flap'].deflection.value * 180 / np.pi)
-    print("Trim Tab Deflection (deg)")
-    print(x57_controls.pitch_control['Trim Tab'].deflection.value * 180 / np.pi)
-    print("Pitch Angle (deg)")
-    print(cruise.parameters.pitch_angle.value * 180 / np.pi)
-    print('Flight Path Angle (deg)')
-    print(cruise.ac_states.gamma.value * 180 / np.pi)
-    print('Angle of Attack (deg)')
-    print(cruise.ac_states.alpha.value * 180 / np.pi)
-    print("Total Power Available (W):")
-    print(Total_power_avail.value)
-    print("Negative H Dot Minimization (which maximizes h_dot) Magnitude:")
-    print(h_dot_residual.value)
-
-
-    print("TF[0]", tf[0].value)
-    print("TF[1]", tf[1].value)
-    print("TF[2]", tf[2].value)
-    print("TM[0]", tm[0].value)
-    print("TM[1]", tm[1].value)
-    print("TM[2]", tm[2].value)
-
+altitudes = np.array([1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000]) * 0.3048 # altitudes in meters
+speeds = np.array([80, 90, 100, 110, 120, 130, 140, 150]) / 1.944 # KTAS to m/s
 
 # Create a dictionary with your results lists
 results_dict = {
-    'VTAS': vtas_list,
-    'Required Thrust': TRequireds,
-    'Required Power (kW)': PReqs,
-    'Total Torque': torque_list,
-    'Available Power (kW)': PAvails,
-    'Drag': Drags,
-    'Lift': Lifts,
-    'L/D Ratio': LD_ratios,
-    'Rate of Descent': RoD_list,
-    'Propeller Efficiency': eta_list,
-    'J Value': Jval_list,
+    'VTAS': [],
+    'Required Thrust': [],
+    'Required Power (kW)': [],
+    'Total Torque': [],
+    'Available Power (kW)': [],
+    'Drag': [],
+    'Lift': [],
+    'L/D Ratio': [],
+    'Rate of Descent': [],
+    'Propeller Efficiency': [],
+    'J Value': [],
 }
+
+for j, altitude in enumerate(altitudes):
+    for i, speed in enumerate(speeds):
+
+
+        sim[cruise.parameters.speed] = speed
+        sim[cruise.parameters.altitude] = altitude
+        recorder.execute()
+
+
+        sim.check_optimization_derivatives()
+        t1 = time.time()
+        prob = CSDLAlphaProblem(problem_name='trim_power_avail_max_opt', simulator=sim)
+        optimizer = IPOPT(problem=prob)
+        optimizer.solve()
+        optimizer.print_results()
+        t2 = time.time()
+        print('Time to solve Optimization:', t2-t1)
+        recorder.execute()
+
+        RoD = h_dot
+
+        results_dict['VTAS'].append(cruise.ac_states.VTAS.value[0])
+        results_dict['Required Thrust'].append(Drag.value[0])
+        results_dict['Required Power (kW)'].append(Drag.value[0] * cruise.ac_states.VTAS.value[0] * 1e-3)  # Convert to kW
+        results_dict['Total Torque'].append(Total_torque_avail.value[0])
+        results_dict['Available Power (kW)'].append(Total_power_avail.value[0] * 1e-3)  # Convert to kW
+        results_dict['Drag'].append(Drag.value[0])
+        results_dict['Lift'].append(Lift.value[0])
+        results_dict['L/D Ratio'].append(Lift.value[0] / Drag.value[0])
+        results_dict['Rate of Descent'].append(RoD.value[0])
+        
+        
+        results = cruise_prop.get_torque_power(states=cruise.ac_states, controls=x57_controls)
+        prop_efficiency = results['eta'] 
+        results_dict['Propeller Efficiency'].append(prop_efficiency.value[0])
+        Jval = results['J']
+        results_dict['J Value'].append(Jval.value[0])
+
+
+
+        dv_save_dict = {}
+        constraints_save_dict = {}
+        obj_save_dict = {}
+
+        dv_dict = recorder.design_variables
+        constraint_dict = recorder.constraints
+        obj_dict = recorder.objectives
+
+        for dv in dv_dict.keys():
+            dv_save_dict[dv.name] = dv.value
+            # print("Design Variable", dv.name, dv.value)
+
+        for c in constraint_dict.keys():
+            constraints_save_dict[c.name] = c.value
+            # print("Constraint", c.name, c.value)
+
+        for obj in obj_dict.keys():
+            obj_save_dict[obj.name] = obj.value
+            # print("Objective", obj.name, obj.value)
+
+        print("=====Aircraft States=====")
+        print("Aircraft Conditions")
+        print(cruise)
+        print("Throttle")
+        for engine in x57_controls.engines:
+            print(engine.throttle.value)
+        print("High Lift Engine Torque (N*m)")
+        for engine in x57_controls.hl_engines:  
+            print(hl_engine_torque.value)  
+        print("Cruise Engine Torque (N*m)")
+        for engine in x57_controls.cm_engines:
+            print(cm_engine_torque.value)
+        print("Total Torque Available (N*m)")
+        print(Total_torque_avail.value)
+        print("Elevator Deflection (deg)")
+        print(x57_controls.pitch_control['Elevator'].deflection.value * 180 / np.pi)
+        print("Rudder Deflection (deg)")
+        print(x57_controls.yaw_control['Rudder'].deflection.value * 180 / np.pi)
+        print("Left Aileron Deflection (deg)")
+        print(x57_controls.roll_control['Left Aileron'].deflection.value * 180 / np.pi)
+        print("Right Aileron Deflection (deg)")
+        print(x57_controls.roll_control['Right Aileron'].deflection.value * 180 / np.pi)
+        print("Left Flap Deflection (deg)")
+        print(x57_controls.high_lift_control['Left Flap'].deflection.value * 180 / np.pi)
+        print("Right Flap Deflection (deg)")
+        print(x57_controls.high_lift_control['Right Flap'].deflection.value * 180 / np.pi)
+        print("Trim Tab Deflection (deg)")
+        print(x57_controls.pitch_control['Trim Tab'].deflection.value * 180 / np.pi)
+        print("Pitch Angle (deg)")
+        print(cruise.parameters.pitch_angle.value * 180 / np.pi)
+        print('Flight Path Angle (deg)')
+        print(cruise.ac_states.gamma.value * 180 / np.pi)
+        print('Angle of Attack (deg)')
+        print(cruise.ac_states.alpha.value * 180 / np.pi)
+        print("Total Power Available (W):")
+        print(Total_power_avail.value)
+        print("Negative H Dot Minimization (which maximizes h_dot) Magnitude:")
+        print(h_dot_residual.value)
+
+
+        print("TF[0]", tf[0].value)
+        print("TF[1]", tf[1].value)
+        print("TF[2]", tf[2].value)
+        print("TM[0]", tm[0].value)
+        print("TM[1]", tm[1].value)
+        print("TM[2]", tm[2].value)
+
 
 # Convert the dictionary to a DataFrame
 results_df = pd.DataFrame(results_dict)
 
 # Save the DataFrame to a CSV file
 results_df.to_csv('power_avail_trim_sim_results.csv', index=False)
-
-
-import matplotlib.pyplot as plt
-
-
-plt.figure()
-plt.plot(Jval_list, eta_list, marker='s', linestyle='--', label='Propeller Efficiency')
-plt.xlabel('Advaced Ratio (J)')
-plt.ylabel('Propeller Efficiency')
-plt.title('Propeller Efficiency vs. Advaced Ratio (J)')
-plt.grid(True)
-plt.legend()
-plt.show()
-
-plt.figure()
-plt.plot(vtas_list, torque_list, marker='s', linestyle='--', label='Total Torque Required')
-plt.xlabel('True Airspeed (VTAS) [m/s]')
-plt.ylabel('Torque (N*m)')
-plt.title('Torque vs. VTAS')
-plt.grid(True)
-plt.legend()
-plt.show()
-
-
-plt.figure()
-plt.plot(vtas_list, TRequireds, marker='s', linestyle='--', label='Required Thrust')
-plt.xlabel('True Airspeed (VTAS) [m/s]')
-plt.ylabel('Thrust (N)')
-plt.title('Thrust vs. VTAS')
-plt.grid(True)
-plt.legend()
-plt.show()
-
-plt.figure()
-plt.plot(vtas_list, PAvails, marker='o', linestyle='-', label='Available Power')
-plt.xlabel('True Airspeed (VTAS) [m/s]')
-plt.ylabel('Power (kW)')
-plt.title('Power vs. VTAS')
-plt.grid(True)
-plt.legend()
-plt.show()
-
-
-plt.figure()
-plt.plot(vtas_list, LD_ratios, marker='s', linestyle='--', label='L/D Ratio')
-plt.xlabel('True Airspeed (VTAS) [m/s]')
-plt.ylabel('L/D Ratio')
-plt.title('L/D Ratio vs. VTAS')
-plt.grid(True)
-plt.legend()
-plt.show()
-
-plt.figure()
-plt.plot(vtas_list, RoD_list, marker='s', linestyle='--', label='Rate of Descent')
-plt.xlabel('True Airspeed (VTAS) [m/s]')
-plt.ylabel('Rate of Descent (m/s)')
-plt.title('Rate of Descent vs. VTAS')
-plt.grid(True)
-plt.legend()
-plt.show()
 
 
 
