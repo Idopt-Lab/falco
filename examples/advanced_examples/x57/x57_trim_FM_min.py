@@ -50,8 +50,7 @@ cruise = aircraft_conditions.CruiseCondition(
 
 
 x57_controls.elevator.deflection.set_as_design_variable(lower=np.deg2rad(-50), upper=np.deg2rad(50),scaler=1e2)
-cruise.parameters.pitch_angle.set_as_design_variable(lower=np.deg2rad(-3), upper=np.deg2rad(3), scaler=1e2)
-# cruise.parameters.speed.set_as_design_variable(lower=10, upper=76.8909, scaler=1e-2)
+cruise.parameters.pitch_angle.set_as_design_variable(lower=np.deg2rad(-20), upper=np.deg2rad(20), scaler=1e2)
 
 
 
@@ -90,7 +89,7 @@ for i, hl_motor in enumerate(hl_motors):
     hl_results = hl_prop.get_torque_power(states=cruise.ac_states, controls=x57_controls)
     hl_engine_torque = hl_results['torque']
     hl_engine_torque.name = f'HL_Engine_{i}_Torque'
-    hl_engine_torque.set_as_constraint(lower=0.0, upper=20.5, scaler=1/20.5) # values from High-Lift Propeller Operating Conditions v2 paper
+    hl_engine_torque.set_as_constraint(lower=1e-6, upper=20.5, scaler=1/20.5) # values from High-Lift Propeller Operating Conditions v2 paper
 
 
 cruise_motors = [comp for comp in aircraft_component.comps['Wing'].comps.values() if comp._name.startswith('Cruise Motor')]
@@ -102,7 +101,7 @@ for i, cruise_motor in enumerate(cruise_motors):
     cm_results = cruise_prop.get_torque_power(states=cruise.ac_states, controls=x57_controls)
     cm_engine_torque = cm_results['torque']
     cm_engine_torque.name = f'Cruise_Engine_{i}_Torque'
-    cm_engine_torque.set_as_constraint(lower=0.0, upper=225, scaler=1/225) # values from x57_DiTTo_manuscript paper
+    cm_engine_torque.set_as_constraint(lower=1e-6, upper=225, scaler=1/225) # values from x57_DiTTo_manuscript paper
 
 # x57_controls.update_controls(x57_controls.u)
 
@@ -158,7 +157,7 @@ PAvails = []
 PReqs = []
 # speeds = np.linspace(10, 76.8909, 5) # in m/s
 speeds = np.array([150]) / 1.944  # Convert knots to m/s
-altitudes = np.array([1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000])*0.3048
+altitudes = np.array([8000])*0.3048
 Drags = []
 Lifts = []
 LD_ratios = []
