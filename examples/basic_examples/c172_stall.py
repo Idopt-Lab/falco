@@ -27,17 +27,23 @@ recorder.start()
 # region Axis
 
 # region General Parameters
-# ALTITUDE FOR CURVES:
-h = 50 # Different Settings: 50 ft, 5000 ft, 8000 ft, 12000 ft
 
-# OTHER INITIAL CONDITIONS
-Velocity_cruise = 25.0
-pitch_angle = 0.0
-Throttle = 0.94
+
+# MAIN CONTROL ALTITUDE
+h = 8000
+
+
 PropRadius = 0.94902815
 Range = 10000
 M_Aircraft = 1043.2616
-delta_elevator = 0.0
+
+flight_path_angle = 0
+
+Speed = 29.3
+Throttle = 0.41659084
+delta_elevator = -0.40625722
+Pitch = 0.2379639
+# endregion
 
 # region Inertial Axis
 # I am picking the inertial axis location as the OpenVSP (0,0,0)
@@ -661,8 +667,6 @@ class C172Aerodynamics(Loads):
         n = qBar * S * b * Cn_total
 
         wind_axis = states.windAxis
-        # state.windAxis.euler_angles.theta = alpha_eff / rad2deg
-        # state.windAxis.euler_angles.psi = -states.beta
 
         self.L = L
         self.D = D
@@ -684,12 +688,9 @@ class C172Aerodynamics(Loads):
 c172_aero_curves = AeroCurve()
 
 c172_aerodynamics = C172Aerodynamics(S=None, b=None, c=None, aero_curves=c172_aero_curves)
-# state = AircraftStates(axis=fd_axis, u=Q_(Vx, 'mph'), w=Q_(Vy, 'mph'))
-# loads = c172_aerodynamics.get_FM_localAxis(states=state, controls=c172_controls)
 wing_component.load_solvers.append(c172_aerodynamics)
-# wing_component.compute_total_loads(fd_state=state, controls=c172_controls)
 
-
+pass
 # endregion
 
 # region Propulsion Model
@@ -703,12 +704,12 @@ class PropCurve(csdl.CustomExplicitOperation):
         # Obtained with JavaProp
         J_data = np.array(
             [0.0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.76, 0.77, 0.78,
-             0.79, 0.8, 0.81, 0.82, 0.83, 0.84, 0.85, 0.86, 0.87, 0.88, 0.89, 0.9, 0.91, 0.92, 0.93, 0.94])
+             0.79, 0.8, 0.81, 0.82, 0.83, 0.84, 0.85, 0.86, 0.87, 0.88, 0.89, 0.9, 0.91, 0.92, 0.93, 0.94, 2.5])
         Ct_data = np.array(
             [0.102122, 0.11097, 0.107621, 0.105191, 0.102446, 0.09947, 0.096775, 0.094706, 0.092341, 0.088912, 0.083878,
              0.076336, 0.066669, 0.056342, 0.045688, 0.034716, 0.032492, 0.030253, 0.028001, 0.025735, 0.023453,
              0.021159, 0.018852, 0.016529, 0.014194, 0.011843, 0.009479, 0.0071, 0.004686, 0.002278, -0.0002, -0.002638,
-             -0.005145, -0.007641, -0.010188])
+             -0.005145, -0.007641, -0.010188, -0.1])
         self.ct = Akima1DInterpolator(J_data, Ct_data, method="akima")
         self.ct_derivative = Akima1DInterpolator.derivative(self.ct)
 
@@ -785,7 +786,7 @@ class C172Propulsion(Loads):
 
 
 c172_propulsion = C172Propulsion( radius=radius_c172, prop_curve=c172_prop_curve)
-# state = AircraftStates(axis=fd_axis, u=Q_(Vx, 'mph'), w=Q_(Vy, 'mph'))
+
 # loads = c172_propulsion.get_FM_localAxis(states=state, controls=c172_controls, axis=engine_axis)
 
 engine_component.load_solvers.append(c172_propulsion)
@@ -795,7 +796,7 @@ engine_component.load_solvers.append(c172_propulsion)
 # region Cruise Condition
 
 cruise_cond = CruiseCondition(fd_axis=fd_axis, controls=c172_controls,
-                              speed=Q_(Velocity_cruise, 'm/s'), pitch_angle=Q_(pitch_angle, 'radians'),
+                              speed=Q_(Speed, 'm/s'), pitch_angle=Q_(Pitch, 'rad'),
                               altitude=Q_(h, 'ft'),
                               range=Q_(Range, 'm'))
 
@@ -823,33 +824,44 @@ print(tm.value)
 # FM = csdl.concatenate((tf, tm), axis=0)
 
 Lift_scaling = 1 / (M_Aircraft * 9.81)
-Drag_scaling = Lift_scaling / 10
+Drag_scaling = Lift_scaling * 10
 Moment_scaling = 10 * Lift_scaling
 
 
 FM = csdl.concatenate((Drag_scaling * tf[0], tf[1], Lift_scaling * tf[2], tm[0], Moment_scaling * tm[1], tm[2]), axis=0)
 
 
+res1 = tf[0] * Drag_scaling
+res1.name = 'Fx Force'
+res1.set_as_constraint(equals=0.0)  # setting a small value to ensure the thrust is close to zero
 
+res2 = tf[2] * Lift_scaling
+res2.name = 'Fz Force'
+res2.set_as_constraint(equals=0.0)
 
+res4 = tm[1] * Moment_scaling
+res4.name = 'My Moment'
+res4.set_as_constraint(equals=0.0)
 
-residual = csdl.absolute(csdl.norm(FM, ord=2))
-residual.set_as_objective()
+cruise_r, cruise_x = cruise_cond.evaluate_eom(component=aircraft_component, forces=tf, moments=tm)
 
-c172_controls.engine.throttle.set_as_design_variable(lower=0.35,
-                                                     upper=1.0)
+velocity_residual = cruise_r[9] * 0.1
+velocity_residual.set_as_objective()
+
+c172_controls.engine.throttle.set_as_design_variable(lower=0.3, upper=1.0)
 c172_controls.elevator.deflection.set_as_design_variable(lower=(1+c172_controls.elevator.lower_bound)*np.pi/180,
                                                      upper=(c172_controls.elevator.upper_bound-1)*np.pi/180, scaler=1)
-
+#
 cruise_cond.parameters.pitch_angle.set_as_design_variable(lower=(-1)*np.pi/180,
-                                                     upper=17*np.pi/180, scaler=1)
+                                                     upper=18*np.pi/180, scaler=1)
+
+cruise_cond.parameters.speed.set_as_design_variable(lower=25, upper=50, scaler=1)
 
 
 sim = csdl.experimental.JaxSimulator(
         recorder=recorder,
         gpu=False,
-        additional_inputs=[cruise_cond.parameters.speed, c172_controls.engine.throttle,
-                           c172_controls.elevator.deflection, cruise_cond.parameters.pitch_angle],
+        additional_inputs=[cruise_cond.parameters.altitude],
         derivatives_kwargs= {
             "concatenate_ofs" : True
         })
@@ -860,9 +872,8 @@ TRequireds = []
 TAvails = []
 PAvails = []
 PReqs = []
-speeds = np.linspace(27, 65.5, 41)
-# speeds = np.linspace(51, 65.5, 20) # in m/s
-# speeds = np.linspace(27, 50, 21)  # in m/s
+# speeds = np.linspace(10, 130, 20) # in m/s
+altitudes = np.asarray([h])  # in feet
 Drags = []
 Lifts = []
 LD_ratios = []
@@ -876,24 +887,15 @@ throttles = []
 elevators = []
 pitches = []
 
-for a_speed_i in range(speeds.shape[0]):
-    print("SPEED:")
-    print(speeds[a_speed_i])
-    if speeds[a_speed_i] >= 50:
-        c172_controls.engine.throttle.set_as_design_variable(lower=0.65,
-                                                             upper=1.0)
-    sim[cruise_cond.parameters.speed] = speeds[a_speed_i]
-    sim[c172_controls.engine.throttle] = 1.0
-    sim[c172_controls.elevator.deflection] = 0.0
-    sim[cruise_cond.parameters.pitch_angle] = 0.0
-    recorder.execute()
+for an_altitude_i in range(altitudes.shape[0]):
+    # sim[cruise_cond.parameters.altitude] = altitudes[an_altitude_i]
+    # recorder.execute()
 
     ThrustA.append(c172_propulsion.c172_thrust.value)
-    pavail = c172_propulsion.c172_thrust.value[0] * speeds[a_speed_i]
-    PAvails.append(pavail)
+    PAvails.append(c172_propulsion.c172_thrust.value * cruise_cond.parameters.speed.value)
 
     t1 = time.time()
-    prob = CSDLAlphaProblem(problem_name='trim_optimization_new', simulator=sim)
+    prob = CSDLAlphaProblem(problem_name='trim_optimization', simulator=sim)
     optimizer = IPOPT(problem=prob)
     optimizer.solve()
     optimizer.print_results()
@@ -903,95 +905,34 @@ for a_speed_i in range(speeds.shape[0]):
     print('Time to solve', t2 - t1)
     recorder.execute()
 
-    baseline_Drag = wing_component.load_solvers[0].D.value[0]
-    baseline_Lift = wing_component.load_solvers[0].L.value[0]
+    baseline_Drag = wing_component.load_solvers[0].D.value
+    baseline_Lift = wing_component.load_solvers[0].L.value
     Drags.append(baseline_Drag)
     Lifts.append(baseline_Lift)
     ThrustR.append(c172_propulsion.c172_thrust.value)
-    # PAvails.append(c172_propulsion.c172_thrust.value * speeds[a_speed_i])
-    preq = c172_propulsion.c172_thrust.value[0] * speeds[a_speed_i]
-    PowerReq.append(preq)
+    PowerReq.append(c172_propulsion.c172_thrust.value * cruise_cond.parameters.speed.value)
     dv_save_dict = {}
     constraints_save_dict = {}
     obj_save_dict = {}
 
     # Print Cruise Trim Results:
     print("=====Aircraft States=====")
+    print("STALL SPEED:")
+    print(cruise_r[9].value)
     print("Throttle")
     print(c172_controls.engine.throttle.value)
-    throttles.append(c172_controls.engine.throttle.value[0])
+    throttles.append(c172_controls.engine.throttle.value)
     print("Elevator Deflection (deg)")
     print(c172_controls.elevator.deflection.value * 180 / np.pi)
-    elevators.append(c172_controls.elevator.deflection.value[0] * 180 / np.pi)
+    elevators.append(c172_controls.elevator.deflection.value * 180 / np.pi)
     print("Pitch Angle (deg)")
     print(cruise_cond.parameters.pitch_angle.value * 180 / np.pi)
-    pitches.append(cruise_cond.parameters.pitch_angle.value[0] * 180 / np.pi)
+    pitches.append(cruise_cond.parameters.pitch_angle.value * 180 / np.pi)
     print("Residual Magnitude: (Net body forces and moments)")
     print(FM.value)
     print("Residual Norm")
     print(csdl.norm(FM, ord=2).value)
 
-import matplotlib.pyplot as plt
-print(speeds)
-print(Drags)
-print(Lifts)
-print(PowerReq)
-print(PAvails)
-print(throttles)
-print(elevators)
-print(pitches)
-plt.figure()
-plt.plot(speeds, PowerReq, marker='s', linestyle='--', label='Required Power')
-plt.plot(speeds, PAvails, marker='o', linestyle='-', label='Available Power')
-plt.xlabel('True Airspeed (VTAS) [m/s]')
-plt.ylabel('Power (W)')
-plt.title('Power vs. VTAS')
-plt.grid(True)
-plt.legend()
-plt.show()
-
-plt.figure()
-plt.plot(speeds, ThrustR, marker='s', linestyle='--', label='Required Thrust')
-plt.plot(speeds, ThrustA, marker='o', linestyle='-', label='Available Thrust')
-plt.xlabel('True Airspeed (VTAS) [m/s]')
-plt.ylabel('Thrust (N)')
-plt.title('Thrust vs. VTAS')
-plt.grid(True)
-plt.legend()
-plt.show()
-
-
-# t1 = time.time()
-# prob = CSDLAlphaProblem(problem_name='trim_optimization', simulator=sim)
-# optimizer = SLSQP(problem=prob)
-# optimizer.solve()
-# optimizer.print_results()
-# t2 = time.time()
-# print('Time to solve', t2-t1)
-# recorder.execute()
-# dv_save_dict = {}
-# constraints_save_dict = {}
-# obj_save_dict = {}
-#
-# dv_dict = recorder.design_variables
-# constraint_dict = recorder.constraints
-# obj_dict = recorder.objectives
-#
-# # Print Cruise Trim Results:
-# print("=====Aircraft States=====")
-# print("Throttle")
-# print(c172_controls.engine.throttle.value)
-# print("Elevator Deflection (deg)")
-# print(c172_controls.elevator.deflection.value * 180 / np.pi)
-# print("Pitch Angle (deg)")
-# print(cruise_cond.parameters.pitch_angle.value * 180 / np.pi)
-# print("Residual Magnitude: (Net body forces and moments)")
-# print(FM.value)
-# print("Residual Norm")
-# print(csdl.norm(FM, ord=2).value)
-#
-#
-#
 
 
 
