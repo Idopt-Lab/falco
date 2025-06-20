@@ -68,6 +68,7 @@ class VehicleControlSystem(ABC):
         self.yaw_control = yaw_control
         self.throttle_control = throttle_control
         pass
+        #TODO: add self.u as a part of this generic class
 
     def _create_pitch_control_vector(self, pitch_control):
 
