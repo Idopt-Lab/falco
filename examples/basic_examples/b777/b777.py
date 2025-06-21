@@ -201,6 +201,7 @@ class B777Control(VehicleControlSystem):
 
     def __init__(self, elevator_component, aileron_right_component, aileron_left_component, rudder_component, symmetrical: bool = True):
 
+
         self.elevator = ControlSurface('elevator', lb=-30, ub=30, component=elevator_component)
         self.aileron_left = ControlSurface('aileron_left', lb=-20, ub=20, component=aileron_left_component)
         self.aileron_right = ControlSurface('aileron_right', lb=-20, ub=20, component=aileron_right_component)
@@ -252,6 +253,10 @@ B777_controls = B777Control(elevator_component=elevator_component, aileron_right
 
 # Wing / Aero Data
 class B777Aerodynamics(Loads):
+    """
+    Aerodynamics computes aerodynamic forces and moments using flight state parameters, control inputs, and aerodynamic coefficients. It encapsulates the conversion of aerodynamic inputs into local axis forces and moments acting on the aircraft.
+    """
+
     def __init__(self, CDML_interp, CDHM_interp, aero_coefficients, S, b, c, FCDSUB: float=1., FCDI: float=1., FCDO: float=1.):
         self.S = S
         self.b = b
