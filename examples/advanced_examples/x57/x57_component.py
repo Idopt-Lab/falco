@@ -226,6 +226,8 @@ if __name__ == "__main__":
 
     geometry_data = get_geometry()
     aircraft_component = build_aircraft_component(geo_dict=geometry_data, do_geo_param=False)
+    aircraft_component._name = 'X-57 Maxwell Aircraft'
+    aircraft_component.visualize_component_hierarchy(show=True)
     print("Aircraft component created successfully")
 
     recorder.stop()

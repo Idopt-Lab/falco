@@ -30,22 +30,23 @@ print("Loaded results:")
 
 # Plot Required Power vs VTAS
 plt.figure()
-plt.plot(results_df1['VTAS'], results_df1['Required Power (kW)'], marker='s', linestyle='--', label='Required Power')
-plt.plot(results_df2['VTAS'], results_df2['Available Power (kW)'], marker='o', linestyle='-', label='Available Power')
-plt.xlabel('VTAS (m/s)')
+plt.plot(results_df1['VTAS']* 1.944, results_df1['Required Power (kW)'], marker='s', linestyle='--', label='Required Power')
+plt.plot(results_df2['VTAS']* 1.944, results_df2['Available Power (kW)'], marker='o', linestyle='-', label='Available Power')
+plt.xlabel('KTAS (knots)')
 plt.ylabel('Required Power (kW)')
-plt.title('Required Power vs VTAS')
+plt.title('Required Power vs KTAS')
 plt.grid(True)
 plt.legend()
 plt.show()
 
 # Plot L/D Ratio vs VTAS
 plt.figure()
-plt.plot(results_df1['VTAS'], results_df1['CL']/results_df1['CD'], marker='^', linestyle='--', label='Required Power L/D Ratio')
-plt.plot(results_df3['VTAS'], results_df3['CL']/results_df3['CD'], marker='x', linestyle='-', label='Power off Glide')
-plt.xlabel('VTAS (m/s)')
+KTAS = results_df1['VTAS'] * 1.944  # Convert m/s to knots
+plt.plot(KTAS, results_df1['Lift']/results_df1['Drag'], marker='^', linestyle='--', label='Required Power L/D Ratio')
+plt.plot(KTAS, results_df3['Lift']/results_df3['Drag'], marker='x', linestyle='-', label='Power Off Glide')
+plt.xlabel('KTAS (knots)')
 plt.ylabel('L/D Ratio')
-plt.title('L/D Ratio vs VTAS')
+plt.title('L/D Ratio vs KTAS')
 plt.grid(True)
 plt.legend()
 plt.show()
@@ -63,7 +64,7 @@ plt.show()
 KTAS = results_df3['VTAS'] * 1.944  # Convert m/s to knots
 FPM = KTAS * 101.269 # Convert knots to feet per minute
 x1, y1 = 0, 0
-x2, y2 = KTAS.max(), -914
+x2, y2 = KTAS.max(), -925
 
 m = (y2 - y1) / (x2 - x1)
 b = y1 - m * x1
@@ -76,7 +77,7 @@ mask = KTAS >= 88 # VSTALL from https://ntrs.nasa.gov/api/citations/20240010807/
 plt.plot(KTAS[mask], -FPM[mask] / ((results_df3['CL'] / results_df3['CD'])[mask]),
          marker='^', linestyle='--', label='Sink Rate')
 plt.plot(x_values, y_values, marker='o', linestyle='-')
-plt.vlines(130, ymin=-1000, ymax=-800, colors='black', linestyles='--', label=r'$V_{BG}$')
+plt.vlines(128, ymin=-1000, ymax=-800, colors='black', linestyles='--', label=r'$V_{BG}$')
 plt.xlabel('KTAS (knots)')
 plt.ylim(-1000, 0)
 plt.ylabel('Sink Rate (ft/min)')

@@ -45,19 +45,17 @@ x57_controls.update_high_lift_control(flap_flag=True, blower_flag=True)
 takeoff = aircraft_conditions.CruiseCondition(
     fd_axis=axis_dict['fd_axis'],
     controls=x57_controls,
-    altitude=Q_(2500, 'm'),
+    altitude=Q_(2500, 'ft'),
     range=Q_(100, 'm'),
     mach_number=Q_(0.15, 'dimensionless'))
 
 
 
 x57_controls.elevator.deflection.set_as_design_variable(lower=np.deg2rad(-50), upper=np.deg2rad(50),scaler=1e2)
-x57_controls.trim_tab.deflection.set_as_design_variable(lower=np.deg2rad(-50), upper=np.deg2rad(50),scaler=1e2)
-x57_controls.rudder.deflection.set_as_design_variable(lower=np.deg2rad(x57_controls.rudder.lower_bound), upper=np.deg2rad(x57_controls.rudder.upper_bound),scaler=1e2)
 x57_controls.flap_left.deflection.set_as_design_variable(lower=np.deg2rad(10), upper=np.deg2rad(10),scaler=1e2)
 x57_controls.flap_right.deflection.set_as_design_variable(lower=np.deg2rad(10), upper=np.deg2rad(10),scaler=1e2)
 takeoff.parameters.mach_number.set_as_design_variable(lower=0.01, upper=0.3)
-takeoff.parameters.pitch_angle.set_as_design_variable(lower=np.deg2rad(-5), upper=np.deg2rad(10),scaler=1e2)
+takeoff.parameters.pitch_angle.set_as_design_variable(lower=np.deg2rad(-10), upper=np.deg2rad(10),scaler=1e2)
 
 
 flap_diff = (x57_controls.flap_right.deflection - x57_controls.flap_left.deflection) # setting all flaps to the same deflection, because of symmetry
@@ -99,7 +97,7 @@ cruise_radius_x57 = Q_(5/2, 'ft') # cruise propeller radius in ft
 hl_motors = [comp for comp in aircraft_component.comps['Wing'].comps.values() if comp._name.startswith('HL Motor')]
 
 for i, hl_motor in enumerate(hl_motors):
-    hl_prop = X57Propulsion(radius=HL_radius_x57, prop_curve=HLPropCurve(),engine_index=i,RPMmin=1500, RPMmax=5400) # from 2024-09-10_x-57_takeoff_v4.pdf
+    hl_prop = X57Propulsion(radius=HL_radius_x57, prop_curve=HLPropCurve(),engine_index=i,RPMmin=4800, RPMmax=4800) # from 2024-09-10_x-57_takeoff_v4.pdf
     hl_motor.load_solvers.append(hl_prop)
     results = hl_prop.get_torque_power(states=takeoff.ac_states, controls=x57_controls)
     hl_engine_torque = results['torque']
@@ -136,18 +134,18 @@ Moment_scaling = 1/csdl.absolute(Moment)
 
 res1 = (tf[2]) * Lift_scaling
 res1.name = 'Fz=0' 
-# res1.set_as_constraint(equals=0.0) # when implemented, this leads to infeasible solution
+res1.set_as_constraint(lower=-1e-6,upper=1e-6) # when implemented, this leads to infeasible solution
 
 res4 = tm[1] * Moment_scaling
 res4.name = 'My=0'
-res4.set_as_constraint(equals=0.0)
+res4.set_as_constraint(lower=-1e-6,upper=1e-6)
 
-alpha_special = np.deg2rad(8.7) # 8.7 deg found by online measuring tool from OpenVSP side profile
+alpha_special = np.deg2rad(-4.39) # 4.39 deg found by online measuring tool from OpenVSP side profile, measuring angle from horizontal to the bottom of the rear fuselage
 res5 = takeoff.ac_states.alpha
 res5.name = 'Alpha Constraint'
-res5.set_as_constraint(equals=alpha_special, scaler=1e-2)
+res5.set_as_constraint(equals=alpha_special, scaler=1e2)
 
-VMU_obj = takeoff.ac_states.VTAS 
+VMU_obj = takeoff.ac_states.VTAS
 VMU_obj.name = 'V_MU Objective'
 VMU_obj.set_as_objective()  # minimize VMU,
 
@@ -237,7 +235,7 @@ for i, alt in enumerate(altitudes):
     print("=====Aircraft States=====")
     print("Aircraft Conditions")
     print(takeoff)
-    print("VR (m/s) | KTAS")
+    print("VMU (m/s) | KTAS")
     print(takeoff.ac_states.VTAS.value, takeoff.ac_states.VTAS.value * 1.944)
     print("Aircraft Mach Number")
     print(takeoff.ac_states.Mach.value)

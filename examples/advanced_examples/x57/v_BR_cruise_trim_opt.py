@@ -52,7 +52,7 @@ cruise = aircraft_conditions.RateofClimb(
 
 
 
-x57_controls.elevator.deflection.set_as_design_variable(lower=np.deg2rad(-50), upper=np.deg2rad(-50),scaler=1e2)
+x57_controls.elevator.deflection.set_as_design_variable(lower=np.deg2rad(-50), upper=np.deg2rad(50),scaler=1e2)
 cruise.parameters.pitch_angle.set_as_design_variable(lower=np.deg2rad(-20), upper=np.deg2rad(20), scaler=1e2)
 cruise.parameters.flight_path_angle.set_as_design_variable(lower=np.deg2rad(-20), upper=np.deg2rad(20), scaler=1e2)
 cruise.parameters.mach_number.set_as_design_variable(lower=0.01, upper=0.3)
@@ -126,22 +126,23 @@ Moment_scaling = 1/csdl.absolute(Moment)
 
 res1 = tf[0] * Drag_scaling
 res1.name = 'Fx Force'
-res1.set_as_constraint(equals=0.0)  # setting a small value to ensure the thrust is close to zero
+res1.set_as_constraint(lower=-1e-4, upper=1e-4)  # setting a small value to ensure the thrust is close to zero
 
 res2 = tf[2] * Lift_scaling
 res2.name = 'Fz Force'
-res2.set_as_constraint(equals=0.0)
+res2.set_as_constraint(lower=-1e-4, upper=1e-4)
 
 res4 = tm[1] * Moment_scaling
 res4.name = 'My Moment'
-res4.set_as_constraint(equals=0.0) # implementing this causes infeasibility
+res4.set_as_constraint(lower=-1e-4, upper=1e-4) 
 
 
 Total_torque_avail, Total_power_avail = aircraft_component.compute_total_torque_total_power(fd_state=cruise.ac_states,controls=x57_controls)
 Total_torque_avail.name = 'Total Torque Available'
 Total_power_avail.name = 'Total Power Available'
 
-Obj_res = -cruise.ac_states.VTAS / (Total_power_avail*1e-3)
+Obj_scaling = 1 / (cruise.ac_states.VTAS / (Total_power_avail*1e-3))
+Obj_res = -(cruise.ac_states.VTAS / (Total_power_avail*1e-3)) * Obj_scaling
 Obj_res.name = 'Objective'
 Obj_res.set_as_objective()
 
@@ -168,7 +169,7 @@ PReqs = []
 # simulation is run in a loop, the sim[cruise.parameters.speed] assumes that the value has already been converted to SI units.
 
 
-alts = np.array([8000]) * 0.3048
+alts =np.array([1000,2000,3000,4000,5000,6000,7000,8000]) * 0.3048
 Drags = []
 Lifts = []
 LD_ratios = []

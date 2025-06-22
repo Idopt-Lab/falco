@@ -55,8 +55,8 @@ x57_controls.flap_left.deflection.set_as_design_variable(lower=np.deg2rad(x57_co
 x57_controls.flap_right.deflection.set_as_design_variable(lower=np.deg2rad(x57_controls.flap_right.lower_bound), upper=np.deg2rad(x57_controls.flap_right.upper_bound),scaler=1e2)
 glide.parameters.pitch_angle.set_as_design_variable(lower=np.deg2rad(-20), upper=np.deg2rad(20),scaler=1e2) # in radians, this is the pitch angle range for the optimization
 glide.parameters.flight_path_angle.set_as_design_variable(lower=np.deg2rad(-20), upper=np.deg2rad(20),scaler=1e2) # in radians, this is the pitch angle range for the optimization
-glide.parameters.rate_of_climb.set_as_design_variable(lower=-10, upper=10, scaler=1e-2) 
-glide.parameters.climb_gradient.set_as_design_variable(lower=-10, upper=10, scaler=1e-2) 
+glide.parameters.rate_of_climb.set_as_design_variable(lower=-20, upper=20, scaler=1e-2) 
+glide.parameters.climb_gradient.set_as_design_variable(lower=-20, upper=20, scaler=1e-2) 
 
 
 for left_engine, right_engine in zip(x57_controls.hl_engines_left, x57_controls.hl_engines_right):
@@ -144,7 +144,7 @@ res4.set_as_constraint(lower=-1e-6, upper=1e-6)
 
 
 max_LD = csdl.absolute(1 / (csdl.tan((glide.ac_states.gamma)))) # L/D ratio is 1/tan(gamma) where gamma is the flight path angle
-negative_max_LD = -max_LD * (1/max_LD)  # scaling to make it a minimization problem
+negative_max_LD = -max_LD * 1e-2  # scaling to make it a minimization problem
 negative_max_LD.name = 'Negative Max L/D Ratio'
 negative_max_LD.set_as_objective()
 
@@ -169,7 +169,7 @@ sim = csdl.experimental.JaxSimulator(
 # simulation is run in a loop, the sim[cruise.parameters.speed] assumes that the value has already been converted to SI units.
 
 
-initial_altitudes = np.array([1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000]) * 0.3048 # altitudes in meters
+initial_altitudes = np.array([8000]) * 0.3048 # altitudes in meters
 speeds = np.array([80, 90, 100, 110, 120, 130, 140, 150]) / 1.944 # KTAS to m/s
 
 # Create a dictionary with your results lists

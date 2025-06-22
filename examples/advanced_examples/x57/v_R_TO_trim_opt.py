@@ -52,9 +52,9 @@ takeoff = aircraft_conditions.CruiseCondition(
 
 
 
-x57_controls.elevator.deflection.set_as_design_variable(lower=np.deg2rad(-50), upper=np.deg2rad(50),scaler=1e2)
-x57_controls.flap_left.deflection.set_as_design_variable(lower=np.deg2rad(10), upper=np.deg2rad(10),scaler=1e2)
-x57_controls.flap_right.deflection.set_as_design_variable(lower=np.deg2rad(10), upper=np.deg2rad(10),scaler=1e2)
+x57_controls.elevator.deflection.set_as_design_variable(lower=np.deg2rad(-30), upper=np.deg2rad(30),scaler=1e2)
+x57_controls.flap_left.deflection.set_as_design_variable(lower=np.deg2rad(-10), upper=np.deg2rad(-10),scaler=1e2)
+x57_controls.flap_right.deflection.set_as_design_variable(lower=np.deg2rad(-10), upper=np.deg2rad(-10),scaler=1e2)
 takeoff.parameters.mach_number.set_as_design_variable(lower=0.01, upper=0.3)
 
 flap_diff = (x57_controls.flap_right.deflection - x57_controls.flap_left.deflection) # setting all flaps to the same deflection, because of symmetry
@@ -64,16 +64,16 @@ flap_diff.set_as_constraint(equals=0)  # setting all flaps to the same deflectio
 
 
 for left_engine, right_engine in zip(x57_controls.hl_engines_left, x57_controls.hl_engines_right):
-    left_engine.throttle.set_as_design_variable(lower=1e-6, upper=1.0)
-    right_engine.throttle.set_as_design_variable(lower=1e-6, upper=1.0)
+    left_engine.throttle.set_as_design_variable(lower=0.0, upper=1.0)
+    right_engine.throttle.set_as_design_variable(lower=0.0, upper=1.0)
     hl_throt_diff = (right_engine.throttle - left_engine.throttle) # setting all engines to the same throttle setting, because of symmetry
     hl_throt_diff.name = f'HL throttle Diff{left_engine.throttle.name} - {right_engine.throttle.name}'
     hl_throt_diff.set_as_constraint(equals=0)  
 
 
 for left_engine, right_engine in zip(x57_controls.cm_engines_left, x57_controls.cm_engines_right):
-    left_engine.throttle.set_as_design_variable(lower=1e-6, upper=1.0)
-    right_engine.throttle.set_as_design_variable(lower=1e-6, upper=1.0)
+    left_engine.throttle.set_as_design_variable(lower=0.0, upper=1.0)
+    right_engine.throttle.set_as_design_variable(lower=0.0, upper=1.0)
     cm_throttle_diff = (right_engine.throttle - left_engine.throttle) # setting all engines to the same throttle setting, because of symmetry
     cm_throttle_diff.name = f'CM throttle Diff{left_engine.throttle.name} - {right_engine.throttle.name}'
     cm_throttle_diff.set_as_constraint(equals=0)  
@@ -130,16 +130,14 @@ Lift_scaling = 1/csdl.absolute(Lift)
 Drag_scaling = 1/csdl.absolute(Drag)
 Moment_scaling = 1/csdl.absolute(Moment)
 
-nx = 1 # load factor
-val1 = (nx * (aircraft_component.mass_properties.mass * 9.81))* Drag_scaling
-
 res1 = (tf[0]) * Drag_scaling
 res1.name = 'Thrust > Drag' 
-# res1.set_as_constraint(lower=val1.value) # This here is causing non convergence when implemented
+res1.set_as_constraint(lower=0.0) # This here is causing non convergence when implemented
 
 
 thetaDotDot = Q_(10, 'deg/s^2').to('rad/s^2').magnitude  # this is the angular acceleration in rad/s^2, standard of 10 deg/s^2 for takeoff
-val2 = (aircraft_component.comps['Fuselage'].comps['Landing Gear'].mass_properties.inertia_tensor.inertia_tensor[1,1] * thetaDotDot) * Moment_scaling
+
+val2 = ((aircraft_component.mass_properties.inertia_tensor.inertia_tensor[1,1] + (aircraft_component.mass_properties.mass * (csdl.absolute(csdl.norm(aircraft_component.comps['Fuselage'].comps['Landing Gear'].mass_properties.cg_vector.vector)))**2)) * thetaDotDot) * Moment_scaling
 
 res4 = tm[1] * Moment_scaling
 res4.name = 'My Moment'

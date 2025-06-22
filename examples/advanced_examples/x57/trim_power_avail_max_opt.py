@@ -52,7 +52,7 @@ cruise = aircraft_conditions.RateofClimb(
 
 
 
-x57_controls.elevator.deflection.set_as_design_variable(lower=np.deg2rad(x57_controls.elevator.lower_bound), upper=np.deg2rad(x57_controls.elevator.upper_bound),scaler=1e2)
+x57_controls.elevator.deflection.set_as_design_variable(lower=np.deg2rad(-50), upper=np.deg2rad(50),scaler=1e2)
 cruise.parameters.pitch_angle.set_as_design_variable(lower=np.deg2rad(-50), upper=np.deg2rad(50), scaler=1e2)
 cruise.parameters.flight_path_angle.set_as_design_variable(lower=np.deg2rad(-50), upper=np.deg2rad(50), scaler=1e2)
 
@@ -91,7 +91,7 @@ for i, hl_motor in enumerate(hl_motors):
     results = hl_prop.get_torque_power(states=cruise.ac_states, controls=x57_controls)
     hl_engine_torque = results['torque']
     hl_engine_torque.name = f'HL_Engine_{i}_Torque'
-    # hl_engine_torque.set_as_constraint(lower=0.0, upper=20.5, scaler=1e-2) # values from High-Lift Propeller Operating Conditions v2 paper
+    hl_engine_torque.set_as_constraint(lower=1e-6, upper=20.5, scaler=1/20.5) # values from High-Lift Propeller Operating Conditions v2 paper
 
 
 cruise_motors = [comp for comp in aircraft_component.comps['Wing'].comps.values() if comp._name.startswith('Cruise Motor')]
@@ -103,7 +103,7 @@ for i, cruise_motor in enumerate(cruise_motors):
     results = cruise_prop.get_torque_power(states=cruise.ac_states, controls=x57_controls)
     cm_engine_torque = results['torque']
     cm_engine_torque.name = f'Cruise_Engine_{i}_Torque'
-    # cm_engine_torque.set_as_constraint(lower=0, upper=225, scaler=1e-3) # values from x57_DiTTo_manuscript paper
+    cm_engine_torque.set_as_constraint(lower=1e-6, upper=225, scaler=1/225) # values from x57_DiTTo_manuscript paper
 
 x57_controls.update_controls(x57_controls.u)
 
@@ -112,11 +112,12 @@ tf, tm = aircraft_component.compute_total_loads(fd_state=cruise.ac_states,contro
 
 Drag = - x57_aerodynamics.get_FM_localAxis(states=cruise.ac_states, controls=x57_controls, axis=axis_dict['fd_axis'])['loads'].F.vector[0]
 Lift = - x57_aerodynamics.get_FM_localAxis(states=cruise.ac_states, controls=x57_controls, axis=axis_dict['fd_axis'])['loads'].F.vector[2]
+Moment = x57_aerodynamics.get_FM_localAxis(states=cruise.ac_states, controls=x57_controls, axis=axis_dict['fd_axis'])['loads'].M.vector[1]
 
 
-Lift_scaling = 1 / (aircraft_component.mass_properties.mass * 9.81)
-Drag_scaling = Lift_scaling * 10
-Moment_scaling = Lift_scaling / 10
+Lift_scaling = 1 / csdl.absolute(Lift)
+Drag_scaling = 1 / csdl.absolute(Drag)
+Moment_scaling = 1 / csdl.absolute(Moment)
 
 
 res1 = tf[0] * Drag_scaling
@@ -127,27 +128,21 @@ res2 = tf[2] * Lift_scaling
 res2.name = 'Fz Force'
 res2.set_as_constraint(lower=-1e-6, upper=1e-6)
 
-# res3 = tm[0] * Moment_scaling
-# res3.name = 'Mx Moment'
-# res3.set_as_constraint(equals=0.0)
 
 res4 = tm[1] * Moment_scaling
 res4.name = 'My Moment'
 res4.set_as_constraint(lower=-1e-6, upper=1e-6)
 
-# res5 = tm[2] * Moment_scaling
-# res5.name = 'Mz Moment'
-# res5.set_as_constraint(equals=0.0)
 
 
 
 
 cruise_r, cruise_x = cruise.evaluate_eom(component=aircraft_component, forces=tf, moments=tm)
 h_dot = cruise_r[11]
-h_dot_scaling = 1/csdl.absolute(h_dot)
+h_dot_scaling = 1e-1
 # h_dot is the rate of climb in m/s, we want to maximize this, so we will minimize its negative value
-h_dot_residual = -csdl.absolute(h_dot) * h_dot_scaling
-h_dot_residual.name = 'Negative Rate of Climb Objective'
+h_dot_residual = -(h_dot) * h_dot_scaling
+h_dot_residual.name = 'Rate of Climb Objective'
 h_dot_residual.set_as_objective()
 
 
@@ -174,7 +169,7 @@ sim = csdl.experimental.JaxSimulator(
 # simulation is run in a loop, the sim[cruise.parameters.speed] assumes that the value has already been converted to SI units.
 
 
-altitudes = np.array([1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000]) * 0.3048 # altitudes in meters
+altitudes = np.array([1000,2000,3000,4000,5000,6000,7000,8000])*0.3048
 speeds = np.array([80, 90, 100, 110, 120, 130, 140, 150]) / 1.944 # KTAS to m/s
 
 # Create a dictionary with your results lists
@@ -187,9 +182,13 @@ results_dict = {
     'Drag': [],
     'Lift': [],
     'L/D Ratio': [],
-    'Rate of Descent': [],
+    'Climb Rate': [],
     'Propeller Efficiency': [],
     'J Value': [],
+    'Climb Rate' : [],
+    'Flight Path Angle': [],
+    'Pitch Angle': [],
+    'Elevator Deflection': []
 }
 
 for j, altitude in enumerate(altitudes):
@@ -211,7 +210,6 @@ for j, altitude in enumerate(altitudes):
         print('Time to solve Optimization:', t2-t1)
         recorder.execute()
 
-        RoD = h_dot
 
         results_dict['VTAS'].append(cruise.ac_states.VTAS.value[0])
         results_dict['Required Thrust'].append(Drag.value[0])
@@ -221,7 +219,7 @@ for j, altitude in enumerate(altitudes):
         results_dict['Drag'].append(Drag.value[0])
         results_dict['Lift'].append(Lift.value[0])
         results_dict['L/D Ratio'].append(Lift.value[0] / Drag.value[0])
-        results_dict['Rate of Descent'].append(RoD.value[0])
+        results_dict['Climb Rate'].append(h_dot.value[0])
         
         
         results = cruise_prop.get_torque_power(states=cruise.ac_states, controls=x57_controls)
@@ -229,6 +227,12 @@ for j, altitude in enumerate(altitudes):
         results_dict['Propeller Efficiency'].append(prop_efficiency.value[0])
         Jval = results['J']
         results_dict['J Value'].append(Jval.value[0])
+
+        results_dict['Flight Path Angle'].append(cruise.ac_states.gamma.value[0] * 180 / np.pi)  # Convert to degrees
+        results_dict['Pitch Angle'].append(cruise.parameters.pitch_angle.value[0] * 180 / np.pi)  # Convert to degrees
+        results_dict['Elevator Deflection'].append(x57_controls.elevator.deflection.value[0] * 180 / np.pi)  # Convert to degrees
+
+
 
 
 
