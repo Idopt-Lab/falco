@@ -7,6 +7,7 @@ import csdl_alpha as csdl
 
 
 class ControlSurface:
+    """ Represents a control surface with a deflection angle, lower and upper bounds. """
     def __init__(self, name, lb: float, ub: float, component=None):
         self._lb = lb
         self._ub = ub
@@ -28,6 +29,7 @@ class ControlSurface:
 
 
 class PropulsiveControl:
+    """ Represents a propulsive control with a throttle value, lower and upper bounds. """
     def __init__(self, name, lb: float=0., ub: float=1., throttle:float=0.):
         self._lb = lb
         self._ub = ub
@@ -57,16 +59,19 @@ class PropulsiveControlRPM:
 
 
 class VehicleControlSystem(ABC):
+    """ Abstract base class for vehicle control in flight simulation. Handles pitch, roll, yaw, and throttle inputs; subclasses must define control_order(). """
 
     def __init__(self, pitch_control: list,
                  roll_control: list,
                  yaw_control: list,
                  throttle_control: list):
         self.pitch_control_vector = self._create_pitch_control_vector(pitch_control=pitch_control)
+        self.pitch_control = pitch_control
         self.roll_control = roll_control
         self.yaw_control = yaw_control
         self.throttle_control = throttle_control
         pass
+        #TODO: add self.u as a part of this generic class
 
     def _create_pitch_control_vector(self, pitch_control):
 
