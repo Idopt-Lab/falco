@@ -12,7 +12,7 @@ sys.path.append(str(x57_folder_path))
 from x57_geometry import get_geometry, get_geometry_related_axis
 from x57_component import build_aircraft_component
 from x57_mp import add_mp_to_components
-from x57_control_system import X57ControlSystem
+from x57_control_system import X57ControlSystem, Blower
 from x57_solvers import X57Aerodynamics, X57Propulsion, HLPropCurve, CruisePropCurve
 
 
@@ -27,6 +27,8 @@ def get_geo():
     return geometry_data, axis_dict, aircraft_component
 
 def get_control_system(aircraft_component, hl_engines: int = 0, cm_engines: int = 0):
+    hlb = Blower()
+
     x57_controls = X57ControlSystem(elevator_component=aircraft_component.comps['Elevator'],
                                     rudder_component=aircraft_component.comps['Vertical Tail'].comps['Rudder'],
                                     aileron_left_component=aircraft_component.comps['Wing'].comps['Left Aileron'],
@@ -34,7 +36,8 @@ def get_control_system(aircraft_component, hl_engines: int = 0, cm_engines: int 
                                     trim_tab_component=aircraft_component.comps['Elevator'].comps['Trim Tab'],
                                     flap_left_component=aircraft_component.comps['Wing'].comps['Left Flap'],
                                     flap_right_component=aircraft_component.comps['Wing'].comps['Right Flap'],
-                                    hl_engine_count=hl_engines,cm_engine_count=cm_engines)
+                                    hl_engine_count=hl_engines,cm_engine_count=cm_engines, high_lift_blower_component=hlb)
+    x57_controls.update_high_lift_control(flap_flag=False, blower_flag=False)
     return x57_controls
 
 
@@ -109,13 +112,14 @@ class TestCase(TestCase):
 
         
         for left_engine, right_engine in zip(x57_controls.cm_engines_left, x57_controls.cm_engines_right):
-            left_engine.rpm.value = 2250
-            right_engine.rpm.value = 2250
+            left_engine.throttle.value = 1.0
+            right_engine.throttle.value = 1.0
 
-        cruise_radius_x57 = csdl.Variable(name="cruise_lift_motor_radius",shape=(1,), value=5/2) # cruise propeller radius in ft
+        cruise_radius_x57 = Q_(5/2, 'ft') # cruise propeller radius in ft
 
-        cruise_motor1_prop = X57Propulsion(radius=cruise_radius_x57, prop_curve=CruisePropCurve(),engine_index=0)
-        cruise_motor2_prop = X57Propulsion(radius=cruise_radius_x57, prop_curve=CruisePropCurve(),engine_index=1)
+
+        cruise_motor1_prop = X57Propulsion(radius=cruise_radius_x57, prop_curve=CruisePropCurve(),engine_index=0,RPMmin=2250, RPMmax=2250)
+        cruise_motor2_prop = X57Propulsion(radius=cruise_radius_x57, prop_curve=CruisePropCurve(),engine_index=1,RPMmin=2250, RPMmax=2250)
         aircraft_component.comps['Wing'].comps['Cruise Motor 1'].load_solvers.append(cruise_motor1_prop)
         aircraft_component.comps['Wing'].comps['Cruise Motor 2'].load_solvers.append(cruise_motor2_prop)           
 
@@ -147,11 +151,11 @@ class TestCase(TestCase):
         tf0, tm0 = aircraft_component.compute_total_loads(fd_state=cruise.ac_states, controls=x57_controls)
 
         for left_engine in x57_controls.cm_engines_left:
-            left_engine.rpm.value = 2250
+            left_engine.throttle.value = 1
 
-        cruise_radius_x57 = csdl.Variable(name="cruise_lift_motor_radius",shape=(1,), value=5/2) # cruise propeller radius in ft
+        cruise_radius_x57 = Q_(5/2, 'ft') # cruise propeller radius in ft
 
-        cruise_motor1_prop = X57Propulsion(radius=cruise_radius_x57, prop_curve=CruisePropCurve(),engine_index=0)
+        cruise_motor1_prop = X57Propulsion(radius=cruise_radius_x57, prop_curve=CruisePropCurve(),engine_index=0,RPMmin=2250, RPMmax=2250)
         aircraft_component.comps['Wing'].comps['Cruise Motor 1'].load_solvers.append(cruise_motor1_prop)
 
 
@@ -180,11 +184,11 @@ class TestCase(TestCase):
         tf0, tm0 = aircraft_component.compute_total_loads(fd_state=cruise.ac_states, controls=x57_controls)
         
         for right_engine in x57_controls.cm_engines_right:
-            right_engine.rpm.value = 2250
+            right_engine.throttle.value = 1
 
-        cruise_radius_x57 = csdl.Variable(name="cruise_lift_motor_radius",shape=(1,), value=5/2) # cruise propeller radius in ft
+        cruise_radius_x57 = Q_(5/2, 'ft') # cruise propeller radius in ft
 
-        cruise_motor2_prop = X57Propulsion(radius=cruise_radius_x57, prop_curve=CruisePropCurve(),engine_index=1)
+        cruise_motor2_prop = X57Propulsion(radius=cruise_radius_x57, prop_curve=CruisePropCurve(),engine_index=1,RPMmin=2250, RPMmax=2250)
         aircraft_component.comps['Wing'].comps['Cruise Motor 2'].load_solvers.append(cruise_motor2_prop)
 
         tf, tm = aircraft_component.compute_total_loads(fd_state=cruise.ac_states, controls=x57_controls)
@@ -226,9 +230,9 @@ class TestCase(TestCase):
         tm = tm - tm0
 
         np.testing.assert_almost_equal(tf.value,
-                                       desired=np.array([-25, 0, -211]), decimal=0)
+                                       desired=np.array([-5, 0, -79]), decimal=0)
         np.testing.assert_almost_equal(tm.value,
-                                        desired=np.array([0, -767, 0]), decimal=0)
+                                        desired=np.array([0, -281, 0]), decimal=0)
     
         
 

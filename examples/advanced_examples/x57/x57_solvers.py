@@ -442,7 +442,6 @@ class X57Aerodynamics(Loads):
             L = 0.5 * density * velocity**2 * self.Sref_wing * CL
             D = 0.5 * density * velocity**2 * self.Sref_wing * CD
             M = 0.5 * density * velocity**2 * self.Sref_wing * CM * self.cref_wing
-            # print(f"CL: {CL.value}, CD: {CD.value}, CM: {CM.value}, L: {L.value}, D: {D.value}, M: {M.value}")
 
 
             phat = p * self.bref_wing / (2 * velocity)
@@ -488,7 +487,6 @@ class X57Aerodynamics(Loads):
             aero_moment = aero_moment.set(csdl.slice[2], N_yaw)
             moment_vector = Vector(vector=aero_moment, axis=wind_axis)
             loads_wind_axis = ForcesMoments(force=force_vector, moment=moment_vector)
-            # return loads_wind_axis
             return {
             'loads': loads_wind_axis,
             'CL':  CL,
@@ -497,75 +495,6 @@ class X57Aerodynamics(Loads):
         }
     
 
-## WORK IN PROGRESS - HINGE MOMENTS
-    def get_hinge_moments(self, states, controls):
-        """
-        Compute hinge moments for control surfaces.
-
-        Parameters
-        ----------
-        states : csdl.VariableGroup
-            Flight-dynamic state (x̄) which should include:
-            - density
-            - VTAS
-            - states.theta
-        controls : csdl.VariableGroup
-            Control input (ū) which should include:
-            - deflections of control surfaces
-
-        Returns
-        -------
-        hinge_moments : HM
-            Computed hinge moments for control surfaces.
-        """
-        density = states.atmospheric_states.density
-        velocity = states.VTAS
-        
-        Cme_de  = self.aeroDer['Cme_de'][0][0]
-        Cma_da  = self.aeroDer['Cma_da'][0][0]
-        Cmr_dr  = self.aeroDer['Cmr_dr'][0][0]
-
-        S_e = self.Sref_stab
-        c_e = self.cref_stab
-        S_a = self.Sref_wing
-        c_a = self.cref_wing
-        S_r = self.Sref_VT
-        c_r = self.cref_VT
-
-
-        delta_e = controls.elevator.deflection
-        delta_tt = controls.trim_tab.deflection
-
-
-        if hasattr(controls, 'left_aileron'):
-            delta_aL = controls.left_aileron.deflection
-            delta_aR = controls.right_aileron.deflection
-            delta_fL = controls.left_flap.deflection
-            delta_fR = controls.right_flap.deflection
-
-        else:
-            delta_a = controls.aileron.deflection
-            delta_f = controls.flap.deflection
-        
-        
-        delta_r = controls.rudder.deflection
-
-        Ch_f = CH0_f + (CH_alpha_f * alpha_f) + (Ch_delta_f * delta_f) + (Ch_delta_tt * delta_tt) # Flap Hinge Moment Coefficient
-        Ch_a = Ch0_a + (Ch_alpha_a * alpha) + (Ch_delta_a * delta_a) + (Ch_delta_tt * delta_tt) # Aileron Hinge Moment Coefficient
-        Ch_e = Ch0_e + (Ch_alpha_e * alpha_HT) + (Ch_delta_e * delta_e) + (Ch_delta_tt * delta_tt) # Elevator Hinge Moment Coefficient
-        Ch_r = Ch0_r + (Ch_beta_r * beta) + (Ch_delta_r * delta_r) + (Ch_delta_tt * delta_tt) # Rudder Hinge Moment Coefficient
-
-        Hf = 0.5 * density * velocity**2 * S_a * c_a * Ch_f
-        Ha = 0.5 * density * velocity**2 * S_a * c_a * Ch_a
-        He = 0.5 * density * velocity**2 * S_e * c_e * Ch_e
-        Hr = 0.5 * density * velocity**2 * S_r * c_r * Ch_r
-
-        return {
-            'elevator': He,
-            'aileron':  Ha,
-            'rudder':   Hr,
-            'flap':     Hf
-        }
         
 
 
@@ -590,7 +519,6 @@ class HLPropCurve(csdl.CustomExplicitOperation):
         self.cq = Akima1DInterpolator(J_data, Cq_data, method="akima")
         self.cq_derivative = Akima1DInterpolator.derivative(self.cq)
 
-        # def evaluate(self, inputs: csdl.VariableGroup):
     def evaluate(self, J_data: csdl.Variable=None):
         outputs = csdl.VariableGroup()
 
@@ -628,9 +556,6 @@ class CruisePropCurve(csdl.CustomExplicitOperation):
         super().__init__()
 
         # Obtained Mod-III Propeller Data from CFD database
-
-        # Pull the data for blade pitch is 26 and alpha is 2, beta is 0, aileron is 0, and flap is 0.
-        # From 1.6 onwards, it is at a 30 degree blade pitch, with everything else the same as the condition above.
 
         J_data = np.array(
             [0.1,0.4,0.6,0.8, 1.0, 1.2, 1.3, 1.4, 1.6, 1.8])
