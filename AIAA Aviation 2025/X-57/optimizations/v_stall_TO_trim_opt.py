@@ -42,24 +42,26 @@ x57_controls = X57ControlSystem(elevator_component=aircraft_component.comps['Ele
 x57_controls.update_high_lift_control(flap_flag=True, blower_flag=True)
 
 
-takeoff = aircraft_conditions.CruiseCondition(
+takeoff = aircraft_conditions.ClimbCondition(
     fd_axis=axis_dict['fd_axis'],
     controls=x57_controls,
-    altitude=Q_(2500, 'm'),
-    range=Q_(100, 'm'),
+    initial_altitude=Q_(1, 'm'),
+    final_altitude=Q_(2438.4, 'm'),
     mach_number=Q_(0.15, 'dimensionless')) 
 
 
 
 
-x57_controls.elevator.deflection.set_as_design_variable(lower=np.deg2rad(-30), upper=np.deg2rad(30),scaler=1e2)
-x57_controls.flap_left.deflection.set_as_design_variable(lower=np.deg2rad(-10), upper=np.deg2rad(-10),scaler=1e2)
-x57_controls.flap_right.deflection.set_as_design_variable(lower=np.deg2rad(-10), upper=np.deg2rad(-10),scaler=1e2)
-takeoff.parameters.mach_number.set_as_design_variable(lower=0.01, upper=0.3)
 
-flap_diff = (x57_controls.flap_right.deflection - x57_controls.flap_left.deflection) # setting all flaps to the same deflection, because of symmetry
+x57_controls.elevator.deflection.set_as_design_variable(lower=np.deg2rad(-30), upper=np.deg2rad(30))
+x57_controls.flap_left.deflection.set_as_design_variable(lower=np.deg2rad(-10), upper=np.deg2rad(-10))
+x57_controls.flap_right.deflection.set_as_design_variable(lower=np.deg2rad(-10), upper=np.deg2rad(-10))
+takeoff.parameters.pitch_angle.set_as_design_variable(lower=np.deg2rad(-5), upper=np.deg2rad(10)) 
+takeoff.parameters.mach_number.set_as_design_variable(lower=0.05, upper=0.3) 
+
+flap_diff = (x57_controls.flap_right.deflection - x57_controls.flap_left.deflection)
 flap_diff.name = f'Flap Diff{x57_controls.flap_left.deflection.name} - {x57_controls.flap_right.deflection.name}'
-flap_diff.set_as_constraint(equals=0)  # setting all flaps to the same deflection, because of symmetry
+flap_diff.set_as_constraint(equals=0)  
 
 
 
@@ -79,8 +81,7 @@ for left_engine, right_engine in zip(x57_controls.cm_engines_left, x57_controls.
     cm_throttle_diff.set_as_constraint(equals=0)  
 
 
-
-x57_controls.update_controls(x57_controls.u)       
+x57_controls.update_controls(x57_controls.u())    
 
 x57_aerodynamics = X57Aerodynamics(component=aircraft_component)
 aircraft_component.comps['Wing'].load_solvers.append(x57_aerodynamics)
@@ -96,12 +97,12 @@ cruise_radius_x57 = Q_(5/2, 'ft') # cruise propeller radius in ft
 hl_motors = [comp for comp in aircraft_component.comps['Wing'].comps.values() if comp._name.startswith('HL Motor')]
 
 for i, hl_motor in enumerate(hl_motors):
-    hl_prop = X57Propulsion(radius=HL_radius_x57, prop_curve=HLPropCurve(),engine_index=i,RPMmin=4800, RPMmax=4800) # from 2024-09-10_x-57_takeoff_v4.pdf
+    hl_prop = X57Propulsion(radius=HL_radius_x57, prop_curve=HLPropCurve(),engine_index=i,RPMmin=1500, RPMmax=5400)
     hl_motor.load_solvers.append(hl_prop)
     results = hl_prop.get_torque_power(states=takeoff.ac_states, controls=x57_controls)
     hl_engine_torque = results['torque']
     hl_engine_torque.name = f'HL_Engine_{i}_Torque'
-    hl_engine_torque.set_as_constraint(lower=1e-6, upper=20.5, scaler=1/20.5) # values from High-Lift Propeller Operating Conditions v2 paper
+    hl_engine_torque.set_as_constraint(lower=0.0, upper=20.5, scaler=1e-2) # values from High-Lift Propeller Operating Conditions v2 paper
 
 cruise_motors = [comp for comp in aircraft_component.comps['Wing'].comps.values() if comp._name.startswith('Cruise Motor')]
 
@@ -112,12 +113,14 @@ for i, cruise_motor in enumerate(cruise_motors):
     results = cruise_prop.get_torque_power(states=takeoff.ac_states, controls=x57_controls)
     cm_engine_torque = results['torque']
     cm_engine_torque.name = f'Cruise_Engine_{i}_Torque'
-    cm_engine_torque.set_as_constraint(lower=1e-6, upper=225, scaler=1/225) # values from x57_DiTTo_manuscript paper
-
+    cm_engine_torque.set_as_constraint(lower=0.0, upper=225, scaler=1e-3) # values from x57_DiTTo_manuscript paper
 
 
 
 tf, tm = aircraft_component.compute_total_loads(fd_state=takeoff.ac_states,controls=x57_controls)
+
+takeoff_r, takeoff_x = takeoff.evaluate_eom(component=aircraft_component, forces=tf, moments=tm)
+h_dot = takeoff_r[11]
 
 
 
@@ -130,57 +133,49 @@ Lift_scaling = 1/csdl.absolute(Lift)
 Drag_scaling = 1/csdl.absolute(Drag)
 Moment_scaling = 1/csdl.absolute(Moment)
 
+
 res1 = (tf[0]) * Drag_scaling
-res1.name = 'Thrust > Drag' 
-res1.set_as_constraint(lower=0.0) # This here is causing non convergence when implemented
+res1.name = 'Fx Residual' 
+res1.set_as_constraint(equals=0.0) 
+
+res2 = (tf[2]) * Lift_scaling
+res2.name = 'Fz Residual'
+# res2.set_as_constraint(equals=0.0)
+
+res3 = (tm[1]) * Moment_scaling
+res3.name = 'My Residual'
+res3.set_as_constraint(equals=0.0) 
 
 
-thetaDotDot = Q_(10, 'deg/s^2').to('rad/s^2').magnitude  # this is the angular acceleration in rad/s^2, standard of 10 deg/s^2 for takeoff
+V_stall = takeoff_r[9]
+velocity_residual = takeoff_r[9] * 1e-1
+velocity_residual.set_as_objective()
 
-val2 = ((aircraft_component.mass_properties.inertia_tensor.inertia_tensor[1,1] + (aircraft_component.mass_properties.mass * (csdl.absolute(csdl.norm(aircraft_component.comps['Fuselage'].comps['Landing Gear'].mass_properties.cg_vector.vector)))**2)) * thetaDotDot) * Moment_scaling
 
-res4 = tm[1] * Moment_scaling
-res4.name = 'My Moment'
-res4.set_as_constraint(equals=val2.value)
 
-res5 = takeoff.ac_states.alpha
-res5.name = 'Alpha Constraint'
-res5.set_as_constraint(equals=0.0)
 
-VR_obj = takeoff.ac_states.VTAS 
-VR_obj.name = 'VR Objective'
-VR_obj.set_as_objective()  # minimize VR,
 
 
 
 sim = csdl.experimental.JaxSimulator(
     recorder=recorder,
     gpu=False,
-    additional_inputs=[takeoff.parameters.altitude],
-    additional_outputs=[takeoff.ac_states.VTAS, takeoff.ac_states.alpha, takeoff.ac_states.atmospheric_states.density, takeoff.ac_states.gamma],
+    additional_inputs=[takeoff.parameters.initial_altitude],
     derivatives_kwargs= {
         "concatenate_ofs" : True})
 
 
-
-
-# any values being swept through must be in SI units because even though the condition will accept imperial units as inputs, when the 
-# simulation is run in a loop, the sim[cruise.parameters.speed] assumes that the value has already been converted to SI units.
-
-
-# speeds = np.linspace(10, 76.8909, 1) # this has to be in SI units or else the following sim evaluation will fail
-# altitudes = np.linspace(1, 2438.4, 2) # in m, this is the altitude from the X57 CFD data
-# pitch_angles = np.linspace(-10, 10, 10) * np.pi / 180 # in radians, this is the pitch angle range for the optimization
-# pitch_angles = np.array([15]) * np.pi / 180 # in radians, this is the pitch angle range for the optimization
 altitudes = np.array([2500]) * 0.308 # in m, this is the altitude from the X57 CFD data
 
 sim_results = {
     'VTAS': [],
-    'Altitude': [],
+    'Initial Altitude': [],
+    'Final Altitude': [],
     'Drag': [],
     'Lift': [],
     'CL': [],
     'CD': [],
+    'V_stall': [],
 }
 
 
@@ -189,14 +184,13 @@ sim_results = {
 for i, alt in enumerate(altitudes):
 
     
-    sim[takeoff.parameters.altitude] = alt
-
+    sim[takeoff.parameters.initial_altitude] = alt
     recorder.execute()
 
 
     sim.check_optimization_derivatives()
     t1 = time.time()
-    prob = CSDLAlphaProblem(problem_name='v_R_TO_trim_opt', simulator=sim)
+    prob = CSDLAlphaProblem(problem_name='v_stall_TO_trim_opt', simulator=sim)
     optimizer = IPOPT(problem=prob)
     optimizer.solve()
     optimizer.print_results()
@@ -206,12 +200,14 @@ for i, alt in enumerate(altitudes):
 
 
 
-    sim_results['VTAS'].append(takeoff.ac_states.VTAS.value[0])
-    sim_results['Altitude'].append(takeoff.parameters.altitude.value[0])
+    sim_results['VTAS'].append(takeoff_r[9].value)
+    sim_results['Initial Altitude'].append(takeoff.parameters.initial_altitude.value[0])
+    sim_results['Final Altitude'].append(takeoff.parameters.final_altitude.value[0])
     sim_results['Drag'].append(Drag.value[0])
     sim_results['Lift'].append(Lift.value[0])
     sim_results['CL'].append(CL.value[0])
     sim_results['CD'].append(CD.value[0])
+    sim_results['V_stall'].append(V_stall.value[0])
 
 
     dv_save_dict = {}
@@ -224,23 +220,20 @@ for i, alt in enumerate(altitudes):
 
     for dv in dv_dict.keys():
         dv_save_dict[dv.name] = dv.value
-        # print("Design Variable", dv.name, dv.value)
 
     for c in constraint_dict.keys():
         constraints_save_dict[c.name] = c.value
-        # print("Constraint", c.name, c.value)
 
     for obj in obj_dict.keys():
         obj_save_dict[obj.name] = obj.value
-        # print("Objective", obj.name, obj.value)
 
     print("=====Aircraft States=====")
     print("Aircraft Conditions")
     print(takeoff)
-    print("VR (m/s) | KTAS")
-    print(takeoff.ac_states.VTAS.value, takeoff.ac_states.VTAS.value * 1.944)
     print("Aircraft Mach Number")
     print(takeoff.ac_states.Mach.value)
+    print("Time to Reach Final Altitude (min)")
+    print((takeoff.parameters.initial_altitude.value / (takeoff.ac_states.VTAS.value / (CL.value / CD.value)))/60)
     print("Throttle")
     for engine in x57_controls.engines:
         print(engine.throttle.value)
@@ -274,6 +267,8 @@ for i, alt in enumerate(altitudes):
     print(CL.value)
     print('CD')
     print(CD.value)
+    print("V_stall: (m/s) | (KTAS)")
+    print(V_stall.value[0], V_stall.value[0] * 1.944)
 
     
     print("TF[0]", tf[0].value)
@@ -297,13 +292,13 @@ for i, alt in enumerate(altitudes):
 # Convert the dictionary to a DataFrame
 results_df = pd.DataFrame(sim_results)
 
-# Save the DataFrame to a CSV file
-with open('v_R_TO_trim_opt.csv', 'w') as f:
-    results_df.to_csv(f, index=False)
-    # f.write("\n\n")  # add some blank lines between the two tables
-    # v_stalls_df.to_csv(f, index=False)
 
 
+import os
+outputs_folder_path = REPO_ROOT_FOLDER / 'AIAA Aviation 2025' / 'X-57'
+outputs_dir = os.path.join(outputs_folder_path, 'optimizations/results')
+os.makedirs(outputs_dir, exist_ok=True)
+results_df.to_csv(os.path.join(outputs_dir, 'v_stall_TO_trim_opt.csv'), index=False)
 
 
 

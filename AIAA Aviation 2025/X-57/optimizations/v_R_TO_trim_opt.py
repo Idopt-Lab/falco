@@ -45,18 +45,17 @@ x57_controls.update_high_lift_control(flap_flag=True, blower_flag=True)
 takeoff = aircraft_conditions.CruiseCondition(
     fd_axis=axis_dict['fd_axis'],
     controls=x57_controls,
-    altitude=Q_(2500, 'ft'),
+    altitude=Q_(2500, 'm'),
     range=Q_(100, 'm'),
-    mach_number=Q_(0.15, 'dimensionless'))
+    mach_number=Q_(0.15, 'dimensionless')) 
 
 
 
-x57_controls.elevator.deflection.set_as_design_variable(lower=np.deg2rad(-50), upper=np.deg2rad(50),scaler=1e2)
-x57_controls.flap_left.deflection.set_as_design_variable(lower=np.deg2rad(10), upper=np.deg2rad(10),scaler=1e2)
-x57_controls.flap_right.deflection.set_as_design_variable(lower=np.deg2rad(10), upper=np.deg2rad(10),scaler=1e2)
+
+x57_controls.elevator.deflection.set_as_design_variable(lower=np.deg2rad(-30), upper=np.deg2rad(30))
+x57_controls.flap_left.deflection.set_as_design_variable(lower=np.deg2rad(-10), upper=np.deg2rad(-10))
+x57_controls.flap_right.deflection.set_as_design_variable(lower=np.deg2rad(-10), upper=np.deg2rad(-10))
 takeoff.parameters.mach_number.set_as_design_variable(lower=0.01, upper=0.3)
-takeoff.parameters.pitch_angle.set_as_design_variable(lower=np.deg2rad(-10), upper=np.deg2rad(10),scaler=1e2)
-
 
 flap_diff = (x57_controls.flap_right.deflection - x57_controls.flap_left.deflection) # setting all flaps to the same deflection, because of symmetry
 flap_diff.name = f'Flap Diff{x57_controls.flap_left.deflection.name} - {x57_controls.flap_right.deflection.name}'
@@ -65,23 +64,23 @@ flap_diff.set_as_constraint(equals=0)  # setting all flaps to the same deflectio
 
 
 for left_engine, right_engine in zip(x57_controls.hl_engines_left, x57_controls.hl_engines_right):
-    left_engine.throttle.set_as_design_variable(lower=1e-6, upper=1.0)
-    right_engine.throttle.set_as_design_variable(lower=1e-6, upper=1.0)
+    left_engine.throttle.set_as_design_variable(lower=0.0, upper=1.0)
+    right_engine.throttle.set_as_design_variable(lower=0.0, upper=1.0)
     hl_throt_diff = (right_engine.throttle - left_engine.throttle) # setting all engines to the same throttle setting, because of symmetry
     hl_throt_diff.name = f'HL throttle Diff{left_engine.throttle.name} - {right_engine.throttle.name}'
     hl_throt_diff.set_as_constraint(equals=0)  
 
 
 for left_engine, right_engine in zip(x57_controls.cm_engines_left, x57_controls.cm_engines_right):
-    left_engine.throttle.set_as_design_variable(lower=1e-6, upper=1.0)
-    right_engine.throttle.set_as_design_variable(lower=1e-6, upper=1.0)
+    left_engine.throttle.set_as_design_variable(lower=0.0, upper=1.0)
+    right_engine.throttle.set_as_design_variable(lower=0.0, upper=1.0)
     cm_throttle_diff = (right_engine.throttle - left_engine.throttle) # setting all engines to the same throttle setting, because of symmetry
     cm_throttle_diff.name = f'CM throttle Diff{left_engine.throttle.name} - {right_engine.throttle.name}'
     cm_throttle_diff.set_as_constraint(equals=0)  
 
 
 
-x57_controls.update_controls(x57_controls.u)       
+x57_controls.update_controls(x57_controls.u())       
 
 x57_aerodynamics = X57Aerodynamics(component=aircraft_component)
 aircraft_component.comps['Wing'].load_solvers.append(x57_aerodynamics)
@@ -102,7 +101,7 @@ for i, hl_motor in enumerate(hl_motors):
     results = hl_prop.get_torque_power(states=takeoff.ac_states, controls=x57_controls)
     hl_engine_torque = results['torque']
     hl_engine_torque.name = f'HL_Engine_{i}_Torque'
-    hl_engine_torque.set_as_constraint(lower=1e-6, upper=20.5, scaler=1/20.5) # values from High-Lift Propeller Operating Conditions v2 paper
+    hl_engine_torque.set_as_constraint(lower=0.0, upper=20.5, scaler=1e-2) # values from High-Lift Propeller Operating Conditions v2 paper
 
 cruise_motors = [comp for comp in aircraft_component.comps['Wing'].comps.values() if comp._name.startswith('Cruise Motor')]
 
@@ -113,7 +112,7 @@ for i, cruise_motor in enumerate(cruise_motors):
     results = cruise_prop.get_torque_power(states=takeoff.ac_states, controls=x57_controls)
     cm_engine_torque = results['torque']
     cm_engine_torque.name = f'Cruise_Engine_{i}_Torque'
-    cm_engine_torque.set_as_constraint(lower=1e-6, upper=225, scaler=1/225) # values from x57_DiTTo_manuscript paper
+    cm_engine_torque.set_as_constraint(lower=0.0, upper=225, scaler=1e-3) # values from x57_DiTTo_manuscript paper
 
 
 
@@ -131,23 +130,26 @@ Lift_scaling = 1/csdl.absolute(Lift)
 Drag_scaling = 1/csdl.absolute(Drag)
 Moment_scaling = 1/csdl.absolute(Moment)
 
+res1 = (tf[0]) * Drag_scaling
+res1.name = 'Thrust > Drag' 
+res1.set_as_constraint(lower=0.0) # This here is causing non convergence when implemented
 
-res1 = (tf[2]) * Lift_scaling
-res1.name = 'Fz=0' 
-res1.set_as_constraint(lower=-1e-6,upper=1e-6) # when implemented, this leads to infeasible solution
+
+thetaDotDot = Q_(10, 'deg/s^2').to('rad/s^2').magnitude  # this is the angular acceleration in rad/s^2, standard of 10 deg/s^2 for takeoff
+
+val2 = ((aircraft_component.mass_properties.inertia_tensor.inertia_tensor[1,1] + (aircraft_component.mass_properties.mass * (csdl.absolute(csdl.norm(aircraft_component.comps['Fuselage'].comps['Landing Gear'].mass_properties.cg_vector.vector)))**2)) * thetaDotDot) * Moment_scaling
 
 res4 = tm[1] * Moment_scaling
-res4.name = 'My=0'
-res4.set_as_constraint(lower=-1e-6,upper=1e-6)
+res4.name = 'My Moment'
+res4.set_as_constraint(equals=val2.value)
 
-alpha_special = np.deg2rad(-4.39) # 4.39 deg found by online measuring tool from OpenVSP side profile, measuring angle from horizontal to the bottom of the rear fuselage
 res5 = takeoff.ac_states.alpha
 res5.name = 'Alpha Constraint'
-res5.set_as_constraint(equals=alpha_special, scaler=1e2)
+res5.set_as_constraint(equals=0.0)
 
-VMU_obj = takeoff.ac_states.VTAS
-VMU_obj.name = 'V_MU Objective'
-VMU_obj.set_as_objective()  # minimize VMU,
+VR_obj = takeoff.ac_states.VTAS *1e-1
+VR_obj.name = 'VR Objective'
+VR_obj.set_as_objective()  # minimize VR,
 
 
 
@@ -155,21 +157,11 @@ sim = csdl.experimental.JaxSimulator(
     recorder=recorder,
     gpu=False,
     additional_inputs=[takeoff.parameters.altitude],
-    additional_outputs=[takeoff.ac_states.VTAS, takeoff.ac_states.alpha, takeoff.ac_states.atmospheric_states.density, takeoff.ac_states.gamma],
     derivatives_kwargs= {
         "concatenate_ofs" : True})
 
 
 
-
-# any values being swept through must be in SI units because even though the condition will accept imperial units as inputs, when the 
-# simulation is run in a loop, the sim[cruise.parameters.speed] assumes that the value has already been converted to SI units.
-
-
-# speeds = np.linspace(10, 76.8909, 1) # this has to be in SI units or else the following sim evaluation will fail
-# altitudes = np.linspace(1, 2438.4, 2) # in m, this is the altitude from the X57 CFD data
-# pitch_angles = np.linspace(-10, 10, 10) * np.pi / 180 # in radians, this is the pitch angle range for the optimization
-# pitch_angles = np.array([15]) * np.pi / 180 # in radians, this is the pitch angle range for the optimization
 altitudes = np.array([2500]) * 0.308 # in m, this is the altitude from the X57 CFD data
 
 sim_results = {
@@ -194,7 +186,7 @@ for i, alt in enumerate(altitudes):
 
     sim.check_optimization_derivatives()
     t1 = time.time()
-    prob = CSDLAlphaProblem(problem_name='v_MU_TO_trim_opt', simulator=sim)
+    prob = CSDLAlphaProblem(problem_name='v_R_TO_trim_opt', simulator=sim)
     optimizer = IPOPT(problem=prob)
     optimizer.solve()
     optimizer.print_results()
@@ -235,7 +227,7 @@ for i, alt in enumerate(altitudes):
     print("=====Aircraft States=====")
     print("Aircraft Conditions")
     print(takeoff)
-    print("VMU (m/s) | KTAS")
+    print("VR (m/s) | KTAS")
     print(takeoff.ac_states.VTAS.value, takeoff.ac_states.VTAS.value * 1.944)
     print("Aircraft Mach Number")
     print(takeoff.ac_states.Mach.value)
@@ -295,16 +287,12 @@ for i, alt in enumerate(altitudes):
 # Convert the dictionary to a DataFrame
 results_df = pd.DataFrame(sim_results)
 
-# Save the DataFrame to a CSV file
-with open('v_MU_trim_opt.csv', 'w') as f:
-    results_df.to_csv(f, index=False)
-    # f.write("\n\n")  # add some blank lines between the two tables
-    # v_stalls_df.to_csv(f, index=False)
 
-
-
-
-
+import os
+outputs_folder_path = REPO_ROOT_FOLDER / 'AIAA Aviation 2025' / 'X-57'
+outputs_dir = os.path.join(outputs_folder_path, 'optimizations/results')
+os.makedirs(outputs_dir, exist_ok=True)
+results_df.to_csv(os.path.join(outputs_dir, 'v_R_TO_trim_opt.csv'), index=False)
 
 
 

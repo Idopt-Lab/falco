@@ -93,7 +93,6 @@ class X57ControlSystem(VehicleControlSystem):
     def control_order(self) -> List[str]:
         return ['roll', 'pitch', 'yaw', 'throttle_control']
     
-    @property
     def u(self):
         self.throttle_control = tuple(engine.throttle for engine in self.engines)
         control = (

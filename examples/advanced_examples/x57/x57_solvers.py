@@ -411,7 +411,7 @@ class X57Aerodynamics(Loads):
             loads : ForcesMoments
                 Computed forces and moments about the reference point.
             """
-            u = controls.u
+            u = controls.u()
             density = states.atmospheric_states.density
             velocity = states.VTAS
             theta = states.states.theta
@@ -716,18 +716,16 @@ class X57Propulsion(Loads):
         loads : ForcesMoments
             Computed forces and moments about the reference point.
         """
-        u = controls.u
+        u = controls.u()
         throttle = u[5+self.engine_index]  # Get the throttle for the specific engine
         density = states.atmospheric_states.density  # kg/m^3
         velocity = states.VTAS  # m/s 
         rpm = self.RPMmin + (self.RPMmax - self.RPMmin) * throttle  # RPM based on throttle input
-        # print(f"RPM: {rpm.value}, Density: {density.value}, Velocity: {velocity.value}")
 
         omega = (rpm / 60)  # Convert RPM to rev/s
 
         # Compute advance ratio
         J = (velocity) / ((omega) * (self.radius * 2))   # non-dimensional
-        # print(f"Advance Ratio J: {J.value}")
 
         # Compute Ct
         prop_curve_obj = type(self.prop_curve)()
@@ -735,7 +733,6 @@ class X57Propulsion(Loads):
         ct = prop_out.ct
         cp = prop_out.cp
         cq = prop_out.cq
-        # print(f"Computed Ct: {ct.value}")
 
         if np.isnan(ct.value):
             T = csdl.Variable(shape=(1,), value=0.)
@@ -743,7 +740,6 @@ class X57Propulsion(Loads):
             # Compute Thrust
             T = (ct * density * (omega)**2 * ((self.radius*2)**4)) # N
         
-        # print(f"Computed Thrust T: {T.value} Newtons")
     
         force_vector = Vector(vector=csdl.concatenate((T,
                                                        csdl.Variable(shape=(1,), value=0.),
@@ -785,12 +781,12 @@ class X57Propulsion(Loads):
         power_shaft : csdl.VariableGroup
             Computed shaft power for the propulsion system.
         """
-        u = controls.u
+        u = controls.u()
         throttle = u[5+self.engine_index]  # Get the throttle for the specific engine
         density = states.atmospheric_states.density
-        velocity = states.VTAS # m/s to ft/s
+        velocity = states.VTAS 
         rpm = self.RPMmin + (self.RPMmax - self.RPMmin) * throttle  # RPM based on throttle input
-        omega = (rpm / 60)  # Convert RPM to rev/s
+        omega = (rpm / 60) 
 
 
         J = (velocity) / ((omega) * (self.radius * 2))   # non-dimensional

@@ -52,9 +52,9 @@ cruise = aircraft_conditions.RateofClimb(
 
 
 
-x57_controls.elevator.deflection.set_as_design_variable(lower=np.deg2rad(-50), upper=np.deg2rad(50),scaler=1e2)
-cruise.parameters.pitch_angle.set_as_design_variable(lower=np.deg2rad(-20), upper=np.deg2rad(20), scaler=1e2)
-cruise.parameters.flight_path_angle.set_as_design_variable(lower=np.deg2rad(-20), upper=np.deg2rad(20), scaler=1e2)
+x57_controls.elevator.deflection.set_as_design_variable(lower=np.deg2rad(-50), upper=np.deg2rad(50))
+cruise.parameters.pitch_angle.set_as_design_variable(lower=np.deg2rad(-20), upper=np.deg2rad(20))
+cruise.parameters.flight_path_angle.set_as_design_variable(lower=np.deg2rad(-20), upper=np.deg2rad(20))
 
 
 
@@ -67,8 +67,8 @@ for left_engine, right_engine in zip(x57_controls.hl_engines_left, x57_controls.
 
 
 for left_engine, right_engine in zip(x57_controls.cm_engines_left, x57_controls.cm_engines_right):
-    left_engine.throttle.set_as_design_variable(lower=1e-6, upper=1.0)
-    right_engine.throttle.set_as_design_variable(lower=1e-6, upper=1.0)
+    left_engine.throttle.set_as_design_variable(lower=0.0, upper=1.0)
+    right_engine.throttle.set_as_design_variable(lower=0.0, upper=1.0)
     cm_throttle_diff = (right_engine.throttle - left_engine.throttle) # setting all engines to the same throttle setting, because of symmetry
     cm_throttle_diff.name = f'CM throttle Diff{left_engine.throttle.name} - {right_engine.throttle.name}'
     cm_throttle_diff.set_as_constraint(equals=0)  
@@ -95,7 +95,7 @@ for i, hl_motor in enumerate(hl_motors):
     results = hl_prop.get_torque_power(states=cruise.ac_states, controls=x57_controls)
     hl_engine_torque = results['torque']
     hl_engine_torque.name = f'HL_Engine_{i}_Torque'
-    hl_engine_torque.set_as_constraint(lower=1e-6, upper=20.5, scaler=1e-2) # values from High-Lift Propeller Operating Conditions v2 paper
+    hl_engine_torque.set_as_constraint(lower=0.0, upper=20.5, scaler=1e-2) # values from High-Lift Propeller Operating Conditions v2 paper
 
 
 cruise_motors = [comp for comp in aircraft_component.comps['Wing'].comps.values() if comp._name.startswith('Cruise Motor')]
@@ -107,9 +107,9 @@ for i, cruise_motor in enumerate(cruise_motors):
     results = cruise_prop.get_torque_power(states=cruise.ac_states, controls=x57_controls)
     cm_engine_torque = results['torque']
     cm_engine_torque.name = f'Cruise_Engine_{i}_Torque'
-    cm_engine_torque.set_as_constraint(lower=1e-6, upper=225, scaler=1e-3) # values from x57_DiTTo_manuscript paper
+    cm_engine_torque.set_as_constraint(lower=0.0, upper=225, scaler=1e-3) # values from x57_DiTTo_manuscript paper
 
-x57_controls.update_controls(x57_controls.u)
+x57_controls.update_controls(x57_controls.u())
 
 tf, tm = aircraft_component.compute_total_loads(fd_state=cruise.ac_states,controls=x57_controls)
 
@@ -141,7 +141,7 @@ Total_torque_avail, Total_power_avail = aircraft_component.compute_total_torque_
 Total_torque_avail.name = 'Total Torque Available'
 Total_power_avail.name = 'Total Power Available'
 
-Obj_scaling = 1e-1
+Obj_scaling = 1
 Obj_res = (Total_power_avail*1e-3) * Obj_scaling
 Obj_res.name = 'Objective'
 Obj_res.set_as_objective()
@@ -153,22 +153,15 @@ sim = csdl.experimental.JaxSimulator(
     recorder=recorder,
     gpu=False,
     additional_inputs=[cruise.parameters.speed, cruise.parameters.altitude],
-    additional_outputs=[cruise.ac_states.VTAS, cruise.parameters.mach_number],
     derivatives_kwargs= {
         "concatenate_ofs" : True})
 
 
 
-# any values being swept through must be in SI units because even though the condition will accept imperial units as inputs, when the 
-# simulation is run in a loop, the sim[cruise.parameters.speed] assumes that the value has already been converted to SI units.
-# the below values work and they converge to a point
-# altitudes = np.array([8000]) * 0.3048 # altitudes in meters
-# speeds = np.array([150]) / 1.944 # KTAS to m/s
 
 altitudes = np.array([8000]) * 0.3048 # altitudes in meters
-speeds = np.array([80,90,100,110,120,130,140,150]) / 1.944 # KTAS to m/s
+speeds = np.array([150]) / 1.944 # KTAS to m/s
 
-# Create a dictionary with your results lists
 results_dict = {
     'VTAS': [],
     'Required Thrust': [],
@@ -298,10 +291,12 @@ for j, altitude in enumerate(altitudes):
 # Convert the dictionary to a DataFrame
 results_df = pd.DataFrame(results_dict)
 
-# Save the DataFrame to a CSV file
-results_df.to_csv('power_req_trim_sim_results.csv', index=False)
 
-
+import os
+outputs_folder_path = REPO_ROOT_FOLDER / 'AIAA Aviation 2025' / 'X-57'
+outputs_dir = os.path.join(outputs_folder_path, 'optimizations/results')
+os.makedirs(outputs_dir, exist_ok=True)
+results_df.to_csv(os.path.join(outputs_dir, 'power_req_trim_sim_results.csv'), index=False)
 
 
 

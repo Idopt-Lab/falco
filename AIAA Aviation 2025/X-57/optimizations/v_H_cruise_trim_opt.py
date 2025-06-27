@@ -52,9 +52,9 @@ cruise = aircraft_conditions.RateofClimb(
 
 
 
-x57_controls.elevator.deflection.set_as_design_variable(lower=np.deg2rad(-50), upper=np.deg2rad(50),scaler=1e2)
-cruise.parameters.pitch_angle.set_as_design_variable(lower=np.deg2rad(-20), upper=np.deg2rad(20), scaler=1e2)
-cruise.parameters.flight_path_angle.set_as_design_variable(lower=np.deg2rad(-20), upper=np.deg2rad(20), scaler=1e2)
+x57_controls.elevator.deflection.set_as_design_variable(lower=np.deg2rad(-30), upper=np.deg2rad(30))
+cruise.parameters.pitch_angle.set_as_design_variable(lower=np.deg2rad(-5), upper=np.deg2rad(10))
+cruise.parameters.flight_path_angle.set_as_design_variable(lower=np.deg2rad(-5), upper=np.deg2rad(10))
 cruise.parameters.mach_number.set_as_design_variable(lower=0.01, upper=0.3)
 
 
@@ -67,8 +67,8 @@ for left_engine, right_engine in zip(x57_controls.hl_engines_left, x57_controls.
 
 
 for left_engine, right_engine in zip(x57_controls.cm_engines_left, x57_controls.cm_engines_right):
-    left_engine.throttle.set_as_design_variable(lower=0.1, upper=1.0)
-    right_engine.throttle.set_as_design_variable(lower=0.1, upper=1.0)
+    left_engine.throttle.set_as_design_variable(lower=0.0, upper=1.0)
+    right_engine.throttle.set_as_design_variable(lower=0.0, upper=1.0)
     cm_throttle_diff = (right_engine.throttle - left_engine.throttle) # setting all engines to the same throttle setting, because of symmetry
     cm_throttle_diff.name = f'CM throttle Diff{left_engine.throttle.name} - {right_engine.throttle.name}'
     cm_throttle_diff.set_as_constraint(equals=0)  
@@ -95,7 +95,7 @@ for i, hl_motor in enumerate(hl_motors):
     results = hl_prop.get_torque_power(states=cruise.ac_states, controls=x57_controls)
     hl_engine_torque = results['torque']
     hl_engine_torque.name = f'HL_Engine_{i}_Torque'
-    hl_engine_torque.set_as_constraint(lower=1e-6, upper=20.5, scaler=1/20.5) # values from High-Lift Propeller Operating Conditions v2 paper
+    hl_engine_torque.set_as_constraint(lower=0.0, upper=20.5, scaler=1e-2) # values from High-Lift Propeller Operating Conditions v2 paper
 
 
 cruise_motors = [comp for comp in aircraft_component.comps['Wing'].comps.values() if comp._name.startswith('Cruise Motor')]
@@ -107,9 +107,9 @@ for i, cruise_motor in enumerate(cruise_motors):
     results = cruise_prop.get_torque_power(states=cruise.ac_states, controls=x57_controls)
     cm_engine_torque = results['torque']
     cm_engine_torque.name = f'Cruise_Engine_{i}_Torque'
-    cm_engine_torque.set_as_constraint(lower=1e-6, upper=225, scaler=1/225) # values from x57_DiTTo_manuscript paper
+    cm_engine_torque.set_as_constraint(lower=0.0, upper=225, scaler=1e-3) # values from x57_DiTTo_manuscript paper
 
-x57_controls.update_controls(x57_controls.u)
+x57_controls.update_controls(x57_controls.u())
 
 tf, tm = aircraft_component.compute_total_loads(fd_state=cruise.ac_states,controls=x57_controls)
 
@@ -119,29 +119,30 @@ Lift = - x57_aerodynamics.get_FM_localAxis(states=cruise.ac_states, controls=x57
 Moment = x57_aerodynamics.get_FM_localAxis(states=cruise.ac_states, controls=x57_controls, axis=axis_dict['wing_axis'])['loads'].M.vector[1]
 PowerR = Drag * cruise.ac_states.VTAS
 
-Lift_scaling = 1 / (aircraft_component.mass_properties.mass * 9.81)
+Lift_scaling = 1/csdl.absolute(Lift)
 Drag_scaling = 1/csdl.absolute(Drag)
 Moment_scaling = 1/csdl.absolute(Moment)
 
 
 res1 = tf[0] * Drag_scaling
 res1.name = 'Fx Force'
-res1.set_as_constraint(lower=-1e-4, upper=1e-4)  # setting a small value to ensure the thrust is close to zero
+res1.set_as_constraint(equals=0.0)  # setting a small value to ensure the thrust is close to zero
 
 res2 = tf[2] * Lift_scaling
 res2.name = 'Fz Force'
-res2.set_as_constraint(lower=-1e-4, upper=1e-4)
+res2.set_as_constraint(equals=0.0)
 
 res4 = tm[1] * Moment_scaling
 res4.name = 'My Moment'
-res4.set_as_constraint(lower=-1e-4, upper=1e-4) 
+res4.set_as_constraint(equals=0.0) 
+
 
 Total_torque_avail, Total_power_avail = aircraft_component.compute_total_torque_total_power(fd_state=cruise.ac_states,controls=x57_controls)
 Total_torque_avail.name = 'Total Torque Available'
 Total_power_avail.name = 'Total Power Available'
 
-Obj_scaling = 1 / (Total_power_avail*1e-3)
-Obj_res = (Total_power_avail*1e-3) * Obj_scaling
+Obj_scaling = 1e-1
+Obj_res = -(cruise.ac_states.VTAS) * Obj_scaling
 Obj_res.name = 'Objective'
 Obj_res.set_as_objective()
 
@@ -153,7 +154,6 @@ sim = csdl.experimental.JaxSimulator(
     recorder=recorder,
     gpu=False,
     additional_inputs=[cruise.parameters.altitude],
-    additional_outputs=[cruise.ac_states.VTAS, cruise.parameters.mach_number],
     derivatives_kwargs= {
         "concatenate_ofs" : True})
 
@@ -163,22 +163,23 @@ TAvails = []
 PAvails = []
 PReqs = []
 
-# speeds = [76.8909] # in m/s, this is the cruise speed from the X57 CFD data
-# any values being swept through must be in SI units because even though the condition will accept imperial units as inputs, when the 
-# simulation is run in a loop, the sim[cruise.parameters.speed] assumes that the value has already been converted to SI units.
+
+alts = np.array([8000]) * 0.3048
 
 
-alts = np.array([1000,2000,3000,4000,5000,6000,7000,8000]) * 0.3048
-Drags = []
-Lifts = []
-LD_ratios = []
-vtas_list = []
-eta_list = []
-Jval_list = []
-CL_list = []
-CD_list = []
-machs = []
-
+results_dict = {
+    'VTAS': [],
+    'Required Thrust': [],
+    'Required Power (kW)': [],
+    'Drag': [],
+    'Lift': [],
+    'L/D Ratio': [],
+    'Propeller Efficiency': [],
+    'J Value': [],
+    'CL': [],
+    'CD': [],
+    'Mach Number': [],
+}
 
 
 for i, alt in enumerate(alts):
@@ -189,7 +190,7 @@ for i, alt in enumerate(alts):
 
     sim.check_optimization_derivatives()
     t1 = time.time()
-    prob = CSDLAlphaProblem(problem_name='v_BE_cruise_opt', simulator=sim)
+    prob = CSDLAlphaProblem(problem_name='v_H_cruise_opt', simulator=sim)
     optimizer = IPOPT(problem=prob)
     optimizer.solve()
     optimizer.print_results()
@@ -199,20 +200,18 @@ for i, alt in enumerate(alts):
 
     
     results = cruise_prop.get_torque_power(states=cruise.ac_states, controls=x57_controls)
-    prop_efficiency = results['eta'] 
-    eta_list.append(prop_efficiency.value[0])
-    Jval = results['J']
-    Jval_list.append(Jval.value[0])
+    results_dict['VTAS'].append(cruise.ac_states.VTAS.value[0])
+    results_dict['Required Thrust'].append(Total_torque_avail.value[0])
+    results_dict['Required Power (kW)'].append(Total_power_avail.value[0] * 1e-3)  # Convert to kW
+    results_dict['Drag'].append(Drag.value[0])
+    results_dict['Lift'].append(Lift.value[0])
+    results_dict['L/D Ratio'].append(Lift.value[0] / Drag.value[0])
+    results_dict['Propeller Efficiency'].append(results['eta'].value[0])
+    results_dict['J Value'].append(results['J'].value[0])
+    results_dict['CL'].append(CL.value[0])
+    results_dict['CD'].append(CD.value[0])
+    results_dict['Mach Number'].append(cruise.parameters.mach_number.value[0])
 
-    vtas_list.append(cruise.ac_states.VTAS.value[0])
-    TRequireds.append(Drag.value[0])
-    PReqs.append(PowerR.value[0] * 1e-3)  # Convert to kW
-    Drags.append(Drag.value[0])
-    Lifts.append(Lift.value[0])
-    LD_ratios.append(Lift.value[0] / Drag.value[0])
-    CL_list.append(CL.value[0])
-    CD_list.append(CD.value[0])
-    machs.append(cruise.parameters.mach_number.value[0])
 
 
     dv_save_dict = {}
@@ -271,8 +270,6 @@ for i, alt in enumerate(alts):
     print(cruise.ac_states.alpha.value * 180 / np.pi)
     print('Power Required (kW)')
     print(PowerR.value[0])
-    # print('Power Required Residual')
-    # print(PowerR_residual.value[0])
     print('CL')
     print(CL.value[0])
     print('CD')
@@ -289,72 +286,15 @@ for i, alt in enumerate(alts):
 
 
 
-# Create a dictionary with your results lists
-results_dict = {
-    'VTAS': vtas_list,
-    'Required Thrust': TRequireds,
-    'Required Power (kW)': PReqs,
-    'Drag': Drags,
-    'Lift': Lifts,
-    'L/D Ratio': LD_ratios,
-    'Propeller Efficiency': eta_list,
-    'J Value': Jval_list,
-    'CL': CL_list,
-    'CD': CD_list,
-    'Mach Number': machs,
-}
 
 # Convert the dictionary to a DataFrame
 results_df = pd.DataFrame(results_dict)
 
-# Save the DataFrame to a CSV file
-results_df.to_csv('v_BE_cruise_opt.csv', index=False)
-
-
-
-
-import matplotlib.pyplot as plt
-
-
-plt.figure()
-plt.plot(Jval_list, eta_list, marker='s', linestyle='--', label='Propeller Efficiency')
-plt.xlabel('Advaced Ratio (J)')
-plt.ylabel('Propeller Efficiency')
-plt.title('Propeller Efficiency vs. Advaced Ratio (J)')
-plt.grid(True)
-plt.legend()
-plt.show()
-
-
-
-plt.figure()
-plt.plot(vtas_list, TRequireds, marker='s', linestyle='--', label='Required Thrust')
-plt.xlabel('True Airspeed (VTAS) [m/s]')
-plt.ylabel('Thrust (N)')
-plt.title('Thrust vs. VTAS')
-plt.grid(True)
-plt.legend()
-plt.show()
-
-plt.figure()
-plt.plot(vtas_list, PReqs, marker='s', linestyle='--', label='Required Power')
-plt.xlabel('True Airspeed (VTAS) [m/s]')
-plt.ylabel('Power (kW)')
-plt.title('Power vs. VTAS')
-plt.grid(True)
-plt.legend()
-plt.show()
-
-
-plt.figure()
-plt.plot(vtas_list, LD_ratios, marker='s', linestyle='--', label='L/D Ratio')
-plt.xlabel('True Airspeed (VTAS) [m/s]')
-plt.ylabel('L/D Ratio')
-plt.title('L/D Ratio vs. VTAS')
-plt.grid(True)
-plt.legend()
-plt.show()
-
+import os
+outputs_folder_path = REPO_ROOT_FOLDER / 'AIAA Aviation 2025' / 'X-57'
+outputs_dir = os.path.join(outputs_folder_path, 'optimizations/results')
+os.makedirs(outputs_dir, exist_ok=True)
+results_df.to_csv(os.path.join(outputs_dir, 'v_H_cruise_opt.csv'), index=False)
 
 
 

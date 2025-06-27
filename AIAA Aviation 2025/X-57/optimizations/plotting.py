@@ -52,7 +52,7 @@ plt.legend()
 plt.show()
 
 plt.figure()
-plt.plot(results_df2['VTAS'], -results_df2['Rate of Descent'], marker='^', linestyle='--', label='Rate of Climb')
+plt.plot(results_df2['VTAS'], -results_df2['Climb Rate'], marker='^', linestyle='--', label='Rate of Climb')
 plt.xlabel('VTAS (m/s)')
 plt.ylabel('Rate of Climb (m/s)')
 plt.title('Rate of Climb vs VTAS')
@@ -81,7 +81,7 @@ plt.vlines(128, ymin=-1000, ymax=-800, colors='black', linestyles='--', label=r'
 plt.xlabel('KTAS (knots)')
 plt.ylim(-1000, 0)
 plt.ylabel('Sink Rate (ft/min)')
-plt.title('Sink Rate vs KTAS')
+# plt.title('Sink Rate vs KTAS')
 plt.grid(True)
 plt.legend()
 plt.tight_layout()
@@ -105,7 +105,7 @@ plt.vlines(Vbe_x, ymin=0, ymax=max(ld_curve2), colors='red', linestyles='--', la
 
 plt.xlabel(r"KTAS (knots)")
 plt.ylabel(r"$\frac{C_{L}}{C_{D}}$")
-plt.title(r"$\frac{C_{L}}{C_{D}}$ vs KTAS")
+# plt.title(r"$\frac{C_{L}}{C_{D}}$ vs KTAS")
 
 plt.grid(True, linestyle=':', linewidth=0.6)
 plt.legend()
@@ -115,20 +115,6 @@ plt.show()
 
 
 
-csv_file4 = 'alpha_vs_CL_WITHOUT.csv'
-results_df4 = pd.read_csv(csv_file4)
-csv_file5 = 'alpha_vs_CL_WITH.csv'
-results_df5 = pd.read_csv(csv_file5)
-
-plt.figure()
-plt.plot(results_df4['Alpha'] * 180/np.pi, results_df4['CL'], marker='o', linestyle='-', label='Without Blowers')
-plt.plot(results_df5['Alpha'] * 180/np.pi, results_df5['CL'], marker='s', linestyle='--', label='With Blowers')
-plt.xlabel('Angle of Attack (degrees)')
-plt.ylabel('Lift Coefficient (CL)')
-plt.title('Lift Coefficient vs Angle of Attack')
-plt.grid(True)
-plt.legend()
-plt.show()
 
 
 

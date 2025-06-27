@@ -52,9 +52,9 @@ cruise = aircraft_conditions.RateofClimb(
 
 
 
-x57_controls.elevator.deflection.set_as_design_variable(lower=np.deg2rad(-50), upper=np.deg2rad(50),scaler=1e2)
-cruise.parameters.pitch_angle.set_as_design_variable(lower=np.deg2rad(-50), upper=np.deg2rad(50), scaler=1e2)
-cruise.parameters.flight_path_angle.set_as_design_variable(lower=np.deg2rad(-50), upper=np.deg2rad(50), scaler=1e2)
+x57_controls.elevator.deflection.set_as_design_variable(lower=np.deg2rad(-50), upper=np.deg2rad(50))
+cruise.parameters.pitch_angle.set_as_design_variable(lower=np.deg2rad(-50), upper=np.deg2rad(50))
+cruise.parameters.flight_path_angle.set_as_design_variable(lower=np.deg2rad(-50), upper=np.deg2rad(50))
 
 
 
@@ -105,7 +105,7 @@ for i, cruise_motor in enumerate(cruise_motors):
     cm_engine_torque.name = f'Cruise_Engine_{i}_Torque'
     cm_engine_torque.set_as_constraint(lower=1e-6, upper=225, scaler=1/225) # values from x57_DiTTo_manuscript paper
 
-x57_controls.update_controls(x57_controls.u)
+x57_controls.update_controls(x57_controls.u())
 
 tf, tm = aircraft_component.compute_total_loads(fd_state=cruise.ac_states,controls=x57_controls)
 
@@ -157,22 +157,17 @@ sim = csdl.experimental.JaxSimulator(
     recorder=recorder,
     gpu=False,
     additional_inputs=[cruise.parameters.speed, cruise.parameters.altitude],
-    additional_outputs=[cruise.ac_states.VTAS, Total_power_avail, Total_torque_avail],
     derivatives_kwargs= {
         "concatenate_ofs" : True})
 
 
 
 
-# speeds = [76.8909] # in m/s, this is the cruise speed from the X57 CFD data
-# any values being swept through must be in SI units because even though the condition will accept imperial units as inputs, when the 
-# simulation is run in a loop, the sim[cruise.parameters.speed] assumes that the value has already been converted to SI units.
 
 
-altitudes = np.array([1000,2000,3000,4000,5000,6000,7000,8000])*0.3048
-speeds = np.array([80, 90, 100, 110, 120, 130, 140, 150]) / 1.944 # KTAS to m/s
+altitudes = np.array([8000])*0.3048
+speeds = np.array([150]) / 1.944 # KTAS to m/s
 
-# Create a dictionary with your results lists
 results_dict = {
     'VTAS': [],
     'Required Thrust': [],
@@ -246,15 +241,12 @@ for j, altitude in enumerate(altitudes):
 
         for dv in dv_dict.keys():
             dv_save_dict[dv.name] = dv.value
-            # print("Design Variable", dv.name, dv.value)
 
         for c in constraint_dict.keys():
             constraints_save_dict[c.name] = c.value
-            # print("Constraint", c.name, c.value)
 
         for obj in obj_dict.keys():
             obj_save_dict[obj.name] = obj.value
-            # print("Objective", obj.name, obj.value)
 
         print("=====Aircraft States=====")
         print("Aircraft Conditions")
@@ -307,9 +299,11 @@ for j, altitude in enumerate(altitudes):
 # Convert the dictionary to a DataFrame
 results_df = pd.DataFrame(results_dict)
 
-# Save the DataFrame to a CSV file
-results_df.to_csv('power_avail_trim_sim_results.csv', index=False)
 
-
+import os
+outputs_folder_path = REPO_ROOT_FOLDER / 'AIAA Aviation 2025' / 'X-57'
+outputs_dir = os.path.join(x57_folder_path, 'optimizations/results')
+os.makedirs(outputs_dir, exist_ok=True)
+results_df.to_csv(os.path.join(outputs_dir, 'power_avail_trim_sim_results.csv'), index=False)
 
 recorder.stop()

@@ -43,14 +43,15 @@ cruise = aircraft_conditions.CruiseCondition(
     fd_axis=axis_dict['fd_axis'],
     controls=x57_controls,
     altitude=Q_(8000, 'ft'),
-    range=Q_(160, 'km'),
-    speed=Q_(76.8909, 'm/s'),
+    range=Q_(100, 'km'),
+    mach_number=Q_(0.2, 'dimensionless'),
     pitch_angle=Q_(0, 'deg'))
 
 
 
-x57_controls.elevator.deflection.set_as_design_variable(lower=np.deg2rad(-50), upper=np.deg2rad(50),scaler=1e2)
-cruise.parameters.pitch_angle.set_as_design_variable(lower=np.deg2rad(-20), upper=np.deg2rad(20), scaler=1e2)
+x57_controls.elevator.deflection.set_as_design_variable(lower=np.deg2rad(x57_controls.elevator.lower_bound), upper=np.deg2rad(x57_controls.elevator.upper_bound))
+cruise.parameters.pitch_angle.set_as_design_variable(lower=np.deg2rad(-5), upper=np.deg2rad(10))
+cruise.parameters.mach_number.set_as_design_variable(lower=0.01, upper=0.3)
 
 
 
@@ -63,8 +64,8 @@ for left_engine, right_engine in zip(x57_controls.hl_engines_left, x57_controls.
 
 
 for left_engine, right_engine in zip(x57_controls.cm_engines_left, x57_controls.cm_engines_right):
-    left_engine.throttle.set_as_design_variable(lower=0.3, upper=1.0)
-    right_engine.throttle.set_as_design_variable(lower=0.3, upper=1.0)
+    left_engine.throttle.set_as_design_variable(lower=0.0, upper=1.0)
+    right_engine.throttle.set_as_design_variable(lower=0.0, upper=1.0)
     cm_throttle_diff = (right_engine.throttle - left_engine.throttle) # setting all engines to the same throttle setting, because of symmetry
     cm_throttle_diff.name = f'CM throttle Diff{left_engine.throttle.name} - {right_engine.throttle.name}'
     cm_throttle_diff.set_as_constraint(equals=0)  
@@ -89,7 +90,7 @@ for i, hl_motor in enumerate(hl_motors):
     hl_results = hl_prop.get_torque_power(states=cruise.ac_states, controls=x57_controls)
     hl_engine_torque = hl_results['torque']
     hl_engine_torque.name = f'HL_Engine_{i}_Torque'
-    hl_engine_torque.set_as_constraint(lower=1e-6, upper=20.5, scaler=1/20.5) # values from High-Lift Propeller Operating Conditions v2 paper
+    hl_engine_torque.set_as_constraint(lower=0.0, upper=20.5, scaler=1e-2) # values from High-Lift Propeller Operating Conditions v2 paper
 
 
 cruise_motors = [comp for comp in aircraft_component.comps['Wing'].comps.values() if comp._name.startswith('Cruise Motor')]
@@ -101,9 +102,8 @@ for i, cruise_motor in enumerate(cruise_motors):
     cm_results = cruise_prop.get_torque_power(states=cruise.ac_states, controls=x57_controls)
     cm_engine_torque = cm_results['torque']
     cm_engine_torque.name = f'Cruise_Engine_{i}_Torque'
-    cm_engine_torque.set_as_constraint(lower=1e-6, upper=225, scaler=1/225) # values from x57_DiTTo_manuscript paper
+    cm_engine_torque.set_as_constraint(lower=0.0, upper=225, scaler=1e-3) # values from x57_DiTTo_manuscript paper
 
-# x57_controls.update_controls(x57_controls.u)
 
 tf, tm = aircraft_component.compute_total_loads(fd_state=cruise.ac_states,controls=x57_controls)
 
@@ -119,25 +119,21 @@ Moment_scaling = 1/csdl.absolute(Moment)
 
 res1 = tf[0] * Drag_scaling 
 res1.name = 'Fx Force'
-res1.set_as_constraint(lower=-1e-6,upper=1e-6) 
+res1.set_as_constraint(equals=0.0) 
 
 res2 = tf[2] * Lift_scaling
 res2.name = 'Fz Force'
-res2.set_as_constraint(lower=-1e-6,upper=1e-6)
+res2.set_as_constraint(equals=0.0)
 
 res4 = tm[1] * Moment_scaling
 res4.name = 'My Moment'
-res4.set_as_constraint(lower=-1e-6,upper=1e-6)
+res4.set_as_constraint(equals=0.0)
 
-FM = csdl.concatenate((Drag_scaling * tf[0], Lift_scaling * tf[2], Moment_scaling * tm[1]), axis=0)
-FM_res = csdl.absolute(csdl.norm(FM, ord=2))
-FM_res.name = 'FM Minimization Objective'
-FM_res.set_as_objective()  # Scale the objective for better optimization performance
-
+cruise_r, cruise_x = cruise.evaluate_eom(component=aircraft_component, forces=tf, moments=tm)
+velocity_residual = cruise_r[9] * 1e-1
+velocity_residual.set_as_objective()
 
 Total_torque_avail, Total_power_avail = aircraft_component.compute_total_torque_total_power(fd_state=cruise.ac_states,controls=x57_controls)
-# print("Total Torque Available:", Total_torque_avail.value)
-# print("Total Power Available:", Total_power_avail.value)
 Total_power_avail.name = 'Total Power Available'
 
 
@@ -145,30 +141,17 @@ Total_power_avail.name = 'Total Power Available'
 sim = csdl.experimental.JaxSimulator(
     recorder=recorder,
     gpu=False,
-    additional_inputs=[cruise.parameters.speed, cruise.parameters.altitude],
-    additional_outputs=[cruise.ac_states.VTAS],
+    additional_inputs=[cruise.parameters.altitude],
     derivatives_kwargs= {
         "concatenate_ofs" : True})
 
 
-TRequireds = []
-TAvails = []
-PAvails = []
-PReqs = []
-# speeds = np.linspace(10, 76.8909, 5) # in m/s
-speeds = np.array([80,90,100,110,120,130,140,150]) / 1.944  # Convert knots to m/s
-altitudes = np.array([1000,2000,3000,4000,5000,6000,7000,8000])*0.3048
-Drags = []
-Lifts = []
-LD_ratios = []
-vtas_list = []
-eta_list = []
-Jval_list = []
-elevator_deflections = []
+altitudes = np.array([8000])*0.3048
+
 
 results = {
     'VTAS': [],
-    'Altitude': [],
+    'Altitudes': [],
     'Drag': [],
     'Lift': [],
     'Moment': [],
@@ -176,121 +159,101 @@ results = {
     'CD': [],
     'CM': [],
     'Elevator Deflection': [],
+    'Alpha': [],
+    'Flight Path Angle': [],
+    'Pitch Angle': [],
 }
 
 
 for j, alt in enumerate(altitudes):
+    sim[cruise.parameters.altitude] = alt
+    recorder.execute()
+    sim.check_optimization_derivatives()
+    t1 = time.time()
+    prob = CSDLAlphaProblem(problem_name='v_stall_cruise_trim_opt', simulator=sim)
+    optimizer = IPOPT(problem=prob)
+    optimizer.solve()
+    optimizer.print_results()
+    t2 = time.time()
+    print('Time to solve Optimization:', t2-t1)
+    recorder.execute()
 
-    for i, speed in enumerate(speeds):
-
-        sim[cruise.parameters.speed] = speed
-        sim[cruise.parameters.altitude] = alt
-        recorder.execute()
-
-
-        # sim.check_optimization_derivatives()
-        t1 = time.time()
-        prob = CSDLAlphaProblem(problem_name='trim_FM_min_opt', simulator=sim)
-        optimizer = IPOPT(problem=prob)
-        optimizer.solve()
-        optimizer.print_results()
-        t2 = time.time()
-        print('Time to solve Optimization:', t2-t1)
-        recorder.execute()
-
-        results['VTAS'].append(cruise.ac_states.VTAS.value[0])
-        results['Altitude'].append(cruise.parameters.altitude.value[0])
-        results['Drag'].append(Drag.value[0])
-        results['Lift'].append(Lift.value[0])
-        results['Moment'].append(Moment.value[0])
-        results['CL'].append(CL.value[0])
-        results['CD'].append(CD.value[0])
-        results['CM'].append(CM.value[0])
-        results['Elevator Deflection'].append(x57_controls.elevator.deflection.value[0] * 180 / np.pi)
+    results['VTAS'].append(cruise_r[9].value)
+    results['Altitudes'].append(alt)
+    results['Drag'].append(Drag.value[0])
+    results['Lift'].append(Lift.value[0])
+    results['Moment'].append(Moment.value[0])
+    results['CL'].append(CL.value[0])
+    results['CD'].append(CD.value[0])
+    results['CM'].append(CM.value[0])
+    results['Elevator Deflection'].append(x57_controls.elevator.deflection.value[0] * 180 / np.pi)
+    results['Alpha'].append(cruise.ac_states.alpha.value[0] * 180 / np.pi)
+    results['Flight Path Angle'].append(cruise.ac_states.gamma.value[0] * 180 / np.pi)
+    results['Pitch Angle'].append(cruise.ac_states.states.theta.value[0] * 180 / np.pi)
 
 
-        prop_results = cruise_prop.get_torque_power(states=cruise.ac_states, controls=x57_controls)
-        prop_efficiency = prop_results['eta'] 
-        eta_list.append(prop_efficiency.value[0])
-        Jval = prop_results['J']
-        Jval_list.append(Jval.value[0])
+    dv_save_dict = {}
+    constraints_save_dict = {}
+    obj_save_dict = {}
 
-        dv_save_dict = {}
-        constraints_save_dict = {}
-        obj_save_dict = {}
+    dv_dict = recorder.design_variables
+    constraint_dict = recorder.constraints
+    obj_dict = recorder.objectives
 
-        dv_dict = recorder.design_variables
-        constraint_dict = recorder.constraints
-        obj_dict = recorder.objectives
+    for dv in dv_dict.keys():
+        dv_save_dict[dv.name] = dv.value
 
-        for dv in dv_dict.keys():
-            dv_save_dict[dv.name] = dv.value
-            # print("Design Variable", dv.name, dv.value)
+    for c in constraint_dict.keys():
+        constraints_save_dict[c.name] = c.value
 
-        for c in constraint_dict.keys():
-            constraints_save_dict[c.name] = c.value
-            # print("Constraint", c.name, c.value)
+    for obj in obj_dict.keys():
+        obj_save_dict[obj.name] = obj.value
 
-        for obj in obj_dict.keys():
-            obj_save_dict[obj.name] = obj.value
-            # print("Objective", obj.name, obj.value)
-
-        print("=====Aircraft States=====")
-        print("Aircraft Conditions")
-        print(cruise)
-        print("Mach Number")
-        print(cruise.ac_states.VTAS.value[0]/ cruise.ac_states.atmospheric_states.speed_of_sound.value[0])
-        print("KTAS (knots)")
-        print(cruise.ac_states.VTAS.value[0] * 1.944)  # Convert m/s to knots
-        print("Throttle")
-        for engine in x57_controls.engines:
-            print(engine.throttle.value)
-        print("High Lift Engine Torque (N*m)")
-        for engine in x57_controls.hl_engines:  
-            print(hl_engine_torque.value)  
-        print("Cruise Engine Torque (N*m)")
-        for engine in x57_controls.cm_engines:
-            print(cm_engine_torque.value)
-        print("Total Torque Available (N*m)")
-        print(Total_torque_avail.value)    
-        print("Elevator Deflection (deg)")
-        print(x57_controls.pitch_control['Elevator'].deflection.value * 180 / np.pi)
-        print("Pitch Angle (deg)")
-        print(cruise.ac_states.states.theta.value * 180 / np.pi)
-        print('Flight Path Angle (deg)')
-        print(cruise.ac_states.gamma.value * 180 / np.pi)
-        print('Angle of Attack (deg)')
-        print(cruise.ac_states.alpha.value * 180 / np.pi)
-        print("Residual Magnitude: (FM Minimization)")
-        print(FM.value)
-        print("Residual Norm")
-        print(csdl.norm(FM, ord=2).value)
+    print("=====Aircraft States=====")
+    print("Aircraft Conditions")
+    print(cruise)
+    print("Mach Number")
+    print(cruise_r[9].value/ cruise.ac_states.atmospheric_states.speed_of_sound.value[0])
+    print("STALL SPEED KTAS (knots)")
+    print(cruise_r[9].value * 1.944)  # Convert m/s to knots
+    print("Throttle")
+    for engine in x57_controls.engines:
+        print(engine.throttle.value)
+    print("High Lift Engine Torque (N*m)")
+    for engine in x57_controls.hl_engines:  
+        print(hl_engine_torque.value)  
+    print("Cruise Engine Torque (N*m)")
+    for engine in x57_controls.cm_engines:
+        print(cm_engine_torque.value)
+    print("Total Torque Available (N*m)")
+    print(Total_torque_avail.value)    
+    print("Elevator Deflection (deg)")
+    print(x57_controls.pitch_control['Elevator'].deflection.value * 180 / np.pi)
+    print("Pitch Angle (deg)")
+    print(cruise.ac_states.states.theta.value * 180 / np.pi)
+    print('Flight Path Angle (deg)')
+    print(cruise.ac_states.gamma.value * 180 / np.pi)
+    print('Angle of Attack (deg)')
+    print(cruise.ac_states.alpha.value * 180 / np.pi)
 
 
-        vtas_list.append(cruise.ac_states.VTAS.value[0])
-        TRequireds.append(Drag.value[0])
-        PReqs.append(Drag.value[0] * cruise.ac_states.VTAS.value[0] * 1e-3)  # Convert to kW
-        PAvails.append(Total_power_avail.value[0] * 1e-3)  # Convert to kW
-        Drags.append(Drag.value[0])
-        Lifts.append(Lift.value[0])
-        LD_ratios.append(Lift.value[0] / Drag.value[0])
 
 
-        print("TF[0]", tf[0].value)
-        print("TF[1]", tf[1].value)
-        print("TF[2]", tf[2].value)
-        print("TM[0]", tm[0].value)
-        print("TM[1]", tm[1].value)
-        print("TM[2]", tm[2].value)
+    print("TF[0]", tf[0].value)
+    print("TF[1]", tf[1].value)
+    print("TF[2]", tf[2].value)
+    print("TM[0]", tm[0].value)
+    print("TM[1]", tm[1].value)
+    print("TM[2]", tm[2].value)
 
 # Convert the dictionary to a DataFrame
 results_df = pd.DataFrame(results)
 
-# Save the DataFrame to a CSV file
-with open('trim_FM_min.csv', 'w') as f:
-    results_df.to_csv(f, index=False)
-
-
+import os
+outputs_folder_path = REPO_ROOT_FOLDER / 'AIAA Aviation 2025' / 'X-57'
+outputs_dir = os.path.join(outputs_folder_path, 'optimizations/results')
+os.makedirs(outputs_dir, exist_ok=True)
+results_df.to_csv(os.path.join(outputs_dir, 'v_stall_cruise_trim_opt.csv'), index=False)
 
 
 
