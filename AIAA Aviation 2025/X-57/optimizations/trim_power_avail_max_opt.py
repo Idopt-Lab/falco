@@ -302,7 +302,7 @@ results_df = pd.DataFrame(results_dict)
 
 import os
 outputs_folder_path = REPO_ROOT_FOLDER / 'AIAA Aviation 2025' / 'X-57'
-outputs_dir = os.path.join(x57_folder_path, 'optimizations/results')
+outputs_dir = os.path.join(outputs_folder_path, 'optimizations/results')
 os.makedirs(outputs_dir, exist_ok=True)
 results_df.to_csv(os.path.join(outputs_dir, 'power_avail_trim_sim_results.csv'), index=False)
 
