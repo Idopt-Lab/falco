@@ -2,6 +2,11 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import numpy as np
+from flight_simulator import REPO_ROOT_FOLDER, Q_
+import sys
+
+results_folder_path = REPO_ROOT_FOLDER / 'AIAA Aviation 2025' / 'X-57' / 'optimizations' / 'results'
+sys.path.append(str(results_folder_path))
 
 mpl.rcParams.update({
     "text.usetex": False,
@@ -18,9 +23,9 @@ mpl.rcParams.update({
 })
 
 # Load the CSV file
-csv_file1 = 'power_req_trim_sim_results.csv'
-csv_file2 = 'power_avail_trim_sim_results.csv'
-csv_file3 = 'glide_perf_trim_sim_results.csv'
+csv_file1 = results_folder_path / 'power_req_trim_sim_results.csv'
+csv_file2 = results_folder_path / 'power_avail_trim_sim_results.csv'
+csv_file3 = results_folder_path / 'glide_perf_trim_sim_results.csv'
 results_df1 = pd.read_csv(csv_file1)
 results_df2 = pd.read_csv(csv_file2)
 results_df3 = pd.read_csv(csv_file3)
@@ -81,11 +86,11 @@ plt.vlines(128, ymin=-1000, ymax=-800, colors='black', linestyles='--', label=r'
 plt.xlabel('KTAS (knots)')
 plt.ylim(-1000, 0)
 plt.ylabel('Sink Rate (ft/min)')
-# plt.title('Sink Rate vs KTAS')
+plt.title('Sink Rate vs KTAS')
 plt.grid(True)
 plt.legend()
 plt.tight_layout()
-plt.savefig("Sink_Rate_vs_ktas.pdf", format='pdf', bbox_inches='tight')
+plt.savefig(results_folder_path / "figures" / "Sink_Rate_vs_ktas.pdf", format='pdf', bbox_inches='tight')
 plt.show()
 
 
@@ -105,12 +110,12 @@ plt.vlines(Vbe_x, ymin=0, ymax=max(ld_curve2), colors='red', linestyles='--', la
 
 plt.xlabel(r"KTAS (knots)")
 plt.ylabel(r"$\frac{C_{L}}{C_{D}}$")
-# plt.title(r"$\frac{C_{L}}{C_{D}}$ vs KTAS")
+plt.title(r"$\frac{C_{L}}{C_{D}}$ vs KTAS")
 
 plt.grid(True, linestyle=':', linewidth=0.6)
 plt.legend()
 plt.tight_layout()
-plt.savefig("clcd_vs_ktas.pdf", format='pdf', bbox_inches='tight')
+plt.savefig(results_folder_path / "figures" / "clcd_vs_ktas.pdf", format='pdf', bbox_inches='tight')
 plt.show()
 
 
