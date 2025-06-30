@@ -78,7 +78,7 @@ x_values = np.linspace(x1, x2, len(KTAS))
 y_values = m * x_values + b
 
 plt.figure(figsize=(6.5, 4.5), dpi=600)
-mask = KTAS >= 120 # VSTALL from https://ntrs.nasa.gov/api/citations/20240010807/downloads/x57_performance_manuscript-v4.pdf
+mask = KTAS >= 120 # from https://ntrs.nasa.gov/api/citations/20240010807/downloads/x57_performance_manuscript-v4.pdf
 plt.plot(KTAS[mask], -FPM[mask] / ((results_df3['CL'] / results_df3['CD'])[mask]),
          marker='^', linestyle='--', label='Sink Rate')
 plt.plot(x_values, y_values, marker='o', linestyle='-')
