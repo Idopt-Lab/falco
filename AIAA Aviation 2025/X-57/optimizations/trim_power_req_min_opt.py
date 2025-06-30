@@ -51,9 +51,8 @@ cruise = aircraft_conditions.RateofClimb(
     flight_path_angle= Q_(0.5, 'deg'))
 
 
-
 x57_controls.elevator.deflection.set_as_design_variable(lower=np.deg2rad(-50), upper=np.deg2rad(50))
-cruise.parameters.pitch_angle.set_as_design_variable(lower=np.deg2rad(-20), upper=np.deg2rad(20))
+cruise.parameters.pitch_angle.set_as_design_variable(lower=np.deg2rad(-5), upper=np.deg2rad(30))
 cruise.parameters.flight_path_angle.set_as_design_variable(lower=np.deg2rad(-20), upper=np.deg2rad(20))
 
 
@@ -67,8 +66,8 @@ for left_engine, right_engine in zip(x57_controls.hl_engines_left, x57_controls.
 
 
 for left_engine, right_engine in zip(x57_controls.cm_engines_left, x57_controls.cm_engines_right):
-    left_engine.throttle.set_as_design_variable(lower=0.0, upper=1.0)
-    right_engine.throttle.set_as_design_variable(lower=0.0, upper=1.0)
+    left_engine.throttle.set_as_design_variable(lower=0.2, upper=1.0)
+    right_engine.throttle.set_as_design_variable(lower=0.2, upper=1.0)
     cm_throttle_diff = (right_engine.throttle - left_engine.throttle) # setting all engines to the same throttle setting, because of symmetry
     cm_throttle_diff.name = f'CM throttle Diff{left_engine.throttle.name} - {right_engine.throttle.name}'
     cm_throttle_diff.set_as_constraint(equals=0)  
@@ -119,7 +118,7 @@ Lift = - x57_aerodynamics.get_FM_localAxis(states=cruise.ac_states, controls=x57
 Moment = x57_aerodynamics.get_FM_localAxis(states=cruise.ac_states, controls=x57_controls, axis=axis_dict['wing_axis'])['loads'].M.vector[1]
 PowerR = Drag * cruise.ac_states.VTAS
 
-Lift_scaling = 1/csdl.absolute(Lift)
+Lift_scaling = 1/(aircraft_component.mass_properties.mass * 9.81)
 Drag_scaling = 1/csdl.absolute(Drag)
 Moment_scaling = 1/csdl.absolute(Moment)
 
@@ -160,7 +159,7 @@ sim = csdl.experimental.JaxSimulator(
 
 
 altitudes = np.array([8000]) * 0.3048 # altitudes in meters
-speeds = np.array([150]) / 1.944 # KTAS to m/s
+speeds = np.array([80,90,100,110,120,130,140,150]) / 1.944 # KTAS to m/s
 
 results_dict = {
     'VTAS': [],

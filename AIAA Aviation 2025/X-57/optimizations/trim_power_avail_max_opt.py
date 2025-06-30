@@ -53,8 +53,8 @@ cruise = aircraft_conditions.RateofClimb(
 
 
 x57_controls.elevator.deflection.set_as_design_variable(lower=np.deg2rad(-50), upper=np.deg2rad(50))
-cruise.parameters.pitch_angle.set_as_design_variable(lower=np.deg2rad(-50), upper=np.deg2rad(50))
-cruise.parameters.flight_path_angle.set_as_design_variable(lower=np.deg2rad(-50), upper=np.deg2rad(50))
+cruise.parameters.pitch_angle.set_as_design_variable(lower=np.deg2rad(-5), upper=np.deg2rad(30))
+cruise.parameters.flight_path_angle.set_as_design_variable(lower=np.deg2rad(-20), upper=np.deg2rad(20))
 
 
 
@@ -91,7 +91,7 @@ for i, hl_motor in enumerate(hl_motors):
     results = hl_prop.get_torque_power(states=cruise.ac_states, controls=x57_controls)
     hl_engine_torque = results['torque']
     hl_engine_torque.name = f'HL_Engine_{i}_Torque'
-    hl_engine_torque.set_as_constraint(lower=1e-6, upper=20.5, scaler=1/20.5) # values from High-Lift Propeller Operating Conditions v2 paper
+    hl_engine_torque.set_as_constraint(lower=0.0, upper=20.5, scaler=1e-2) # values from High-Lift Propeller Operating Conditions v2 paper
 
 
 cruise_motors = [comp for comp in aircraft_component.comps['Wing'].comps.values() if comp._name.startswith('Cruise Motor')]
@@ -103,7 +103,7 @@ for i, cruise_motor in enumerate(cruise_motors):
     results = cruise_prop.get_torque_power(states=cruise.ac_states, controls=x57_controls)
     cm_engine_torque = results['torque']
     cm_engine_torque.name = f'Cruise_Engine_{i}_Torque'
-    cm_engine_torque.set_as_constraint(lower=1e-6, upper=225, scaler=1/225) # values from x57_DiTTo_manuscript paper
+    cm_engine_torque.set_as_constraint(lower=0.0, upper=225, scaler=1e-3) # values from x57_DiTTo_manuscript paper
 
 x57_controls.update_controls(x57_controls.u())
 
@@ -115,23 +115,23 @@ Lift = - x57_aerodynamics.get_FM_localAxis(states=cruise.ac_states, controls=x57
 Moment = x57_aerodynamics.get_FM_localAxis(states=cruise.ac_states, controls=x57_controls, axis=axis_dict['fd_axis'])['loads'].M.vector[1]
 
 
-Lift_scaling = 1 / csdl.absolute(Lift)
-Drag_scaling = 1 / csdl.absolute(Drag)
-Moment_scaling = 1 / csdl.absolute(Moment)
+Lift_scaling = 1/(aircraft_component.mass_properties.mass * 9.81)
+Drag_scaling = 1/csdl.absolute(Drag)
+Moment_scaling = 1/csdl.absolute(Moment)
 
 
 res1 = tf[0] * Drag_scaling
 res1.name = 'Fx Force'
-res1.set_as_constraint(lower=-1e-6, upper=1e-6)  # setting a small value to ensure the thrust is close to zero
+res1.set_as_constraint(equals=0.0) 
 
 res2 = tf[2] * Lift_scaling
 res2.name = 'Fz Force'
-res2.set_as_constraint(lower=-1e-6, upper=1e-6)
+res2.set_as_constraint(equals=0.0)
 
 
 res4 = tm[1] * Moment_scaling
 res4.name = 'My Moment'
-res4.set_as_constraint(lower=-1e-6, upper=1e-6)
+res4.set_as_constraint(equals=0.0)
 
 
 
@@ -166,7 +166,7 @@ sim = csdl.experimental.JaxSimulator(
 
 
 altitudes = np.array([8000])*0.3048
-speeds = np.array([150]) / 1.944 # KTAS to m/s
+speeds = np.array([80,90,100,110,120,130,140,150]) / 1.944 # KTAS to m/s
 
 results_dict = {
     'VTAS': [],

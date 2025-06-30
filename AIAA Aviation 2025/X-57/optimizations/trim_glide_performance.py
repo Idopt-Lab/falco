@@ -122,22 +122,22 @@ Lift = - x57_aerodynamics.get_FM_localAxis(states=glide.ac_states, controls=x57_
 Moment = x57_aerodynamics.get_FM_localAxis(states=glide.ac_states, controls=x57_controls, axis=axis_dict['fd_axis'])['loads'].M.vector[1]
 ThrustR = Drag
 
-Lift_scaling = 1/csdl.absolute(Lift)
+Lift_scaling = 1/(aircraft_component.mass_properties.mass * 9.81)
 Drag_scaling = 1/csdl.absolute(Drag)
 Moment_scaling = 1/csdl.absolute(Moment)
 
 
 res1 = tf[0] * Drag_scaling
 res1.name = 'Fx Force'
-res1.set_as_constraint(lower=-1e-6, upper=1e-6)  # setting a small value to ensure the thrust is close to zero
+res1.set_as_constraint(equals=0.0)  # setting a small value to ensure the thrust is close to zero
 
 res2 = tf[2] * Lift_scaling
 res2.name = 'Fz Force'
-res2.set_as_constraint(lower=-1e-6, upper=1e-6)
+res2.set_as_constraint(equals=0.0)
 
 res4 = tm[1] * Moment_scaling
 res4.name = 'My Moment'
-res4.set_as_constraint(lower=-1e-6, upper=1e-6)
+res4.set_as_constraint(equals=0.0)
 
 
 max_LD = csdl.absolute(1 / (csdl.tan((glide.ac_states.gamma)))) # L/D ratio is 1/tan(gamma) where gamma is the flight path angle
@@ -163,7 +163,7 @@ sim = csdl.experimental.JaxSimulator(
 
 
 initial_altitudes = np.array([8000]) * 0.3048 # altitudes in meters
-speeds = np.array([150]) / 1.944 # KTAS to m/s
+speeds = np.array([80,90,100,110,120,130,140,150]) / 1.944 # KTAS to m/s
 
 results_dict = {
     'VTAS': [],
