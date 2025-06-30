@@ -542,12 +542,13 @@ right_engine_component.load_solvers.append(B777_right_engine)
 # region Create Conditions
 
 # region cruise_cond Condition
-alt=0 # alt in m
+alt=9144 # alt in m
 Trequired = []
+mach = 0.8
 # mach=0.25 # Takeoff speed
 # mach = 0.86
 # 160 to 213 mph
-mach = 0.19 # mach at stall
+# mach = 0.19 # mach at stall
 # mach = 0.17 # mach at TO with flaps
 cruise_cond = CruiseCondition(fd_axis=fd_axis, controls=B777_controls,
                             altitude=Q_(alt, 'm'), mach_number=Q_(mach, 'dimensionless'),
@@ -555,6 +556,7 @@ cruise_cond = CruiseCondition(fd_axis=fd_axis, controls=B777_controls,
 # endregion
 pass
 # endregion
+
 tf, tm = aircraft_component.compute_total_loads(fd_state=cruise_cond.ac_states,
                                                 controls=cruise_cond.controls)
 
@@ -564,11 +566,17 @@ B777_controls.roll_control[0].deflection.set_as_design_variable(lower=np.deg2rad
 B777_controls.roll_control[1].deflection.set_as_design_variable(lower=np.deg2rad(-20), upper=np.deg2rad(20))
 B777_controls.engine_right.throttle.set_as_design_variable(lower=0.0,
                                                         upper=1)
-B777_controls.engine_left.throttle.set_as_design_variable(lower=0.0, upper=1e-6)
-# B777_controls.engine_left.throttle.set_as_design_variable(lower=0.0, upper=1)
+# B777_controls.engine_left.throttle.set_as_design_variable(lower=0.0, upper=1e-6)
+B777_controls.engine_left.throttle.set_as_design_variable(lower=0.0, upper=1)
 
 # cruise_cond.parameters.mach_number.set_as_design_variable(lower=0.1, upper=0.9)
 cruise_cond.parameters.pitch_angle.set_as_design_variable(lower=-np.deg2rad(15), upper=np.deg2rad(15))
+
+B777_linear_stability, analysis = cruise_cond.eval_linear_stability(component=aircraft_component)
+# analysis.plot_eigenvalues(B777_linear_stability)
+# analysis.plot_mode_characteristics(B777_linear_stability)
+# analysis.plot_time_response(B777_linear_stability)
+analysis.generate_stability_report(B777_linear_stability)
 
 # cruise_cond.parameters.altitude.set_as_design_variable(lower=0, upper=15000)
 aero_results = B777_wing_aero.get_FM_localAxis(cruise_cond.ac_states, cruise_cond.controls, wing_axis)
@@ -576,9 +584,9 @@ Drag = aero_results['loads'].F.vector[0]
 Lift = aero_results['loads'].F.vector[2]
 Moment = aero_results['loads'].M.vector[1]
 
-# throttle_diff = B777_controls.engine_right.throttle - B777_controls.engine_left.throttle
-# throttle_diff.set_as_constraint(lower=-1e-6, upper=1e-6)
-# throttle_diff.name = 'Throttle (R-L) Difference'
+throttle_diff = B777_controls.engine_right.throttle - B777_controls.engine_left.throttle
+throttle_diff.set_as_constraint(lower=-1e-6, upper=1e-6)
+throttle_diff.name = 'Throttle (R-L) Difference'
 
 
 
@@ -617,7 +625,7 @@ FM_res.name = 'FM Minimization Objective'
 FM_res.set_as_objective()
 
 
-# J = cruise_cond.evaluate_trim_res(component=aircraft_component)
+J = cruise_cond.evaluate_trim_res(component=aircraft_component)
 # J.name = 'J: Trim Scalar'
 # J.set_as_objective()
 
@@ -693,6 +701,9 @@ print("Residual Magnitude: (FM Minimization)")
 print(FM.value)
 print("Residual Norm")
 print(csdl.norm(FM, ord=2).value)
-    
+
+
+# analysis.generate_stability_report(B777_linear_stability)
+
 pass
 recorder.stop()

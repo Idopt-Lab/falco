@@ -3,6 +3,7 @@ from flight_simulator.core.vehicle.controls.vehicle_control_system import Vehicl
 from flight_simulator.core.dynamics.axis import Axis
 from flight_simulator.core.dynamics.axis_lsdogeo import AxisLsdoGeo
 from flight_simulator.core.vehicle.components.component import Component
+from flight_simulator.core.dynamics.linear_stability import LinearStabilityAnalysis
 from flight_simulator.core.dynamics.EoM import EquationsOfMotion
 from typing import Union
 import csdl_alpha as csdl
@@ -155,10 +156,12 @@ class Condition():
     def __init__(self, 
                  states: AircraftStates,
                  controls: VehicleControlSystem,
-                 eom: EquationsOfMotion) -> None:
+                 eom: EquationsOfMotion,
+                 analysis: LinearStabilityAnalysis) -> None:
         self.ac_states = states
         self.controls = controls
         self.eom = eom
+        self.analysis = analysis
 
 
 
@@ -210,6 +213,31 @@ class Condition():
         J = csdl.norm(res_vec)
 
         return J
+    
+    def generate_linear_system(self, component: Component):
+        """Conducts a Linear Stability Analysis."""
+        
+        r, xr = self.evaluate_eom(component=component)
+
+        x = [self.ac_states.states.u, self.ac_states.states.v, self.ac_states.states.w, self.ac_states.states.p, self.ac_states.states.q, self.ac_states.states.r, self.ac_states.states.phi, self.ac_states.states.theta, self.ac_states.states.psi, self.ac_states.states.x, self.ac_states.states.y, self.ac_states.states.z]
+        A = csdl.derivative(ofs=r, wrts=x, as_block=True)
+        B = csdl.derivative(ofs=r, wrts=self.controls.u) #TODO: FIGURE OUT CONCATENATION OF CONTROL INPUTS, THIS RESULTS IN ZERO DERIVATIVES UNLESS IN STANDARD LIST LIKE STATES
+
+        return A, B
+    
+    def eval_linear_stability(self, component: Component, plots_eigs: bool = False, plot_mode_chars: bool = False, generate_report: bool = False):
+        """Evaluates the linear stability analysis."""
+        
+        A, B = self.generate_linear_system(component=component)
+        stability_metrics = self.analysis.linear_stab_analysis(A=A, B=B)
+        if plots_eigs:
+            self.analysis.plot_eigenvalues(stability_metrics=stability_metrics)
+        if plot_mode_chars:
+            self.analysis.plot_mode_characteristics(stability_metrics=stability_metrics)
+        if generate_report:
+            self.analysis.generate_stability_report(stability_metrics=stability_metrics)
+
+        return stability_metrics, self.analysis  # Return both metrics and analysis instance
 
 class CruiseCondition(Condition):
     """Cruise condition: intended for steady analyses.
@@ -239,7 +267,8 @@ class CruiseCondition(Condition):
 
         ac_states = self._setup_condition(fd_axis)
         eom = EquationsOfMotion()
-        super().__init__(states=ac_states, controls=controls, eom=eom)
+        analysis = LinearStabilityAnalysis()
+        super().__init__(states=ac_states, controls=controls, eom=eom, analysis=analysis)
 
     def _setup_condition(self, fd_axis: Union[Axis, AxisLsdoGeo]):
         axis = fd_axis.copy(new_name="Cruise Axis")
@@ -326,8 +355,8 @@ class RateofClimb(Condition):
         )
 
         ac_states = self._setup_condition(fd_axis)
-        eom = EquationsOfMotion()
-        super().__init__(states=ac_states, controls=controls, eom=eom)
+        analysis = LinearStabilityAnalysis()
+        super().__init__(states=ac_states, controls=controls, eom=eom, analysis=analysis)
 
     def _setup_condition(self, fd_axis: Union[Axis, AxisLsdoGeo]):
         axis = fd_axis.copy(new_name="Cruise Axis")
@@ -424,7 +453,8 @@ class ClimbCondition(Condition):
 
         ac_states = self._setup_condition(fd_axis)
         eom = EquationsOfMotion()
-        super().__init__(states=ac_states, controls=controls, eom=eom)
+        analysis = LinearStabilityAnalysis()
+        super().__init__(states=ac_states, controls=controls, eom=eom, analysis=analysis)
 
     def _setup_condition(self, fd_axis: Union[Axis, AxisLsdoGeo]):
         axis = fd_axis.copy(new_name="climb_axis")
@@ -503,7 +533,8 @@ class HoverCondition(Condition):
         )
         ac_states = self._setup_condition(fd_axis)
         eom= EquationsOfMotion()
-        super().__init__(states=ac_states, controls=controls, eom=eom)
+        analysis = LinearStabilityAnalysis()
+        super().__init__(states=ac_states, controls=controls, eom=eom, analysis=analysis)
 
     def _setup_condition(self, fd_axis: Union[Axis, AxisLsdoGeo]):
         axis = fd_axis.copy(new_name="hover_axis")
