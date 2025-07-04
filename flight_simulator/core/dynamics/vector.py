@@ -6,10 +6,39 @@ import numpy as np
 from flight_simulator.core.dynamics.axis_lsdogeo import AxisLsdoGeo
 
 class Vector:
+    """Represents a 3D vector in a specified coordinate axis system.
+
+    Supports initialization from a Pint Quantity (with units) or a CSDL variable.
+    Stores the vector in SI units and associates it with an axis.
+
+    Attributes
+    ----------
+    vector : csdl.Variable
+        The 3-component vector in SI units.
+    axis : Axis or AxisLsdoGeo
+        The coordinate system in which the vector is defined.
+    magnitude : csdl.Variable
+        The Euclidean norm (magnitude) of the vector.
+    """
     def __init__(self, vector, axis):
         """
-        :param vector: Stores 3 components of the vector in SI units
-        :param axis: coordinate system in which the vector is stored
+        Initialize a Vector object.
+
+        Parameters
+        ----------
+        vector : ureg.Quantity or csdl.Variable
+            3-component vector, either as a Pint Quantity (with units) or a CSDL variable.
+        axis : Axis or AxisLsdoGeo
+            The coordinate system in which the vector is stored.
+
+        Raises
+        ------
+        IOError
+            If the vector is not a recognized type.
+        TypeError
+            If the axis is not an instance of Axis or AxisLsdoGeo.
+        Exception
+            If the axis is not assigned correctly.
         """
 
         if isinstance(vector, ureg.Quantity):
@@ -35,6 +64,13 @@ class Vector:
 
 
     def __str__(self):
+        """Return a string representation of the vector, including values, units, and axis name.
+
+        Returns
+        -------
+        str
+            String representation of the vector.
+        """
         print_string = """Vector: %s \nUnit: %s \nAxis: %s""" % \
                        (np.array_str(np.around(self.vector.value, 2)),
                         self.vector.tags[0],

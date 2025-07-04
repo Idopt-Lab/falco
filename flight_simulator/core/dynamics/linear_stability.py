@@ -14,6 +14,37 @@ import matplotlib.pyplot as plt
 
 @dataclass
 class LinearStabilityMetrics(csdl.VariableGroup):
+    """Holds metrics for linear stability analysis of an aircraft.
+
+    Attributes
+    ----------
+    A_mat_longitudinal : csdl.Variable
+        Longitudinal state matrix.
+    real_eig_short_period : csdl.Variable
+        Real part of short period eigenvalue.
+    imag_eig_short_period : csdl.Variable
+        Imaginary part of short period eigenvalue.
+    nat_freq_short_period : csdl.Variable
+        Natural frequency of short period mode.
+    damping_ratio_short_period : csdl.Variable
+        Damping ratio of short period mode.
+    time_2_double_short_period : csdl.Variable
+        Time to double amplitude for short period mode.
+    real_eig_phugoid : csdl.Variable
+        Real part of phugoid eigenvalue.
+    imag_eig_phugoid : csdl.Variable
+        Imaginary part of phugoid eigenvalue.
+    nat_freq_phugoid : csdl.Variable
+        Natural frequency of phugoid mode.
+    damping_ratio_phugoid : csdl.Variable
+        Damping ratio of phugoid mode.
+    time_2_double_phugoid : csdl.Variable
+        Time to double amplitude for phugoid mode.
+    eig_vecs_real_longitudinal : csdl.Variable, optional
+        Real part of longitudinal eigenvectors.
+    eig_vecs_imag_longitudinal : csdl.Variable, optional
+        Imaginary part of longitudinal eigenvectors.
+    """
     A_mat_longitudinal : csdl.Variable
     real_eig_short_period : csdl.Variable
     imag_eig_short_period : csdl.Variable
@@ -52,10 +83,25 @@ class LinearStabilityMetrics(csdl.VariableGroup):
     # eig_vecs_imag_lateral : csdl.Variable = None
 
 class LinearStabilityAnalysis():
+    """Performs linear stability analysis for aircraft dynamic modes.
+
+    Provides methods to compute eigenvalues, mode characteristics, and generate plots/reports.
+    """
 
     def linear_stab_analysis(self, A, B):
-        """
-        Perform longitudinal linear stability analysis on a specifed aircraft state
+        """Perform longitudinal linear stability analysis on a specified aircraft state.
+
+        Parameters
+        ----------
+        A : csdl.Variable or np.ndarray
+            State matrix (system dynamics).
+        B : csdl.Variable or np.ndarray
+            Input matrix (control dynamics).
+
+        Returns
+        -------
+        LinearStabilityMetrics
+            Object containing computed stability metrics.
         """
 
         # Ensure A and B are defined
@@ -171,7 +217,21 @@ class LinearStabilityAnalysis():
     
     def plot_eigenvalues(self, stability_metrics: LinearStabilityMetrics, 
                     title: str = "Aircraft Stability Analysis"):
-        """Plot eigenvalues on the complex plane (s-plane)."""
+        
+        """Plot eigenvalues on the complex plane (s-plane).
+
+        Parameters
+        ----------
+        stability_metrics : LinearStabilityMetrics
+            Stability metrics containing eigenvalues.
+        title : str, optional
+            Title for the plot.
+
+        Returns
+        -------
+        matplotlib.figure.Figure
+            Figure object for the eigenvalue plot.
+        """
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
         
         # Longitudinal modes
@@ -214,7 +274,18 @@ class LinearStabilityAnalysis():
         return fig
     
     def plot_mode_characteristics(self, stability_metrics: LinearStabilityMetrics):
-        """Plot natural frequency, damping ratio, and time to double for all modes."""
+        """Plot natural frequency, damping ratio, and time to double for all modes.
+
+        Parameters
+        ----------
+        stability_metrics : LinearStabilityMetrics
+            Stability metrics containing mode characteristics.
+
+        Returns
+        -------
+        matplotlib.figure.Figure
+            Figure object for the mode characteristics plot.
+        """
         modes = ['Short Period', 'Phugoid'] 
                 #  'Spiral', 'Dutch Roll', 'Roll']
         
@@ -277,7 +348,22 @@ class LinearStabilityAnalysis():
     
     def generate_stability_report(self, stability_metrics: LinearStabilityMetrics, 
                                 save_plots: bool = True, plot_dir: str = "./plots/"):
-        """Generate comprehensive stability analysis report with plots."""
+        """Generate a comprehensive stability analysis report with plots.
+
+        Parameters
+        ----------
+        stability_metrics : LinearStabilityMetrics
+            Stability metrics to report.
+        save_plots : bool, optional
+            Whether to save plots to disk (default True).
+        plot_dir : str, optional
+            Directory to save plots (default "./plots/").
+
+        Returns
+        -------
+        tuple
+            Tuple of matplotlib.figure.Figure objects for the generated plots.
+        """
         import os
         if save_plots:
             os.makedirs(plot_dir, exist_ok=True)
@@ -362,10 +448,26 @@ class LinearStabilityAnalysis():
     
 
 class EigenValueOperation(csdl.CustomExplicitOperation):
+    """Custom CSDL operation to compute eigenvalues and eigenvectors of a matrix.
+
+    Provides both values and derivatives for use in CSDL computational graphs.
+    """
     def __init__(self):
         super().__init__()
 
     def evaluate(self, mat):
+        """Evaluate eigenvalues and eigenvectors for the given matrix.
+
+        Parameters
+        ----------
+        mat : np.ndarray or csdl.Variable
+            Square matrix to analyze.
+
+        Returns
+        -------
+        tuple
+            Real and imaginary parts of eigenvalues and eigenvectors.
+        """
         shape = mat.shape
         size = shape[0]
 
@@ -383,6 +485,15 @@ class EigenValueOperation(csdl.CustomExplicitOperation):
         return eig_real, eig_imag, eig_vecs_real, eig_vecs_imag
 
     def compute(self, inputs, outputs):
+        """Compute eigenvalues and eigenvectors for the input matrix.
+
+        Parameters
+        ----------
+        inputs : dict
+            Dictionary of input variables.
+        outputs : dict
+            Dictionary to store output variables.
+        """
         mat = inputs["mat"]
 
         eig_vals, eig_vecs = np.linalg.eig(mat)
@@ -397,6 +508,17 @@ class EigenValueOperation(csdl.CustomExplicitOperation):
         outputs['eig_vecs_imag'] = np.imag(eig_vecs)
 
     def compute_derivatives(self, inputs, outputs, derivatives):
+        """Compute derivatives of eigenvalues and eigenvectors with respect to the matrix.
+
+        Parameters
+        ----------
+        inputs : dict
+            Dictionary of input variables.
+        outputs : dict
+            Dictionary of output variables.
+        derivatives : dict
+            Dictionary to store computed derivatives.
+        """
         mat = inputs["mat"]
         size = mat.shape[0]
         eig_vals, eig_vecs = np.linalg.eig(mat)

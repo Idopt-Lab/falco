@@ -10,6 +10,19 @@ from flight_simulator.core.dynamics.aircraft_states import AircraftStates
 
 @dataclass
 class StateVectorDot(csdl.VariableGroup):
+    """Time derivatives of the state vector for 6-DOF aircraft dynamics.
+
+    Attributes
+    ----------
+    du_dt, dv_dt, dw_dt : csdl.Variable
+        Time derivatives of body-frame velocities.
+    dp_dt, dq_dt, dr_dt : csdl.Variable
+        Time derivatives of body-frame angular rates.
+    dphi_dt, dtheta_dt, dpsi_dt : csdl.Variable
+        Time derivatives of Euler angles.
+    dx_dt, dy_dt, dz_dt : csdl.Variable
+        Time derivatives of inertial positions.
+    """
     du_dt: csdl.Variable
     dv_dt: csdl.Variable
     dw_dt: csdl.Variable
@@ -24,7 +37,31 @@ class StateVectorDot(csdl.VariableGroup):
     dz_dt: csdl.Variable
 
 class DynamicSystem:
+    """Base class for a dynamic system with state and time.
+
+    Attributes
+    ----------
+    state_vector : csdl.Variable
+        The current state vector.
+    state_vector_dot : csdl.Variable
+        The time derivative of the state vector.
+    time : float
+        Current simulation time.
+    origin : str
+        Origin identifier.
+    """
     def __init__(self, x, t0=0, origin='ref'):
+        """Initialize the dynamic system.
+
+        Parameters
+        ----------
+        x : csdl.Variable
+            Initial state vector.
+        t0 : float, optional
+            Initial time (default is 0).
+        origin : str, optional
+            Origin identifier (default is 'ref').
+        """
         self.state_vector = x
         self.state_vector_dot = csdl.Variable(shape=x.shape, value=0)
         self.time = t0
@@ -48,8 +85,25 @@ class EquationsOfMotion():
 
 
     def _EoM_res(self, aircraft_states, mass_properties, total_forces, total_moments):
-        """
-        
+        """Compute the time derivatives of the state vector (6-DOF EoM).
+
+        Parameters
+        ----------
+        aircraft_states : AircraftStates
+            The current aircraft state variables.
+        mass_properties : MassProperties
+            The mass properties of the aircraft.
+        total_forces : csdl.Variable or array-like
+            Total external forces [Fx, Fy, Fz] in the body frame.
+        total_moments : csdl.Variable or array-like
+            Total external moments [Mx, My, Mz] in the body frame.
+
+        Returns
+        -------
+        dstate_vector : csdl.Variable
+            Time derivatives of the state vector.
+        state_vector : csdl.Variable
+            The current state vector.
         """
 
         Fx=total_forces[0]

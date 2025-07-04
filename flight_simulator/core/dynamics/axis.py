@@ -32,8 +32,45 @@ def axis_checkers(func):
 
 
 class Axis:
+    """Represents a coordinate axis with translation and orientation.
+
+    Supports translation from an origin and orientation via Euler angles.
+    Used as a reference for expressing positions, velocities, and rotations.
+
+    Attributes
+    ----------
+    name : str
+        Name of the axis.
+    origin : str
+        Origin identifier (must be a ValidOrigins value).
+    translation_from_origin : Axis.translation_from_origin or None
+        Translation from the origin.
+    translation_from_origin_vector : csdl.Variable or None
+        Translation vector [x, y, z] from the origin.
+    translation : csdl.Variable or None
+        Alias for translation_from_origin_vector.
+    euler_angles : Axis.euler_angles or None
+        Euler angles (phi, theta, psi) for orientation.
+    euler_angles_vector : csdl.Variable or None
+        Euler angles as a vector.
+    sequence : any
+        Euler rotation sequence.
+    reference : object or None
+        Reference axis or frame.
+    """
     @dataclass
     class euler_angles(csdl.VariableGroup):
+        """Euler angles for axis orientation.
+
+        Attributes
+        ----------
+        phi : csdl.Variable
+            Roll angle.
+        theta : csdl.Variable
+            Pitch angle.
+        psi : csdl.Variable
+            Yaw angle.
+        """
         phi: csdl.Variable
         theta: csdl.Variable
         psi: csdl.Variable
@@ -61,6 +98,17 @@ class Axis:
 
     @dataclass
     class translation_from_origin(csdl.VariableGroup):
+        """Translation from the origin for the axis.
+
+        Attributes
+        ----------
+        x : csdl.Variable
+            X-coordinate of translation.
+        y : csdl.Variable
+            Y-coordinate of translation.
+        z : csdl.Variable
+            Z-coordinate of translation.
+        """
         x: csdl.Variable
         y: csdl.Variable
         z: csdl.Variable
@@ -97,6 +145,23 @@ class Axis:
                  psi: Union[ureg.Quantity, csdl.Variable] = None,
                  sequence=None,
                  reference=None):
+        """Initialize an Axis object.
+
+        Parameters
+        ----------
+        name : str
+            Name of the axis.
+        origin : str
+            Origin identifier (must be a ValidOrigins value).
+        x, y, z : ureg.Quantity or csdl.Variable, optional
+            Translation from the origin.
+        phi, theta, psi : ureg.Quantity or csdl.Variable, optional
+            Euler angles for orientation.
+        sequence : any, optional
+            Euler rotation sequence.
+        reference : object, optional
+            Reference axis or frame.
+        """
 
         self.name = name
 
@@ -126,8 +191,12 @@ class Axis:
         self.origin = origin
 
     def copy(self, new_name: str = None):
-        """
-        Create a copy of the Axis object.
+        """Create a copy of the Axis object.
+
+        Parameters
+        ----------
+        new_name : str, optional
+            Name for the new Axis object.
 
         Returns
         -------

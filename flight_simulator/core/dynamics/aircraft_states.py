@@ -28,7 +28,27 @@ class RigidBodyStates(ABC):
 
 
 class MassSpringDamperState(RigidBodyStates):
+    """Represents the state of a mass-spring-damper system.
+
+    Attributes
+    ----------
+    x : csdl.Variable or ureg.Quantity
+        Displacement.
+    x_dot : csdl.Variable or ureg.Quantity
+        Velocity.
+    """
     def __init__(self, state_axis, x=Union[ureg.Quantity, csdl.Variable], x_dot=Union[ureg.Quantity, csdl.Variable]):
+        """Initialize the mass-spring-damper state.
+
+        Parameters
+        ----------
+        state_axis : Axis
+            The axis in which the state is defined.
+        x : ureg.Quantity or csdl.Variable, optional
+            Initial displacement.
+        x_dot : ureg.Quantity or csdl.Variable, optional
+            Initial velocity.
+        """
         super().__init__(state_axis=state_axis)
 
         self.x = csdl.Variable(shape=(1,), value=np.array([0, ]))
@@ -72,22 +92,106 @@ class MassSpringDamperState(RigidBodyStates):
             raise IOError
 
     def update(self, t, input_vector):
+        """Update the state at a given time with a given input vector.
+
+        Parameters
+        ----------
+        t : float
+            Time.
+        input_vector : object
+            Input vector containing state information.
+        """
         # Potential t-based property updates
         self.update_state_from_vector(input_vector)
 
     def update_state_from_vector(self, input_vector):
+        """Update the state from a given input vector.
+
+        Parameters
+        ----------
+        input_vector : object
+            Input vector containing state information.
+        """
         self.x = Q_(input_vector.vector.value[0], 'm')
         self.x_dot = Q_(input_vector.vector.value[1], 'm/s')
 
     def return_state_vector(self):
+        """Return the state vector as a NumPy array.
+
+        Returns
+        -------
+        np.ndarray
+            Array containing displacement and velocity.
+        """
         return np.array([self.x.value, self.x_dot.value], dtype=float)
 
 
 @dataclass
 class AircraftStates:
+    """Represents the full state of an aircraft, including 6-DOF and wind states.
 
+    Attributes
+    ----------
+    axis : Axis or AxisLsdoGeo
+        The axis in which the states are defined.
+    states : AircraftStates.States6dof
+        The 6-DOF state variables.
+    states_inertial_frame_wind : AircraftStates.StatesInertialFrameWindVelocityVector
+        Wind velocity components in the inertial frame.
+    atmospheric_states : object
+        Atmospheric state variables from NRLMSIS2.
+    body_frame_velocity_vector : csdl.Variable
+        Body-frame velocity vector [u, v, w].
+    inertial_frame_wind_velocity_vector : csdl.Variable
+        Inertial-frame wind velocity vector [Vwx, Vwy, Vwz].
+    angular_rates_vector : csdl.Variable
+        Angular rates vector [p, q, r].
+    position_vector : csdl.Variable
+        Position vector in the inertial frame.
+    euler_angles_vector : csdl.Variable
+        Euler angles vector [phi, theta, psi].
+    states_vector : csdl.Variable
+        Concatenated state vector.
+    linear_acceleration : csdl.VariableGroup
+        Linear acceleration variables.
+    angular_acceleration : csdl.VariableGroup
+        Angular acceleration variables.
+    VTAS : csdl.Variable
+        True airspeed.
+    alpha : csdl.Variable
+        Angle of attack.
+    beta : csdl.Variable
+        Sideslip angle.
+    windAxis : Axis
+        Wind axis object.
+    alpha_dot : csdl.Variable
+        Time derivative of angle of attack.
+    gamma : csdl.Variable
+        Flight path angle.
+    sigma : csdl.Variable
+        Heading angle.
+    Mach : csdl.Variable
+        Mach number.
+    inertial_velocity_vector : csdl.Variable
+        Velocity vector in the inertial frame.
+    course_angle : csdl.Variable
+        Course angle.
+    """
     @dataclass
     class States6dof(csdl.VariableGroup):
+        """6-DOF state variables for an aircraft.
+
+        Attributes
+        ----------
+        u, v, w : csdl.Variable
+            Body-frame velocity components.
+        p, q, r : csdl.Variable
+            Body-frame angular rates.
+        phi, theta, psi : csdl.Variable
+            Euler angles.
+        x, y, z : csdl.Variable
+            Position in the inertial frame.
+        """
         u: csdl.Variable
         v: csdl.Variable
         w: csdl.Variable
@@ -133,6 +237,13 @@ class AircraftStates:
 
     @dataclass
     class StatesInertialFrameWindVelocityVector(csdl.VariableGroup):
+        """Wind velocity components in the inertial frame.
+
+        Attributes
+        ----------
+        Vwx, Vwy, Vwz : csdl.Variable
+            Wind velocity components in the inertial frame.
+        """
         Vwx: csdl.Variable
         Vwy: csdl.Variable
         Vwz: csdl.Variable
@@ -172,7 +283,19 @@ class AircraftStates:
                  Vwz: Union[ureg.Quantity, csdl.Variable] = Q_(0, 'm/s'), # WRT To Inertial Frame
                  ):
         
-        
+        """Initialize the aircraft states.
+
+        Parameters
+        ----------
+        axis : Axis or AxisLsdoGeo
+            The axis in which the states are defined.
+        u, v, w : ureg.Quantity or csdl.Variable, optional
+            Body-frame velocity components.
+        p, q, r : ureg.Quantity or csdl.Variable, optional
+            Body-frame angular rates.
+        Vwx, Vwy, Vwz : ureg.Quantity or csdl.Variable, optional
+            Wind velocity components in the inertial frame.
+        """
         self.axis = axis
         self.atm = NRLMSIS2.Atmosphere()
 
@@ -272,10 +395,11 @@ class AircraftStates:
         self.course_angle = csdl.arctan(self.inertial_velocity_vector[1]/self.inertial_velocity_vector[0])
     
     def _assemble_state_vector(self):
-        """
-        Assemble the state vector.
-        
-        Returns:
+        """Assemble the state vector.
+
+        Returns
+        -------
+        csdl.Variable
             The concatenated state vector.
         """
         return csdl.concatenate((

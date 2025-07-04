@@ -11,9 +11,27 @@ from flight_simulator.core.dynamics.axis import Axis, ValidOrigins
 
 
 class MassMI:
+    """Represents the mass moment of inertia tensor for a body.
+
+    Attributes
+    ----------
+    axis : Axis or AxisLsdoGeo
+        The axis in which the inertia tensor is defined.
+    mass_mi_components : MomentOfInertiaComponents
+        The individual components of the inertia tensor.
+    inertia_tensor : csdl.Variable
+        The 3x3 inertia tensor.
+    """
 
     @dataclass
     class MomentOfInertiaComponents(csdl.VariableGroup):
+        """Holds the components of the inertia tensor.
+
+        Attributes
+        ----------
+        Ixx, Iyy, Izz, Ixy, Ixz, Iyz : csdl.Variable or ureg.Quantity
+            Components of the inertia tensor.
+        """
         Ixx: csdl.Variable
         Iyy: csdl.Variable
         Izz: csdl.Variable
@@ -55,6 +73,15 @@ class MassMI:
             Ixz: Union[ureg.Quantity, csdl.Variable] = Q_(0, 'kg*(m*m)'),
             Iyz: Union[ureg.Quantity, csdl.Variable] = Q_(0, 'kg*(m*m)'),
     ):
+        """Initialize the mass moment of inertia tensor.
+
+        Parameters
+        ----------
+        axis : Axis or AxisLsdoGeo
+            The axis in which the inertia tensor is defined.
+        Ixx, Iyy, Izz, Ixy, Ixz, Iyz : ureg.Quantity or csdl.Variable, optional
+            Components of the inertia tensor.
+        """
 
         self.axis = axis
 
@@ -76,10 +103,39 @@ class MassMI:
 
 
 class MassProperties:
+    """Represents the mass properties of a body, including mass, center of gravity, and inertia tensor.
+
+    Attributes
+    ----------
+    mass : csdl.Variable
+        The mass of the body.
+    cg_vector : Vector
+        The center of gravity vector.
+    inertia_tensor : MassMI
+        The mass moment of inertia tensor.
+    """
     def __init__(self,
                  cg: Vector, 
                  inertia: MassMI,
                  mass: Union[ureg.Quantity, csdl.Variable] = Q_(0, 'kg')):
+        """Initialize the mass properties.
+
+        Parameters
+        ----------
+        cg : Vector
+            Center of gravity vector.
+        inertia : MassMI
+            Mass moment of inertia tensor.
+        mass : ureg.Quantity or csdl.Variable, optional
+            Mass value (default is 0 kg).
+
+        Raises
+        ------
+        AssertionError
+            If the CG and inertia tensor are not defined in the same axis.
+        IOError
+            If mass is not a recognized type.
+        """
 
         assert cg.axis.name == inertia.axis.name
 
@@ -104,16 +160,45 @@ class MassProperties:
 
 
 class GravityLoads(Loads):
+    """Computes gravity-induced forces and moments for a body.
+
+    Attributes
+    ----------
+    states : object
+        The flight dynamics state object.
+    controls : object
+        The control inputs.
+    mass_properties : MassProperties
+        The mass properties of the body.
+    """
 
     def __init__(self, fd_state, controls, mass_properties):
+        """Initialize the gravity loads object.
+
+        Parameters
+        ----------
+        fd_state : object
+            The flight dynamics state.
+        controls : object
+            The control inputs.
+        mass_properties : MassProperties
+            The mass properties of the body.
+        """
         self.states = fd_state
         self.controls = controls
         self.mass_properties = mass_properties
 
 
     def get_FM_localAxis(self):
-        """Use vehicle state and control objects to generate an estimate
-        of gravity forces and moments about a reference point."""
+        """Compute gravity forces and moments about a reference point.
+
+        Uses the vehicle state and mass properties to estimate the gravity force vector and moment.
+
+        Returns
+        -------
+        ForcesMoments
+            The gravity-induced forces and moments in the local axis.
+        """
         # Store the states and mass properties
         load_axis = self.states.axis
         cg = self.mass_properties.cg_vector.vector

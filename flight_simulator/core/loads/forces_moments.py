@@ -7,7 +7,32 @@ from flight_simulator.core.dynamics.vector import Vector
 
 
 class ForcesMoments:
+    """Represents a set of forces and moments acting on a body, expressed in a given axis system.
+
+    Attributes
+    ----------
+    F : Vector
+        The force vector.
+    M : Vector
+        The moment vector.
+    axis : Axis
+        The axis in which the forces and moments are expressed.
+    """
     def __init__(self, force: Vector, moment: Vector):
+        """Initialize a ForcesMoments object.
+
+        Parameters
+        ----------
+        force : Vector
+            The force vector.
+        moment : Vector
+            The moment vector.
+
+        Raises
+        ------
+        AssertionError
+            If the force and moment are not expressed in the same axis.
+        """
         assert force.axis == moment.axis, "F and M must be expressed in the same axis"
         self.F = force
         self.M = moment
@@ -16,7 +41,24 @@ class ForcesMoments:
 
 
     def transform_to_axis(self, parent_or_child_axis, translate_flag = True, rotate_flag=True, reverse_flag=False):
+        """Transform the forces and moments to a different axis system.
 
+        Parameters
+        ----------
+        parent_or_child_axis : Axis
+            The target axis to transform to.
+        translate_flag : bool, optional
+            Whether to apply translation (default True).
+        rotate_flag : bool, optional
+            Whether to apply rotation (default True).
+        reverse_flag : bool, optional
+            Whether to reverse the transformation (default False).
+
+        Returns
+        -------
+        ForcesMoments
+            A new ForcesMoments object in the target axis.
+        """
         # We have a parent axis (B1) and a child axis B2
         # 1. The forces and moments are in the B2 frame and we want to transform to the B1 frame
         if self.axis.reference is not None:
@@ -73,6 +115,26 @@ class ForcesMoments:
 
     @staticmethod
     def rotate_to_axis(F, M, euler_angles, seq, reverse=False):
+        """Rotate the force and moment vectors using Euler angles.
+
+        Parameters
+        ----------
+        F : csdl.Variable
+            Force vector.
+        M : csdl.Variable
+            Moment vector.
+        euler_angles : array-like
+            Euler angles for rotation.
+        seq : str
+            Sequence of Euler rotations.
+        reverse : bool, optional
+            Whether to reverse the rotation (default False).
+
+        Returns
+        -------
+        tuple
+            Rotated force and moment vectors.
+        """
         R = build_rotation_matrix(euler_angles, seq)
         if reverse:
             R = csdl.transpose(R)
@@ -84,6 +146,24 @@ class ForcesMoments:
 
     @staticmethod
     def translate_to_axis(F, M, r_vector, reverse=False):
+        """Translate the moment vector to a new reference point.
+
+        Parameters
+        ----------
+        F : csdl.Variable
+            Force vector.
+        M : csdl.Variable
+            Moment vector.
+        r_vector : array-like
+            Displacement vector for translation.
+        reverse : bool, optional
+            Whether to reverse the translation (default False).
+
+        Returns
+        -------
+        tuple
+            Force vector (unchanged) and translated moment vector.
+        """
         if reverse:
             r_vector = -r_vector
         M_trans = M + csdl.cross(r_vector, F)

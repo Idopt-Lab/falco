@@ -23,11 +23,40 @@ from flight_simulator.utils.euler_rotations import build_rotation_matrix
 
 @dataclass
 class ComponentParameters:
+    """Holds parameters for a component, such as actuation angle.
+
+    Attributes
+    ----------
+    actuate_angle : csdl.Variable or float or None
+        The actuation angle of the component, if applicable.
+    """
     actuate_angle: Union[csdl.Variable, float, None] = None
     pass    
 
 
 class Component:
+    """Represents a physical component of an aircraft, such as a wing or fuselage.
+
+    Supports hierarchical composition (subcomponents), geometry, mass properties,
+    load solvers, and methods for computing total loads and mass properties.
+
+    Parameters
+    ----------
+    name : str
+        Name of the component.
+    geometry : FunctionSet or None, optional
+        Geometric representation of the component.
+    compute_surface_area_flag : bool, optional
+        Whether to compute the surface area of the geometry.
+    parameterization_solver : ParameterizationSolver, optional
+        Solver for geometric parameterization.
+    mass_properties : MassProperties, optional
+        Mass properties of the component.
+    ffd_geometric_variables : GeometricVariables, optional
+        Free-form deformation variables for geometry.
+    **kwargs
+        Additional parameters for the component.
+    """
     def __init__(self, name: str, geometry: Union[FunctionSet, None] = None, 
                 compute_surface_area_flag: bool = False, 
                 parameterization_solver: ParameterizationSolver=None,
@@ -62,6 +91,7 @@ class Component:
     
 
     def __repr__(self):
+        """Return a string representation of the component, including mass, CG, and inertia."""
 
         output = (
             f"Component Mass: {self.mass_properties.mass.value} kg\n"
@@ -72,6 +102,22 @@ class Component:
 
 
     def add_subcomponent(self, subcomponent: Component):
+        """Add a subcomponent to this component.
+
+        Parameters
+        ----------
+        subcomponent : Component
+            The subcomponent to add.
+
+        Raises
+        ------
+        TypeError
+            If subcomponent is not a Component.
+        KeyError
+            If a subcomponent with the same name already exists.
+        ValueError
+            If the subcomponent already has a parent.
+        """
         if not isinstance(subcomponent, Component):
             raise TypeError(f"Subcomponent must be of type 'Component'. Received: {type(subcomponent)}")
 
@@ -85,13 +131,39 @@ class Component:
         subcomponent.parent = self
 
     def plot(self, show: bool = False, **kwargs):
-        """Plot a component's geometry."""
+
+        """Plot the component's geometry.
+
+        Parameters
+        ----------
+        show : bool, optional
+            Whether to display the plot immediately.
+        **kwargs
+            Additional arguments passed to the geometry plot method.
+
+        Raises
+        ------
+        ValueError
+            If the component has no geometry.
+        """
         if self.geometry is None:
             raise ValueError(f"Cannot plot component {self} since its geometry is None.")
         else:
             self.geometry.plot(show=show, **kwargs)
 
     def remove_subcomponent(self, subcomponent: Component):
+        """Remove a subcomponent from this component.
+
+        Parameters
+        ----------
+        subcomponent : Component
+            The subcomponent to remove.
+
+        Raises
+        ------
+        KeyError
+            If the subcomponent is not found.
+        """
         for name, comp in self.comps.items():
             if comp == subcomponent:
                 self.comps.pop(name)
@@ -100,6 +172,24 @@ class Component:
         raise KeyError(f"Subcomponent '{subcomponent._name}' not found.")
 
     def visualize_component_hierarchy(self, file_name: str = "component_hierarchy", file_format: str = "png", filepath: Path = Path.cwd(), show: bool = False):
+        """Visualize the component hierarchy using Graphviz.
+
+        Parameters
+        ----------
+        file_name : str, optional
+            Name of the output file.
+        file_format : str, optional
+            Output file format ('png' or 'pdf').
+        filepath : Path, optional
+            Directory to save the file.
+        show : bool, optional
+            Whether to open the file after rendering.
+
+        Raises
+        ------
+        ImportError
+            If graphviz is not installed.
+        """
         csdl.check_parameter(file_name, "file_name", types=str)
         csdl.check_parameter(file_format, "file_format", values=("png", "pdf"))
         csdl.check_parameter(show, "show", types=bool)
@@ -121,6 +211,17 @@ class Component:
         graph.render(file_name, directory=filepath, format=file_format, view=show)
 
     def _setup_geometry(self, parameterization_solver, ffd_geometric_variables, plot: bool = False):
+        """Set up geometry for parameterization and rigid body translation.
+
+        Parameters
+        ----------
+        parameterization_solver : ParameterizationSolver
+            The solver for geometric parameterization.
+        ffd_geometric_variables : GeometricVariables
+            Free-form deformation variables.
+        plot : bool, optional
+            Whether to plot the geometry.
+        """
         if not hasattr(self, 'geometry') or self.geometry is None:
             return
         rigid_body_translation = csdl.ImplicitVariable(shape=(3,), value=0., name=f'{self._name}_rigid_body_translation')
@@ -135,12 +236,23 @@ class Component:
 
     
     def compute_total_loads(self, fd_state, controls):
-        """
-        Compute the total loads (forces and moments) for this component by summing the
-        aerodynamic, propulsion, and gravity loads.
-        Returns:
-            total_forces (np.array): Sum of forces from all loads.
-            total_moments (np.array): Sum of moments from all loads.
+        """Compute the total forces and moments for this component and its subcomponents.
+
+        Sums aerodynamic, propulsion, gravity, and subcomponent loads.
+
+        Parameters
+        ----------
+        fd_state : object
+            The flight dynamics state.
+        controls : object
+            The control inputs.
+
+        Returns
+        -------
+        total_forces : csdl.Variable
+            The total force vector.
+        total_moments : csdl.Variable
+            The total moment vector.
         """
         from flight_simulator.utils.euler_rotations import build_rotation_matrix
 
@@ -193,13 +305,21 @@ class Component:
         return total_forces, total_moments
     
     def compute_total_torque_total_power(self, fd_state, controls):
-        """
-        Compute the total propulsion torque and shaft power of this component by summing
-        the contributions from propulsion load solvers and from all subcomponents.
+        """Compute the total propulsion torque and shaft power for this component and subcomponents.
 
-        Returns:
-            total_torque (csdl.Variable): Total torque.
-            total_power (csdl.Variable): Total shaft power.
+        Parameters
+        ----------
+        fd_state : object
+            The flight dynamics state.
+        controls : object
+            The control inputs.
+
+        Returns
+        -------
+        total_torque : csdl.Variable
+            The total torque.
+        total_power : csdl.Variable
+            The total shaft power.
         """
         total_torque = csdl.Variable(shape=(1,), value=0.)
         total_power  = csdl.Variable(shape=(1,), value=0.)
@@ -221,14 +341,12 @@ class Component:
     
     def compute_total_mass_properties(self):
     
-        """
-        Compute the total mass properties of this component, including its local inertia.
-        This method computes the inertia using the component's mass and center of gravity,
-        then recursively sums the properties from all subcomponents.
+        """Compute the total mass properties (mass, CG, inertia) for this component and subcomponents.
 
-        Returns:
-            MassProperties: Object containing the total mass, overall center of gravity,
-                            and overall inertia tensor.
+        Returns
+        -------
+        MassProperties
+            Object containing the total mass, center of gravity, and inertia tensor.
         """
         
         cg = self.mass_properties.cg_vector.vector
@@ -304,6 +422,20 @@ class Component:
         return total_mass_properties
 
     def _compute_surface_area(self, geometry: Geometry, plot_flag: bool = False):
+        """Compute the surface area of the component's geometry.
+
+        Parameters
+        ----------
+        geometry : Geometry
+            The geometry object.
+        plot_flag : bool, optional
+            Whether to plot the mesh.
+
+        Returns
+        -------
+        surface_area : csdl.Variable
+            The computed surface area.
+        """
         parametric_mesh_grid_num = 10
         surfaces = geometry.functions
         surface_area = csdl.Variable(shape=(1,), value=1)

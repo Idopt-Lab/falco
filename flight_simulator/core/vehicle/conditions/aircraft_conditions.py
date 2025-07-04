@@ -17,6 +17,12 @@ from flight_simulator import ureg, Q_
 
 @dataclass
 class HoverParameters(csdl.VariableGroup):
+    """Parameter group for hover flight condition.
+
+    Attributes:
+        altitude (csdl.Variable or ureg.Quantity): Hover altitude.
+        time (csdl.Variable or ureg.Quantity): Duration of hover.
+    """
     altitude: csdl.Variable
     time: csdl.Variable
 
@@ -43,6 +49,19 @@ class HoverParameters(csdl.VariableGroup):
 
 @dataclass
 class ClimbParameters(csdl.VariableGroup):
+    """Parameter group for climb flight condition.
+
+    Attributes:
+        initial_altitude (csdl.Variable or ureg.Quantity): Starting altitude.
+        final_altitude (csdl.Variable or ureg.Quantity): Ending altitude.
+        pitch_angle (csdl.Variable or ureg.Quantity): Aircraft pitch angle.
+        climb_gradient (csdl.Variable or ureg.Quantity): Climb gradient.
+        rate_of_climb (csdl.Variable or ureg.Quantity): Rate of climb.
+        speed (csdl.Variable or ureg.Quantity): Airspeed.
+        mach_number (csdl.Variable or ureg.Quantity): Mach number.
+        flight_path_angle (csdl.Variable or ureg.Quantity): Flight path angle.
+        time (csdl.Variable or ureg.Quantity): Duration of climb.
+    """
     initial_altitude: csdl.Variable
     final_altitude: csdl.Variable
     pitch_angle: csdl.Variable
@@ -83,6 +102,18 @@ class ClimbParameters(csdl.VariableGroup):
 
 @dataclass
 class CruiseParameters(csdl.VariableGroup):
+
+    """Parameter group for cruise flight condition.
+
+    Attributes:
+        altitude (csdl.Variable or ureg.Quantity): Cruise altitude.
+        speed (csdl.Variable or ureg.Quantity): Cruise speed.
+        mach_number (csdl.Variable or ureg.Quantity): Mach number.
+        pitch_angle (csdl.Variable or ureg.Quantity): Pitch angle.
+        range (csdl.Variable or ureg.Quantity): Cruise range.
+        time (csdl.Variable or ureg.Quantity): Duration of cruise.
+    """
+
     altitude: csdl.Variable
     speed: csdl.Variable
     mach_number: csdl.Variable
@@ -117,6 +148,17 @@ class CruiseParameters(csdl.VariableGroup):
 
 @dataclass
 class RateofClimbParameters(csdl.VariableGroup):
+    """Parameter group for rate-of-climb flight condition.
+
+    Attributes:
+        altitude (csdl.Variable or ureg.Quantity): Altitude.
+        speed (csdl.Variable or ureg.Quantity): Airspeed.
+        mach_number (csdl.Variable or ureg.Quantity): Mach number.
+        pitch_angle (csdl.Variable or ureg.Quantity): Pitch angle.
+        range (csdl.Variable or ureg.Quantity): Range.
+        time (csdl.Variable or ureg.Quantity): Duration.
+        flight_path_angle (csdl.Variable or ureg.Quantity): Flight path angle.
+    """
     altitude: csdl.Variable
     speed: csdl.Variable
     mach_number: csdl.Variable
@@ -152,7 +194,16 @@ class RateofClimbParameters(csdl.VariableGroup):
 
 
 class Condition():
-    """General aircraft condition."""
+    """Base class for aircraft flight conditions.
+
+    Encapsulates the state, controls, equations of motion, and stability analysis for a given flight condition.
+
+    Args:
+        states (AircraftStates): The aircraft state variables.
+        controls (VehicleControlSystem): The control system inputs.
+        eom (EquationsOfMotion): Equations of motion object.
+        analysis (LinearStabilityAnalysis): Linear stability analysis object.
+    """
     def __init__(self, 
                  states: AircraftStates,
                  controls: VehicleControlSystem,
@@ -240,9 +291,20 @@ class Condition():
         return stability_metrics, self.analysis  # Return both metrics and analysis instance
 
 class CruiseCondition(Condition):
-    """Cruise condition: intended for steady analyses.
+    """Represents a steady cruise flight condition.
 
-    Note: cannot specify all parameters at once (e.g., cannot specify speed and mach_number simultaneously)
+    Allows specification of cruise parameters such as altitude, speed, Mach number, pitch angle, range, and time.
+    Not all parameters can be specified simultaneously (e.g., speed and Mach number).
+
+    Args:
+        fd_axis (Axis or AxisLsdoGeo): Flight dynamics axis.
+        controls (VehicleControlSystem): Control system.
+        altitude (ureg.Quantity or csdl.Variable): Cruise altitude.
+        range (ureg.Quantity or csdl.Variable): Cruise range.
+        pitch_angle (ureg.Quantity or csdl.Variable): Pitch angle.
+        speed (ureg.Quantity or csdl.Variable): Airspeed.
+        mach_number (ureg.Quantity or csdl.Variable): Mach number.
+        time (ureg.Quantity or csdl.Variable): Duration of cruise.
     """
     def __init__(self,
                  fd_axis: Union[Axis, AxisLsdoGeo],
@@ -327,9 +389,21 @@ class CruiseCondition(Condition):
         return ac_states
 
 class RateofClimb(Condition):
-    """Cruise condition: intended for steady analyses.
+    """Represents a steady rate-of-climb flight condition.
 
-    Note: cannot specify all parameters at once (e.g., cannot specify speed and mach_number simultaneously)
+    Allows specification of parameters such as altitude, speed, Mach number, pitch angle, flight path angle, range, and time.
+    Not all parameters can be specified simultaneously.
+
+    Args:
+        fd_axis (Axis or AxisLsdoGeo): Flight dynamics axis.
+        controls (VehicleControlSystem): Control system.
+        altitude (ureg.Quantity or csdl.Variable): Altitude.
+        range (ureg.Quantity or csdl.Variable): Range.
+        pitch_angle (ureg.Quantity or csdl.Variable): Pitch angle.
+        flight_path_angle (ureg.Quantity or csdl.Variable): Flight path angle.
+        speed (ureg.Quantity or csdl.Variable): Airspeed.
+        mach_number (ureg.Quantity or csdl.Variable): Mach number.
+        time (ureg.Quantity or csdl.Variable): Duration.
     """
     def __init__(self,
                  fd_axis: Union[Axis, AxisLsdoGeo],
@@ -426,7 +500,24 @@ class RateofClimb(Condition):
 
 
 class ClimbCondition(Condition):
-    """Climb condition (intended for steady analyses)"""
+    """Represents a steady climb flight condition.
+
+    Allows specification of initial/final altitude, pitch angle, flight path angle, speed, Mach number, time, climb gradient, and rate of climb.
+    Not all parameters can be specified simultaneously.
+
+    Args:
+        fd_axis (Axis or AxisLsdoGeo): Flight dynamics axis.
+        controls (VehicleControlSystem): Control system.
+        initial_altitude (ureg.Quantity or csdl.Variable): Initial altitude.
+        final_altitude (ureg.Quantity or csdl.Variable): Final altitude.
+        pitch_angle (ureg.Quantity or csdl.Variable): Pitch angle.
+        flight_path_angle (ureg.Quantity or csdl.Variable): Flight path angle.
+        speed (ureg.Quantity or csdl.Variable): Airspeed.
+        mach_number (ureg.Quantity or csdl.Variable): Mach number.
+        time (ureg.Quantity or csdl.Variable): Duration.
+        climb_gradient (ureg.Quantity or csdl.Variable): Climb gradient.
+        rate_of_climb (ureg.Quantity or csdl.Variable): Rate of climb.
+    """
     def __init__(self,
                  fd_axis: Union[Axis, AxisLsdoGeo],
                  controls: VehicleControlSystem,
@@ -516,12 +607,18 @@ class ClimbCondition(Condition):
 
 
 class HoverCondition(Condition):
-    """Hover condition (intended for steady analyses)
 
-    Parameters:
-     - altitude: Value or csdl.Variable
-     - time: Value or csdl.Variable
+    """Represents a steady hover flight condition.
+
+    Allows specification of hover altitude and time.
+
+    Args:
+        fd_axis (Axis or AxisLsdoGeo): Flight dynamics axis.
+        controls (VehicleControlSystem): Control system.
+        altitude (ureg.Quantity or csdl.Variable): Hover altitude.
+        time (ureg.Quantity or csdl.Variable): Duration of hover.
     """
+
     def __init__(self,
                  fd_axis: Union[Axis, AxisLsdoGeo],
                  controls: VehicleControlSystem,
