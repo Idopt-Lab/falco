@@ -76,17 +76,16 @@ jobs:
         mkdir pycutest_cache
         pytest -m "not snopt and not visualization" tests/ --cov=aircraft_flight_simulator --cov-report lcov
 
-    - name: Install
-      run: npm install
-    - name: Test and Coverage
-      run: npm run test:cov  # or npm run coverage
+    - name: Generate coverage badge
+      uses: tj-actions/coverage-badge-py@v2
+      with:
+        output: coverage.svg
 
-    # Add this
-    - name: Update Coverage Badge
-      # GitHub actions: default branch variable
-      # https://stackoverflow.com/questions/64781462/github-actions-default-branch-variable
-      uses: we-cli/coverage-badge-action@main
-
+    - name: Upload coverage badge
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-badge
+        path: ./coverage.svg
   install-test:
     runs-on: ${{ matrix.os }}
     strategy:
