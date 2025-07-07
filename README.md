@@ -10,7 +10,7 @@ A 6 DoF flight simulator with visualization in Unreal Engine
 -->
 
 [![GitHub Actions Test Badge](https://github.com/LSDOlab/csdl_alpha/actions/workflows/actions.yml/badge.svg)](https://github.com/csdl_alpha/csdl_alpha/.github)
-[![coverage](https://codecov.io/gh/joeyg/aircraft-flight-simulator/branch/main/graph/badge.svg)](https://codecov.io/gh/joeyg/aircraft-flight-simulator)
+[![Coverage](badges/coverage.svg)](../../actions)
 [![Forks](https://img.shields.io/github/forks/LSDOlab/csdl_alpha.svg)](https://github.com/LSDOlab/csdl_alpha/network)
 [![Issues](https://img.shields.io/github/issues/LSDOlab/csdl_alpha.svg)](https://github.com/LSDOlab/csdl_alpha/issues)
 
