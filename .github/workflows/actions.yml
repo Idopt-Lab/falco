@@ -76,11 +76,10 @@ jobs:
         mkdir pycutest_cache
         pytest -m "not snopt and not visualization" tests/ --cov=aircraft_flight_simulator --cov-report lcov
 
-    - name: Coveralls GitHub Action
-      uses: coverallsapp/github-action@v2.3.0
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v4
       with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
-        file: ./coverage.lcov
+        files: ./coverage.lcov
 
   install-test:
     runs-on: ${{ matrix.os }}
