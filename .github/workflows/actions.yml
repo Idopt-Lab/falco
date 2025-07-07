@@ -76,10 +76,11 @@ jobs:
         mkdir pycutest_cache
         pytest -m "not snopt and not visualization" tests/ --cov=aircraft_flight_simulator --cov-report lcov
 
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v4
+    - name: Upload coverage report
+      uses: actions/upload-artifact@v4
       with:
-        files: ./coverage.lcov
+        name: coverage-report
+        path: ./coverage.lcov
 
   install-test:
     runs-on: ${{ matrix.os }}
