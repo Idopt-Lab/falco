@@ -76,10 +76,16 @@ jobs:
         mkdir pycutest_cache
         pytest -m "not snopt and not visualization" tests/ --cov=aircraft_flight_simulator --cov-report lcov
 
-    - name: Coveralls GitHub Action
-      uses: coverallsapp/github-action@v2.3.0
-      with:
-        file: ./coverage.lcov
+    - name: Install
+      run: npm install
+    - name: Test and Coverage
+      run: npm run test:cov  # or npm run coverage
+
+    # Add this
+    - name: Update Coverage Badge
+      # GitHub actions: default branch variable
+      # https://stackoverflow.com/questions/64781462/github-actions-default-branch-variable
+      uses: we-cli/coverage-badge-action@main
 
   install-test:
     runs-on: ${{ matrix.os }}
