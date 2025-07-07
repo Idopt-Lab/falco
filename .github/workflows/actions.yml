@@ -76,16 +76,10 @@ jobs:
         mkdir pycutest_cache
         pytest -m "not snopt and not visualization" tests/ --cov=aircraft_flight_simulator --cov-report lcov
 
-    - name: Install
-      run: npm install
-    - name: Test and Coverage
-      run: npm run test:cov  # or npm run coverage
-  
-    - name: Update Coverage Badge
-      # GitHub actions: default branch variable
-      # https://stackoverflow.com/questions/64781462/github-actions-default-branch-variable
-      if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
-      uses: we-cli/coverage-badge-action@main
+    - name: Coveralls GitHub Action
+      uses: coverallsapp/github-action@v2.3.0
+      with:
+        file: ./coverage.lcov
 
   install-test:
     runs-on: ${{ matrix.os }}
@@ -129,8 +123,6 @@ jobs:
         python -m pip install --upgrade pip
         python -m pip install .[test,qpsolvers,pycutest,openmdao,jax]
 
-  # new csdl only works with python >=3.9 
-  # old csdl has fixed dependencies which are not compatible with python <=3.8, and >=3.12
   install-test-csdl:
     runs-on: ${{ matrix.os }}
     strategy:
