@@ -54,6 +54,7 @@ jobs:
         add: 'coverage.svg'
         message: 'Update coverage badge'
         default_author: github_actions
+        push: origin HEAD:${{ github.ref_name }}
 
       # Finally, we run the package unit-tests on the specified OS and python versions.
     - name: Test with pytest
