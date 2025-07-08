@@ -10,7 +10,7 @@ A 6 DoF flight simulator with visualization in Unreal Engine
 -->
 
 [![GitHub Actions Test Badge](https://github.com/Idopt-Lab/aircraft-flight-simulator/actions/workflows/actions.yml/badge.svg)](https://github.com/aircraft-flight-simulator/flight-simulator/.github)
-![Coverage](./coverage.svg)
+[![Coverage Status](https://coveralls.io/repos/github/Idopt-Lab/aircraft-flight-simulator/badge.svg?branch=main&kill_cache=1)](https://coveralls.io/github/Idopt-Lab/aircraft-flight-simulator?branch=main)
 [![Forks](https://img.shields.io/github/forks/Idopt-Lab/aircraft-flight-simulator.svg)](https://github.com/Idopt-Lab/aircraft-flight-simulator/network)
 [![Issues](https://img.shields.io/github/issues/Idopt-Lab/aircraft-flight-simulator.svg)](https://github.com/Idopt-Lab/aircraft-flight-simulator/issues)
 
