@@ -9,10 +9,10 @@ A 6 DoF flight simulator with visualization in Unreal Engine
 [![PyPI Monthly Downloads][12]][11]
 -->
 
-[![GitHub Actions Test Badge](https://github.com/LSDOlab/csdl_alpha/actions/workflows/actions.yml/badge.svg)](https://github.com/csdl_alpha/csdl_alpha/.github)
-[![Coverage](coverage.svg)](../../actions)
-[![Forks](https://img.shields.io/github/forks/LSDOlab/csdl_alpha.svg)](https://github.com/LSDOlab/csdl_alpha/network)
-[![Issues](https://img.shields.io/github/issues/LSDOlab/csdl_alpha.svg)](https://github.com/LSDOlab/csdl_alpha/issues)
+[![GitHub Actions Test Badge](https://github.com/Idopt-Lab/aircraft-flight-simulator/actions/workflows/actions.yml/badge.svg)](https://github.com/aircraft-flight-simulator/flight-simulator/.github)
+[![Coverage Status](https://coveralls.io/repos/github/LSDOlab/modopt/badge.svg?branch=main&kill_cache=1)](https://coveralls.io/github/Idopt-Lab/aircraft-flight-simulator?branch=main)
+[![Forks](https://img.shields.io/github/forks/Idopt-Lab/aircraft-flight-simulator.svg)](https://github.com/Idopt-Lab/aircraft-flight-simulator/network)
+[![Issues](https://img.shields.io/github/issues/Idopt-Lab/aircraft-flight-simulator.svg)](https://github.com/Idopt-Lab/aircraft-flight-simulator/issues)
 
 ## Needed software for Unreal and JSBSim (Antiquated)
 1. JSBSim (most modern version)
