@@ -6,9 +6,9 @@ name: Tests
 # Whenever there is a pull request (PR) or push to the "main" branch, the jobs specified below will run.
 on: 
   push:
-    branches: [ "main" ]
+    branches: [ "*" ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ "*" ]
 
 # Here, we specify the automatic cloud based testing that will be ran on pushes/PRs to "main"
 jobs:
