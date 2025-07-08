@@ -37,6 +37,23 @@ jobs:
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
         pip install -U jax
         pip install -e .
+    
+    - name: Run tests and collect coverage
+      run: |
+        pip install pytest-cov
+        pytest --cov=aircraft-flight-simulator --cov-report=xml --cov-report=term
+
+    - name: Generate coverage badge
+      run: |
+        pip install coverage-badge
+        coverage-badge -o coverage.svg -f
+
+    - name: Commit coverage badge
+      uses: EndBug/add-and-commit@v9
+      with:
+        add: 'coverage.svg'
+        message: 'Update coverage badge'
+        default_author: github_actions
 
       # Finally, we run the package unit-tests on the specified OS and python versions.
     - name: Test with pytest
