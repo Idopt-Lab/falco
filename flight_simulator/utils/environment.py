@@ -10,7 +10,7 @@ from typing import Union
 from dataclasses import dataclass
 import csdl_alpha as csdl
 from flight_simulator import Q_, ureg
-from vector import Vector
+from flight_simulator.core.dynamics.vector import Vector
 from flight_simulator.core.dynamics.axis import Axis
 @dataclass
 class AtmosphericStates(csdl.VariableGroup):
