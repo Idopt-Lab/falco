@@ -48,6 +48,7 @@ setup(
         'graphviz',
         'jax',
         'casadi',
+        'csdl @ git+https://github.com/LSDOlab/csdl.git',
         'CSDL_alpha @ git+https://github.com/LSDOlab/CSDL_alpha.git',
         'modopt @ git+https://github.com/LSDOlab/modopt.git',
         'lsdo_geo @ git+https://github.com/LSDOlab/lsdo_geo.git',

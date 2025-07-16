@@ -67,6 +67,11 @@ If you encounter issues during the installation process, it is recommended to ch
 $ git clone https://github.com/nichco/NRLMSIS2.git
 $ pip install -e ./NRLMSIS2
 ```
+- If you encounter issues stemming from `lsdo_geo`, it is recommended to similarly clone the repository and install it using pip:
+```sh
+$ git clone https://github.com/LSDOlab/lsdo_geo.git
+$ pip install -e ./lsdo_geo
+```
 
 
 ## Updating FALCO
