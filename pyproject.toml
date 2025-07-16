@@ -3,7 +3,7 @@ requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "aircraft_flight_simulator"
+name = "falco"
 description = "A package for 6 DoF aircraft flight simulator with automatic derivatives"
 readme = "README.md"
 requires-python = ">=3.10, <3.11"

@@ -1,5 +1,5 @@
 ***********************************
-# aircraft_flight_simulator 0.1.0 (October 13, 2024)
+# falco 0.1.0 (July 2025))
 
 Summary of major changes from the previous release.
 
