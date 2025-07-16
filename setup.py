@@ -48,6 +48,7 @@ setup(
         'graphviz',
         'jax',
         'casadi',
+        'ipykernel',
         'csdl @ git+https://github.com/LSDOlab/csdl.git',
         'CSDL_alpha @ git+https://github.com/LSDOlab/CSDL_alpha.git',
         'modopt @ git+https://github.com/LSDOlab/modopt.git',
