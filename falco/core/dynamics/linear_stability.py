@@ -4,11 +4,11 @@ import csdl_alpha as csdl
 import numpy as np
 from typing import Union
 from dataclasses import dataclass
-from flight_simulator.core.vehicle.components.component import Component
-from flight_simulator.core.vehicle.controls.vehicle_control_system import VehicleControlSystem
-from flight_simulator.core.dynamics.EoM import EquationsOfMotion
-from flight_simulator.core.dynamics.aircraft_states import AircraftStates
-from flight_simulator.core.loads.mass_properties import MassMI
+from falco.core.vehicle.components.component import Component
+from falco.core.vehicle.controls.vehicle_control_system import VehicleControlSystem
+from falco.core.dynamics.EoM import EquationsOfMotion
+from falco.core.dynamics.aircraft_states import AircraftStates
+from falco.core.loads.mass_properties import MassMI
 import matplotlib.pyplot as plt
 
 

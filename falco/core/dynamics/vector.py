@@ -1,9 +1,9 @@
-from flight_simulator.core.dynamics.axis import Axis
-from flight_simulator.core.dynamics.axis_lsdogeo import AxisLsdoGeo
+from falco.core.dynamics.axis import Axis
+from falco.core.dynamics.axis_lsdogeo import AxisLsdoGeo
 import csdl_alpha as csdl
-from flight_simulator import ureg
+from falco import ureg
 import numpy as np
-from flight_simulator.core.dynamics.axis_lsdogeo import AxisLsdoGeo
+from falco.core.dynamics.axis_lsdogeo import AxisLsdoGeo
 
 class Vector:
     """Represents a 3D vector in a specified coordinate axis system.

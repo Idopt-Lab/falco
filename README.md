@@ -1,5 +1,21 @@
-# aircraft-flight-simulator
-A 6 DoF flight simulator with visualization in Unreal Engine
+# Framework for Aircraft-Level Configuration and Optimization (FALCO)
+
+[![GitHub Actions Test Badge](https://github.com/Idopt-Lab/falco/actions/workflows/actions.yml/badge.svg)](https://github.com/falco/flight-simulator/.github)
+[![Coverage Status](https://coveralls.io/repos/github/Idopt-Lab/falco/badge.svg?branch=main&kill_cache=1)](https://coveralls.io/github/Idopt-Lab/falco?branch=main)
+[![Forks](https://img.shields.io/github/forks/Idopt-Lab/falco.svg)](https://github.com/Idopt-Lab/falco/network)
+[![Issues](https://img.shields.io/github/issues/Idopt-Lab/falco.svg)](https://github.com/Idopt-Lab/falco/issues)
+
+
+## Description
+FALCO is an in-development framework that enables researchers and engineers to simulate various aircraft configurations, flight conditions, and control methodologies through a modular, python-based framework built using [csdl_alpha](https://github.com/LSDOlab/CSDL_alpha) (Computational System Design Language). The framework is capable of integrating multi-fidelity aerodynamic models, propulsion models, and control systems to evaluate flight performance. This enables rapid gradient-based aircraft design optimization.
+
+Key features include:
+- Six-degree-of-freedom aircraft dynamics modeling
+- Easily configurable aerodynamic, propulsion, and stability models capable of integration with existing software
+- Modular architecture supporting custom aircraft configurations
+
+
+FALCO is under active development. Contributions are welcome, and we encourage users to report issues or suggest features. Expect frequent updates and changes as we continue to enhance the framework's capabilities.
 
 <!---
 [![Python](https://img.shields.io/pypi/pyversions/csdl_alpha)](https://img.shields.io/pypi/pyversions/csdl_alpha)
@@ -9,33 +25,28 @@ A 6 DoF flight simulator with visualization in Unreal Engine
 [![PyPI Monthly Downloads][12]][11]
 -->
 
-[![GitHub Actions Test Badge](https://github.com/Idopt-Lab/aircraft-flight-simulator/actions/workflows/actions.yml/badge.svg)](https://github.com/aircraft-flight-simulator/flight-simulator/.github)
-[![Coverage Status](https://coveralls.io/repos/github/Idopt-Lab/aircraft-flight-simulator/badge.svg?branch=main&kill_cache=1)](https://coveralls.io/github/Idopt-Lab/aircraft-flight-simulator?branch=main)
-[![Forks](https://img.shields.io/github/forks/Idopt-Lab/aircraft-flight-simulator.svg)](https://github.com/Idopt-Lab/aircraft-flight-simulator/network)
-[![Issues](https://img.shields.io/github/issues/Idopt-Lab/aircraft-flight-simulator.svg)](https://github.com/Idopt-Lab/aircraft-flight-simulator/issues)
+## Installation instructions for users
+FALCO can be installed using the following instructions: 
 
-## Needed software for Unreal and JSBSim (Antiquated)
-1. JSBSim (most modern version)
-2. Unreal 5.0.3 (roll back version)
-3. Visual Studio Community (Can be modern editor)
-4. Visual Studio Installer needed components:
-    - .NET Desktop Development (only required components)
-    - Desktop Development with C++:
-        - Windows 10 SDK (10.18362.0)
-        - MSVC v142 - VS 2019 C++ x64/x86 build tools (v14.29)
-    - Game Development with C++:
-        - Unreal Engine installer
+For direct installation with all dependencies, run on the terminal or command line
 
-## Needed software for Unreal and MathWorks
-1. Unreal 5.4.4 w/ components:
-    - Cesium for unreal
-    - Mathworks Plugin w/
-         - MathWorksAerospaceContent
-         - MathWorksGeoSpatial
-         - MathworksSimulation
-         - RoadRunnerMaterials
-3. Mathworks R2024b w/ components:
-    - Aerospace Blockset
-    - Aerospace Interface for Unreal
+```sh
+$ pip install git+https://github.com/Idopt-Lab/falco.git
+```
 
+## Installation instructions for developers
+To install `FALCO`, first clone the repository and install using pip.
+On the terminal or command line, run
+```sh
+$ git clone https://github.com/Idopt-Lab/falco.git
+$ pip install -e ./falco
+```
+More details instructions are available on the documentation page "Getting Started with FALCO". The package is available for Python 3.9 and later versions.
 
+## Documentation
+The documentation for FALCO is available at [DOCS LINK]() \[Need to fill link\].
+The documentation includes:
+- Getting started with FALCO
+- Basic examples to familiarize users with the framework's core functionalities (Geometry, Solvers, Mass Properties, Condition Setup)
+- Advanced examples (Trim Optimization, Geometry Parameterization, Coupled Design Optimization) \[WIP\]
+- API reference for developers

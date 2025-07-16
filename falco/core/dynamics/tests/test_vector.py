@@ -1,8 +1,8 @@
 import unittest
-from flight_simulator.core.dynamics.vector import Vector
-from flight_simulator.core.dynamics.axis import Axis, ValidOrigins
-from flight_simulator.core.dynamics.axis_lsdogeo import AxisLsdoGeo
-from flight_simulator import ureg
+from falco.core.dynamics.vector import Vector
+from falco.core.dynamics.axis import Axis, ValidOrigins
+from falco.core.dynamics.axis_lsdogeo import AxisLsdoGeo
+from falco import ureg
 import csdl_alpha as csdl
 import numpy as np
 

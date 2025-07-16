@@ -1,11 +1,11 @@
 from pathlib import Path
 from unittest import TestCase
-from flight_simulator import REPO_ROOT_FOLDER, Q_
+from falco import REPO_ROOT_FOLDER, Q_
 import sys
 import csdl_alpha as csdl
 import numpy as np
 
-from flight_simulator.core.vehicle.conditions import aircraft_conditions
+from falco.core.vehicle.conditions import aircraft_conditions
 
 x57_folder_path = REPO_ROOT_FOLDER / 'examples' / 'advanced_examples' / 'x57'
 sys.path.append(str(x57_folder_path))

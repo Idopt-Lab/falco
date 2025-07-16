@@ -1,8 +1,8 @@
-from flight_simulator.core.loads.mass_properties import MassProperties, MassMI
-from flight_simulator.core.vehicle.components.component import Component
-from flight_simulator import REPO_ROOT_FOLDER, Q_, ureg
-from flight_simulator.core.dynamics.axis import Axis, ValidOrigins
-from flight_simulator.core.loads.forces_moments import Vector
+from falco.core.loads.mass_properties import MassProperties, MassMI
+from falco.core.vehicle.components.component import Component
+from falco import REPO_ROOT_FOLDER, Q_, ureg
+from falco.core.dynamics.axis import Axis, ValidOrigins
+from falco.core.loads.forces_moments import Vector
 
 import csdl_alpha as csdl
 import numpy as np
@@ -110,7 +110,7 @@ def add_mp_to_components(aircraft_component: Component, geo_dict: dict, axis_dic
 
 
 if __name__ == "__main__":
-    from flight_simulator import REPO_ROOT_FOLDER
+    from falco import REPO_ROOT_FOLDER
     import sys
 
     x57_folder_path = REPO_ROOT_FOLDER / 'examples' / 'advanced_examples' / 'x57'

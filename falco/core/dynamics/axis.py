@@ -1,5 +1,5 @@
 import numpy as np
-from flight_simulator import ureg
+from falco import ureg
 import csdl_alpha as csdl
 from typing import Union, Literal
 from enum import Enum

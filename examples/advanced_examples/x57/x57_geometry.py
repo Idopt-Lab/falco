@@ -1,11 +1,11 @@
 import lsdo_function_spaces as lfs
 import csdl_alpha as csdl
 import numpy as np
-from flight_simulator.utils.import_geometry import import_geometry
-from flight_simulator import REPO_ROOT_FOLDER, Q_
+from falco.utils.import_geometry import import_geometry
+from falco import REPO_ROOT_FOLDER, Q_
 from lsdo_geo.core.geometry.geometry import Geometry
-from flight_simulator.core.dynamics.axis import Axis, ValidOrigins
-from flight_simulator.core.dynamics.axis_lsdogeo import AxisLsdoGeo
+from falco.core.dynamics.axis import Axis, ValidOrigins
+from falco.core.dynamics.axis_lsdogeo import AxisLsdoGeo
 
 lfs.num_workers = 1
 

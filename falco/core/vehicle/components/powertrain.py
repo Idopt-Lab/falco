@@ -1,5 +1,5 @@
 from lsdo_function_spaces import FunctionSet
-from flight_simulator.core.vehicle.components.component import Component
+from falco.core.vehicle.components.component import Component
 from typing import Union
 
 

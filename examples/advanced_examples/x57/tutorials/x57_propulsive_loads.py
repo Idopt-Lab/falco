@@ -1,9 +1,9 @@
 import time
 import csdl_alpha as csdl
 import numpy as np
-from flight_simulator.core.vehicle.conditions import aircraft_conditions
+from falco.core.vehicle.conditions import aircraft_conditions
 from modopt import CSDLAlphaProblem, SLSQP, IPOPT, SNOPT, PySLSQP
-from flight_simulator import REPO_ROOT_FOLDER, Q_
+from falco import REPO_ROOT_FOLDER, Q_
 import sys
 
 x57_folder_path = REPO_ROOT_FOLDER / 'examples' / 'advanced_examples' / 'x57'

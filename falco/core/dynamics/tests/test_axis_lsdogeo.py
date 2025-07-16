@@ -1,8 +1,8 @@
 import unittest
 import numpy as np
-from flight_simulator import ureg
+from falco import ureg
 import lsdo_geo
-from flight_simulator.core.dynamics.axis_lsdogeo import AxisLsdoGeo
+from falco.core.dynamics.axis_lsdogeo import AxisLsdoGeo
 import csdl_alpha as csdl
 
 class TestAxisLsdoGeo(unittest.TestCase):

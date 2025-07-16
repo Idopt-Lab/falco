@@ -1,10 +1,10 @@
-from flight_simulator.core.dynamics.aircraft_states import AircraftStates
-from flight_simulator.core.vehicle.controls.vehicle_control_system import VehicleControlSystem
-from flight_simulator.core.dynamics.axis import Axis
-from flight_simulator.core.dynamics.axis_lsdogeo import AxisLsdoGeo
-from flight_simulator.core.vehicle.components.component import Component
-from flight_simulator.core.dynamics.linear_stability import LinearStabilityAnalysis
-from flight_simulator.core.dynamics.EoM import EquationsOfMotion
+from falco.core.dynamics.aircraft_states import AircraftStates
+from falco.core.vehicle.controls.vehicle_control_system import VehicleControlSystem
+from falco.core.dynamics.axis import Axis
+from falco.core.dynamics.axis_lsdogeo import AxisLsdoGeo
+from falco.core.vehicle.components.component import Component
+from falco.core.dynamics.linear_stability import LinearStabilityAnalysis
+from falco.core.dynamics.EoM import EquationsOfMotion
 from typing import Union
 import csdl_alpha as csdl
 from dataclasses import dataclass
@@ -12,7 +12,7 @@ import numpy as np
 import copy
 import warnings
 import NRLMSIS2
-from flight_simulator import ureg, Q_
+from falco import ureg, Q_
 
 
 @dataclass
@@ -430,6 +430,8 @@ class RateofClimb(Condition):
 
         ac_states = self._setup_condition(fd_axis)
         analysis = LinearStabilityAnalysis()
+        eom = EquationsOfMotion()
+
         super().__init__(states=ac_states, controls=controls, eom=eom, analysis=analysis)
 
     def _setup_condition(self, fd_axis: Union[Axis, AxisLsdoGeo]):

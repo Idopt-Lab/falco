@@ -1,15 +1,15 @@
 from pathlib import Path
 from unittest import TestCase
 
-from flight_simulator import ureg, Q_
+from falco import ureg, Q_
 import csdl_alpha as csdl
 import numpy as np
 
-from flight_simulator.core.dynamics.axis import Axis, ValidOrigins
-from flight_simulator.core.loads.forces_moments import Vector
-from flight_simulator.core.loads.mass_properties import MassProperties, MassMI
-from flight_simulator.core.vehicle.components.component import Component, ComponentParameters
-from flight_simulator.utils.import_geometry import import_geometry
+from falco.core.dynamics.axis import Axis, ValidOrigins
+from falco.core.loads.forces_moments import Vector
+from falco.core.loads.mass_properties import MassProperties, MassMI
+from falco.core.vehicle.components.component import Component, ComponentParameters
+from falco.utils.import_geometry import import_geometry
 
 
 class TestComponentInitialization(TestCase):
@@ -77,7 +77,7 @@ class TestComponentGeometry(TestCase):
     def setUp(self):
         recorder = csdl.Recorder(inline=True)
         recorder.start()
-        from flight_simulator import GEOMETRIES_ROOT_FOLDER
+        from falco import GEOMETRIES_ROOT_FOLDER
         self.wing_geometry = import_geometry("simple_wing.stp", file_path=GEOMETRIES_ROOT_FOLDER / 'test_geometries')
 
     def test_geometry_surface_area(self):

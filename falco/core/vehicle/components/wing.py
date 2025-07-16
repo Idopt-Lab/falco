@@ -1,4 +1,4 @@
-from flight_simulator.core.vehicle.components.component import Component
+from falco.core.vehicle.components.component import Component
 
 import lsdo_function_spaces as lfs
 from typing import Union, List
@@ -7,7 +7,7 @@ import csdl_alpha as csdl
 import numpy as np
 from dataclasses import dataclass
 import lsdo_geo as lg
-from flight_simulator import ureg, Q_
+from falco import ureg, Q_
 
 
 in2m=0.0254

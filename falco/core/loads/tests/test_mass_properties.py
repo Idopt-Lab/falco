@@ -1,12 +1,12 @@
 from unittest import TestCase
 
-from flight_simulator import ureg, Q_
+from falco import ureg, Q_
 import csdl_alpha as csdl
 import numpy as np
 
-from flight_simulator.core.dynamics.axis import Axis, ValidOrigins
-from flight_simulator.core.loads.forces_moments import Vector, ForcesMoments
-from flight_simulator.core.loads.mass_properties import MassProperties, MassMI
+from falco.core.dynamics.axis import Axis, ValidOrigins
+from falco.core.loads.forces_moments import Vector, ForcesMoments
+from falco.core.loads.mass_properties import MassProperties, MassMI
 
 class TestMassProperties(TestCase):
     def setUp(self):

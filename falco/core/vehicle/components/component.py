@@ -1,9 +1,9 @@
 from __future__ import annotations
 from pathlib import Path
-from flight_simulator.core.loads.mass_properties import MassProperties
+from falco.core.loads.mass_properties import MassProperties
 from lsdo_geo import Geometry
 from lsdo_function_spaces import FunctionSet
-from flight_simulator import ureg, Q_
+from falco import ureg, Q_
 from typing import Union, List
 import numpy as np
 from lsdo_geo.core.parameterization.free_form_deformation_functions import construct_ffd_block_around_entities
@@ -13,11 +13,11 @@ from dataclasses import dataclass
 import time
 import warnings
 import copy
-from flight_simulator.core.loads.mass_properties import MassProperties, MassMI, GravityLoads
-from flight_simulator.core.dynamics.axis import Axis, ValidOrigins
-from flight_simulator.core.loads.forces_moments import Vector, ForcesMoments
-from flight_simulator.core.loads.loads import Loads
-from flight_simulator.utils.euler_rotations import build_rotation_matrix
+from falco.core.loads.mass_properties import MassProperties, MassMI, GravityLoads
+from falco.core.dynamics.axis import Axis, ValidOrigins
+from falco.core.loads.forces_moments import Vector, ForcesMoments
+from falco.core.loads.loads import Loads
+from falco.utils.euler_rotations import build_rotation_matrix
 
 
 
@@ -254,7 +254,7 @@ class Component:
         total_moments : csdl.Variable
             The total moment vector.
         """
-        from flight_simulator.utils.euler_rotations import build_rotation_matrix
+        from falco.utils.euler_rotations import build_rotation_matrix
 
         total_forces = csdl.Variable(shape=(3,), value=0.)
         total_moments = csdl.Variable(shape=(3,), value=0.)

@@ -1,11 +1,11 @@
 import csdl_alpha as csdl
 import numpy as np
 
-from flight_simulator.core.vehicle.components.component import Component
-from flight_simulator.core.vehicle.components.wing import Wing as WingComp
-from flight_simulator.core.vehicle.components.fuselage import Fuselage as FuseComp
-from flight_simulator.core.vehicle.components.aircraft import Aircraft as AircraftComp
-from flight_simulator.core.vehicle.components.rotor import Rotor as RotorComp
+from falco.core.vehicle.components.component import Component
+from falco.core.vehicle.components.wing import Wing as WingComp
+from falco.core.vehicle.components.fuselage import Fuselage as FuseComp
+from falco.core.vehicle.components.aircraft import Aircraft as AircraftComp
+from falco.core.vehicle.components.rotor import Rotor as RotorComp
 from lsdo_geo.core.parameterization.parameterization_solver import ParameterizationSolver, GeometricVariables
 
 
@@ -213,7 +213,7 @@ def build_aircraft_component(geo_dict: dict, do_geo_param: bool = False):
 
 
 if __name__ == "__main__":
-    from flight_simulator import REPO_ROOT_FOLDER
+    from falco import REPO_ROOT_FOLDER
     import sys
 
     x57_folder_path = REPO_ROOT_FOLDER / 'examples' / 'advanced_examples' / 'x57'

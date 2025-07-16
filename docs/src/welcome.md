@@ -1,7 +1,7 @@
 
 This documentation is intended to provide a basis for understanding the Framework for Aircraft-Level Configuration and Optimization (FALCO), an in-development framework for modeling and analyzing aircraft dynamics, control systems, flight performance, and more.
 
-FALCO enables researchers and engineers to simulate various aircraft configurations, flight conditions, and control methodologies through a modular, python-based framework built using [csdl_alpha](https://github.com/LSDOlab/CSDL_alpha) (Computational System Design Language). The simulator is capable of integrating multi-fidelity aerodynamic models, propulsion models, and control systems to evaluate flight performance. This enables rapid gradient-based aircraft design optimization.
+FALCO enables researchers and engineers to simulate various aircraft configurations, flight conditions, and control methodologies through a modular, python-based framework built using [csdl_alpha](https://github.com/LSDOlab/CSDL_alpha) (Computational System Design Language). The framework is capable of integrating multi-fidelity aerodynamic models, propulsion models, and control systems to evaluate flight performance. This enables rapid gradient-based aircraft design optimization.
 
 Key features include:
 - Six-degree-of-freedom aircraft dynamics modeling

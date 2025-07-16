@@ -1,5 +1,5 @@
-from flight_simulator.core.vehicle.components.component import Component
-from flight_simulator.core.vehicle.controls.vehicle_control_system import VehicleControlSystem, ControlSurface, PropulsiveControl, PropulsiveControlRPM
+from falco.core.vehicle.components.component import Component
+from falco.core.vehicle.controls.vehicle_control_system import VehicleControlSystem, ControlSurface, PropulsiveControl, PropulsiveControlRPM
 import csdl_alpha as csdl
 import numpy as np
 from typing import List

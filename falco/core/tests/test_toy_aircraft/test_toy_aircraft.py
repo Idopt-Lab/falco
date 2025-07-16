@@ -1,19 +1,19 @@
 from pathlib import Path
 from unittest import TestCase
 
-from flight_simulator import ureg, Q_
+from falco import ureg, Q_
 import csdl_alpha as csdl
 import numpy as np
 
-from flight_simulator.core.tests.test_toy_aircraft.toy_aircraft_models import ToyAircraftControlSystem
+from falco.core.tests.test_toy_aircraft.toy_aircraft_models import ToyAircraftControlSystem
 
 
 def get_geometry(inertial_axis):
-    from flight_simulator.core.vehicle.components.aircraft import Aircraft
-    from flight_simulator.core.vehicle.components.component import Component, ComponentParameters
-    from flight_simulator.core.loads.mass_properties import MassProperties, MassMI
-    from flight_simulator.core.dynamics.axis import Axis, ValidOrigins
-    from flight_simulator.core.loads.forces_moments import Vector
+    from falco.core.vehicle.components.aircraft import Aircraft
+    from falco.core.vehicle.components.component import Component, ComponentParameters
+    from falco.core.loads.mass_properties import MassProperties, MassMI
+    from falco.core.dynamics.axis import Axis, ValidOrigins
+    from falco.core.loads.forces_moments import Vector
 
     aircraft_component = Aircraft()
 
@@ -90,7 +90,7 @@ def get_control_system():
 
 
 def get_solvers():
-    from flight_simulator.core.tests.test_toy_aircraft.toy_aircraft_models import ToyAircraftPropulsion, ToyAircraftAerodynamics
+    from falco.core.tests.test_toy_aircraft.toy_aircraft_models import ToyAircraftPropulsion, ToyAircraftAerodynamics
 
 
 
@@ -102,7 +102,7 @@ class TestComponent(TestCase):
         recorder = csdl.Recorder(inline=True)
         recorder.start()
 
-        from flight_simulator.core.dynamics.axis import Axis, ValidOrigins
+        from falco.core.dynamics.axis import Axis, ValidOrigins
 
         self.inertial_axis = Axis(
             name='Inertial Axis',
@@ -150,7 +150,7 @@ class TestControlSystem(TestCase):
         recorder = csdl.Recorder(inline=True)
         recorder.start()
 
-        from flight_simulator.core.dynamics.axis import Axis, ValidOrigins
+        from falco.core.dynamics.axis import Axis, ValidOrigins
 
         self.inertial_axis = Axis(
             name='Inertial Axis',

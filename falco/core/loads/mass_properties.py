@@ -2,12 +2,12 @@ import csdl_alpha as csdl
 from typing import Union
 from dataclasses import dataclass
 import numpy as np
-from flight_simulator import ureg, Q_
-from flight_simulator.core.loads.loads import Loads
-from flight_simulator.core.dynamics.axis import Axis
-from flight_simulator.core.dynamics.axis_lsdogeo import AxisLsdoGeo
-from flight_simulator.core.loads.forces_moments import Vector, ForcesMoments
-from flight_simulator.core.dynamics.axis import Axis, ValidOrigins
+from falco import ureg, Q_
+from falco.core.loads.loads import Loads
+from falco.core.dynamics.axis import Axis
+from falco.core.dynamics.axis_lsdogeo import AxisLsdoGeo
+from falco.core.loads.forces_moments import Vector, ForcesMoments
+from falco.core.dynamics.axis import Axis, ValidOrigins
 
 
 class MassMI:

@@ -9,9 +9,9 @@ import numpy as np
 from typing import Union
 from dataclasses import dataclass
 import csdl_alpha as csdl
-from flight_simulator import Q_, ureg
-from flight_simulator.core.dynamics.vector import Vector
-from flight_simulator.core.dynamics.axis import Axis
+from falco import Q_, ureg
+from falco.core.dynamics.vector import Vector
+from falco.core.dynamics.axis import Axis
 @dataclass
 class AtmosphericStates(csdl.VariableGroup):
     density : Union[float, int, csdl.Variable] = 1.225

@@ -1,10 +1,10 @@
 import numpy as np
-from flight_simulator import ureg
+from falco import ureg
 import csdl_alpha as csdl
 from typing import Union
 import lsdo_geo
 
-from flight_simulator.core.dynamics.axis import Axis
+from falco.core.dynamics.axis import Axis
 
 class AxisLsdoGeo(Axis):
     """Represents an axis defined by a parametric location on an LSDO-Geo geometry.

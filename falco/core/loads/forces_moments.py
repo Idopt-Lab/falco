@@ -1,9 +1,9 @@
-from flight_simulator.core.dynamics.axis import Axis
+from falco.core.dynamics.axis import Axis
 import csdl_alpha as csdl
 import numpy as np
-from flight_simulator import ureg
-from flight_simulator.utils.euler_rotations import build_rotation_matrix
-from flight_simulator.core.dynamics.vector import Vector
+from falco import ureg
+from falco.utils.euler_rotations import build_rotation_matrix
+from falco.core.dynamics.vector import Vector
 
 
 class ForcesMoments:

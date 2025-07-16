@@ -2,7 +2,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import numpy as np
-from flight_simulator import REPO_ROOT_FOLDER, Q_
+from falco import REPO_ROOT_FOLDER, Q_
 import sys
 
 results_folder_path = REPO_ROOT_FOLDER / 'AIAA Aviation 2025' / 'X-57' / 'optimizations' / 'results'

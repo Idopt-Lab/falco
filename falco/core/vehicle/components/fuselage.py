@@ -1,4 +1,4 @@
-from flight_simulator.core.vehicle.components.component import Component
+from falco.core.vehicle.components.component import Component
 
 from lsdo_geo.core.parameterization.volume_sectional_parameterization import (
     VolumeSectionalParameterization, VolumeSectionalParameterizationInputs
@@ -10,7 +10,7 @@ import csdl_alpha as csdl
 from dataclasses import dataclass
 from lsdo_function_spaces import FunctionSet
 import lsdo_geo as lg
-from flight_simulator import ureg, Q_
+from falco import ureg, Q_
 
 
 

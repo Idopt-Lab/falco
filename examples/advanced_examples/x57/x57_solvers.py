@@ -2,11 +2,11 @@ import csdl_alpha as csdl
 import numpy as np
 from typing import Union
 from scipy.interpolate import Akima1DInterpolator
-from flight_simulator.core.loads.loads import Loads
+from falco.core.loads.loads import Loads
 import os
 import scipy.io as sio
-from flight_simulator.core.loads.forces_moments import Vector, ForcesMoments
-from flight_simulator import REPO_ROOT_FOLDER, Q_, ureg
+from falco.core.loads.forces_moments import Vector, ForcesMoments
+from falco import REPO_ROOT_FOLDER, Q_, ureg
 
 
 class X57Aerodynamics(Loads):

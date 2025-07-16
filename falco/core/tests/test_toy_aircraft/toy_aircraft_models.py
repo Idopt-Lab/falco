@@ -4,12 +4,12 @@ import numpy as np
 
 import csdl_alpha as csdl
 
-from flight_simulator.core.vehicle.controls.vehicle_control_system import (
+from falco.core.vehicle.controls.vehicle_control_system import (
     VehicleControlSystem, ControlSurface, PropulsiveControl)
-from flight_simulator.core.loads.loads import Loads
-from flight_simulator import Q_
-from flight_simulator.core.dynamics.vector import Vector
-from flight_simulator.core.loads.forces_moments import ForcesMoments
+from falco.core.loads.loads import Loads
+from falco import Q_
+from falco.core.dynamics.vector import Vector
+from falco.core.loads.forces_moments import ForcesMoments
 
 
 class ToyAircraftControlSystem(VehicleControlSystem):

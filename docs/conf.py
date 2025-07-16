@@ -19,8 +19,8 @@
 project = 'FALCO'
 copyright = '2025, IDOPT Lab'
 author = 'IDOPT Lab'
-version = '0.1'
-# release = 0.1.0rtc
+version = 'Latest'
+
 
 
 # -- General configuration ---------------------------------------------------
@@ -54,7 +54,7 @@ myst_enable_extensions = ["dollarmath", "amsmath", "tasklist"]
 nb_execution_mode = 'off'
 
 # autoapi options
-autoapi_dirs = ["../flight_simulator"]
+autoapi_dirs = ["../falco"]
 autoapi_root = 'src/autoapi'
 autoapi_type = 'python'
 autoapi_file_patterns = ['*.py', '*.pyi']

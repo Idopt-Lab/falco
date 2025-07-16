@@ -21,12 +21,12 @@ with open("README.md", "r") as fh:
 
 setup(
     name='falco',
-    version=get_version('aircraft-flight-simulator/__init__.py'),
+    version=get_version('falco/__init__.py'),
     author='Author name',
     author_email='author@gmail.com',
     license='LGPLv3+',
     keywords='python project template repository package',
-    url='https://github.com/Idopt-Lab/aircraft-flight-simulator',
+    url='https://github.com/Idopt-Lab/falco',
     download_url='', #TODO: Add download URL
     # download_url='http://pypi.python.org/pypi/aircraft-flight
     description='An aircraft flight simulator for MDAO',
