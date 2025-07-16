@@ -91,7 +91,7 @@ class Fuselage(Component):
 
         self._name = f"Fuselage"
         self.geometry = geometry
-        self._skip_ffd = skip_ffd
+        self.skip_ffd = skip_ffd
         self.geometry = geometry
         
 
@@ -227,31 +227,33 @@ class Fuselage(Component):
         )
 
 
-        # length_stretch_b_spline.coefficients.add_name('fuselage_length_stretch_coefficients')
-        # height_stretch_b_spline.coefficients.add_name('fuselage_height_stretch_coefficients')
-        # width_stretch_b_spline.coefficients.add_name('fuselage_width_stretch_coefficients')
-        #
-        # length_outer_dv = csdl.Variable(shape=(1,), value=self.parameters.length.value)
-        # height_outer_dv = csdl.Variable(shape=(1,), value=self.parameters.max_height.value)
-        # width_outer_dv = csdl.Variable(shape=(1,), value=self.parameters.max_width.value)
-
+        length_stretch_b_spline.coefficients.add_name('fuselage_length_stretch_coefficients')
+        height_stretch_b_spline.coefficients.add_name('fuselage_height_stretch_coefficients')
+        width_stretch_b_spline.coefficients.add_name('fuselage_width_stretch_coefficients')
         
-        # parameterization_solver.add_parameter(length_stretch_b_spline.coefficients)
-        # parameterization_solver.add_parameter(height_stretch_b_spline.coefficients)
-        # parameterization_solver.add_parameter(width_stretch_b_spline.coefficients)
-    
+        length_outer_dv = csdl.Variable(shape=(1,), value=self.parameters.length.value)
+        height_outer_dv = csdl.Variable(shape=(1,), value=self.parameters.max_height.value)
+        width_outer_dv = csdl.Variable(shape=(1,), value=self.parameters.max_width.value)
 
-        # if self.parameters.length is None:
-        #     pass
-        # else:
-        #     ffd_geometric_variables.add_variable(fuselage_geometric_qts.length, length_outer_dv)
-        #
-        # if self.parameters.max_height is None:
-        #     pass
-        # else:
-        #     ffd_geometric_variables.add_variable(fuselage_geometric_qts.height, height_outer_dv)
-        #
-        # if self.parameters.max_width is None:
-        #     pass
-        # else:
-        #     ffd_geometric_variables.add_variable(fuselage_geometric_qts.width, width_outer_dv)
+        rigid_body_translation = csdl.ImplicitVariable(shape=(3, ), value=0.)
+        for function in self.geometry.functions.values():
+            if len(function.coefficients.shape) != 2:
+                function.coefficients = function.coefficients.reshape((-1, function.coefficients.shape[-1]))
+            shape = function.coefficients.shape
+            function.coefficients = function.coefficients + csdl.expand(rigid_body_translation, shape, action='j->ij')
+            
+        
+        if self.skip_ffd:
+            parameterization_solver.add_parameter(rigid_body_translation)
+        else:
+            parameterization_solver.add_parameter(length_stretch_b_spline.coefficients)
+            parameterization_solver.add_parameter(height_stretch_b_spline.coefficients)
+            parameterization_solver.add_parameter(width_stretch_b_spline.coefficients)
+
+        if self.skip_ffd is False:
+            if self.parameters.length is not None:
+                ffd_geometric_variables.add_variable(fuselage_geometric_qts.length, length_outer_dv)
+            if self.parameters.max_height is not None:
+                ffd_geometric_variables.add_variable(fuselage_geometric_qts.height, height_outer_dv)
+            if self.parameters.max_width is not None:
+                ffd_geometric_variables.add_variable(fuselage_geometric_qts.width, width_outer_dv)

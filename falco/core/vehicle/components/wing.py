@@ -156,7 +156,6 @@ class Wing(Component):
         self._tight_fit_ffd = tight_fit_ffd
         self._orientation = orientation
         self.skip_ffd = skip_ffd
-        self._skip_ffd = skip_ffd
         self.geometry = geometry
 
         
@@ -224,54 +223,56 @@ class Wing(Component):
             dihedral = csdl.Variable(name=f"{self._name}_dihedral", value=0)
             self.parameters.dihedral = dihedral
 
-        # if self._orientation == "horizontal":
-        #     wing_le_left_parametric = parametric_geometry[0]
-        #     wing_le_right_parametric = parametric_geometry[1]
-        #     wing_le_center_parametric = parametric_geometry[2]
-        #     wing_te_left_parametric = parametric_geometry[3]
-        #     wing_te_right_parametric = parametric_geometry[4]
-        #     wing_te_center_parametric = parametric_geometry[5]
-        #     wing_qc_center = parametric_geometry[6]
-        #     wing_qc_tip_right = parametric_geometry[7]
-        #     wing_qc_tip_left = parametric_geometry[8]
-        # else:
-        #     wing_le_base_parametric = parametric_geometry[0]
-        #     wing_le_tip_parametric = parametric_geometry[1]
-        #     wing_le_base_parametric = parametric_geometry[2]
-        #     wing_te_base_parametric = parametric_geometry[3]
-        #     wing_te_tip_parametric = parametric_geometry[4]
-        #     wing_te_mid_parametric = parametric_geometry[5]
-        #     wing_qc_parametric = parametric_geometry[6]
-        #     wing_qc_base_parametric = parametric_geometry[7]
-        #     wing_qc_tip_parametric = parametric_geometry[8]
-
-
-        if actuate_angle is not None:
-            if actuate_axis_location is None:
-                axis_location = 0.25
-            else:
-                axis_location = actuate_axis_location
-            
+        if parametric_geometry is not None:
             if self._orientation == "horizontal":
-                LE_center = geometry.evaluate(wing_le_center_parametric)
-                TE_center = geometry.evaluate(wing_te_center_parametric)
-                actuation_center = csdl.linear_combination(
-                    LE_center, TE_center, 1, np.array([1 -axis_location]), np.array([axis_location])
-                ).flatten()
-                var = csdl.Variable(shape=(3, ), value=np.array([0., 1., 0.])) 
+                wing_le_left_parametric = parametric_geometry[0]
+                wing_le_right_parametric = parametric_geometry[1]
+                wing_le_center_parametric = parametric_geometry[2]
+                wing_te_left_parametric = parametric_geometry[3]
+                wing_te_right_parametric = parametric_geometry[4]
+                wing_te_center_parametric = parametric_geometry[5]
+                wing_qc_center = parametric_geometry[6]
+                wing_qc_tip_right = parametric_geometry[7]
+                wing_qc_tip_left = parametric_geometry[8]
             else:
-                LE_root = geometry.evaluate(wing_le_base_parametric)
-                TE_root = geometry.evaluate(wing_te_base_parametric)
-                actuation_center = csdl.linear_combination(
-                    LE_root, TE_root, 1, np.array([1 -axis_location]), np.array([axis_location])).flatten()
-                var = csdl.Variable(shape=(3, ), value=np.array([0., 0., 1.]))
+                wing_le_base_parametric = parametric_geometry[0]
+                wing_le_tip_parametric = parametric_geometry[1]
+                wing_le_base_parametric = parametric_geometry[2]
+                wing_te_base_parametric = parametric_geometry[3]
+                wing_te_tip_parametric = parametric_geometry[4]
+                wing_te_mid_parametric = parametric_geometry[5]
+                wing_qc_parametric = parametric_geometry[6]
+                wing_qc_base_parametric = parametric_geometry[7]
+                wing_qc_tip_parametric = parametric_geometry[8]
 
-            axis_origin = actuation_center - var
-            axis_vector = actuation_center + var - axis_origin
- 
- 
-            # Rotate the component about the axis
-            geometry.rotate(axis_origin=axis_origin, axis_vector=axis_vector / csdl.norm(axis_vector), angles=actuate_angle)
+
+        if parametric_geometry is not None:
+            if actuate_angle is not None:
+                if actuate_axis_location is None:
+                    axis_location = 0.25
+                else:
+                    axis_location = actuate_axis_location
+                
+                if self._orientation == "horizontal":
+                    LE_center = geometry.evaluate(wing_le_center_parametric)
+                    TE_center = geometry.evaluate(wing_te_center_parametric)
+                    actuation_center = csdl.linear_combination(
+                        LE_center, TE_center, 1, np.array([1 -axis_location]), np.array([axis_location])
+                    ).flatten()
+                    var = csdl.Variable(shape=(3, ), value=np.array([0., 1., 0.])) 
+                else:
+                    LE_root = geometry.evaluate(wing_le_base_parametric)
+                    TE_root = geometry.evaluate(wing_te_base_parametric)
+                    actuation_center = csdl.linear_combination(
+                        LE_root, TE_root, 1, np.array([1 -axis_location]), np.array([axis_location])).flatten()
+                    var = csdl.Variable(shape=(3, ), value=np.array([0., 0., 1.]))
+
+                axis_origin = actuation_center - var
+                axis_vector = actuation_center + var - axis_origin
+    
+    
+                # Rotate the component about the axis
+                geometry.rotate(axis_origin=axis_origin, axis_vector=axis_vector / csdl.norm(axis_vector), angles=actuate_angle)
         
 
         if self._orientation == "horizontal":
@@ -390,23 +391,24 @@ class Wing(Component):
 
 
 
-        # if self._orientation == "horizontal":
-        #     wingspan = csdl.norm(geometry.evaluate(wing_le_right_parametric) - geometry.evaluate(wing_le_left_parametric))
-        #     root_chord = csdl.norm(geometry.evaluate(wing_te_center_parametric) - geometry.evaluate(wing_le_center_parametric))
-        #     tip_chord_left = csdl.norm(geometry.evaluate(wing_te_left_parametric) - geometry.evaluate(wing_le_left_parametric))
-        #     tip_chord_right = csdl.norm(geometry.evaluate(wing_te_right_parametric) - geometry.evaluate(wing_le_right_parametric))
-        #     spanwise_direction_left = geometry.evaluate(wing_qc_tip_left) - geometry.evaluate(wing_qc_center)
-        #     spanwise_direction_right = geometry.evaluate(wing_qc_tip_right) - geometry.evaluate(wing_qc_center)
-        #     sweep_angle_left = csdl.arcsin(-spanwise_direction_left[0] / csdl.norm(spanwise_direction_left))
-        #     sweep_angle_right = csdl.arcsin(-spanwise_direction_right[0] / csdl.norm(spanwise_direction_right))
-        #     dihedral_angle_left = csdl.arcsin(spanwise_direction_left[2] / csdl.norm(spanwise_direction_left))
-        #     dihedral_angle_right = csdl.arcsin(spanwise_direction_right[2] / csdl.norm(spanwise_direction_right))
-        # else:
-        #     wingspan = csdl.norm(geometry.evaluate(wing_le_tip_parametric) - geometry.evaluate(wing_le_base_parametric))
-        #     root_chord = csdl.norm(geometry.evaluate(wing_te_base_parametric) - geometry.evaluate(wing_le_base_parametric))
-        #     tip_chord = csdl.norm(geometry.evaluate(wing_te_tip_parametric) - geometry.evaluate(wing_le_tip_parametric))
-        #     spanwise_direction = geometry.evaluate(wing_qc_tip_parametric) - geometry.evaluate(wing_qc_base_parametric)
-        #     sweep_angle = csdl.arcsin(spanwise_direction[0] / csdl.norm(spanwise_direction))
+        if parametric_geometry is not None:
+            if self._orientation == "horizontal":
+                wingspan = csdl.norm(geometry.evaluate(wing_le_right_parametric) - geometry.evaluate(wing_le_left_parametric))
+                root_chord = csdl.norm(geometry.evaluate(wing_te_center_parametric) - geometry.evaluate(wing_le_center_parametric))
+                tip_chord_left = csdl.norm(geometry.evaluate(wing_te_left_parametric) - geometry.evaluate(wing_le_left_parametric))
+                tip_chord_right = csdl.norm(geometry.evaluate(wing_te_right_parametric) - geometry.evaluate(wing_le_right_parametric))
+                spanwise_direction_left = geometry.evaluate(wing_qc_tip_left) - geometry.evaluate(wing_qc_center)
+                spanwise_direction_right = geometry.evaluate(wing_qc_tip_right) - geometry.evaluate(wing_qc_center)
+                sweep_angle_left = csdl.arcsin(-spanwise_direction_left[0] / csdl.norm(spanwise_direction_left))
+                sweep_angle_right = csdl.arcsin(-spanwise_direction_right[0] / csdl.norm(spanwise_direction_right))
+                dihedral_angle_left = csdl.arcsin(spanwise_direction_left[2] / csdl.norm(spanwise_direction_left))
+                dihedral_angle_right = csdl.arcsin(spanwise_direction_right[2] / csdl.norm(spanwise_direction_right))
+            else:
+                wingspan = csdl.norm(geometry.evaluate(wing_le_tip_parametric) - geometry.evaluate(wing_le_base_parametric))
+                root_chord = csdl.norm(geometry.evaluate(wing_te_base_parametric) - geometry.evaluate(wing_le_base_parametric))
+                tip_chord = csdl.norm(geometry.evaluate(wing_te_tip_parametric) - geometry.evaluate(wing_le_tip_parametric))
+                spanwise_direction = geometry.evaluate(wing_qc_tip_parametric) - geometry.evaluate(wing_qc_base_parametric)
+                sweep_angle = csdl.arcsin(spanwise_direction[0] / csdl.norm(spanwise_direction))
 
 
 
@@ -431,32 +433,42 @@ class Wing(Component):
             else:
                 geometry.rotate(axis_origin=self.parameters.actuate_axis_location, axis_vector=np.array([0., 1., 0.]), angles=self.parameters.actuate_angle)
 
-        # parameterization_solver.add_parameter(chord_stretching_b_spline.coefficients)
-        # parameterization_solver.add_parameter(wingspan_stretching_b_spline.coefficients)
-        # parameterization_solver.add_parameter(sweep_translation_b_spline.coefficients)
-        # parameterization_solver.add_parameter(twist_b_spline.coefficients)
-        # parameterization_solver.add_parameter(dihedral_b_spline.coefficients)
+        rigid_body_translation = csdl.ImplicitVariable(shape=(3, ), value=0.)
+        for function in self.geometry.functions.values():
+            if len(function.coefficients.shape) != 2:
+                function.coefficients = function.coefficients.reshape((-1, function.coefficients.shape[-1]))
+            shape = function.coefficients.shape
+            function.coefficients = function.coefficients + csdl.expand(rigid_body_translation, shape, action='j->ij')
+
+        if self.skip_ffd:
+            parameterization_solver.add_parameter(rigid_body_translation)
+        else:
+            parameterization_solver.add_parameter(chord_stretching_b_spline.coefficients)
+            parameterization_solver.add_parameter(wingspan_stretching_b_spline.coefficients)
+            parameterization_solver.add_parameter(sweep_translation_b_spline.coefficients)
+            parameterization_solver.add_parameter(twist_b_spline.coefficients)
+            parameterization_solver.add_parameter(dihedral_b_spline.coefficients)
 
 
 
-
-        # if self._orientation == "horizontal":
-        #     ffd_geometric_variables.add_variable(wingspan, wingspan_outer_dv)
-        #     ffd_geometric_variables.add_variable(root_chord, root_chord_outer_dv)
-        #     ffd_geometric_variables.add_variable(tip_chord_left, tip_chord_outer_dv)
-        #     ffd_geometric_variables.add_variable(tip_chord_right, tip_chord_outer_dv)
-        #     if self.parameters.sweep is not None:
-        #         ffd_geometric_variables.add_variable(sweep_angle_left, sweep_angle_outer_dv)
-        #         ffd_geometric_variables.add_variable(sweep_angle_right, sweep_angle_outer_dv)
-        #     if self.parameters.dihedral is not None:
-        #         ffd_geometric_variables.add_variable(dihedral_angle_left, dihedral_outer_dv)
-        #         ffd_geometric_variables.add_variable(dihedral_angle_right, dihedral_outer_dv)
-        # else:
-        #     ffd_geometric_variables.add_variable(wingspan, wingspan_outer_dv)
-        #     ffd_geometric_variables.add_variable(root_chord, root_chord_outer_dv)
-        #     ffd_geometric_variables.add_variable(tip_chord, tip_chord_outer_dv)
-        #     if self.parameters.sweep is not None:
-        #         ffd_geometric_variables.add_variable(sweep_angle, sweep_angle_outer_dv)
+        if self.skip_ffd is False:
+            if self._orientation == "horizontal":
+                ffd_geometric_variables.add_variable(wingspan, wingspan_outer_dv)
+                ffd_geometric_variables.add_variable(root_chord, root_chord_outer_dv)
+                ffd_geometric_variables.add_variable(tip_chord_left, tip_chord_outer_dv)
+                ffd_geometric_variables.add_variable(tip_chord_right, tip_chord_outer_dv)
+                if self.parameters.sweep is not None:
+                    ffd_geometric_variables.add_variable(sweep_angle_left, sweep_angle_outer_dv)
+                    ffd_geometric_variables.add_variable(sweep_angle_right, sweep_angle_outer_dv)
+                if self.parameters.dihedral is not None:
+                    ffd_geometric_variables.add_variable(dihedral_angle_left, dihedral_outer_dv)
+                    ffd_geometric_variables.add_variable(dihedral_angle_right, dihedral_outer_dv)
+            else:
+                ffd_geometric_variables.add_variable(wingspan, wingspan_outer_dv)
+                ffd_geometric_variables.add_variable(root_chord, root_chord_outer_dv)
+                ffd_geometric_variables.add_variable(tip_chord, tip_chord_outer_dv)
+                if self.parameters.sweep is not None:
+                    ffd_geometric_variables.add_variable(sweep_angle, sweep_angle_outer_dv)
        
 
 
