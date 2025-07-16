@@ -54,11 +54,9 @@ pip install cython==0.29.28
 pip install git+https://github.com/LSDOlab/lsdo_b_splines_cython.git
 pip install git+https://github.com/LSDOlab/lsdo_function_spaces.git
 pip install git+https://github.com/Idopt-Lab/nrlmsis2.git
+pip install git+https://github.com/Idopt-Lab/falco.git
 ```
-
-### Complete Installation Order Example
-
-To set up a new environment and install all dependencies and FALCO, run the following commands in order:
+or, including the creation of a new conda environment, you can run the following commands in the terminal or command line:
 
 ```sh
 conda create -n falco_env python=3.10
