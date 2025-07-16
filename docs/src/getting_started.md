@@ -12,7 +12,7 @@ $ pip install git+https://github.com/Idopt-Lab/aircraft-flight-simulator.git
 ```
 
 ### Installation instructions for developers
-To install `aircraft_flight_simulator`, first clone the repository and install using pip.
+To install `FALCO`, first clone the repository and install using pip.
 On the terminal or command line, run
 ```sh
 $ git clone https://github.com/Idopt-Lab/aircraft-flight-simulator.git
