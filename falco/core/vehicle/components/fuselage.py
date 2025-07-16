@@ -244,13 +244,15 @@ class Fuselage(Component):
             
         
         if self.skip_ffd:
-            parameterization_solver.add_parameter(rigid_body_translation)
+            if parameterization_solver is not None:
+                parameterization_solver.add_parameter(rigid_body_translation)
         else:
-            parameterization_solver.add_parameter(length_stretch_b_spline.coefficients)
-            parameterization_solver.add_parameter(height_stretch_b_spline.coefficients)
-            parameterization_solver.add_parameter(width_stretch_b_spline.coefficients)
+            if parameterization_solver is not None:
+                parameterization_solver.add_parameter(length_stretch_b_spline.coefficients)
+                parameterization_solver.add_parameter(height_stretch_b_spline.coefficients)
+                parameterization_solver.add_parameter(width_stretch_b_spline.coefficients)
 
-        if self.skip_ffd is False:
+        if self.skip_ffd is False and ffd_geometric_variables is not None:
             if self.parameters.length is not None:
                 ffd_geometric_variables.add_variable(fuselage_geometric_qts.length, length_outer_dv)
             if self.parameters.max_height is not None:

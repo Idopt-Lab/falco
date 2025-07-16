@@ -441,13 +441,15 @@ class Wing(Component):
             function.coefficients = function.coefficients + csdl.expand(rigid_body_translation, shape, action='j->ij')
 
         if self.skip_ffd:
-            parameterization_solver.add_parameter(rigid_body_translation)
+            if parameterization_solver is not None:
+                parameterization_solver.add_parameter(rigid_body_translation)
         else:
-            parameterization_solver.add_parameter(chord_stretching_b_spline.coefficients)
-            parameterization_solver.add_parameter(wingspan_stretching_b_spline.coefficients)
-            parameterization_solver.add_parameter(sweep_translation_b_spline.coefficients)
-            parameterization_solver.add_parameter(twist_b_spline.coefficients)
-            parameterization_solver.add_parameter(dihedral_b_spline.coefficients)
+            if parameterization_solver is not None:
+                parameterization_solver.add_parameter(chord_stretching_b_spline.coefficients)
+                parameterization_solver.add_parameter(wingspan_stretching_b_spline.coefficients)
+                parameterization_solver.add_parameter(sweep_translation_b_spline.coefficients)
+                parameterization_solver.add_parameter(twist_b_spline.coefficients)
+                parameterization_solver.add_parameter(dihedral_b_spline.coefficients)
 
 
 
