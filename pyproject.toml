@@ -16,6 +16,19 @@ dependencies = [
     'pint',
     'pandas',
     'scipy',
+    'matplotlib',
+    'sympy',
+    'pytest',
+    'cython==0.29.28',
+    'graphviz',
+    'jax',
+    'casadi',
+    'CSDL_alpha @ git+https://github.com/LSDOlab/CSDL_alpha.git',
+    'modopt @ git+https://github.com/LSDOlab/modopt.git',
+    'lsdo_geo @ git+https://github.com/LSDOlab/lsdo_geo.git',
+    'lsdo_b_splines_cython @ git+https://github.com/LSDOlab/lsdo_b_splines_cython.git',
+    'lsdo_function_spaces @ git+https://github.com/LSDOlab/lsdo_function_spaces.git',
+    'NRLMSIS2 @ git+https://github.com/nichco/NRLMSIS2.git'
 ]
 dynamic = ['version']
 
@@ -41,5 +54,4 @@ version = {attr = "falco.__version__"}
 package-dir = {"" = "."}
 
 [tool.setuptools.packages.find]
-where = ["falco"]
 exclude = ["tutorials"]

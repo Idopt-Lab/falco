@@ -1,6 +1,13 @@
 # Getting started
 This page provides instructions for installing FALCO.
 
+## Before Installing
+FALCO requires Python 3.9 or 3.10, and it is recommended to use Anaconda for package management. After installing Anaconda, make sure to add the anaconda folder to your system's PATH environment variable. This will allow you to use the `conda` command in your terminal or command line to create a new virtual environment and install packages.
+
+Graphviz is required as part of the installation process, it is recommended to install Graphviz before installing FALCO. You can download Graphviz from the [Graphviz website](https://graphviz.org/download/). After downloading, make sure to add the Graphviz bin directory to your system's PATH environment variable.
+
+The `lsdo_b_splines_cython` package is also required for FALCO. To ensure proper installation of a cython package, it is necessary to install cython and Visual Studio Build Tools 14+ (Current version is 17). You can download Visual Studio Build Tools from the [Visual Studio website](https://visualstudio.microsoft.com/downloads/). Make sure to select the "Desktop development with C++" workload during installation or modify the installed build tools afterwards to include it.
+
 ## Installation
 FALCO has been tested on Windows platforms and may not work on other operating systems. Future implementations will be tested on Linux.
 
@@ -24,6 +31,14 @@ For direct installation with all dependencies in your new virtual environment, r
 $ pip install git+https://github.com/Idopt-Lab/falco.git
 ```
 
+or, including the creation of a new conda environment, you can run the following commands in the terminal or command line:
+
+```sh
+conda create -n falco_env python=3.10
+conda activate falco_env
+pip install -e git+https://github.com/Idopt-Lab/falco.git
+```
+
 ### Installation instructions for developers
 To install `FALCO`, first clone the repository and install using pip.
 On the terminal or command line, run
@@ -32,46 +47,27 @@ $ git clone https://github.com/Idopt-Lab/falco.git
 $ pip install -e ./falco
 ```
 
-### Package Dependencies Installation Order
-The following is the recommended order of package installation in a clean environment if the automatic installation process does not work or leads to errors:
-
-| Package                                                                 | Branch | Short Description                                                                                                                                                                                                                           |
-|-------------------------------------------------------------------------|--------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| [CSDL_alpha](https://github.com/LSDOlab/CSDL_alpha)                     | main   | Python-Based algebraic modeling language enabling automated adjoint sensitivity analysis                                                                      |
-| [modopt](https://github.com/LSDOlab/modopt)                             | main   | A MODular development environment and library for OPTimization algorithms                                                                                      |
-| [lsdo_geo](https://github.com/LSDOlab/lsdo_geo)                         | main   | Geometry engine for efficient manipulation of geometries via free-form deformation techniques                                                                  |
-| [cython](https://cython.org/)                                           | 0.29.28    | Required for compiling Cython-based packages (lsdo_b_splines).                                                                                                |
-| [lsdo_b_splines](https://github.com/LSDOlab/lsdo_b_splines_cython)      | main   | Cython-based package for efficient B-spline evaluation and manipulation                                                                                       |
-| [lsdo_function_spaces](https://github.com/LSDOlab/lsdo_function_spaces) | main   | Package that enables the solver-independent field representation of field quantities via a host of functions that can be fit to solver data                    |
-| [NRLMSIS2](https://github.com/nichco/NRLMSIS2)                       | main   | Python wrapper for the NRLMSIS 2.0 atmospheric model,<br> used for atmospheric density calculations                                                               |
-
-Installation in order (can be copied and pasted into the terminal or command line):
-```sh
-pip install git+https://github.com/LSDOlab/CSDL_alpha.git
-pip install git+https://github.com/LSDOlab/modopt.git
-pip install git+https://github.com/LSDOlab/lsdo_geo.git
-pip install cython==0.29.28
-pip install git+https://github.com/LSDOlab/lsdo_b_splines_cython.git
-pip install git+https://github.com/LSDOlab/lsdo_function_spaces.git
-pip install git+https://github.com/Idopt-Lab/nrlmsis2.git
-pip install git+https://github.com/Idopt-Lab/falco.git
-```
 or, including the creation of a new conda environment, you can run the following commands in the terminal or command line:
 
 ```sh
 conda create -n falco_env python=3.10
 conda activate falco_env
-pip install git+https://github.com/LSDOlab/CSDL_alpha.git
-pip install git+https://github.com/LSDOlab/modopt.git
-pip install git+https://github.com/LSDOlab/lsdo_geo.git
-pip install cython==0.29.28
-pip install git+https://github.com/LSDOlab/lsdo_b_splines_cython.git
-pip install git+https://github.com/LSDOlab/lsdo_function_spaces.git
-pip install git+https://github.com/nichco/NRLMSIS2.git
-pip install git+https://github.com/Idopt-Lab/falco.git@dev-base-classes
+git clone https://github.com/Idopt-Lab/falco.git
+pip install -e ./falco
 ```
 
-If you are interested in manually editing any of the above packages, visit their documentation for developer installation instructions.
+### Common Installation Issues
+If you encounter issues during the installation process, it is recommended to check the following:
+- Ensure that you have the correct version of Python installed (3.9 or 3.10).
+- Make sure that you have added the anaconda and Graphviz bin directories to your system's PATH environment variable.
+- If you are using Windows, ensure that you have installed Visual Studio Build Tools 14+ (Current version is 17) and selected the "Desktop development with C++" workload during installation.
+- If you encounter issues with the `lsdo_b_splines_cython` package, ensure that you have installed Cython and Visual Studio Build Tools correctly.
+- For NRLMSIS2, if issues are encountered in the usage of the package, it is recommended to visit the [NRLMSIS2 GitHub repository](https://github.com/nichco/NRLMSIS2), clone the repository, and install it using pip:
+```sh
+$ git clone https://github.com/nichco/NRLMSIS2.git
+$ pip install -e ./NRLMSIS2
+```
+
 
 ## Updating FALCO
 When a new version of FALCO is released, you can update your installation by running the following command in the terminal or command line:
