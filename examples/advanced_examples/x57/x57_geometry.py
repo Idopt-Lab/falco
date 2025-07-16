@@ -1,3 +1,4 @@
+import os
 import lsdo_function_spaces as lfs
 import csdl_alpha as csdl
 import numpy as np
@@ -591,8 +592,65 @@ def get_geometry():
     wing_on_cruise_motor2_parametric = cruise_spinner1.project(wing_le_right_guess, plot=False)
 
     cruise_motors_base = [cruise_motor1_base, cruise_motor2_base]
+
     return locals()
 
+
+
+
+
+def get_airfoil_mesh(
+    geometry,
+    wing,
+    wing_num_spanwise_vlm,
+    wing_num_chordwise_vlm,
+    le_start=None,
+    le_end=None,
+    te_start=None,
+    te_end=None,
+    density_le=20.,
+    density_te=20.,
+    density_surface=10.
+):
+    # Use X-57 geometry values if not provided
+    if le_start is None:
+        le_start = np.array([-12, -16, -7.5]) * ft2m
+    if le_end is None:
+        le_end = np.array([-12, 16, -7.5]) * ft2m
+    if te_start is None:
+        te_start = np.array([-14.7, -16, -7.55]) * ft2m
+    if te_end is None:
+        te_end = np.array([-14.7, 16, -7.55]) * ft2m
+    leading_edge_line_parametric = wing.project(
+        np.linspace(le_start, le_end, wing_num_spanwise_vlm),
+        direction=np.array([0., 0., 1.]), grid_search_density_parameter=density_le
+    )
+    trailing_edge_line_parametric = wing.project(
+        np.linspace(te_start, te_end, wing_num_spanwise_vlm),
+        direction=np.array([0., 0., 1.]), grid_search_density_parameter=density_te
+    )
+    leading_edge_line = geometry.evaluate(leading_edge_line_parametric)
+    trailing_edge_line = geometry.evaluate(trailing_edge_line_parametric)
+    chord_surface = csdl.linear_combination(leading_edge_line, trailing_edge_line, wing_num_chordwise_vlm)
+    wing_upper_surface_wireframe_parametric = wing.project(
+        chord_surface.value.reshape((wing_num_chordwise_vlm, wing_num_spanwise_vlm, 3)) + np.array([0., 0., -0.1]),
+        direction=np.array([0., 0., 1.]), plot=False, grid_search_density_parameter=density_surface
+    )
+    wing_lower_surface_wireframe_parametric = wing.project(
+        chord_surface.value.reshape((wing_num_chordwise_vlm, wing_num_spanwise_vlm, 3)) + np.array([0., 0., 0.1]),
+        direction=np.array([0., 0., 1.]), plot=False, grid_search_density_parameter=density_surface
+    )
+    upper_surface_wireframe = geometry.evaluate(wing_upper_surface_wireframe_parametric)
+    lower_surface_wireframe = geometry.evaluate(wing_lower_surface_wireframe_parametric)
+    wing_camber_surface = csdl.linear_combination(upper_surface_wireframe, lower_surface_wireframe, 1).reshape((wing_num_chordwise_vlm, wing_num_spanwise_vlm, 3))
+    return {
+        'leading_edge_line': leading_edge_line,
+        'trailing_edge_line': trailing_edge_line,
+        'chord_surface': chord_surface,
+        'upper_surface_wireframe': upper_surface_wireframe,
+        'lower_surface_wireframe': lower_surface_wireframe,
+        'wing_camber_surface': wing_camber_surface
+    }
 
 def get_geometry_related_axis(geo_dict: dict):
 
@@ -938,5 +996,64 @@ if __name__ == "__main__":
 
     axis_dict = get_geometry_related_axis(geometry_data)
     print("Axis computed successfully")
+
+    wing_num_chordwise_vlm = 101
+    wing_num_spanwise_vlm = 10
+
+    wing_mesh = get_airfoil_mesh(
+        geometry=geometry_data['geometry'],
+        wing=geometry_data['wing'],
+        wing_num_spanwise_vlm=wing_num_spanwise_vlm,
+        wing_num_chordwise_vlm=wing_num_chordwise_vlm  
+    )
+
+    wing_camber_mesh = wing_mesh['wing_camber_surface']
+    wing_upper_surface_wireframe = wing_mesh['upper_surface_wireframe']
+    wing_lower_surface_wireframe = wing_mesh['lower_surface_wireframe']
+
+    camber_wireframe = wing_camber_mesh.reshape((wing_num_chordwise_vlm, wing_num_spanwise_vlm, 3))
+    upper_wireframe = wing_upper_surface_wireframe.reshape((wing_num_chordwise_vlm, wing_num_spanwise_vlm, 3))
+    lower_wireframe = wing_lower_surface_wireframe.reshape((wing_num_chordwise_vlm, wing_num_spanwise_vlm, 3))
+
+    spanwise_index = 4
+    camber_coords = camber_wireframe[:, spanwise_index, :]
+    upper_chord_coords = upper_wireframe[:, spanwise_index, :]
+    lower_chord_coords = lower_wireframe[:, spanwise_index, :]
+
+    
+    # Select only x (column 0) and z (column 2)
+    camber = -camber_coords.value[:, [0, 2]]
+    upper_xz = -upper_chord_coords.value[:, [0, 2]]
+    lower_xz = -lower_chord_coords.value[:, [0, 2]]
+
+    le_up = np.min(upper_xz[:, 0])
+    le_lo = np.min(lower_xz[:, 0])
+    upper_xz[:, 0] = upper_xz[:, 0] - le_up
+    lower_xz[:, 0] = lower_xz[:, 0] - le_lo
+
+    chord_length_up = np.max(upper_xz[:, 0])
+    chord_length_lo = np.max(lower_xz[:, 0])
+    upper_xz[:, 0] /= chord_length_up
+    lower_xz[:, 0] /= chord_length_lo
+
+
+    upper_xz[:, 1] = upper_xz[:, 1] - camber[:, 1]
+    lower_xz[:, 1] = lower_xz[:, 1] - camber[:, 1]
+
+    upper_xz = upper_xz[::-1, :]
+
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    file_path = os.path.join(current_dir, "airfoil_coords.dat")
+
+    with open(file_path, 'w') as f:
+        np.savetxt(f, upper_xz, fmt='%.8f', delimiter=' ')
+        np.savetxt(f, lower_xz, fmt='%.8f', delimiter=' ')
+
+    plotting_elements = geometry_data['geometry'].plot_meshes(
+        [wing_upper_surface_wireframe],
+        function_opacity=0.5,
+        mesh_color='#FFCD00',
+        show=False
+    )
 
     recorder.stop()
