@@ -10,4 +10,5 @@ This section provides a collection of basic examples that cover essential compon
 ../_temp/tutorials/basic/ex_solvers
 ../_temp/tutorials/basic/ex_mass_properties
 ../_temp/tutorials/basic/ex_condition
+../_temp/tutorials/basic/controls
 ```
