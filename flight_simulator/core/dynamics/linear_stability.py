@@ -141,43 +141,7 @@ class LinearStabilityAnalysis():
         phugoid_time_2_double = csdl.log(2) / ((lambda_phugoid_real ** 2 + 1e-10) ** 0.5)
 
 
-        # ## LATERAL-DIRECTIONAL MODES
-        # # Lat-Dir: v, p, r, phi
-        # A_mat_LD = csdl.Variable(value=0, shape=(4, 4), name="A_mat_Lateral_Directional")
-        # latdir_indices = [1, 3, 5, 6]  # v, p, r, phi
-
-        # # Extract the 4x4 lateral-directional submatrix
-        # for i in range(4):
-        #     for j in range(4):
-        #         A_mat_LD = A_mat_LD.set(csdl.slice[i, j], A[latdir_indices[i], latdir_indices[j]])
-
-        # eig_val_lat_operation = EigenValueOperation()
-        # eig_real_lat, eig_imag_lat, eig_vecs_real_lat, eig_vecs_imag_lat = eig_val_lat_operation.evaluate(A_mat_LD)
-
-        # # Identify lateral-directional modes based on eigenvector characteristics  
-        # # State order for lateral: [v, p, r, phi] (indices 0, 1, 2, 3)
-        # spiral_idx, dutch_roll_idx, roll_idx = self._identify_lateral_modes(eig_vecs_real_lat, eig_real_lat, eig_imag_lat)
-        
-        # # Spiral mode
-        # lambda_spiral_real = eig_real_lat[spiral_idx]
-        # lambda_spiral_imag = eig_imag_lat[spiral_idx]
-        # spiral_omega_n = ((lambda_spiral_real ** 2 + lambda_spiral_imag ** 2) + 1e-10) ** 0.5
-        # spiral_damping_ratio = -lambda_spiral_real / spiral_omega_n
-        # spiral_time_2_double = csdl.log(2) / ((lambda_spiral_real ** 2 + 1e-10) ** 0.5)
-
-        # # Dutch Roll mode
-        # lambda_dutch_roll_real = eig_real_lat[dutch_roll_idx]
-        # lambda_dutch_roll_imag = eig_imag_lat[dutch_roll_idx]
-        # dutch_roll_omega_n = ((lambda_dutch_roll_real ** 2 + lambda_dutch_roll_imag ** 2) + 1e-10) ** 0.5
-        # dutch_roll_damping_ratio = -lambda_dutch_roll_real / dutch_roll_omega_n
-        # dutch_roll_time_2_double = csdl.log(2) / ((lambda_dutch_roll_real ** 2 + 1e-10) ** 0.5)
-
-        # # Roll Subsidence mode
-        # lambda_roll_real = eig_real_lat[roll_idx]
-        # lambda_roll_imag = eig_imag_lat[roll_idx]
-        # roll_omega_n = ((lambda_roll_real ** 2 + lambda_roll_imag ** 2) + 1e-10) ** 0.5
-        # roll_damping_ratio = -lambda_roll_real / roll_omega_n
-        # roll_time_2_double = csdl.log(2) / ((lambda_roll_real ** 2 + 1e-10) ** 0.5)
+       
 
         stability_analysis = LinearStabilityMetrics(
             A_mat_longitudinal=A_mat_L,
@@ -191,26 +155,8 @@ class LinearStabilityAnalysis():
             nat_freq_phugoid=phugoid_omega_n,
             damping_ratio_phugoid=phugoid_damping_ratio,
             time_2_double_phugoid=phugoid_time_2_double,
-            # A_mat_lateral_directional=A_mat_LD,
-            # real_eig_spiral=lambda_spiral_real,
-            # imag_eig_spiral=lambda_spiral_imag,
-            # nat_freq_spiral=spiral_omega_n,
-            # damping_ratio_spiral=spiral_damping_ratio,
-            # time_2_double_spiral=spiral_time_2_double,
-            # real_eig_dutch_roll=lambda_dutch_roll_real,
-            # imag_eig_dutch_roll=lambda_dutch_roll_imag,
-            # nat_freq_dutch_roll=dutch_roll_omega_n,
-            # damping_ratio_dutch_roll=dutch_roll_damping_ratio,
-            # time_2_double_dutch_roll=dutch_roll_time_2_double,
-            # real_eig_roll=lambda_roll_real,
-            # imag_eig_roll=lambda_roll_imag,
-            # nat_freq_roll=roll_omega_n,
-            # damping_ratio_roll=roll_damping_ratio,
-            # time_2_double_roll=roll_time_2_double,
             eig_vecs_real_longitudinal=eig_vecs_real_long,
             eig_vecs_imag_longitudinal=eig_vecs_imag_long,
-            # eig_vecs_real_lateral=eig_vecs_real_lat,
-            # eig_vecs_imag_lateral=eig_vecs_imag_lat
         )
         
         return stability_analysis
@@ -250,25 +196,6 @@ class LinearStabilityAnalysis():
         ax1.grid(True, alpha=0.3)
         ax1.legend()
         
-        # # Lateral-Directional modes
-        # ax2.scatter(stability_metrics.real_eig_spiral.value, 
-        #            stability_metrics.imag_eig_spiral.value, 
-        #            color='green', s=100, marker='s', label='Spiral')
-        # ax2.scatter(stability_metrics.real_eig_dutch_roll.value, 
-        #            stability_metrics.imag_eig_dutch_roll.value, 
-        #            color='orange', s=100, marker='^', label='Dutch Roll')
-        # ax2.scatter(stability_metrics.real_eig_roll.value, 
-        #            stability_metrics.imag_eig_roll.value, 
-        #            color='purple', s=100, marker='d', label='Roll Subsidence')
-        
-        # ax2.axvline(x=0, color='black', linestyle='--', alpha=0.5)
-        # ax2.axhline(y=0, color='black', linestyle='--', alpha=0.5)
-        # ax2.set_xlabel('Real Part (1/s)')
-        # ax2.set_ylabel('Imaginary Part (rad/s)')
-        # ax2.set_title('Lateral-Directional Modes')
-        # ax2.grid(True, alpha=0.3)
-        # ax2.legend()
-        
         plt.suptitle(title)
         plt.tight_layout()
         return fig
@@ -292,26 +219,17 @@ class LinearStabilityAnalysis():
         # Extract .value from each CSDL Variable to get numpy scalars
         nat_freqs = [
             stability_metrics.nat_freq_short_period.value.item() if hasattr(stability_metrics.nat_freq_short_period.value, 'item') else stability_metrics.nat_freq_short_period.value,
-            stability_metrics.nat_freq_phugoid.value.item() if hasattr(stability_metrics.nat_freq_phugoid.value, 'item') else stability_metrics.nat_freq_phugoid.value,
-            # stability_metrics.nat_freq_spiral.value.item() if hasattr(stability_metrics.nat_freq_spiral.value, 'item') else stability_metrics.nat_freq_spiral.value,
-            # stability_metrics.nat_freq_dutch_roll.value.item() if hasattr(stability_metrics.nat_freq_dutch_roll.value, 'item') else stability_metrics.nat_freq_dutch_roll.value,
-            # stability_metrics.nat_freq_roll.value.item() if hasattr(stability_metrics.nat_freq_roll.value, 'item') else stability_metrics.nat_freq_roll.value
+            stability_metrics.nat_freq_phugoid.value.item() if hasattr(stability_metrics.nat_freq_phugoid.value, 'item') else stability_metrics.nat_freq_phugoid.value
         ]
         
         damping_ratios = [
             stability_metrics.damping_ratio_short_period.value.item() if hasattr(stability_metrics.damping_ratio_short_period.value, 'item') else stability_metrics.damping_ratio_short_period.value,
-            stability_metrics.damping_ratio_phugoid.value.item() if hasattr(stability_metrics.damping_ratio_phugoid.value, 'item') else stability_metrics.damping_ratio_phugoid.value,
-            # stability_metrics.damping_ratio_spiral.value.item() if hasattr(stability_metrics.damping_ratio_spiral.value, 'item') else stability_metrics.damping_ratio_spiral.value,
-            # stability_metrics.damping_ratio_dutch_roll.value.item() if hasattr(stability_metrics.damping_ratio_dutch_roll.value, 'item') else stability_metrics.damping_ratio_dutch_roll.value,
-            # stability_metrics.damping_ratio_roll.value.item() if hasattr(stability_metrics.damping_ratio_roll.value, 'item') else stability_metrics.damping_ratio_roll.value
+            stability_metrics.damping_ratio_phugoid.value.item() if hasattr(stability_metrics.damping_ratio_phugoid.value, 'item') else stability_metrics.damping_ratio_phugoid.value
         ]
         
         time_to_double = [
             stability_metrics.time_2_double_short_period.value.item() if hasattr(stability_metrics.time_2_double_short_period.value, 'item') else stability_metrics.time_2_double_short_period.value,
-            stability_metrics.time_2_double_phugoid.value.item() if hasattr(stability_metrics.time_2_double_phugoid.value, 'item') else stability_metrics.time_2_double_phugoid.value,
-            # stability_metrics.time_2_double_spiral.value.item() if hasattr(stability_metrics.time_2_double_spiral.value, 'item') else stability_metrics.time_2_double_spiral.value,
-            # stability_metrics.time_2_double_dutch_roll.value.item() if hasattr(stability_metrics.time_2_double_dutch_roll.value, 'item') else stability_metrics.time_2_double_dutch_roll.value,
-            # stability_metrics.time_2_double_roll.value.item() if hasattr(stability_metrics.time_2_double_roll.value, 'item') else stability_metrics.time_2_double_roll.value
+            stability_metrics.time_2_double_phugoid.value.item() if hasattr(stability_metrics.time_2_double_phugoid.value, 'item') else stability_metrics.time_2_double_phugoid.value
         ]
         
         # Debug print to check the values
@@ -386,14 +304,6 @@ class LinearStabilityAnalysis():
               f"ζ = {stability_metrics.damping_ratio_short_period.value}")
         print(f"Phugoid: ωn = {stability_metrics.nat_freq_phugoid.value} rad/s, "
               f"ζ = {stability_metrics.damping_ratio_phugoid.value}")
-        
-        # print("\nLATERAL-DIRECTIONAL MODES:")
-        # print(f"Spiral: ωn = {stability_metrics.nat_freq_spiral.value} rad/s, "
-        #       f"ζ = {stability_metrics.damping_ratio_spiral.value}")
-        # print(f"Dutch Roll: ωn = {stability_metrics.nat_freq_dutch_roll.value} rad/s, "
-        #       f"ζ = {stability_metrics.damping_ratio_dutch_roll.value}")
-        # print(f"Roll Subsidence: ωn = {stability_metrics.nat_freq_roll.value} rad/s, "
-        #         f"ζ = {stability_metrics.damping_ratio_roll.value}")
         
         
         plt.show()
