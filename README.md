@@ -41,7 +41,7 @@ On the terminal or command line, run
 $ git clone https://github.com/Idopt-Lab/falco.git
 $ pip install -e ./falco
 ```
-More details instructions are available on the documentation page "Getting Started with FALCO". The package is available for Python 3.9 and later versions.
+More details instructions are available on the documentation page "Getting Started with FALCO" including what to do with a clean virtual environment. The package is available for Python 3.9 and later versions.
 
 ## Documentation
 The documentation for FALCO is available at [DOCS LINK]() \[Need to fill link\].
