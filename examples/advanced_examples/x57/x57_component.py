@@ -17,9 +17,12 @@ def build_aircraft_component(geo_dict: dict, do_geo_param: bool = False):
     ffd_geometric_variables = GeometricVariables()
 
     # region Top-level Aircraft Component
-    aircraft_component = AircraftComp(geometry=geometry, compute_surface_area_flag=False,
-                                        parameterization_solver=parameterization_solver,
-                                        ffd_geometric_variables=ffd_geometric_variables)
+    if do_geo_param:
+        aircraft_component = AircraftComp(geometry=geometry, compute_surface_area_flag=False,
+                                            parameterization_solver=parameterization_solver,
+                                            ffd_geometric_variables=ffd_geometric_variables)
+    else:
+        aircraft_component = AircraftComp(geometry=geometry)
 
     # endregion
 
@@ -37,9 +40,7 @@ def build_aircraft_component(geo_dict: dict, do_geo_param: bool = False):
             length=csdl.Variable(name="fuselage_length", shape=(1,), value=8.2242552),
             max_height=csdl.Variable(name="fuselage_max_height", shape=(1,), value=1.09),
             max_width=csdl.Variable(name="fuselage_max_width", shape=(1,), value=1.24070602),
-            geometry=geo_dict['fuselage'], skip_ffd=True,
-            parameterization_solver=parameterization_solver,
-            ffd_geometric_variables=ffd_geometric_variables)
+            geometry=geo_dict['fuselage'], skip_ffd=True)
     aircraft_component.add_subcomponent(fuselage_comp)
     # endregion
 
@@ -71,10 +72,7 @@ def build_aircraft_component(geo_dict: dict, do_geo_param: bool = False):
                         geometry=geo_dict['wingALL'],
                         skip_ffd=True,
                         orientation='horizontal',
-                        name='Wing', 
-                        parameterization_solver=parameterization_solver,
-                        ffd_geometric_variables=ffd_geometric_variables
-                        )
+                        name='Wing')
     wing.parameters.actuate_angle = csdl.Variable(name="wing_incidence", shape=(1,),
                                                   value=np.deg2rad(2))  # Wing incidence angle in radians
     aircraft_component.add_subcomponent(wing)
@@ -129,9 +127,7 @@ def build_aircraft_component(geo_dict: dict, do_geo_param: bool = False):
         hor_tail = WingComp(AR=ht_ar, span=ht_span, sweep=ht_sweep,
                             geometry=geo_dict['htALL'],
                             skip_ffd=True,
-                            name='Elevator', orientation='horizontal', 
-                            parameterization_solver=parameterization_solver,
-                            ffd_geometric_variables=ffd_geometric_variables)
+                            name='Elevator', orientation='horizontal')
         
     aircraft_component.add_subcomponent(hor_tail)
     hor_tail.parameters.actuate_angle = csdl.Variable(name="elevator_actuate_angle", shape=(1,), value=np.deg2rad(0))
@@ -162,9 +158,7 @@ def build_aircraft_component(geo_dict: dict, do_geo_param: bool = False):
         vert_tail = WingComp(AR=vt_ar, span=vt_span, sweep=vt_sweep,
                              geometry=geo_dict['vtALL'],
                              skip_ffd=True,
-                             name='Vertical Tail', orientation='vertical', 
-                             parameterization_solver=parameterization_solver,
-                             ffd_geometric_variables=ffd_geometric_variables)
+                             name='Vertical Tail', orientation='vertical')
         
     aircraft_component.add_subcomponent(vert_tail)
 
