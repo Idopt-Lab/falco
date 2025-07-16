@@ -5,7 +5,7 @@
 ### Atmospheric States
 
 ```{eval-rst}
-.. autoclass:: flight_simulator.utils.environment.AtmosphericStates
+.. autoclass:: falco.utils.environment.AtmosphericStates
     :members:
     :special-members:
 ```
@@ -13,7 +13,7 @@
 ### Atmosphere Models
 
 ```{eval-rst}
-.. autoclass:: flight_simulator.utils.environment.SimpleAtmosphereModel
+.. autoclass:: falco.utils.environment.SimpleAtmosphereModel
     :members:
     :special-members:
 ```
@@ -21,7 +21,7 @@
 ### Wind Models
 
 ```{eval-rst}
-.. autoclass:: flight_simulator.utils.environment.ConstantWind
+.. autoclass:: falco.utils.environment.ConstantWind
     :members:
     :special-members:
 ```
@@ -31,7 +31,7 @@
 ### Euler Rotations
 
 ```{eval-rst}
-.. autofunction:: flight_simulator.utils.euler_rotations.build_rotation_matrix
+.. autofunction:: falco.utils.euler_rotations.build_rotation_matrix
 ```
 
 ## Geometry Import
@@ -39,5 +39,5 @@
 ### Geometry Import Function
 
 ```{eval-rst}
-.. autofunction:: flight_simulator.utils.import_geometry.import_geometry
+.. autofunction:: falco.utils.import_geometry.import_geometry
 ```

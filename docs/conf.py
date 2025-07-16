@@ -192,4 +192,4 @@ collections = {
 
 collections_target = 'src/_temp'    
 collections_clean  = True           
-collections_final_clean  = True     # Don't delete temp files after build for debugging
+collections_final_clean  = True     

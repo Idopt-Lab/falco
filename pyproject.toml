@@ -6,10 +6,10 @@ build-backend = "setuptools.build_meta"
 name = "falco"
 description = "A package for 6 DoF aircraft flight simulator with automatic derivatives"
 readme = "README.md"
-requires-python = ">=3.10, <3.11"
+requires-python = ">=3.9"
 license = {file = "LICENSE.txt"}
 keywords = ["auto-differentation", "optimization"]
-authors = [{name = "Darshan Sarojini", email = "sdarshan@vt.edu"}]
+authors = [{name = "Darshan Sarojini", email = "sdarshan@vt.edu"}, {name = "Nathan Shune", email = "nshune@vt.edu"}, {name = "Joey Gould", email = "gouldj@vt.edu"}]
 dependencies = [
     'numpy==1.26.4',
     'vedo',
@@ -35,7 +35,7 @@ docs = [
 ]
 
 [tool.setuptools.dynamic]
-version = {attr = "flight_simulator.__version__"}
+version = {attr = "falco.__version__"}
 
 [tool.setuptools]
 package-dir = {"" = "."}
