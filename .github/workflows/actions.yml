@@ -30,7 +30,7 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
 
-        
+
       # Here we install the package of this repositories as well as other required packages 
     - name: Install dependencies
       run: | 
@@ -39,6 +39,7 @@ jobs:
         pip install -U jax
         python -m pip install -e .
         python -m pip install coveralls
+        git clone https://github.com/nichco/NRLMSIS2.git pip install ./NRLMSIS2
 
 
       # Finally, we run the package unit-tests on the specified OS and python versions.
