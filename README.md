@@ -1,7 +1,7 @@
 # Framework for Aircraft-Level Configuration and Optimization (FALCO)
 
 [![GitHub Actions Test Badge](https://github.com/Idopt-Lab/falco/actions/workflows/actions.yml/badge.svg)](https://github.com/falco/flight-simulator/.github)
-[![Coverage Status](https://coveralls.io/repos/github/Idopt-Lab/falco/badge.svg?branch=dev_base_classes&kill_cache=1)](https://coveralls.io/github/Idopt-Lab/falco?branch=dev_base_classes)
+[![Coverage Status](https://coveralls.io/repos/github/Idopt-Lab/falco/badge.svg?branch=main)](https://coveralls.io/github/Idopt-Lab/falco?branch=main)
 [![Forks](https://img.shields.io/github/forks/Idopt-Lab/falco.svg)](https://github.com/Idopt-Lab/falco/network)
 [![Issues](https://img.shields.io/github/issues/Idopt-Lab/falco.svg)](https://github.com/Idopt-Lab/falco/issues)
 
