@@ -53,4 +53,4 @@ The documentation includes:
 
 
 ## License
-FALCO is licensed under GNU General Public License v3.0 (GPL-3.0). See the [LICENSE](https://github.com/Idopt-Lab/falco/LICENSE.txt) file for more details.
+FALCO is licensed under GNU General Public License v3.0 (GPL-3.0). See the [LICENSE](https://github.com/Idopt-Lab/falco/blob/dev-base-classes/LICENSE.txt) file for more details.
