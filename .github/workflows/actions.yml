@@ -39,7 +39,6 @@ jobs:
         pip install -U jax
         python -m pip install -e .
         python -m pip install coveralls
-        git clone https://github.com/nichco/NRLMSIS2.git pip install ./NRLMSIS2
 
 
       # Finally, we run the package unit-tests on the specified OS and python versions.
