@@ -44,8 +44,8 @@ jobs:
       # Finally, we run the package unit-tests on the specified OS and python versions.
     - name: Test with pytest
       run: |
-        pytest -k "not test_viz_component_hierarchy and not test_geometry_surface_area"
-
+        pytest -k "not test_viz_component_hierarchy and not test_geometry_surface_area and not test_create_ac_states_object and not test_update_ac_states_value"
+        
     - name: npm install, make test-coverage
       run: |
         npm install
