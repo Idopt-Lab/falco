@@ -37,13 +37,13 @@ jobs:
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
         pip install -U jax
         pip install -e .
-        python -m pip install coveralls pytest-cov
+        python -m pip install coveralls
 
 
       # Finally, we run the package unit-tests on the specified OS and python versions.
-    - name: Test with pytest and generate coverage
+    - name: Test with pytest
       run: |
-        pytest --cov=. --cov-report=lcov:coverage.lcov
+        pytest
 
     - name: Coveralls GitHub Action
       uses: coverallsapp/github-action@v2.3.0
