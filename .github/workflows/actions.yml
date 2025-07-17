@@ -30,14 +30,6 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
 
-    - name: Clone NRLMSIS2 data repo
-      run: |
-        git clone https://github.com/nichco/NRLMSIS2.git
-        pip install csdl_alpha
-        pip install ./NRLMSIS2
-        mkdir -p $(python -c "import NRLMSIS2; print(NRLMSIS2.__path__[0])")/data
-        cp NRLMSIS2/data/akima_fit.pkl $(python -c "import NRLMSIS2; print(NRLMSIS2.__path__[0])")/data/
-
         
       # Here we install the package of this repositories as well as other required packages 
     - name: Install dependencies
