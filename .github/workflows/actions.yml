@@ -32,8 +32,8 @@ jobs:
 
     - name: Clone NRLMSIS2 data repo
       run: |
-        git clone https://github.com/your-org/NRLMSIS2.git
-        # If needed, copy the data files to the expected location:
+        git clone https://github.com/nichco/NRLMSIS2.git
+        pip install ./NRLMSIS2
         mkdir -p $(python -c "import NRLMSIS2; print(NRLMSIS2.__path__[0])")/data
         cp NRLMSIS2/data/akima_fit.pkl $(python -c "import NRLMSIS2; print(NRLMSIS2.__path__[0])")/data/
 
