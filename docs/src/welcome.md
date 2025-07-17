@@ -15,13 +15,14 @@ Key features include:
 # Cite us
 ```none
 @article{idopt2023,
-        Author = {Joey Gould, Nathan Shune, David Solano, and Darshan Sarojini},
-        Title = {Performance and Regulatory Assessment Trim Formulations for Conceptual Aircraft Design},
-        booktitle={AIAA AVIATION FORUM 2025}
+        author = {Joseph Gould and Nathan Shune and David Solano Sarmiento and Darshan Sarojini},
+        title = {Performance and Regulatory Assessment Trim Formulations for Conceptual Aircraft Design},
+        booktitle = {AIAA AVIATION FORUM AND ASCEND 2025},
         year = {2025},
-        issn = {},
-        doi = {}
-        }
+        doi = {10.2514/6.2025-3624},
+        URL = {https://arc.aiaa.org/doi/abs/10.2514/6.2025-3624},
+        eprint = {https://arc.aiaa.org/doi/pdf/10.2514/6.2025-3624}
+}
 ```
 
 
