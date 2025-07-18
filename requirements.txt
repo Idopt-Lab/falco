@@ -21,4 +21,3 @@ git+https://github.com/LSDOlab/lsdo_b_splines_cython.git
 git+https://github.com/LSDOlab/lsdo_function_spaces.git
 git+https://github.com/LSDOlab/lsdo_geo.git
 git+https://github.com/LSDOlab/CSDL_alpha.git
-git+https://github.com/nichco/NRLMSIS2.git
