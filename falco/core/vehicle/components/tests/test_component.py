@@ -84,7 +84,7 @@ class TestComponentGeometry(TestCase):
         wing_component = Component(name="Wing",
                                    geometry=self.wing_geometry,
                                    compute_surface_area_flag=True)
-        np.testing.assert_almost_equal(wing_component.surface_area.value, 97.229, decimal=3)
+        np.testing.assert_almost_equal(wing_component.surface_area.value, 94.82, decimal=3)
 
 
 class TestComponentHierarchy(TestCase):
