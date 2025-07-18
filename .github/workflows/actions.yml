@@ -39,17 +39,11 @@ jobs:
         python -m pip install -e .
         python -m pip install coveralls pytest-cov
 
-    # - name: Download NRLMSIS2 data file
-    #   run: |
-    #     NRLMSIS2_DIR=$(python -c "import NRLMSIS2, os; print(os.path.dirname(NRLMSIS2.__file__))")
-    #     mkdir -p "$NRLMSIS2_DIR/data"
-    #     curl -L -o "$NRLMSIS2_DIR/data/akima_fit.pkl" "https://github.com/nichco/NRLMSIS2/raw/main/NRLMSIS2/data/akima_fit.pkl"
-
 
       # Finally, we run the package unit-tests on the specified OS and python versions.
     - name: Test with pytest and coverage
       run: |
-        pytest --cov=. --cov-report=xml -k "not test_viz_component_hierarchy and not test_geometry_surface_area"
+        pytest --cov=. --cov-report=xml -k "not test_viz_component_hierarchy"
 
 
     - name: Coveralls GitHub Action
