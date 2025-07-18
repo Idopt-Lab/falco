@@ -70,4 +70,10 @@ setup(
         'Topic :: Software Development :: Testing',
         'Topic :: Software Development :: Libraries',
     ],
+    include_package_data=True,
+    package_data={
+        'NRLMSIS2': [
+            'data/akima_fit.pkl',
+        ],
+    },
 )

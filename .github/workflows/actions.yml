@@ -41,11 +41,11 @@ jobs:
         python -m pip install -e .
         python -m pip install coveralls pytest-cov
 
-    - name: Download NRLMSIS2 data file
-      run: |
-        NRLMSIS2_DIR=$(python -c "import NRLMSIS2, os; print(os.path.dirname(NRLMSIS2.__file__))")
-        mkdir -p "$NRLMSIS2_DIR/data"
-        curl -L -o "$NRLMSIS2_DIR/data/akima_fit.pkl" "https://github.com/nichco/NRLMSIS2/raw/main/NRLMSIS2/data/akima_fit.pkl"
+    # - name: Download NRLMSIS2 data file
+    #   run: |
+    #     NRLMSIS2_DIR=$(python -c "import NRLMSIS2, os; print(os.path.dirname(NRLMSIS2.__file__))")
+    #     mkdir -p "$NRLMSIS2_DIR/data"
+    #     curl -L -o "$NRLMSIS2_DIR/data/akima_fit.pkl" "https://github.com/nichco/NRLMSIS2/raw/main/NRLMSIS2/data/akima_fit.pkl"
 
 
       # Finally, we run the package unit-tests on the specified OS and python versions.
