@@ -30,8 +30,6 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
 
-
-
       # Here we install the package of this repositories as well as other required packages 
     - name: Install dependencies
       run: | 
