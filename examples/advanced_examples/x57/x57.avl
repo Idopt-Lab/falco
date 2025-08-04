@@ -1,0 +1,228 @@
+x57
+#Mach
+0.2
+#IYsym    IZsym    Zsym
+0    0    0
+#Sref    Cref    Bref
+6.144    0.640    9.600
+#Xref    Yref    Zref
+-3.682    0.000    -0.497
+#
+#
+
+#====================================================================
+SURFACE
+Inner Wing
+#Nchordwise    Cspace    Nspanwise    Sspace
+12    1.0    4    1.0
+#
+COMPONENT
+1
+#
+YDUPLICATE
+0.0
+#
+ANGLE
+2.000
+
+JETPARAM
+#hdisk    fh    djet0   djet1    djet3
+0.45    1.0    0.0   0.0    0.0
+#-------------------------------------------------------------
+SECTION
+#Xle	Yle	Zle	Chord	Ainc	Nspanwise	Sspace
+0.000    0.000    0.000    0.640    0.000    2.000    1.000
+AFILE
+airfoils\airfoil_coords_3.dat
+
+#Cname    Cgain    Xhinge    HingeVec    SgnDup
+CLAF
+1.0
+
+#-------------------------------------------------------------
+SECTION
+#Xle	Yle	Zle	Chord	Ainc	Nspanwise	Sspace
+0.000    0.600    0.000    0.640    0.000    2.000    1.000
+AFILE
+airfoils\airfoil_coords_4.dat
+
+#Cname    Cgain    Xhinge    HingeVec    SgnDup
+CLAF
+1.0
+
+#====================================================================
+SURFACE
+Mid Wing
+#Nchordwise    Cspace    Nspanwise    Sspace
+12    1.0    4    1.0
+#
+COMPONENT
+1
+#
+YDUPLICATE
+0.0
+#
+ANGLE
+2.000
+
+JETPARAM
+#hdisk    fh    djet0   djet1    djet3
+0.45    1.0    0.0   0.0    0.0
+#-------------------------------------------------------------
+SECTION
+#Xle	Yle	Zle	Chord	Ainc	Nspanwise	Sspace
+0.000    0.600    0.000    0.640    0.000    2.000    1.000
+AFILE
+airfoils\airfoil_coords_4.dat
+
+#Cname    Cgain    Xhinge    HingeVec    SgnDup
+CONTROL
+Flap    1.00    0.750    0.00 0.00 0.00    1.00
+
+CLAF
+1.0
+
+#-------------------------------------------------------------
+SECTION
+#Xle	Yle	Zle	Chord	Ainc	Nspanwise	Sspace
+0.000    3.200    0.000    0.640    0.000    2.000    1.000
+AFILE
+airfoils\airfoil_coords_5.dat
+
+#Cname    Cgain    Xhinge    HingeVec    SgnDup
+CONTROL
+Flap    1.00    0.750    0.00 0.00 0.00    1.00
+
+CLAF
+1.0
+
+#====================================================================
+SURFACE
+Outer Wing
+#Nchordwise    Cspace    Nspanwise    Sspace
+12    1.0    4    1.0
+#
+COMPONENT
+1
+#
+YDUPLICATE
+0.0
+#
+ANGLE
+2.000
+
+JETPARAM
+#hdisk    fh    djet0   djet1    djet3
+0.45    1.0    0.0   0.0    0.0
+#-------------------------------------------------------------
+SECTION
+#Xle	Yle	Zle	Chord	Ainc	Nspanwise	Sspace
+0.000    3.200    0.000    0.640    0.000    2.000    1.000
+AFILE
+airfoils\airfoil_coords_5.dat
+
+#Cname    Cgain    Xhinge    HingeVec    SgnDup
+CONTROL
+Aileron    -1.00    0.750    0.00 0.00 0.00    -1.00
+
+CLAF
+1.0
+
+#-------------------------------------------------------------
+SECTION
+#Xle	Yle	Zle	Chord	Ainc	Nspanwise	Sspace
+0.000    4.800    0.000    0.640    0.000    2.000    1.000
+AFILE
+airfoils\airfoil_coords_5.dat
+
+#Cname    Cgain    Xhinge    HingeVec    SgnDup
+CONTROL
+Aileron    -1.00    0.750    0.00 0.00 0.00    -1.00
+
+CLAF
+1.0
+
+#====================================================================
+SURFACE
+Horizontal Tail
+#Nchordwise    Cspace    Nspanwise    Sspace
+6    1.0    8    1.0
+#
+COMPONENT
+2
+#
+YDUPLICATE
+0.0
+#
+ANGLE
+0
+#-------------------------------------------------------------
+SECTION
+#Xle	Yle	Zle	Chord	Ainc	Nspanwise	Sspace
+15.000    0.000    0.000    0.640    0.000    0.000    0.000
+AFILE
+airfoils\airfoil_coords_5.dat
+
+#Cname    Cgain    Xhinge    HingeVec    SgnDup
+CONTROL
+Elevator    1.00    0.600    0.00 0.00 0.00    1.00
+
+CLAF
+1.0
+
+#-------------------------------------------------------------
+SECTION
+#Xle	Yle	Zle	Chord	Ainc	Nspanwise	Sspace
+15.000    2.500    0.000    0.640    0.000    0.000    0.000
+AFILE
+airfoils\airfoil_coords_5.dat
+
+#Cname    Cgain    Xhinge    HingeVec    SgnDup
+CONTROL
+Elevator    1.00    0.600    0.00 0.00 0.00    1.00
+
+CLAF
+1.0
+
+#====================================================================
+SURFACE
+Vertical Tail
+#Nchordwise    Cspace    Nspanwise    Sspace
+6    1.0    8    1.0
+#
+COMPONENT
+2
+#
+YDUPLICATE
+0.0
+#
+ANGLE
+0
+#-------------------------------------------------------------
+SECTION
+#Xle	Yle	Zle	Chord	Ainc	Nspanwise	Sspace
+15.000    0.000    0.000    0.640    0.000    0.000    0.000
+AFILE
+airfoils\airfoil_coords_5.dat
+
+#Cname    Cgain    Xhinge    HingeVec    SgnDup
+CONTROL
+Rudder    1.00    0.750    0.00 0.00 0.00    1.00
+
+CLAF
+1.0
+
+#-------------------------------------------------------------
+SECTION
+#Xle	Yle	Zle	Chord	Ainc	Nspanwise	Sspace
+15.250    0.000    4.000    0.640    0.000    0.000    0.000
+AFILE
+airfoils\airfoil_coords_5.dat
+
+#Cname    Cgain    Xhinge    HingeVec    SgnDup
+CONTROL
+Rudder    1.00    0.750    0.00 0.00 0.00    1.00
+
+CLAF
+1.0
+

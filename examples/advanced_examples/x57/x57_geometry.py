@@ -24,7 +24,6 @@ def get_geometry():
         scale=in2m,
         rotate_to_body_fixed_frame=True
     )
-
     wing = geometry.declare_component(function_search_names=['Wing_Sec1','Wing_Sec2','Wing_Sec3','Wing_Sec4'], name='wing')
     aileronR = geometry.declare_component(function_search_names=['Rt_Aileron'], name='aileronR')
     aileronL = geometry.declare_component(function_search_names=['Lt_Aileron'], name='aileronL')
@@ -652,6 +651,62 @@ def get_airfoil_mesh(
         'wing_camber_surface': wing_camber_surface
     }
 
+
+
+def export_airfoil_coords(
+    wing_mesh,
+    wing_num_chordwise_vlm,
+    wing_num_spanwise_vlm,
+    spanwise_index=4,
+    filename="airfoil_coords.dat"
+):
+    """
+    Extracts airfoil coordinates from wing mesh and writes to a file.
+    """
+
+    wing_camber_mesh = wing_mesh['wing_camber_surface']
+    wing_upper_surface_wireframe = wing_mesh['upper_surface_wireframe']
+    wing_lower_surface_wireframe = wing_mesh['lower_surface_wireframe']
+
+    camber_wireframe = wing_camber_mesh.reshape((wing_num_chordwise_vlm, wing_num_spanwise_vlm, 3))
+    upper_wireframe = wing_upper_surface_wireframe.reshape((wing_num_chordwise_vlm, wing_num_spanwise_vlm, 3))
+    lower_wireframe = wing_lower_surface_wireframe.reshape((wing_num_chordwise_vlm, wing_num_spanwise_vlm, 3))
+
+    camber_coords = camber_wireframe[:, spanwise_index, :]
+    upper_chord_coords = upper_wireframe[:, spanwise_index, :]
+    lower_chord_coords = lower_wireframe[:, spanwise_index, :]
+
+    # Select only x (column 0) and z (column 2)
+    camber = -camber_coords.value[:, [0, 2]]
+    upper_xz = -upper_chord_coords.value[:, [0, 2]]
+    lower_xz = -lower_chord_coords.value[:, [0, 2]]
+
+    le_up = np.min(upper_xz[:, 0])
+    le_lo = np.min(lower_xz[:, 0])
+    upper_xz[:, 0] = upper_xz[:, 0] - le_up
+    lower_xz[:, 0] = lower_xz[:, 0] - le_lo
+
+    chord_length_up = np.max(upper_xz[:, 0])
+    chord_length_lo = np.max(lower_xz[:, 0])
+    upper_xz[:, 0] /= chord_length_up
+    lower_xz[:, 0] /= chord_length_lo
+
+    upper_xz[:, 1] = upper_xz[:, 1] - camber[:, 1]
+    lower_xz[:, 1] = lower_xz[:, 1] - camber[:, 1]
+
+    upper_xz = upper_xz[::-1, :]
+
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    airfoil_dir = os.path.join(current_dir, 'airfoils')
+    if not os.path.exists(airfoil_dir):
+        os.makedirs(airfoil_dir)
+    file_path = os.path.join(airfoil_dir, filename)
+
+    with open(file_path, 'w') as f:
+        np.savetxt(f, upper_xz, fmt='%.8f', delimiter=' ')
+        np.savetxt(f, lower_xz, fmt='%.8f', delimiter=' ')
+
+
 def get_geometry_related_axis(geo_dict: dict):
 
     # region Inertial and OpenVSP axis
@@ -1007,53 +1062,20 @@ if __name__ == "__main__":
         wing_num_chordwise_vlm=wing_num_chordwise_vlm  
     )
 
-    wing_camber_mesh = wing_mesh['wing_camber_surface']
-    wing_upper_surface_wireframe = wing_mesh['upper_surface_wireframe']
-    wing_lower_surface_wireframe = wing_mesh['lower_surface_wireframe']
-
-    camber_wireframe = wing_camber_mesh.reshape((wing_num_chordwise_vlm, wing_num_spanwise_vlm, 3))
-    upper_wireframe = wing_upper_surface_wireframe.reshape((wing_num_chordwise_vlm, wing_num_spanwise_vlm, 3))
-    lower_wireframe = wing_lower_surface_wireframe.reshape((wing_num_chordwise_vlm, wing_num_spanwise_vlm, 3))
-
-    spanwise_index = 4
-    camber_coords = camber_wireframe[:, spanwise_index, :]
-    upper_chord_coords = upper_wireframe[:, spanwise_index, :]
-    lower_chord_coords = lower_wireframe[:, spanwise_index, :]
-
-    
-    # Select only x (column 0) and z (column 2)
-    camber = -camber_coords.value[:, [0, 2]]
-    upper_xz = -upper_chord_coords.value[:, [0, 2]]
-    lower_xz = -lower_chord_coords.value[:, [0, 2]]
-
-    le_up = np.min(upper_xz[:, 0])
-    le_lo = np.min(lower_xz[:, 0])
-    upper_xz[:, 0] = upper_xz[:, 0] - le_up
-    lower_xz[:, 0] = lower_xz[:, 0] - le_lo
-
-    chord_length_up = np.max(upper_xz[:, 0])
-    chord_length_lo = np.max(lower_xz[:, 0])
-    upper_xz[:, 0] /= chord_length_up
-    lower_xz[:, 0] /= chord_length_lo
-
-
-    upper_xz[:, 1] = upper_xz[:, 1] - camber[:, 1]
-    lower_xz[:, 1] = lower_xz[:, 1] - camber[:, 1]
-
-    upper_xz = upper_xz[::-1, :]
-
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    file_path = os.path.join(current_dir, "airfoil_coords.dat")
-
-    with open(file_path, 'w') as f:
-        np.savetxt(f, upper_xz, fmt='%.8f', delimiter=' ')
-        np.savetxt(f, lower_xz, fmt='%.8f', delimiter=' ')
-
-    plotting_elements = geometry_data['geometry'].plot_meshes(
-        [wing_upper_surface_wireframe],
-        function_opacity=0.5,
-        mesh_color='#FFCD00',
-        show=False
+    export_airfoil_coords(
+        wing_mesh=wing_mesh,
+        wing_num_chordwise_vlm=wing_num_chordwise_vlm,
+        wing_num_spanwise_vlm=wing_num_spanwise_vlm,
+        spanwise_index=4,  # or set to another index if desired
+        filename="airfoil_coords.dat"
     )
+    print("Airfoil coordinates exported to airfoil_coords.dat")
+
+    # plotting_elements = geometry_data['geometry'].plot_meshes(
+    #     [wing_upper_surface_wireframe],
+    #     function_opacity=0.5,
+    #     mesh_color='#FFCD00',
+    #     show=False
+    # )
 
     recorder.stop()

@@ -17,9 +17,6 @@ ft2m = 0.3048
 
 @dataclass
 class WingParameters(csdl.VariableGroup):
-    #TODO: 
-        #REPLACE FLOAT AND INT WITH UREG
-        #EXPLICTLY CONVERT EVERYTHING TO CSDL VARIABLE
     AR : csdl.Variable
     S_ref : csdl.Variable
     span : csdl.Variable
@@ -35,8 +32,51 @@ class WingParameters(csdl.VariableGroup):
     actuate_axis_location: Union[csdl.Variable,None]=None
     MAC: Union[csdl.Variable,None]=None
     S_wet : Union[csdl.Variable,None]=None
+    eta_0 : Union[csdl.Variable,None]=None
+    Kc: Union[csdl.Variable,None]=None
+    co: Union[csdl.Variable,None]=None
+    Kcc: Union[csdl.Variable,None]=None
+    c_ma: Union[csdl.Variable,None]=None
+    ct: Union[csdl.Variable,None]=None
 
+    def define_checks(self):
+        self.add_check('AR', type=[csdl.Variable, ureg.Quantity, None], shape=(1,), variablize=True)
+        self.add_check('S_ref', type=[csdl.Variable, ureg.Quantity, None], shape=(1,), variablize=True)
+        self.add_check('span', type=[csdl.Variable, ureg.Quantity, None], shape=(1,), variablize=True)
+        self.add_check('sweep', type=[csdl.Variable, ureg.Quantity, None], shape=(1,), variablize=True)
+        self.add_check('incidence', type=[csdl.Variable, ureg.Quantity, None], shape=(1,), variablize=True)
+        self.add_check('taper_ratio', type=[csdl.Variable, ureg.Quantity, None], shape=(1,), variablize=True)
+        self.add_check('dihedral', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
+        self.add_check('root_twist_delta', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
+        self.add_check('tip_twist_delta', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
+        self.add_check('MAC', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
+        self.add_check('S_wet', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
+        self.add_check('actuate_angle', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
+        self.add_check('actuate_axis_location', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
+        self.add_check('eta_0', type=[csdl.Variable, ureg.Quantity, None], shape=(1,), variablize=True)
+        self.add_check('Kc', type=[csdl.Variable, ureg.Quantity, None], shape=(1,), variablize=True)
+        self.add_check('co', type=[csdl.Variable, ureg.Quantity, None], shape=(1,), variablize=True)
+        self.add_check('Kcc', type=[csdl.Variable, ureg.Quantity, None], shape=(1,), variablize=True)
+        self.add_check('c_ma', type=[csdl.Variable, ureg.Quantity, None], shape=(1,), variablize=True)
+        self.add_check('ct', type=[csdl.Variable, ureg.Quantity, None], shape=(1,), variablize=True)
+
+    def _check_parameters(self, name, value):
+        if self._metadata[name]['type'] is not None:
+            # Allow None type without raising error
+            if value is not None and type(value) not in self._metadata[name]['type']:
+                raise ValueError(f"Variable {name} must be of type {self._metadata[name]['type']}.")
+        if self._metadata[name]['variablize']:
+            if isinstance(value, ureg.Quantity):
+                value_si = value.to_base_units()
+                value = csdl.Variable(value=value_si.magnitude, shape=(1,), name=name)
+                value.add_tag(tag=str(value_si.units))
+        if self._metadata[name]['shape'] is not None:
+            if value is not None and hasattr(value, 'shape'):
+                if value.shape != self._metadata[name]['shape']:
+                    raise ValueError(f"Variable {name} must have shape {self._metadata[name]['shape']}.")
+        return value
     
+
 @dataclass
 class WingGeometricQuantities:
     span: csdl.Variable
@@ -89,6 +129,7 @@ class Wing(Component):
         thickness_to_chord_loc: Union[ureg.Quantity, csdl.Variable] = Q_(0.3, 'm'),
         actuate_angle: Union[ureg.Quantity, csdl.Variable,None] = None,
         actuate_axis_location: Union[ureg.Quantity, csdl.Variable, None] = Q_(0.25, 'm'),
+        eta_0 : Union[csdl.Variable,None]=None,
         geometry : Union[lfs.FunctionSet, None]=None,
         parametric_geometry: List = None,
         tight_fit_ffd: bool = False,
@@ -104,36 +145,6 @@ class Wing(Component):
         super().__init__(geometry=geometry, **kwargs)
         
         
-        def define_checks(self):
-            self.add_check('AR', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
-            self.add_check('S_ref', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
-            self.add_check('span', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
-            self.add_check('sweep', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
-            self.add_check('incidence', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
-            self.add_check('taper_ratio', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
-            self.add_check('dihedral', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
-            self.add_check('root_twist_delta', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
-            self.add_check('tip_twist_delta', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
-            self.add_check('MAC', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
-            self.add_check('S_wet', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
-            self.add_check('actuate_angle', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
-            self.add_check('actuate_axis_location', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
-
-        def _check_parameters(self, name, value):
-            if self._metadata[name]['type'] is not None:
-                if type(value) not in self._metadata[name]['type']:
-                    raise ValueError(f"Variable {name} must be of type {self._metadata[name]['type']}.")
-            if self._metadata[name]['variablize']:
-                if isinstance(value, ureg.Quantity):
-                    value_si = value.to_base_units()
-                    value = csdl.Variable(value=value_si.magnitude, shape=(1,), name=name)
-                    value.add_tag(tag=str(value_si.units))
-            if self._metadata[name]['shape'] is not None:
-                if value.shape != self._metadata[name]['shape']:
-                    raise ValueError(f"Variable {name} must have shape {self._metadata[name]['shape']}.")
-            return value
-
-
 
         # Check if wing is over-parameterized
         if all(arg is not None for arg in [AR, S_ref, span]):
@@ -174,7 +185,9 @@ class Wing(Component):
             thickness_to_chord_loc=thickness_to_chord_loc,
             actuate_angle=actuate_angle,
             actuate_axis_location=actuate_axis_location,
+            eta_0=eta_0
         )
+
 
         if taper_ratio is None:
             taper_ratio = 1
@@ -215,6 +228,15 @@ class Wing(Component):
             sweep = Q_(0.0, 'rad')
             self.parameters.sweep = sweep
 
+        
+        if self.parameters.eta_0 is None:
+            self.parameters.eta_0 = csdl.Variable(name=f"{self._name}_eta_0", value=0.8)
+
+        self.parameters.Kc = self.parameters.eta_0 + (0.5 * (1 + self.parameters.taper_ratio))
+        self.parameters.co = self.parameters.S_ref / (self.parameters.span*self.parameters.Kc)
+        self.parameters.Kcc = self.parameters.eta_0 + ((1/3) * (self.parameters.taper_ratio**2 + self.parameters.taper_ratio + 1) * (1 - self.parameters.eta_0))
+        self.parameters.c_ma = self.parameters.Kcc / (self.parameters.Kc * self.parameters.co)
+        self.parameters.ct = self.parameters.co * self.parameters.taper_ratio
         self.parameters.S_wet = self.surface_area
 
 
