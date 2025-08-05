@@ -1,0 +1,3 @@
+ The [Ozone package](https://github.com/LSDOlab/ozone) from the LSDO Lab (Nicholas Orndoff, Mark Sperry, John Hwang) is used in this example for the purposes of ODE solving. [Orndoff and Hwang](https://arc.aiaa.org/doi/abs/10.2514/6.2022-3485) demonstrated feasibility of the csdl language for use in air taxi transition profiles using direct-transcription trajectory optimization using two degrees of freedom. Credit goes to Mark Sperry for his contributions/development of the Ozone package. 
+ 
+ The goal of this example is to demonstrate how to use the Ozone package for trajectory optimization of a Boeing 777 aircraft in the FALCO framework with six degrees of freedom.

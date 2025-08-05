@@ -35,3 +35,12 @@ venv.bak/
 
 # Pickle files
 *.pickle
+examples/code_block.py
+examples/component_load_interaction
+examples/compute_total_loads_flowchart
+examples/framework_code_block.py
+examples/generic_commercial_aircraft_hierarchy.py
+examples/xdsm.py
+examples/aircraft_simulator_framework
+examples/basic_examples/framework_code_block.py
+docs/src/examples/x57_advanced_example.ipynb
