@@ -1,6 +1,7 @@
 import numpy as np
+import jax
+import jax.numpy as jnp
 from falco import ureg
-import csdl_alpha as csdl
 from typing import Union, Literal
 from enum import Enum
 from dataclasses import dataclass
@@ -18,17 +19,28 @@ def axis_checkers(func):
         if origin_in not in ValidOrigins._value2member_map_:
             print('Axis origin "%s" not permitted' % origin_in)
             raise IOError
-            kwargs['origin'] = ValidOrigins.Inertial.value
         func(*args, **kwargs)
 
-    # def test_reference(*args, **kwargs):
-    #     # Check kwargs for name
-    #     name = kwargs.get('name')
-    #     if name in ValidOrigins._value2member_map_:
-    #         # todo: check that reference is None
-    #         pass
-
     return test_origin_value
+
+
+# JIT-compiled pure functions for vector operations
+@jax.jit
+def create_translation_vector(x: jax.Array, y: jax.Array, z: jax.Array) -> jax.Array:
+    """Create translation vector with JIT compilation."""
+    return jnp.concatenate([x, y, z], axis=0)
+
+
+@jax.jit
+def create_euler_angles_vector(phi: jax.Array, theta: jax.Array, psi: jax.Array) -> jax.Array:
+    """Create Euler angles vector with JIT compilation."""
+    return jnp.concatenate([phi, theta, psi], axis=0)
+
+
+@jax.jit
+def reshape_to_vector(arr: jax.Array) -> jax.Array:
+    """Reshape array to vector with JIT compilation."""
+    return arr.reshape(1)
 
 
 class Axis:
@@ -45,13 +57,13 @@ class Axis:
         Origin identifier (must be a ValidOrigins value).
     translation_from_origin : Axis.translation_from_origin or None
         Translation from the origin.
-    translation_from_origin_vector : csdl.Variable or None
+    translation_from_origin_vector : jax.Array or None
         Translation vector [x, y, z] from the origin.
-    translation : csdl.Variable or None
+    translation : jax.Array or None
         Alias for translation_from_origin_vector.
     euler_angles : Axis.euler_angles or None
         Euler angles (phi, theta, psi) for orientation.
-    euler_angles_vector : csdl.Variable or None
+    euler_angles_vector : jax.Array or None
         Euler angles as a vector.
     sequence : any
         Euler rotation sequence.
@@ -59,90 +71,48 @@ class Axis:
         Reference axis or frame.
     """
     @dataclass
-    class euler_angles(csdl.VariableGroup):
+    class euler_angles:
         """Euler angles for axis orientation.
 
         Attributes
         ----------
-        phi : csdl.Variable
+        phi : jax.Array
             Roll angle.
-        theta : csdl.Variable
+        theta : jax.Array
             Pitch angle.
-        psi : csdl.Variable
+        psi : jax.Array
             Yaw angle.
         """
-        phi: csdl.Variable
-        theta: csdl.Variable
-        psi: csdl.Variable
-
-        def define_checks(self):
-            self.add_check('phi', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
-            self.add_check('theta', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
-            self.add_check('psi', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
-
-        def _check_parameters(self, name, value):
-            if self._metadata[name]['type'] is not None:
-                if type(value) not in self._metadata[name]['type']:
-                    raise ValueError(f"Variable {name} must be of type {self._metadata[name]['type']}.")
-
-            if self._metadata[name]['variablize']:
-                if isinstance(value, ureg.Quantity):
-                    value_si = value.to_base_units()
-                    value = csdl.Variable(value=value_si.magnitude, shape=(1,), name=name)
-                    value.add_tag(tag=str(value_si.units))
-
-            if self._metadata[name]['shape'] is not None:
-                if value.shape != self._metadata[name]['shape']:
-                    raise ValueError(f"Variable {name} must have shape {self._metadata[name]['shape']}.")
-            return value
+        phi: jax.Array
+        theta: jax.Array
+        psi: jax.Array
 
     @dataclass
-    class translation_from_origin(csdl.VariableGroup):
+    class translation_from_origin:
         """Translation from the origin for the axis.
 
         Attributes
         ----------
-        x : csdl.Variable
+        x : jax.Array
             X-coordinate of translation.
-        y : csdl.Variable
+        y : jax.Array
             Y-coordinate of translation.
-        z : csdl.Variable
+        z : jax.Array
             Z-coordinate of translation.
         """
-        x: csdl.Variable
-        y: csdl.Variable
-        z: csdl.Variable
-
-        def define_checks(self):
-            self.add_check('x', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
-            self.add_check('y', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
-            self.add_check('z', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
-
-        def _check_parameters(self, name, value):
-            if self._metadata[name]['type'] is not None:
-                if type(value) not in self._metadata[name]['type']:
-                    raise ValueError(f"Variable {name} must be of type {self._metadata[name]['type']}.")
-
-            if self._metadata[name]['variablize']:
-                if isinstance(value, ureg.Quantity):
-                    value_si = value.to_base_units()
-                    value = csdl.Variable(value=value_si.magnitude, shape=(1,), name=name)
-                    value.add_tag(tag=str(value_si.units))
-
-            if self._metadata[name]['shape'] is not None:
-                if value.shape != self._metadata[name]['shape']:
-                    raise ValueError(f"Variable {name} must have shape {self._metadata[name]['shape']}.")
-            return value
+        x: jax.Array
+        y: jax.Array
+        z: jax.Array
 
     @axis_checkers
     def __init__(self, name: str,
                  origin: str,
-                 x: Union[ureg.Quantity, csdl.Variable] = None,
-                 y: Union[ureg.Quantity, csdl.Variable] = None,
-                 z: Union[ureg.Quantity, csdl.Variable] = None,
-                 phi: Union[ureg.Quantity, csdl.Variable] = None,
-                 theta: Union[ureg.Quantity, csdl.Variable] = None,
-                 psi: Union[ureg.Quantity, csdl.Variable] = None,
+                 x: Union[ureg.Quantity, jax.Array] = None,
+                 y: Union[ureg.Quantity, jax.Array] = None,
+                 z: Union[ureg.Quantity, jax.Array] = None,
+                 phi: Union[ureg.Quantity, jax.Array] = None,
+                 theta: Union[ureg.Quantity, jax.Array] = None,
+                 psi: Union[ureg.Quantity, jax.Array] = None,
                  sequence=None,
                  reference=None):
         """Initialize an Axis object.
@@ -153,9 +123,9 @@ class Axis:
             Name of the axis.
         origin : str
             Origin identifier (must be a ValidOrigins value).
-        x, y, z : ureg.Quantity or csdl.Variable, optional
+        x, y, z : ureg.Quantity or jax.Array, optional
             Translation from the origin.
-        phi, theta, psi : ureg.Quantity or csdl.Variable, optional
+        phi, theta, psi : ureg.Quantity or jax.Array, optional
             Euler angles for orientation.
         sequence : any, optional
             Euler rotation sequence.
@@ -166,12 +136,19 @@ class Axis:
         self.name = name
 
         if x is not None:
+            # Convert to JAX arrays
+            x_val = self._to_jax_array(x)
+            y_val = self._to_jax_array(y)
+            z_val = self._to_jax_array(z)
+            
             self.translation_from_origin = self.translation_from_origin(
-                x=x, y=y, z=z
+                x=x_val, y=y_val, z=z_val
             )
-            self.translation_from_origin_vector = csdl.concatenate(
-                (self.translation_from_origin.x, self.translation_from_origin.y, self.translation_from_origin.z),
-                axis=0
+            # Use JIT-compiled function for vector creation
+            self.translation_from_origin_vector = create_translation_vector(
+                self.translation_from_origin.x, 
+                self.translation_from_origin.y, 
+                self.translation_from_origin.z
             )
             self.translation = self.translation_from_origin_vector
         else:
@@ -179,9 +156,18 @@ class Axis:
             self.translation_from_origin_vector = None
 
         if phi is not None:
-            self.euler_angles = self.euler_angles(phi=phi, theta=theta, psi=psi)
-            self.euler_angles_vector = csdl.concatenate(
-                (self.euler_angles.phi, self.euler_angles.theta, self.euler_angles.psi), axis=0)
+            # Convert to JAX arrays
+            phi_val = self._to_jax_array(phi)
+            theta_val = self._to_jax_array(theta)
+            psi_val = self._to_jax_array(psi)
+            
+            self.euler_angles = self.euler_angles(phi=phi_val, theta=theta_val, psi=psi_val)
+            # Use JIT-compiled function for vector creation
+            self.euler_angles_vector = create_euler_angles_vector(
+                self.euler_angles.phi, 
+                self.euler_angles.theta, 
+                self.euler_angles.psi
+            )
         else:
             self.euler_angles = None
             self.euler_angles_vector = None
@@ -189,6 +175,18 @@ class Axis:
         self.sequence = sequence
         self.reference = reference
         self.origin = origin
+
+    def _to_jax_array(self, value):
+        """Convert value to JAX array."""
+        if value is None:
+            raise ValueError("Cannot convert None to JAX array")
+        if isinstance(value, ureg.Quantity):
+            value_si = value.to_base_units()
+            return reshape_to_vector(jnp.array(value_si.magnitude))
+        elif isinstance(value, jax.Array):
+            return reshape_to_vector(value)
+        else:
+            return reshape_to_vector(jnp.array(value))
 
     def copy(self, new_name: str = None):
         """Create a copy of the Axis object.
@@ -204,47 +202,23 @@ class Axis:
             A new Axis object with the same properties as the original.
         """
         if new_name is None:
-            self.name = self.name + "_copy"
+            new_name = self.name + "_copy"
         else:
             self.name = new_name
 
         # Copy translation variables if set
         if self.translation_from_origin is not None:
-            new_x = csdl.Variable(
-                value=self.translation_from_origin.x.value,
-                shape=self.translation_from_origin.x.shape,
-                name=self.translation_from_origin.x.name + "_copy"
-            )
-            new_y = csdl.Variable(
-                value=self.translation_from_origin.y.value,
-                shape=self.translation_from_origin.y.shape,
-                name=self.translation_from_origin.y.name + "_copy"
-            )
-            new_z = csdl.Variable(
-                value=self.translation_from_origin.z.value,
-                shape=self.translation_from_origin.z.shape,
-                name=self.translation_from_origin.z.name + "_copy"
-            )
+            new_x = self.translation_from_origin.x
+            new_y = self.translation_from_origin.y
+            new_z = self.translation_from_origin.z
         else:
             new_x = new_y = new_z = None
 
         # Copy Euler angle variables if set
         if hasattr(self, 'euler_angles') and self.euler_angles is not None:
-            new_phi = csdl.Variable(
-                value=self.euler_angles.phi.value,
-                shape=self.euler_angles.phi.shape,
-                name=self.euler_angles.phi.name + "_copy"
-            )
-            new_theta = csdl.Variable(
-                value=self.euler_angles.theta.value,
-                shape=self.euler_angles.theta.shape,
-                name=self.euler_angles.theta.name + "_copy"
-            )
-            new_psi = csdl.Variable(
-                value=self.euler_angles.psi.value,
-                shape=self.euler_angles.psi.shape,
-                name=self.euler_angles.psi.name + "_copy"
-            )
+            new_phi = self.euler_angles.phi
+            new_theta = self.euler_angles.theta
+            new_psi = self.euler_angles.psi
         else:
             new_phi = new_theta = new_psi = None
 
@@ -261,58 +235,8 @@ class Axis:
             reference=self.reference
         )
 
-    def csdl_copy(self, new_name: str = None):
-        """
-        Create a deep copy of the current Axis object.
-
-        This method replicates all the Axis properties, including translation,
-        Euler angles, sequence, reference, and origin, producing a new instance
-        with the same configuration using the csdl copyvar functionality.
-
-        Returns
-        -------
-        Axis
-            A new Axis instance identical to the original.
-        """
-        if new_name is None:
-            self.name = self.name + "_copy"
-        else:
-            self.name = new_name
-
-        # Copy translation variables if set
-        if self.translation_from_origin is not None:
-
-            new_x = csdl.copyvar(self.translation_from_origin.x)
-            new_y = csdl.copyvar(self.translation_from_origin.y)
-            new_z = csdl.copyvar(self.translation_from_origin.z)
-        else:
-            new_x = new_y = new_z = None
-
-        # Copy Euler angle variables if set
-        if hasattr(self, 'euler_angles') and self.euler_angles is not None:
-            new_phi = csdl.copyvar(self.euler_angles.phi)
-            new_theta = csdl.copyvar(self.euler_angles.theta)
-            new_psi = csdl.copyvar(self.euler_angles.psi)
-        else:
-            new_phi = new_theta = new_psi = None
-
-        return Axis(
-            name=self.name,
-            origin=self.origin,
-            x=new_x,
-            y=new_y,
-            z=new_z,
-            phi=new_phi,
-            theta=new_theta,
-            psi=new_psi,
-            sequence=self.sequence,
-            reference=self.reference)
-
 
 if __name__ == "__main__":
-    recorder = csdl.Recorder(inline=True)
-    recorder.start()
-
     inertial_axis = Axis(
         name='Inertial Axis',
         origin=ValidOrigins.Inertial.value
@@ -329,7 +253,4 @@ if __name__ == "__main__":
                 origin=ValidOrigins.Inertial.value)
 
     print('Axis translation: ', axis.translation_from_origin_vector)
-    print('Axis translation value: ', axis.translation_from_origin_vector.value)
     print('Axis angles: ', axis.euler_angles_vector)
-    print('Axis angles value: ', axis.euler_angles_vector.value)
-    pass
