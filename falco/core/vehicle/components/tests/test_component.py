@@ -78,13 +78,13 @@ class TestComponentGeometry(TestCase):
         recorder = csdl.Recorder(inline=True)
         recorder.start()
         from falco import GEOMETRIES_ROOT_FOLDER
-        self.wing_geometry = import_geometry("simple_wing.stp", file_path=GEOMETRIES_ROOT_FOLDER / 'test_geometries')
+        self.wing_geometry = import_geometry("simple_wing.stp", file_path=GEOMETRIES_ROOT_FOLDER)
 
     def test_geometry_surface_area(self):
         wing_component = Component(name="Wing",
                                    geometry=self.wing_geometry,
                                    compute_surface_area_flag=True)
-        np.testing.assert_almost_equal(wing_component.surface_area.value, 97.229, decimal=3)
+        np.testing.assert_almost_equal(wing_component.surface_area.value, 94.82, decimal=3)
 
 
 class TestComponentHierarchy(TestCase):
