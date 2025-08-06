@@ -1,10 +1,29 @@
+from __future__ import annotations
 import numpy as np
-import jax
 import jax.numpy as jnp
+from jax import jit
 from falco import ureg
 from typing import Union, Literal
 from enum import Enum
 from dataclasses import dataclass
+
+
+@jit
+def concatenate_translation_vector(x, y, z):
+    """JIT-compiled function to concatenate translation vectors."""
+    return jnp.concatenate([x, y, z], axis=0)
+
+
+@jit
+def concatenate_euler_vector(phi, theta, psi):
+    """JIT-compiled function to concatenate Euler angle vectors."""
+    return jnp.concatenate([phi, theta, psi], axis=0)
+
+
+@jit
+def copy_array(arr):
+    """JIT-compiled function to copy JAX arrays."""
+    return jnp.copy(arr)
 
 
 class ValidOrigins(Enum):
@@ -19,28 +38,10 @@ def axis_checkers(func):
         if origin_in not in ValidOrigins._value2member_map_:
             print('Axis origin "%s" not permitted' % origin_in)
             raise IOError
+            kwargs['origin'] = ValidOrigins.Inertial.value
         func(*args, **kwargs)
 
     return test_origin_value
-
-
-# JIT-compiled pure functions for vector operations
-@jax.jit
-def create_translation_vector(x: jax.Array, y: jax.Array, z: jax.Array) -> jax.Array:
-    """Create translation vector with JIT compilation."""
-    return jnp.concatenate([x, y, z], axis=0)
-
-
-@jax.jit
-def create_euler_angles_vector(phi: jax.Array, theta: jax.Array, psi: jax.Array) -> jax.Array:
-    """Create Euler angles vector with JIT compilation."""
-    return jnp.concatenate([phi, theta, psi], axis=0)
-
-
-@jax.jit
-def reshape_to_vector(arr: jax.Array) -> jax.Array:
-    """Reshape array to vector with JIT compilation."""
-    return arr.reshape(1)
 
 
 class Axis:
@@ -57,13 +58,13 @@ class Axis:
         Origin identifier (must be a ValidOrigins value).
     translation_from_origin : Axis.translation_from_origin or None
         Translation from the origin.
-    translation_from_origin_vector : jax.Array or None
+    translation_from_origin_vector : jnp.ndarray or None
         Translation vector [x, y, z] from the origin.
-    translation : jax.Array or None
+    translation : jnp.ndarray or None
         Alias for translation_from_origin_vector.
     euler_angles : Axis.euler_angles or None
         Euler angles (phi, theta, psi) for orientation.
-    euler_angles_vector : jax.Array or None
+    euler_angles_vector : jnp.ndarray or None
         Euler angles as a vector.
     sequence : any
         Euler rotation sequence.
@@ -76,16 +77,38 @@ class Axis:
 
         Attributes
         ----------
-        phi : jax.Array
+        phi : jnp.ndarray
             Roll angle.
-        theta : jax.Array
+        theta : jnp.ndarray
             Pitch angle.
-        psi : jax.Array
+        psi : jnp.ndarray
             Yaw angle.
         """
-        phi: jax.Array
-        theta: jax.Array
-        psi: jax.Array
+        phi: jnp.ndarray
+        theta: jnp.ndarray
+        psi: jnp.ndarray
+
+        def __post_init__(self):
+            """Process values after initialization."""
+            self.phi = self._process_value(self.phi)
+            self.theta = self._process_value(self.theta)
+            self.psi = self._process_value(self.psi)
+
+        def _process_value(self, value):
+            """Convert value to JAX array if needed."""
+            if isinstance(value, ureg.Quantity):
+                value_si = value.to_base_units()
+                return jnp.array([value_si.magnitude])
+            elif isinstance(value, (int, float, np.number)):
+                return jnp.array([value])
+            elif isinstance(value, (list, tuple, np.ndarray)):
+                return jnp.array(value).reshape(-1)
+            else:
+                # Assume it's already a JAX array, ensure it's 1D
+                value_array = jnp.array(value)
+                if value_array.ndim == 0:
+                    return jnp.array([value_array])
+                return value_array
 
     @dataclass
     class translation_from_origin:
@@ -93,26 +116,48 @@ class Axis:
 
         Attributes
         ----------
-        x : jax.Array
+        x : jnp.ndarray
             X-coordinate of translation.
-        y : jax.Array
+        y : jnp.ndarray
             Y-coordinate of translation.
-        z : jax.Array
+        z : jnp.ndarray
             Z-coordinate of translation.
         """
-        x: jax.Array
-        y: jax.Array
-        z: jax.Array
+        x: jnp.ndarray
+        y: jnp.ndarray
+        z: jnp.ndarray
+
+        def __post_init__(self):
+            """Process values after initialization."""
+            self.x = self._process_value(self.x)
+            self.y = self._process_value(self.y)
+            self.z = self._process_value(self.z)
+
+        def _process_value(self, value):
+            """Convert value to JAX array if needed."""
+            if isinstance(value, ureg.Quantity):
+                value_si = value.to_base_units()
+                return jnp.array([value_si.magnitude])
+            elif isinstance(value, (int, float, np.number)):
+                return jnp.array([value])
+            elif isinstance(value, (list, tuple, np.ndarray)):
+                return jnp.array(value).reshape(-1)
+            else:
+                # Assume it's already a JAX array, ensure it's 1D
+                value_array = jnp.array(value)
+                if value_array.ndim == 0:
+                    return jnp.array([value_array])
+                return value_array
 
     @axis_checkers
     def __init__(self, name: str,
                  origin: str,
-                 x: Union[ureg.Quantity, jax.Array] = None,
-                 y: Union[ureg.Quantity, jax.Array] = None,
-                 z: Union[ureg.Quantity, jax.Array] = None,
-                 phi: Union[ureg.Quantity, jax.Array] = None,
-                 theta: Union[ureg.Quantity, jax.Array] = None,
-                 psi: Union[ureg.Quantity, jax.Array] = None,
+                 x = None,
+                 y = None,
+                 z = None,
+                 phi = None,
+                 theta = None,
+                 psi = None,
                  sequence=None,
                  reference=None):
         """Initialize an Axis object.
@@ -123,9 +168,9 @@ class Axis:
             Name of the axis.
         origin : str
             Origin identifier (must be a ValidOrigins value).
-        x, y, z : ureg.Quantity or jax.Array, optional
+        x, y, z : ureg.Quantity or jnp.ndarray or np.ndarray or float or int, optional
             Translation from the origin.
-        phi, theta, psi : ureg.Quantity or jax.Array, optional
+        phi, theta, psi : ureg.Quantity or jnp.ndarray or np.ndarray or float or int, optional
             Euler angles for orientation.
         sequence : any, optional
             Euler rotation sequence.
@@ -136,16 +181,10 @@ class Axis:
         self.name = name
 
         if x is not None:
-            # Convert to JAX arrays
-            x_val = self._to_jax_array(x)
-            y_val = self._to_jax_array(y)
-            z_val = self._to_jax_array(z)
-            
             self.translation_from_origin = self.translation_from_origin(
-                x=x_val, y=y_val, z=z_val
+                x=x, y=y, z=z
             )
-            # Use JIT-compiled function for vector creation
-            self.translation_from_origin_vector = create_translation_vector(
+            self.translation_from_origin_vector = concatenate_translation_vector(
                 self.translation_from_origin.x, 
                 self.translation_from_origin.y, 
                 self.translation_from_origin.z
@@ -156,14 +195,8 @@ class Axis:
             self.translation_from_origin_vector = None
 
         if phi is not None:
-            # Convert to JAX arrays
-            phi_val = self._to_jax_array(phi)
-            theta_val = self._to_jax_array(theta)
-            psi_val = self._to_jax_array(psi)
-            
-            self.euler_angles = self.euler_angles(phi=phi_val, theta=theta_val, psi=psi_val)
-            # Use JIT-compiled function for vector creation
-            self.euler_angles_vector = create_euler_angles_vector(
+            self.euler_angles = self.euler_angles(phi=phi, theta=theta, psi=psi)
+            self.euler_angles_vector = concatenate_euler_vector(
                 self.euler_angles.phi, 
                 self.euler_angles.theta, 
                 self.euler_angles.psi
@@ -175,18 +208,6 @@ class Axis:
         self.sequence = sequence
         self.reference = reference
         self.origin = origin
-
-    def _to_jax_array(self, value):
-        """Convert value to JAX array."""
-        if value is None:
-            raise ValueError("Cannot convert None to JAX array")
-        if isinstance(value, ureg.Quantity):
-            value_si = value.to_base_units()
-            return reshape_to_vector(jnp.array(value_si.magnitude))
-        elif isinstance(value, jax.Array):
-            return reshape_to_vector(value)
-        else:
-            return reshape_to_vector(jnp.array(value))
 
     def copy(self, new_name: str = None):
         """Create a copy of the Axis object.
@@ -202,23 +223,23 @@ class Axis:
             A new Axis object with the same properties as the original.
         """
         if new_name is None:
-            new_name = self.name + "_copy"
+            self.name = self.name + "_copy"
         else:
             self.name = new_name
 
         # Copy translation variables if set
         if self.translation_from_origin is not None:
-            new_x = self.translation_from_origin.x
-            new_y = self.translation_from_origin.y
-            new_z = self.translation_from_origin.z
+            new_x = copy_array(self.translation_from_origin.x)
+            new_y = copy_array(self.translation_from_origin.y)
+            new_z = copy_array(self.translation_from_origin.z)
         else:
             new_x = new_y = new_z = None
 
         # Copy Euler angle variables if set
         if hasattr(self, 'euler_angles') and self.euler_angles is not None:
-            new_phi = self.euler_angles.phi
-            new_theta = self.euler_angles.theta
-            new_psi = self.euler_angles.psi
+            new_phi = copy_array(self.euler_angles.phi)
+            new_theta = copy_array(self.euler_angles.theta)
+            new_psi = copy_array(self.euler_angles.psi)
         else:
             new_phi = new_theta = new_psi = None
 
@@ -234,6 +255,52 @@ class Axis:
             sequence=self.sequence,
             reference=self.reference
         )
+
+    def jax_copy(self, new_name: str = None):
+        """
+        Create a deep copy of the current Axis object using JAX arrays.
+
+        This method replicates all the Axis properties, including translation,
+        Euler angles, sequence, reference, and origin, producing a new instance
+        with the same configuration.
+
+        Returns
+        -------
+        Axis
+            A new Axis instance identical to the original.
+        """
+        if new_name is None:
+            self.name = self.name + "_copy"
+        else:
+            self.name = new_name
+
+        # Copy translation variables if set
+        if self.translation_from_origin is not None:
+            new_x = copy_array(self.translation_from_origin.x)
+            new_y = copy_array(self.translation_from_origin.y)
+            new_z = copy_array(self.translation_from_origin.z)
+        else:
+            new_x = new_y = new_z = None
+
+        # Copy Euler angle variables if set
+        if hasattr(self, 'euler_angles') and self.euler_angles is not None:
+            new_phi = copy_array(self.euler_angles.phi)
+            new_theta = copy_array(self.euler_angles.theta)
+            new_psi = copy_array(self.euler_angles.psi)
+        else:
+            new_phi = new_theta = new_psi = None
+
+        return Axis(
+            name=self.name,
+            origin=self.origin,
+            x=new_x,
+            y=new_y,
+            z=new_z,
+            phi=new_phi,
+            theta=new_theta,
+            psi=new_psi,
+            sequence=self.sequence,
+            reference=self.reference)
 
 
 if __name__ == "__main__":
@@ -254,3 +321,4 @@ if __name__ == "__main__":
 
     print('Axis translation: ', axis.translation_from_origin_vector)
     print('Axis angles: ', axis.euler_angles_vector)
+    pass
