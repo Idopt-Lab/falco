@@ -1,5 +1,7 @@
 from falco.core.dynamics.axis import Axis
-import csdl_alpha as csdl
+import jax
+import jax.numpy as jnp
+from jax import jit
 import numpy as np
 from falco import ureg
 from falco.utils.euler_rotations import build_rotation_matrix
@@ -114,14 +116,15 @@ class ForcesMoments:
         return new_load
 
     @staticmethod
+    @jit
     def rotate_to_axis(F, M, euler_angles, seq, reverse=False):
         """Rotate the force and moment vectors using Euler angles.
 
         Parameters
         ----------
-        F : csdl.Variable
+        F : jnp.ndarray
             Force vector.
-        M : csdl.Variable
+        M : jnp.ndarray
             Moment vector.
         euler_angles : array-like
             Euler angles for rotation.
@@ -137,22 +140,21 @@ class ForcesMoments:
         """
         R = build_rotation_matrix(euler_angles, seq)
         if reverse:
-            R = csdl.transpose(R)
-        F_rot = csdl.matvec(R, F)
-        F_rot.add_tag(F.tags[0])
-        M_rot = csdl.matvec(R, M)
-        M_rot.add_tag(M.tags[0])
+            R = jnp.transpose(R)
+        F_rot = jnp.matmul(R, F)
+        M_rot = jnp.matmul(R, M)
         return F_rot, M_rot
 
     @staticmethod
+    @jit
     def translate_to_axis(F, M, r_vector, reverse=False):
         """Translate the moment vector to a new reference point.
 
         Parameters
         ----------
-        F : csdl.Variable
+        F : jnp.ndarray
             Force vector.
-        M : csdl.Variable
+        M : jnp.ndarray
             Moment vector.
         r_vector : array-like
             Displacement vector for translation.
@@ -166,18 +168,19 @@ class ForcesMoments:
         """
         if reverse:
             r_vector = -r_vector
-        M_trans = M + csdl.cross(r_vector, F)
-        M_trans.add_tag(M.tags[0])
+        M_trans = M + jnp.cross(r_vector, F)
         return F, M_trans
 
 
 if __name__ == "__main__":
-    recorder = csdl.Recorder(inline=True)
-    recorder.start()
-
+    # Configure JAX
+    jax.config.update("jax_enable_x64", True)
+    
     inertial_axis = Axis(
         name='Inertial Axis',
-        translation=np.array([0, 0, 0]) * ureg.meter,
+        x=np.array([0, ]) * ureg.meter,
+        y=np.array([0, ]) * ureg.meter,
+        z=np.array([0, ]) * ureg.meter,
         phi=np.array([0, ]) * ureg.degree,
         theta=np.array([5, ]) * ureg.degree,
         psi=np.array([0, ]) * ureg.degree,
@@ -186,11 +189,10 @@ if __name__ == "__main__":
 
     # Define as a Pint Quantity
     force_vector_1 = Vector(vector=np.array([0, 400, 0])*ureg.lbf, axis=inertial_axis)
-    print(force_vector_1.magnitude.value)
     print(force_vector_1)
 
-    # Define as a CSDL variable
-    csdl_vector = csdl.Variable(shape=(3,), value=np.array([0, 400, 0]), tags=[str(ureg.newton)])
-    force_vector_2 = Vector(vector=csdl_vector, axis=inertial_axis)
-    print(force_vector_2.magnitude.value)
+    # Define as a JAX array
+    jax_vector = jnp.array([0, 400, 0])
+    force_vector_2 = Vector(vector=jax_vector, axis=inertial_axis)
+    print(force_vector_2.magnitude)
     pass
