@@ -1,4 +1,6 @@
-import csdl_alpha as csdl
+import jax
+import jax.numpy as jnp
+from jax import jit
 from typing import Union
 from dataclasses import dataclass
 import numpy as np
@@ -24,54 +26,48 @@ class MassMI:
     """
 
     @dataclass
-    class MomentOfInertiaComponents(csdl.VariableGroup):
+    class MomentOfInertiaComponents:
         """Holds the components of the inertia tensor.
 
         Attributes
         ----------
-        Ixx, Iyy, Izz, Ixy, Ixz, Iyz : csdl.Variable or ureg.Quantity
+        Ixx, Iyy, Izz, Ixy, Ixz, Iyz : jnp.ndarray or ureg.Quantity
             Components of the inertia tensor.
         """
-        Ixx: csdl.Variable
-        Iyy: csdl.Variable
-        Izz: csdl.Variable
-        Ixy: csdl.Variable
-        Ixz: csdl.Variable
-        Iyz: csdl.Variable
+        Ixx: jnp.ndarray
+        Iyy: jnp.ndarray
+        Izz: jnp.ndarray
+        Ixy: jnp.ndarray
+        Ixz: jnp.ndarray
+        Iyz: jnp.ndarray
 
-        def define_checks(self):
-            self.add_check('Ixx', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
-            self.add_check('Iyy', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
-            self.add_check('Izz', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
-            self.add_check('Ixy', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
-            self.add_check('Ixz', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
-            self.add_check('Iyz', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
+        def __post_init__(self):
+            self._check_parameters()
 
-        def _check_parameters(self, name, value):
-            if self._metadata[name]['type'] is not None:
-                if type(value) not in self._metadata[name]['type']:
-                    raise ValueError(f"Variable {name} must be of type {self._metadata[name]['type']}.")
-
-            if self._metadata[name]['variablize']:
+        def _check_parameters(self):
+            params = ['Ixx', 'Iyy', 'Izz', 'Ixy', 'Ixz', 'Iyz']
+            for name in params:
+                value = getattr(self, name)
+                if not isinstance(value, (jnp.ndarray, np.ndarray, ureg.Quantity)):
+                    raise ValueError(f"Variable {name} must be of type jnp.ndarray, np.ndarray, or ureg.Quantity.")
+                
+                # Convert quantities to JAX arrays
                 if isinstance(value, ureg.Quantity):
                     value_si = value.to_base_units()
-                    value = csdl.Variable(value=value_si.magnitude, shape=(1,), name=name)
-                    value.add_tag(tag=str(value_si.units))
-
-            if self._metadata[name]['shape'] is not None:
-                if value.shape != self._metadata[name]['shape']:
-                    raise ValueError(f"Variable {name} must have shape {self._metadata[name]['shape']}.")
-            return value
+                    setattr(self, name, jnp.array(value_si.magnitude))
+                # Convert numpy arrays to JAX arrays
+                elif isinstance(value, np.ndarray):
+                    setattr(self, name, jnp.array(value))
 
     def __init__(
             self,
             axis: Union[Axis, AxisLsdoGeo],
-            Ixx: Union[ureg.Quantity, csdl.Variable] = Q_(0, 'kg*(m*m)'),
-            Iyy: Union[ureg.Quantity, csdl.Variable] = Q_(0, 'kg*(m*m)'),
-            Izz: Union[ureg.Quantity, csdl.Variable] = Q_(0, 'kg*(m*m)'),
-            Ixy: Union[ureg.Quantity, csdl.Variable] = Q_(0, 'kg*(m*m)'),
-            Ixz: Union[ureg.Quantity, csdl.Variable] = Q_(0, 'kg*(m*m)'),
-            Iyz: Union[ureg.Quantity, csdl.Variable] = Q_(0, 'kg*(m*m)'),
+            Ixx=Q_(0, 'kg*(m*m)'),
+            Iyy=Q_(0, 'kg*(m*m)'),
+            Izz=Q_(0, 'kg*(m*m)'),
+            Ixy=Q_(0, 'kg*(m*m)'),
+            Ixz=Q_(0, 'kg*(m*m)'),
+            Iyz=Q_(0, 'kg*(m*m)'),
     ):
         """Initialize the mass moment of inertia tensor.
 
@@ -79,7 +75,7 @@ class MassMI:
         ----------
         axis : Axis or AxisLsdoGeo
             The axis in which the inertia tensor is defined.
-        Ixx, Iyy, Izz, Ixy, Ixz, Iyz : ureg.Quantity or csdl.Variable, optional
+        Ixx, Iyy, Izz, Ixy, Ixz, Iyz : ureg.Quantity or jnp.ndarray or np.ndarray, optional
             Components of the inertia tensor.
         """
 
@@ -89,17 +85,49 @@ class MassMI:
             Ixx=Ixx, Iyy=Iyy, Izz=Izz, Ixy=Ixy, Ixz=Ixz, Iyz=Iyz
         )
 
-        self.inertia_tensor = csdl.Variable(shape=(3, 3), value=0.)
-        self.inertia_tensor = self.inertia_tensor.set(csdl.slice[0, 0], self.mass_mi_components.Ixx)
-        self.inertia_tensor = self.inertia_tensor.set(csdl.slice[1, 1], self.mass_mi_components.Iyy)
-        self.inertia_tensor = self.inertia_tensor.set(csdl.slice[2, 2], self.mass_mi_components.Izz)
-        self.inertia_tensor = self.inertia_tensor.set(csdl.slice[0, 1], -self.mass_mi_components.Ixy)
-        self.inertia_tensor = self.inertia_tensor.set(csdl.slice[1, 0], -self.mass_mi_components.Ixy)
-        self.inertia_tensor = self.inertia_tensor.set(csdl.slice[0, 2], -self.mass_mi_components.Ixz)
-        self.inertia_tensor = self.inertia_tensor.set(csdl.slice[2, 0], -self.mass_mi_components.Ixz)
-        self.inertia_tensor = self.inertia_tensor.set(csdl.slice[1, 2], -self.mass_mi_components.Iyz)
-        self.inertia_tensor = self.inertia_tensor.set(csdl.slice[2, 1], -self.mass_mi_components.Iyz)
+        # Create the inertia tensor
+        self.inertia_tensor = self._build_inertia_tensor(
+            self.mass_mi_components.Ixx,
+            self.mass_mi_components.Iyy,
+            self.mass_mi_components.Izz,
+            self.mass_mi_components.Ixy,
+            self.mass_mi_components.Ixz,
+            self.mass_mi_components.Iyz
+        )
         return
+
+    @staticmethod
+    @jit
+    def _build_inertia_tensor(Ixx, Iyy, Izz, Ixy, Ixz, Iyz):
+        """Construct the inertia tensor from its components.
+
+        Parameters
+        ----------
+        Ixx, Iyy, Izz, Ixy, Ixz, Iyz : jnp.ndarray
+            Components of the inertia tensor.
+
+        Returns
+        -------
+        jnp.ndarray
+            The 3x3 inertia tensor.
+        """
+        # Create a zero matrix
+        tensor = jnp.zeros((3, 3))
+        
+        # Update with diagonal elements
+        tensor = tensor.at[0, 0].set(Ixx)
+        tensor = tensor.at[1, 1].set(Iyy)
+        tensor = tensor.at[2, 2].set(Izz)
+        
+        # Update with off-diagonal elements
+        tensor = tensor.at[0, 1].set(-Ixy)
+        tensor = tensor.at[1, 0].set(-Ixy)
+        tensor = tensor.at[0, 2].set(-Ixz)
+        tensor = tensor.at[2, 0].set(-Ixz)
+        tensor = tensor.at[1, 2].set(-Iyz)
+        tensor = tensor.at[2, 1].set(-Iyz)
+        
+        return tensor
 
 
 class MassProperties:
@@ -117,7 +145,7 @@ class MassProperties:
     def __init__(self,
                  cg: Vector, 
                  inertia: MassMI,
-                 mass: Union[ureg.Quantity, csdl.Variable] = Q_(0, 'kg')):
+                 mass=Q_(0, 'kg')):
         """Initialize the mass properties.
 
         Parameters
@@ -126,27 +154,28 @@ class MassProperties:
             Center of gravity vector.
         inertia : MassMI
             Mass moment of inertia tensor.
-        mass : ureg.Quantity or csdl.Variable, optional
+        mass : ureg.Quantity or jnp.ndarray or np.ndarray, optional
             Mass value (default is 0 kg).
 
         Raises
         ------
         AssertionError
             If the CG and inertia tensor are not defined in the same axis.
-        IOError
+        ValueError
             If mass is not a recognized type.
         """
 
-        assert cg.axis.name == inertia.axis.name
+        assert cg.axis.name == inertia.axis.name, "CG and inertia tensor must be defined in the same axis"
 
         if isinstance(mass, ureg.Quantity):
             value_si = mass.to_base_units()
-            self.mass = csdl.Variable(value=value_si.magnitude, shape=(1,), name='mass')
-            self.mass.add_tag(tag=str(value_si.units))
-        elif isinstance(mass, csdl.Variable):
+            self.mass = jnp.array(value_si.magnitude)
+        elif isinstance(mass, np.ndarray):
+            self.mass = jnp.array(mass)
+        elif isinstance(mass, jnp.ndarray):
             self.mass = mass
         else:
-            raise IOError
+            raise ValueError("Mass must be a Quantity, numpy array, or JAX array")
 
         self.cg_vector = cg
         self.inertia_tensor = inertia
@@ -204,30 +233,34 @@ class GravityLoads(Loads):
         cg = self.mass_properties.cg_vector.vector
         m = self.mass_properties.mass
         
-        # Gravity FM
-        g=9.81
+        # Gravity constant
+        g = 9.81
 
         th = self.states.states.theta
         ph = self.states.states.phi
 
-        Fxg = -m * g * csdl.sin(th)
-        Fyg = m * g * csdl.cos(th) * csdl.sin(ph)
-        Fzg = m * g * csdl.cos(th) * csdl.cos(ph)
-        forceVec = csdl.concatenate([Fxg, Fyg, Fzg])
+        # Calculate gravity forces
+        Fxg = -m * g * jnp.sin(th)
+        Fyg = m * g * jnp.cos(th) * jnp.sin(ph)
+        Fzg = m * g * jnp.cos(th) * jnp.cos(ph)
+        forceVec = jnp.concatenate([Fxg, Fyg, Fzg], axis=0)
 
-        Mgrav = csdl.cross(cg, forceVec)
+        # Calculate gravity moments
+        Mgrav = jnp.cross(cg, forceVec)
 
-        F_FD_BodyFixed = Vector(forceVec,axis=load_axis)
-        M_FD_BodyFixed = Vector(csdl.concatenate([Mgrav[0],Mgrav[1],Mgrav[2]]),axis=load_axis)
+        # Create force and moment vectors
+        F_FD_BodyFixed = Vector(forceVec, axis=load_axis)
+        M_FD_BodyFixed = Vector(jnp.concatenate([Mgrav[0],Mgrav[1],Mgrav[2]]),axis=load_axis)
 
+        # Return the forces and moments
         loads = ForcesMoments(force=F_FD_BodyFixed, moment=M_FD_BodyFixed)
         return loads
     
     
 
 if __name__ == "__main__":
-    recorder = csdl.Recorder(inline=True)
-    recorder.start()
+    # Configure JAX for high precision
+    jax.config.update("jax_enable_x64", True)
 
     inertial_axis = Axis(
         name='Inertial Axis',
@@ -237,3 +270,25 @@ if __name__ == "__main__":
     mi = MassMI(axis=inertial_axis)
     cg = Vector(vector=np.array([0, 0, 0])*ureg.meter, axis=inertial_axis)
     mass_properties = MassProperties(cg=cg, inertia=mi)
+    
+    # Print statements to display the objects
+    print("\n=== Mass Moment of Inertia (mi) ===")
+    print(f"Axis: {mi.axis.name}")
+    print(f"Ixx: {mi.mass_mi_components.Ixx}")
+    print(f"Iyy: {mi.mass_mi_components.Iyy}")
+    print(f"Izz: {mi.mass_mi_components.Izz}")
+    print(f"Ixy: {mi.mass_mi_components.Ixy}")
+    print(f"Ixz: {mi.mass_mi_components.Ixz}")
+    print(f"Iyz: {mi.mass_mi_components.Iyz}")
+    print("Inertia Tensor:")
+    print(mi.inertia_tensor)
+    
+    print("\n=== Center of Gravity (cg) ===")
+    print(f"Axis: {cg.axis.name}")
+    print(f"Vector: {cg.vector}")
+    
+    print("\n=== Mass Properties ===")
+    print(f"Mass: {mass_properties.mass}")
+    print(f"CG Vector: {mass_properties.cg_vector.vector}")
+    print(f"Inertia Tensor:")
+    print(mass_properties.inertia_tensor.inertia_tensor)

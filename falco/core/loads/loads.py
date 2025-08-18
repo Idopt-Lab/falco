@@ -1,8 +1,9 @@
 from abc import ABC, abstractmethod
 
 import numpy as np
-
-import csdl_alpha as csdl
+import jax
+import jax.numpy as jnp
+from jax import jit
 
 
 class Loads(ABC):
@@ -17,9 +18,9 @@ class Loads(ABC):
         pass
 
 
-# class CsdlLoads(Loads):
+# class JaxLoads(Loads):
 #     """
-#     Loads obtained by calling code that is written in CSDL
+#     Loads obtained by calling code that is written in JAX
 #     """
 #     def __init__(self, states, controls, **kwargs):
 #         super().__init__(states=states, controls=controls)
@@ -28,54 +29,58 @@ class Loads(ABC):
 #     def get_FM_localAxis(self):
 #         """Use vehicle state and control objects to generate an estimate
 #         of forces and moments about a reference point."""
-#         state_vector: csdl.Variable = self.states.state_vector
-#         control_vector: csdl.Variable = self.controls.control_vector
+#         state_vector: jax.Array = self.states.state_vector
+#         control_vector: jax.Array = self.controls.control_vector
 #
 #         pass
 #
 #
-# class NonCsdlLoads(csdl.CustomExplicitOperation, Loads):
+# class FunctionalLoads(Loads):
 #     """
-#     Loads obtained by calling code that is not CSDL
+#     Loads implemented as JAX-compatible functions
 #     """
 #
 #     def __init__(self, states, controls, *args, **kwargs):
-#         super().__init__()
 #         self.states = states
 #         self.controls = controls
 #
-#     def evaluate(self):
-#         # Define the inputs and outputs for the custom operation
-#         self.declare_input('state_vector', self.states.state_vector)
-#         self.declare_input('control_vector', self.controls.control_vector)
-#
-#         # Declare output variables
-#         forces = self.create_output('forces', (3, ))
-#         moments = self.create_output('moments', (3, ))
-#
-#         # Construct output of the model
-#         output = csdl.VariableGroup()
-#         output.forces = forces
-#         output.moments = moments
-#
-#         return output
-#
-#     def compute(self, input_vals, output_vals):
-#         state_vector = input_vals['state_vector']
-#         control_vector = input_vals['control_vector']
-#
-#         # Perform the computation to get forces and moments
-#         forces, moments = self.compute_forces_moments(state_vector, control_vector)
-#
-#         output_vals['forces'] = forces
-#         output_vals['moments'] = moments
+#     @jit
+#     def compute_forces_moments(self, state_vector, control_vector):
+#         """
+#         Compute forces and moments from state and control vectors.
+#         
+#         Parameters
+#         ----------
+#         state_vector : jax.Array
+#             Vector of state variables
+#         control_vector : jax.Array
+#             Vector of control variables
+#             
+#         Returns
+#         -------
+#         tuple
+#             (forces, moments) as JAX arrays
+#         """
+#         # Implement in subclasses
+#         raise NotImplementedError("Subclasses must implement compute_forces_moments")
 #
 #     @abstractmethod
 #     def get_FM_localAxis(self):
 #         """Use vehicle state and control objects to generate an estimate
 #         of forces and moments about a reference point."""
 #
-#         state_vector: np.ndarray = self.states.state_vector.value
-#         control_vector: np.ndarray = self.controls.control_vector.value
-#         pass
+#         state_vector: jax.Array = self.states.state_vector
+#         control_vector: jax.Array = self.controls.control_vector
+#         
+#         # Call compute_forces_moments to get forces and moments
+#         forces, moments = self.compute_forces_moments(state_vector, control_vector)
+#         
+#         return forces, moments
+
+
+if __name__ == "__main__":
+    # Configure JAX
+    jax.config.update("jax_enable_x64", True)
+    
+    # Example usage could be added here
 
