@@ -681,19 +681,24 @@ def export_airfoil_coords(
     upper_xz = -upper_chord_coords.value[:, [0, 2]]
     lower_xz = -lower_chord_coords.value[:, [0, 2]]
 
-    le_up = np.min(upper_xz[:, 0])
-    le_lo = np.min(lower_xz[:, 0])
-    upper_xz[:, 0] = upper_xz[:, 0] - le_up
-    lower_xz[:, 0] = lower_xz[:, 0] - le_lo
 
-    chord_length_up = np.max(upper_xz[:, 0])
-    chord_length_lo = np.max(lower_xz[:, 0])
-    upper_xz[:, 0] /= chord_length_up
-    lower_xz[:, 0] /= chord_length_lo
+    le = min(np.min(upper_xz[:, 0]), np.min(lower_xz[:, 0]))
+    upper_xz[:, 0] -= le
+    lower_xz[:, 0] -= le
 
-    upper_xz[:, 1] = upper_xz[:, 1] - camber[:, 1]
-    lower_xz[:, 1] = lower_xz[:, 1] - camber[:, 1]
+    chord_length = max(np.max(upper_xz[:, 0]), np.max(lower_xz[:, 0]))
+    upper_xz[:, 0] /= chord_length
+    lower_xz[:, 0] /= chord_length
 
+    # Find the z-coordinate at the leading edge (minimum x-coordinate)
+    le_z_upper = upper_xz[np.argmin(upper_xz[:, 0]), 1]
+    le_z_lower = lower_xz[np.argmin(lower_xz[:, 0]), 1]
+    
+    # Subtract the leading edge z-coordinate from all z-coordinates
+    upper_xz[:, 1] = upper_xz[:, 1] - le_z_upper
+    lower_xz[:, 1] = lower_xz[:, 1] - le_z_lower
+
+    # Flip the direction of the upper surface so that it goes from TE to LE
     upper_xz = upper_xz[::-1, :]
 
     current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -1071,11 +1076,11 @@ if __name__ == "__main__":
     )
     print("Airfoil coordinates exported to airfoil_coords.dat")
 
-    # plotting_elements = geometry_data['geometry'].plot_meshes(
-    #     [wing_upper_surface_wireframe],
-    #     function_opacity=0.5,
-    #     mesh_color='#FFCD00',
-    #     show=False
-    # )
+    plotting_elements = geometry_data['geometry'].plot_meshes(
+        wing_mesh['wing_camber_surface'],
+        function_opacity=0.5,
+        mesh_color='#FFCD00',
+        show=False
+    )
 
     recorder.stop()

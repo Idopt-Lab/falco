@@ -511,7 +511,7 @@ class X57Aerodynamics(Loads):
         
 
 
-    def xfoil(coord='NACA0012', alpha=0, Re=1e6, Mach=0.2, *extra_cmds):
+    def xfoil(self, coord='NACA0012', alpha=0, Re=1e6, Mach=0.2, *extra_cmds):
         """
         Run XFoil and return the results.
         Parameters:
@@ -1309,7 +1309,7 @@ if __name__ == "__main__":
         speed=Q_(76.8909, 'm/s'),
         pitch_angle=Q_(0, 'deg'))
 
-    wing_num_chordwise_vlm = 101
+    wing_num_chordwise_vlm = 121
     wing_num_spanwise_vlm = 6
 
     wing_mesh = get_airfoil_mesh(
@@ -1333,33 +1333,24 @@ if __name__ == "__main__":
     # Use all spanwise airfoil files
     airfoil_files = [os.path.join('airfoils', f"airfoil_coords_{i}.dat") for i in range(wing_num_spanwise_vlm)]
 
-    aero.jvl_write(filename=f'{config}.avl', states=cruise, controls=x57_controls, airfoil_files=airfoil_files)
 
-    # coord = airfoil_files[5]  # Use the 5th airfoil file for XFoil    
-    # alpha = 2  
-    # Re = 1e6
-    # Mach = 0.2
-    # extra_cmds = ['test_x57_wing_airfoil','ppar\nn\n400']
-    # pol, foil = xfoil(coord, alpha, Re, Mach, *extra_cmds)
+    coord = airfoil_files[0]  # Use the first airfoil file for XFoil    
+    alphas = 2  # Define a range of angles of attack to test
+    Re = 1e6
+    Mach = 0.2
+    extra_cmds = [
+    'test_x57_wing_airfoil',
+    'ppar\nn\n200',  
+    '\n',  # Repanel based on curvature
+    '\n',
+    'gdes\ntgap\n0.0\nexec\ngset', # to ensure no gap between top and bottom surfaces of airfoil',
+    '\n',
 
-    # print("Polar results:")
-    # print("Alpha:", pol['alpha'])
-    # print("CL:", pol['CL'])
-    # print("CD:", pol['CD'])
+]
+    pol, foil = aero.xfoil(coord, alphas, Re, Mach, *extra_cmds)
 
 
 
-    alpha = np.arange(0, 5, 1)  # [0, 1, ..., 10]
-    flap = np.array([0,10,20])  # [0, 10, ..., 50]
-    cjet = np.arange(0, 5, 5)   # [0, 5, ..., 50]
-    results = sweep_jvl_outputs(config, alpha, flap, cjet)
 
-    print("Aircraft Wing")
-    print(aircraft.comps['Wing'].parameters.eta_0.value)
-    print(aircraft.comps['Wing'].parameters.Kc.value)
-    print(aircraft.comps['Wing'].parameters.co.value)
-    print(aircraft.comps['Wing'].parameters.Kcc.value)
-    print(aircraft.comps['Wing'].parameters.c_ma.value)
-    print(aircraft.comps['Wing'].parameters.ct.value)
 
     recorder.stop()
