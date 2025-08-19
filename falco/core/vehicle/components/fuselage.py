@@ -22,6 +22,27 @@ class FuselageParameters:
     max_height : Union[ureg.Quantity, csdl.Variable]
     S_wet : Union[ureg.Quantity, csdl.Variable, None]=Q_(1, "m**2")
 
+    def define_checks(self):
+        self.add_check('length', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
+        self.add_check('max_width', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
+        self.add_check('max_height', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
+        self.add_check('S_wet', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
+
+
+    def _check_parameters(self, name, value):
+        if self._metadata[name]['type'] is not None:
+            if type(value) not in self._metadata[name]['type']:
+                raise ValueError(f"Variable {name} must be of type {self._metadata[name]['type']}.")
+        if self._metadata[name]['variablize']:
+            if isinstance(value, ureg.Quantity):
+                value_si = value.to_base_units()
+                value = csdl.Variable(value=value_si.magnitude, shape=(1,), name=name)
+                value.add_tag(tag=str(value_si.units))
+        if self._metadata[name]['shape'] is not None:
+            if value.shape != self._metadata[name]['shape']:
+                raise ValueError(f"Variable {name} must have shape {self._metadata[name]['shape']}.")
+            return value
+    
 @dataclass
 class FuselageGeometricQuantities:
     length: csdl.Variable
@@ -68,26 +89,7 @@ class Fuselage(Component):
         
         # Do type checking
 
-        def define_checks(self):
-            self.add_check('length', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
-            self.add_check('max_width', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
-            self.add_check('max_height', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
-            self.add_check('S_wet', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
-    
 
-        def _check_parameters(self, name, value):
-            if self._metadata[name]['type'] is not None:
-                if type(value) not in self._metadata[name]['type']:
-                    raise ValueError(f"Variable {name} must be of type {self._metadata[name]['type']}.")
-            if self._metadata[name]['variablize']:
-                if isinstance(value, ureg.Quantity):
-                    value_si = value.to_base_units()
-                    value = csdl.Variable(value=value_si.magnitude, shape=(1,), name=name)
-                    value.add_tag(tag=str(value_si.units))
-            if self._metadata[name]['shape'] is not None:
-                if value.shape != self._metadata[name]['shape']:
-                    raise ValueError(f"Variable {name} must have shape {self._metadata[name]['shape']}.")
-            return value
 
         self._name = f"Fuselage"
         self.geometry = geometry

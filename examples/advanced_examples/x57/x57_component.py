@@ -1,12 +1,13 @@
 import csdl_alpha as csdl
 import numpy as np
-
+import os
 from falco.core.vehicle.components.component import Component
 from falco.core.vehicle.components.wing import Wing as WingComp
 from falco.core.vehicle.components.fuselage import Fuselage as FuseComp
 from falco.core.vehicle.components.aircraft import Aircraft as AircraftComp
 from falco.core.vehicle.components.rotor import Rotor as RotorComp
 from lsdo_geo.core.parameterization.parameterization_solver import ParameterizationSolver, GeometricVariables
+from falco import REPO_ROOT_FOLDER
 
 
 
@@ -202,15 +203,27 @@ def build_aircraft_component(geo_dict: dict, do_geo_param: bool = False):
     fuselage_comp.add_subcomponent(miscellaneous)
     # endregion
 
+    images_dir = REPO_ROOT_FOLDER / 'examples' / 'advanced_examples' / 'x57' / 'images'
+    os.makedirs(images_dir, exist_ok=True)
+
     if do_geo_param is True:
         parameterization_solver.evaluate(ffd_geometric_variables)
         geometry.plot(camera=dict(pos=(12, 15, -12),  # Camera position
                                   focal_point=(-fuselage_comp.parameters.length.value / 2, 0, 0),
                                   # Point camera looks at
-                                  viewup=(0, 0, -1)),  # Camera up direction
+                                  viewup=(0, 0, -1)),  
+                                  # Camera up direction
                       title=f'X-57 Maxwell Aircraft Geometry\nWing Span: {wing.parameters.span.value[0]:.2f} m\nWing AR: {wing.parameters.AR.value[0]:.2f}\nWing Area S: {wing.parameters.S_ref.value[0]:.2f} m^2\nWing Sweep: {wing.parameters.sweep.value[0]:.2f} deg',
                       #  title=f'X-57 Maxwell Aircraft Geometry\nFuselage Length: {Fuselage.parameters.length.value[0]:.2f} m\nFuselage Height: {Fuselage.parameters.max_height.value[0]:.2f} m\nFuselage Width: {Fuselage.parameters.max_width.value[0]:.2f} m',
-                      screenshot=REPO_ROOT_FOLDER / 'examples' / 'advanced_examples' / 'x57' / 'images' / f'x_57_{wing.parameters.span.value[0]}_AR_{wing.parameters.AR.value[0]}_S_ref_{wing.parameters.S_ref.value[0]}_sweep_{wing.parameters.sweep.value[0]}.png')
+                      screenshot=images_dir / f'x_57_{wing.parameters.span.value[0]}_AR_{wing.parameters.AR.value[0]}_S_ref_{wing.parameters.S_ref.value[0]}_sweep_{wing.parameters.sweep.value[0]}.png')
+    else:
+        geometry.plot(camera=dict(pos=(12, 15, -12),  # Camera position
+                                  focal_point=(-fuselage_comp.parameters.length.value / 2, 0, 0),
+                                  # Point camera looks at
+                                  viewup=(0, 0, -1)),  
+                                  # Camera up direction
+                      title=f'X-57 Maxwell Aircraft Geometry\nWing Span: {wing.parameters.span.value[0]:.2f} m\nWing AR: {wing.parameters.AR.value[0]:.2f}\nWing Area S: {wing.parameters.S_ref.value[0]:.2f} m^2\nWing Sweep: {wing.parameters.sweep.value[0]:.2f} deg',
+                      screenshot=images_dir / f'x_57_{wing.parameters.span.value[0]}_AR_{wing.parameters.AR.value[0]}_S_ref_{wing.parameters.S_ref.value[0]}_sweep_{wing.parameters.sweep.value[0]}.png')
 
     return aircraft_component
 
