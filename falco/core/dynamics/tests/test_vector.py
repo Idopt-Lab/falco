@@ -135,6 +135,8 @@ class TestVector(unittest.TestCase):
         self.assertEqual(vector.vector.shape, (3,))
         self.assertEqual(vector.axis, self.axis)
         self.assertIn('csdl_variable', vector.vector.tags)
+        self.assertRaises(IOError)
+        
 
     def test_invalid_axis_type_raises(self):
         """Ensure a non-Axis / non-AxisLsdoGeo raises TypeError"""
@@ -146,6 +148,9 @@ class TestVector(unittest.TestCase):
         v = Vector(np.array([1, 2, 3]) * ureg.meter, self.axis)
         self.assertTrue(hasattr(v, 'axis'))
         self.assertIs(v.axis, self.axis)
+        with self.assertRaises(Exception) as context:
+            raise Exception("Axis not assigned correctly.")
+        self.assertEqual(str(context.exception), "Axis not assigned correctly.")
 
 if __name__ == '__main__':
     unittest.main()
