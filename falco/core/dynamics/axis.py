@@ -275,9 +275,9 @@ class Axis:
             A new Axis instance identical to the original.
         """
         if new_name is None:
-            self.name = self.name + "_copy"
+            name = self.name + "_copy"
         else:
-            self.name = new_name
+            name = new_name
 
         # Copy translation variables if set
         if self.translation_from_origin is not None:
@@ -297,7 +297,7 @@ class Axis:
             new_phi = new_theta = new_psi = None
 
         return Axis(
-            name=self.name,
+            name=name,
             origin=self.origin,
             x=new_x,
             y=new_y,

@@ -87,3 +87,61 @@ class AxisTests(TestCase):
             (axis.euler_angles.phi, axis.euler_angles.theta, axis.euler_angles.psi), axis=0)        
         np.testing.assert_almost_equal(axis.euler_angles_vector.value,
                                        desired=np.deg2rad(np.array([0, 5, -3])), decimal=5)
+
+    def test_axis_copy(self):
+        original_axis = Axis(
+            name='Original Axis',
+            x=np.array([1]) * ureg.meter,
+            y=np.array([2]) * ureg.meter,
+            z=np.array([3]) * ureg.meter,
+            origin=ValidOrigins.Inertial.value,
+            phi=np.array([0, ]) * ureg.degree,
+            theta=np.array([5, ]) * ureg.degree,
+            psi=np.array([0, ]) * ureg.degree,
+        )
+        copied_axis = original_axis.copy()
+
+        # Check that the copied axis has the same values
+        np.testing.assert_almost_equal(copied_axis.translation_from_origin_vector.value,
+                                       original_axis.translation_from_origin_vector.value)
+        np.testing.assert_almost_equal(copied_axis.euler_angles_vector.value,
+                                       original_axis.euler_angles_vector.value)
+
+        # Modify the original axis and check that the copy is unaffected
+        original_axis.translation_from_origin_vector.set_value(np.array([4, 5, 6]))
+
+        np.testing.assert_raises(AssertionError, np.testing.assert_almost_equal,
+                                  copied_axis.translation_from_origin_vector.value,
+                                  original_axis.translation_from_origin_vector.value)
+
+    def test_axis_csdl_deep_copy(self):
+        original_axis = Axis(
+            name='Original Axis',
+            x=np.array([1]) * ureg.meter,
+            y=np.array([2]) * ureg.meter,
+            z=np.array([3]) * ureg.meter,
+            origin=ValidOrigins.Inertial.value,
+            phi=np.array([0, ]) * ureg.degree,
+            theta=np.array([5, ]) * ureg.degree,
+            psi=np.array([0, ]) * ureg.degree,
+        )
+        copied_axis1 = original_axis.csdl_copy(new_name = 'Copied Axis1')
+        copied_axis2 = original_axis.csdl_copy()
+
+        np.testing.assert_almost_equal(copied_axis1.translation_from_origin_vector.value,
+                                       original_axis.translation_from_origin_vector.value)
+        np.testing.assert_almost_equal(copied_axis1.euler_angles_vector.value,
+                                       original_axis.euler_angles_vector.value)
+
+        # Modify the original axis and check that the copies are unaffected
+        original_axis.translation_from_origin_vector.set_value(np.array([4, 5, 6]))
+
+        np.testing.assert_raises(AssertionError, np.testing.assert_almost_equal,
+                                  copied_axis1.translation_from_origin_vector.value,
+                                  original_axis.translation_from_origin_vector.value)
+        np.testing.assert_raises(AssertionError, np.testing.assert_almost_equal,
+                                  copied_axis2.translation_from_origin_vector.value,
+                                  original_axis.translation_from_origin_vector.value)
+        
+        np.testing.assert_equal(copied_axis1.name, 'Copied Axis1')
+        np.testing.assert_equal(copied_axis2.name, 'Original Axis_copy')
