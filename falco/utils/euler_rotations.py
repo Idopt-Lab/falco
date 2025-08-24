@@ -15,17 +15,24 @@ def build_rotation_matrix(angles: csdl.Variable, seq:np.ndarray):
                cy*sz   sy*sx*sz+cz*cx    sy*cx*sz-cz*sx
                  -sy            cy*sx             cy*cx]
           = Rz(tz) * Ry(ty) * Rx(tx)
+          
+        The seq array [3, 2, 1] indicates:
+        - seq[0] = 3 -> first rotation is about Z-axis (psi)
+        - seq[1] = 2 -> second rotation is about Y-axis (theta)  
+        - seq[2] = 1 -> third rotation is about X-axis (phi)
+        
+        If angles are provided as [phi, theta, psi], we need to reorder to [psi, theta, phi]
         """
-
-        ct = csdl.cos(angles)
-        st = csdl.sin(angles)
-
-        cz = ct[csdl.slice[0]]
-        cx = ct[csdl.slice[2]]
-        cy = ct[csdl.slice[1]]
-        sx = st[csdl.slice[2]]
-        sy = st[csdl.slice[1]]
-        sz = st[csdl.slice[0]]
+        psi = angles[2]
+        theta = angles[1]
+        phi = angles[0]
+        # Compute trigonometric functions
+        cz = csdl.cos(phi)
+        cy = csdl.cos(theta)
+        cx = csdl.cos(psi)
+        sz = csdl.sin(phi)
+        sy = csdl.sin(theta)
+        sx = csdl.sin(psi)
 
         R = csdl.Variable(shape=(3, 3), value=np.identity(3))
 

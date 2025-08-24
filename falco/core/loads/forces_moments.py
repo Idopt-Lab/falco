@@ -59,55 +59,64 @@ class ForcesMoments:
         ForcesMoments
             A new ForcesMoments object in the target axis.
         """
-        # We have a parent axis (B1) and a child axis B2
-        # 1. The forces and moments are in the B2 frame and we want to transform to the B1 frame
-        if self.axis.reference is not None:
-            if self.axis.reference.name == parent_or_child_axis.name:
-                euler = self.axis.euler_angles_vector
-                seq = self.axis.sequence
-                displacement = self.axis.translation
+        orig_force = self.F.vector
+        orig_moment = self.M.vector
+        
+        # Check if transforming from parent to child
+        if (parent_or_child_axis.reference is not None and 
+            parent_or_child_axis.reference.name == self.axis.name):
+            # Transform from parent to child axis
+            euler = parent_or_child_axis.euler_angles_vector
+            seq = parent_or_child_axis.sequence
+            displacement = parent_or_child_axis.translation
 
-                orig_force = self.F.vector
-                orig_moment = self.M.vector
+            # First perform rotation from parent to child
+            if rotate_flag:
+                # Child's Euler angles describe child->parent rotation, so we need reverse=True for parent->child
+                inter_force, inter_moment = self.rotate_to_axis(orig_force, orig_moment, euler, seq,
+                                                                reverse=not reverse_flag)
+            else:
+                inter_force = orig_force
+                inter_moment = orig_moment
+                
+            # Then perform translation
+            if translate_flag:
+                # Translation from parent to child: r = vector from parent to child
+                new_force, new_moment = self.translate_to_axis(inter_force, inter_moment, displacement,
+                                                               reverse=reverse_flag)
+            else:
+                new_force = inter_force
+                new_moment = inter_moment
+                
+        # Check if transforming from child to parent
+        elif (self.axis.reference is not None and 
+              self.axis.reference.name == parent_or_child_axis.name):
+            # Transform from child to parent axis
+            euler = self.axis.euler_angles_vector
+            seq = self.axis.sequence
+            displacement = self.axis.translation
 
-                # First perform rotation
-                if rotate_flag:
-                    inter_force, inter_moment = self.rotate_to_axis(orig_force, orig_moment, euler, seq, reverse=reverse_flag)
-                else:
-                    inter_force = orig_force
-                    inter_moment = orig_moment
-
-                # Then perform displacement
-                if translate_flag:
-                    new_force, new_moment = self.translate_to_axis(inter_force, inter_moment, displacement)
-                else:
-                    new_force = inter_force
-                    new_moment = inter_moment
-        # 2. The forces and moments are in the B1 frame and we want to transform to the B2 frame
-        # if it has a name
-        if parent_or_child_axis.reference is not None:
-            if parent_or_child_axis.reference.name == self.axis.name:
-                euler = parent_or_child_axis.euler_angles_vector
-                seq = parent_or_child_axis.sequence
-                displacement = parent_or_child_axis.translation
-
-                orig_force = self.F.vector
-                orig_moment = self.M.vector
-
-                # First perform rotation
-                if rotate_flag:
-                    inter_force, inter_moment = self.rotate_to_axis(orig_force, orig_moment, euler, seq,
-                                                                    reverse=True)
-                else:
-                    inter_force = orig_force
-                    inter_moment = orig_moment
-                    # Then perform displacement
-                if translate_flag:
-                    new_force, new_moment = self.translate_to_axis(inter_force, inter_moment, displacement,
-                                                                   reverse=True)
-                else:
-                    new_force = inter_force
-                    new_moment = inter_moment
+            # First perform translation from child to parent
+            if translate_flag:
+                # Translation from child to parent: r = vector from child to parent = -displacement
+                inter_force, inter_moment = self.translate_to_axis(orig_force, orig_moment, displacement,
+                                                                   reverse=not reverse_flag)
+            else:
+                inter_force = orig_force
+                inter_moment = orig_moment
+                
+            # Then perform rotation from child to parent
+            if rotate_flag:
+                # Child's Euler angles describe child->parent rotation, so we don't need reverse for child->parent
+                new_force, new_moment = self.rotate_to_axis(inter_force, inter_moment, euler, seq,
+                                                            reverse=reverse_flag)
+            else:
+                new_force = inter_force
+                new_moment = inter_moment
+        else:
+            # No valid transformation path found
+            raise ValueError(f"Cannot transform from axis '{self.axis.name}' to axis '{parent_or_child_axis.name}'. "
+                           f"No parent-child relationship found.")
 
         new_load = ForcesMoments(force=Vector(vector=new_force, axis=parent_or_child_axis),
                                  moment=Vector(vector=new_moment, axis=parent_or_child_axis))
