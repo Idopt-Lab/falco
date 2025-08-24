@@ -118,5 +118,34 @@ class TestVector(unittest.TestCase):
         self.assertEqual(vector.vector.shape, (3,))
         self.assertEqual(vector.axis, self.axis)
 
+    def test_vector_str(self):
+        vector = Vector(np.array([1, 2, 3]) * ureg.meter, self.axis)
+        expected = "Vector: %s \nUnit: %s \nAxis: %s" % (
+            np.array_str(np.around(vector.vector.value, 2)),
+            vector.vector.tags[0],
+            self.axis.name
+        )
+        self.assertEqual(str(vector), expected)
+
+    def test_vector_with_csdl_variable(self):
+        """Test CSDL variable integration"""
+        csdl_vector = csdl.Variable(shape=(3,), value=np.array([3, 3, 3]))
+        vector = Vector(csdl_vector, self.axis)
+        self.assertIsInstance(vector.vector, csdl.Variable)
+        self.assertEqual(vector.vector.shape, (3,))
+        self.assertEqual(vector.axis, self.axis)
+        self.assertIn('csdl_variable', vector.vector.tags)
+
+    def test_invalid_axis_type_raises(self):
+        """Ensure a non-Axis / non-AxisLsdoGeo raises TypeError"""
+        with self.assertRaises(TypeError):
+            Vector(np.array([1, 2, 3]) * ureg.meter, axis="non_axis")
+
+    def test_axis_attr_exists_after_init(self):
+        """Verify axis attribute assignment to Vector after init"""
+        v = Vector(np.array([1, 2, 3]) * ureg.meter, self.axis)
+        self.assertTrue(hasattr(v, 'axis'))
+        self.assertIs(v.axis, self.axis)
+
 if __name__ == '__main__':
     unittest.main()
