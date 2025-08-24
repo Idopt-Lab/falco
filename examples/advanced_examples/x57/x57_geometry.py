@@ -657,11 +657,16 @@ def export_airfoil_coords(
     wing_mesh,
     wing_num_chordwise_vlm,
     wing_num_spanwise_vlm,
-    spanwise_index=4,
+    spanwise_index=2,
     filename="airfoil_coords.dat"
 ):
     """
-    Extracts airfoil coordinates from wing mesh and writes to a file.
+    Extracts airfoil coordinates from wing mesh and writes to a continuous, closed .dat file.
+    
+    The airfoil coordinates are ordered as:
+    - Upper surface: trailing edge to leading edge
+    - Lower surface: leading edge to trailing edge
+    - Creates a continuous, closed shape
     """
 
     wing_camber_mesh = wing_mesh['wing_camber_surface']
@@ -681,7 +686,7 @@ def export_airfoil_coords(
     upper_xz = -upper_chord_coords.value[:, [0, 2]]
     lower_xz = -lower_chord_coords.value[:, [0, 2]]
 
-
+    # Normalize coordinates
     le = min(np.min(upper_xz[:, 0]), np.min(lower_xz[:, 0]))
     upper_xz[:, 0] -= le
     lower_xz[:, 0] -= le
@@ -691,15 +696,32 @@ def export_airfoil_coords(
     lower_xz[:, 0] /= chord_length
 
     # Find the z-coordinate at the leading edge (minimum x-coordinate)
+    # Use the average of upper and lower surface leading edge z-coordinates for smooth transition
     le_z_upper = upper_xz[np.argmin(upper_xz[:, 0]), 1]
     le_z_lower = lower_xz[np.argmin(lower_xz[:, 0]), 1]
+    le_z_avg = (le_z_upper + le_z_lower) / 2.0
     
-    # Subtract the leading edge z-coordinate from all z-coordinates
-    upper_xz[:, 1] = upper_xz[:, 1] - le_z_upper
-    lower_xz[:, 1] = lower_xz[:, 1] - le_z_lower
+    # Subtract the average leading edge z-coordinate from all z-coordinates
+    upper_xz[:, 1] = upper_xz[:, 1] - le_z_avg
+    lower_xz[:, 1] = lower_xz[:, 1] - le_z_avg
 
-    # Flip the direction of the upper surface so that it goes from TE to LE
+    # Create continuous airfoil shape:
+    # 1. Upper surface: trailing edge to leading edge (flip the array)
     upper_xz = upper_xz[::-1, :]
+    
+    # 2. Remove duplicate points at the leading edge for smooth transition
+    # Check if the last point of upper surface and first point of lower surface are very close
+    if len(upper_xz) > 0 and len(lower_xz) > 0:
+        upper_le = upper_xz[-1, :]
+        lower_le = lower_xz[0, :]
+        distance = np.sqrt((upper_le[0] - lower_le[0])**2 + (upper_le[1] - lower_le[1])**2)
+        if distance < 1e-6:  # If points are very close, remove one
+            upper_xz = upper_xz[:-1, :]  # Remove last point of upper surface
+    
+    # 3. Combine into one continuous shape
+    # Start from trailing edge (upper surface), go to leading edge, then back to trailing edge (lower surface)
+    airfoil_coords = np.vstack([upper_xz, lower_xz])
+    
 
     current_dir = os.path.dirname(os.path.abspath(__file__))
     airfoil_dir = os.path.join(current_dir, 'airfoils')
@@ -707,9 +729,9 @@ def export_airfoil_coords(
         os.makedirs(airfoil_dir)
     file_path = os.path.join(airfoil_dir, filename)
 
-    with open(file_path, 'w') as f:
-        np.savetxt(f, upper_xz, fmt='%.8f', delimiter=' ')
-        np.savetxt(f, lower_xz, fmt='%.8f', delimiter=' ')
+    with open(file_path, 'w') as f:        
+        # Write coordinates
+        np.savetxt(f, airfoil_coords, fmt='%.8f', delimiter=' ')
 
 
 def get_geometry_related_axis(geo_dict: dict):
