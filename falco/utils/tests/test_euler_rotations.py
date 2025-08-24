@@ -2,6 +2,7 @@ import unittest
 import numpy as np
 import csdl_alpha as csdl
 from falco.utils.euler_rotations import build_rotation_matrix
+import pytest
 
 class TestEulerRotations(unittest.TestCase):
 
@@ -59,3 +60,18 @@ class TestEulerRotations(unittest.TestCase):
 
         np.testing.assert_array_almost_equal(dRda[csdl.slice[6, 1]].value, -np.cos(np.pi / 3))
         np.testing.assert_array_almost_equal(dRda[csdl.slice[0, 0]].value, -np.sin(np.pi/4)*np.cos(np.pi/3))
+
+    def test_invalid_sequence(self):
+        sequences = [
+            np.array([1, 2, 3]),
+            np.array([2, 1, 3]),
+            np.array([3, 1, 2]),
+            np.array([1, 3, 2]),
+            np.array([2, 3, 1]),
+            np.array([0, 0, 0]),
+        ]
+        angles = csdl.Variable(shape=(3,), value=np.array([0., 0., 0.]))
+        for seq in sequences:
+            with self.subTest(seq=seq):
+                with self.assertRaises(NotImplementedError):
+                    build_rotation_matrix(angles, seq)
