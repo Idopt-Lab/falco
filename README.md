@@ -1,7 +1,6 @@
 # Framework for Aircraft-Level Configuration and Optimization (FALCO)
 
 [![GitHub Actions Test Badge](https://github.com/Idopt-Lab/falco/actions/workflows/actions.yml/badge.svg)](https://github.com/Idopt-Lab/falco/actions/workflows/actions.yml)
-[![Tests](https://img.shields.io/badge/tests-dynamic%20results-blue?style=flat-square&logo=github)](https://github.com/Idopt-Lab/falco/actions/workflows/actions.yml)
 [![Coverage Status](https://coveralls.io/repos/github/Idopt-Lab/falco/badge.svg?branch=dev-base-classes&kill_cache=1)](https://coveralls.io/github/Idopt-Lab/falco?branch=dev-base-classes)
 [![Forks](https://img.shields.io/github/forks/Idopt-Lab/falco.svg)](https://github.com/Idopt-Lab/falco/network)
 [![Issues](https://img.shields.io/github/issues/Idopt-Lab/falco.svg)](https://github.com/Idopt-Lab/falco/issues)
