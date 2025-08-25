@@ -43,63 +43,8 @@ jobs:
       # Finally, we run the package unit-tests on the specified OS and python versions.
     - name: Test with pytest and coverage
       run: |
-        pytest --cov=. --cov-report=xml -k "not test_viz_component_hierarchy" --tb=short -v > test_results.txt 2>&1 || true
-        echo "Test results captured"
+        pytest --cov=. --cov-report=xml -k "not test_viz_component_hierarchy"
 
-    - name: Generate test statistics
-      run: |
-        # Extract test statistics from pytest output
-        if grep -q "FAILED\|ERROR" test_results.txt; then
-          FAILED=$(grep -o '[0-9]* failed' test_results.txt | grep -o '[0-9]*' | head -1 || echo "0")
-        else
-          FAILED=0
-        fi
-        
-        if grep -q "PASSED" test_results.txt; then
-          PASSED=$(grep -o '[0-9]* passed' test_results.txt | grep -o '[0-9]*' | head -1 || echo "0")
-        else
-          PASSED=0
-        fi
-        
-        TOTAL=$((PASSED + FAILED))
-        
-        if [ $TOTAL -gt 0 ]; then
-          PASS_PERCENT=$((PASSED * 100 / TOTAL))
-          FAIL_PERCENT=$((FAILED * 100 / TOTAL))
-        else
-          PASS_PERCENT=0
-          FAIL_PERCENT=0
-        fi
-        
-        echo "PASSED=$PASSED" >> $GITHUB_ENV
-        echo "FAILED=$FAILED" >> $GITHUB_ENV
-        echo "TOTAL=$TOTAL" >> $GITHUB_ENV
-        echo "PASS_PERCENT=$PASS_PERCENT" >> $GITHUB_ENV
-        echo "FAIL_PERCENT=$FAIL_PERCENT" >> $GITHUB_ENV
-        
-        echo "Test Results: $PASSED passed, $FAILED failed ($PASS_PERCENT% passed, $FAIL_PERCENT% failed)"
-
-    - name: Create test results badge
-      run: |
-        # Create a JSON file with test results for badge generation
-        cat > test_badge.json << EOF
-        {
-          "schemaVersion": 1,
-          "label": "tests",
-          "message": "${{ env.PASS_PERCENT }}% passed, ${{ env.FAIL_PERCENT }}% failed",
-          "color": "${{ env.FAILED == '0' && 'brightgreen' || 'red' }}",
-          "namedLogo": "github"
-        }
-        EOF
-        
-        # Upload test results as artifact
-        echo "Test badge data created"
-
-    - name: Upload test results
-      uses: actions/upload-artifact@v3
-      with:
-        name: test-results
-        path: test_badge.json
 
     - name: Coveralls GitHub Action
       uses: coverallsapp/github-action@v2.3.0
