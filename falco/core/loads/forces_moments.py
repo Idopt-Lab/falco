@@ -59,77 +59,77 @@ class ForcesMoments:
         ForcesMoments
             A new ForcesMoments object in the target axis.
         """
-        # # We have a parent axis (B1) and a child axis B2
-        # # 1. The forces and moments are in the B2 frame and we want to transform to the B1 frame
-        # if self.axis.reference is not None:
-        #     if self.axis.reference.name == new_axis.name:
-        #         euler = self.axis.euler_angles_vector
-        #         seq = self.axis.sequence
-        #         displacement = self.axis.translation
+        # We have a parent axis (B1) and a child axis B2
+        # 1. The forces and moments are in the B2 frame and we want to transform to the B1 frame
+        if self.axis.reference is not None:
+            if self.axis.reference.name == new_axis.name:
+                euler = self.axis.euler_angles_vector
+                seq = self.axis.sequence
+                displacement = self.axis.translation
 
-        #         orig_force = self.F.vector
-        #         orig_moment = self.M.vector
+                orig_force = self.F.vector
+                orig_moment = self.M.vector
 
-        #         # First perform rotation
-        #         if rotate_flag:
-        #             inter_force, inter_moment = self.rotate_to_axis(orig_force, orig_moment, euler, seq, reverse=reverse_flag)
-        #         else:
-        #             inter_force = orig_force
-        #             inter_moment = orig_moment
+                # First perform rotation
+                if rotate_flag:
+                    inter_force, inter_moment = self.rotate_to_axis(orig_force, orig_moment, euler, seq, reverse=reverse_flag)
+                else:
+                    inter_force = orig_force
+                    inter_moment = orig_moment
 
-        #         # Then perform displacement
-        #         if translate_flag:
-        #             new_force, new_moment = self.translate_to_axis(inter_force, inter_moment, displacement)
-        #         else:
-        #             new_force = inter_force
-        #             new_moment = inter_moment
-        # # 2. The forces and moments are in the B1 frame and we want to transform to the B2 frame
-        # # if it has a name
-        # if new_axis.reference is not None:
-        #     if new_axis.reference.name == self.axis.name:
-        #         euler = new_axis.euler_angles_vector
-        #         seq = new_axis.sequence
-        #         displacement = new_axis.translation
+                # Then perform displacement
+                if translate_flag:
+                    new_force, new_moment = self.translate_to_axis(inter_force, inter_moment, displacement)
+                else:
+                    new_force = inter_force
+                    new_moment = inter_moment
+        # 2. The forces and moments are in the B1 frame and we want to transform to the B2 frame
+        # if it has a name
+        if new_axis.reference is not None:
+            if new_axis.reference.name == self.axis.name:
+                euler = new_axis.euler_angles_vector
+                seq = new_axis.sequence
+                displacement = new_axis.translation
 
-        #         orig_force = self.F.vector
-        #         orig_moment = self.M.vector
+                orig_force = self.F.vector
+                orig_moment = self.M.vector
 
-        #         # First perform rotation
-        #         if rotate_flag:
-        #             inter_force, inter_moment = self.rotate_to_axis(orig_force, orig_moment, euler, seq,
-        #                                                             reverse=True)
-        #         else:
-        #             inter_force = orig_force
-        #             inter_moment = orig_moment
-        #             # Then perform displacement
-        #         if translate_flag:
-        #             new_force, new_moment = self.translate_to_axis(inter_force, inter_moment, displacement,
-        #                                                            reverse=True)
-        #         else:
-        #             new_force = inter_force
-        #             new_moment = inter_moment
+                # First perform rotation
+                if rotate_flag:
+                    inter_force, inter_moment = self.rotate_to_axis(orig_force, orig_moment, euler, seq,
+                                                                    reverse=True)
+                else:
+                    inter_force = orig_force
+                    inter_moment = orig_moment
+                    # Then perform displacement
+                if translate_flag:
+                    new_force, new_moment = self.translate_to_axis(inter_force, inter_moment, displacement,
+                                                                   reverse=True)
+                else:
+                    new_force = inter_force
+                    new_moment = inter_moment
 
-        # new_load = ForcesMoments(force=Vector(vector=new_force, axis=new_axis),
-        #                          moment=Vector(vector=new_moment, axis=new_axis))
-        # return new_load
-        
-        euler = self.axis.euler_angles_vector - new_axis.euler_angles_vector
-        seq = new_axis.sequence
+        new_load = ForcesMoments(force=Vector(vector=new_force, axis=new_axis),
+                                 moment=Vector(vector=new_moment, axis=new_axis))
+        return new_load
 
-        T = self.axis.translation_from_origin_vector - new_axis.translation_from_origin_vector
+        # euler = self.axis.euler_angles_vector - new_axis.euler_angles_vector
+        # seq = new_axis.sequence
 
-        orig_force = self.F.vector
-        orig_moment = self.M.vector
+        # T = self.axis.translation_from_origin_vector - new_axis.translation_from_origin_vector
 
-        R = build_rotation_matrix(euler, seq)
+        # orig_force = self.F.vector
+        # orig_moment = self.M.vector
 
-        new_force = csdl.matvec(R, orig_force)
-        new_force.add_tag(orig_force.tags[0])
-        new_moment = csdl.matvec(R, orig_moment) + csdl.cross(T, new_force)
-        new_moment.add_tag(orig_moment.tags[0])
+        # R = build_rotation_matrix(euler, seq)
 
-        return ForcesMoments(force=Vector(vector=new_force, axis=new_axis),
-                             moment=Vector(vector=new_moment, axis=new_axis))
+        # new_force = csdl.matvec(R, orig_force)
+        # new_force.add_tag(orig_force.tags[0])
+        # new_moment = csdl.matvec(R, orig_moment) + csdl.cross(T, new_force)
+        # new_moment.add_tag(orig_moment.tags[0])
+
+        # return ForcesMoments(force=Vector(vector=new_force, axis=new_axis),
+        #                      moment=Vector(vector=new_moment, axis=new_axis))
     
     @staticmethod
     def rotate_to_axis(F, M, euler_angles, seq, reverse=False):
