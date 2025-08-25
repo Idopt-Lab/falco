@@ -68,6 +68,14 @@ class TestForcesMoments(unittest.TestCase):
     def test_transform_to_axis_parent_to_child(self):
         parent = Axis(
             name='Parent Axis Test',
+            x=Q_(0, 'm'),
+            y=Q_(0, 'm'),
+            z=Q_(0, 'm'),  
+            phi=Q_(0, 'deg'),
+            theta=Q_(0, 'deg'),
+            psi=Q_(0, 'deg'),
+            sequence=np.array([3, 2, 1]),
+            reference=None,
             origin=ValidOrigins.Inertial.value
         )
         child = Axis(
@@ -86,29 +94,33 @@ class TestForcesMoments(unittest.TestCase):
         F_vec = Vector(vector=np.array([0., 1., 0.]) * ureg.newton, axis=parent)
         M_vec = Vector(vector=np.array([0., 0., 0.]) * ureg.newton, axis=parent)
 
-        loads = ForcesMoments(force=F_vec, moment=M_vec)
+        loads_parent_axis = ForcesMoments(force=F_vec, moment=M_vec)
+        loads_child_axis = loads_parent_axis.transform_to_axis(child)
 
-        # translate_flag=True, rotate_flag=False so only translation is applied
-        new_loads = loads.transform_to_axis(child, translate_flag=True, rotate_flag=False, reverse_flag=False)
-
-        # expected moment = original + cross(r, F) where r = child.translation ([-1,0,0])
-        # cross([-1,0,0], [0,1,0]) = [0,0,-1]
-        expected_M = np.array([0., 0., -1.])
-        np.testing.assert_array_almost_equal(new_loads.M.vector.value, expected_M)
+        expected_M = np.array([0., 0., 1.])
+        np.testing.assert_array_almost_equal(loads_child_axis.M.vector.value, expected_M)
         # force unchanged
-        np.testing.assert_array_almost_equal(new_loads.F.vector.value, F_vec.vector.value)
-        self.assertEqual(new_loads.axis.name, child.name)
+        np.testing.assert_array_almost_equal(loads_child_axis.F.vector.value, F_vec.vector.value)
+        self.assertEqual(loads_child_axis.axis.name, child.name)
 
     def test_transform_to_axis_child_to_parent(self):
         parent = Axis(
             name='Parent Axis Test',
+            x=Q_(0, 'm'),
+            y=Q_(0, 'm'),
+            z=Q_(0, 'm'),  
+            phi=Q_(0, 'deg'),
+            theta=Q_(0, 'deg'),
+            psi=Q_(0, 'deg'),
+            sequence=np.array([3, 2, 1]),
+            reference=None,
             origin=ValidOrigins.Inertial.value
         )
         child = Axis(
             name='Child Axis Test',
-            x=Q_(1, 'm'),
+            x=Q_(-1, 'm'),
             y=Q_(0, 'm'),
-            z=Q_(0, 'm'),
+            z=Q_(0, 'm'),  
             phi=Q_(0, 'deg'),
             theta=Q_(0, 'deg'),
             psi=Q_(0, 'deg'),
@@ -120,76 +132,46 @@ class TestForcesMoments(unittest.TestCase):
         F_vec = Vector(vector=np.array([0., 1., 0.]) * ureg.newton, axis=child)
         M_vec = Vector(vector=np.array([0., 0., 0.]) * ureg.newton, axis=child)
 
-        loads = ForcesMoments(force=F_vec, moment=M_vec)
+        loads_child_axis = ForcesMoments(force=F_vec, moment=M_vec)
+        loads_parent_axis = loads_child_axis.transform_to_axis(parent)
 
-        # translate_flag=True, rotate_flag=False so only translation is applied
-        new_loads = loads.transform_to_axis(parent, translate_flag=True, rotate_flag=False, reverse_flag=False)
-
-        # expected moment = original + cross(r, F) where r = -child.translation = [-1,0,0] 
-        # cross([-1,0,0], [0,1,0]) = [0,0,-1]
         expected_M = np.array([0., 0., -1.])
-        np.testing.assert_array_almost_equal(new_loads.M.vector.value, expected_M)
-        # force unchanged
-        np.testing.assert_array_almost_equal(new_loads.F.vector.value, F_vec.vector.value)
-        self.assertEqual(new_loads.axis.name, parent.name)
+        np.testing.assert_array_almost_equal(loads_parent_axis.M.vector.value, expected_M)
+        np.testing.assert_array_almost_equal(loads_parent_axis.F.vector.value, F_vec.vector.value)
 
-    def test_transform_to_axis_parent_with_rotation(self):
+    def test_transform_to_axis_child_to_parent_with_rotation(self):
         parent = Axis(
             name='Parent Axis Test',
+            x=Q_(0, 'm'),
+            y=Q_(0, 'm'),
+            z=Q_(0, 'm'),  
+            phi=Q_(0, 'deg'),
+            theta=Q_(0, 'deg'),
+            psi=Q_(0, 'deg'),
+            sequence=np.array([3, 2, 1]),
+            reference=None,
             origin=ValidOrigins.Inertial.value
         )
         child = Axis(
             name='Child Axis Test',
-            x=Q_(1, 'm'),
+            x=Q_(-1, 'm'),
             y=Q_(0, 'm'),
-            z=Q_(0, 'm'),
-            phi=Q_(0, 'deg'),
-            theta=Q_(90, 'deg'),
-            psi=Q_(0, 'deg'),
+            z=Q_(0, 'm'),  
+            phi=Q_(45, 'deg'),
+            theta=Q_(45, 'deg'),
+            psi=Q_(45, 'deg'),
             sequence=np.array([3, 2, 1]),
             reference=parent,
             origin=ValidOrigins.Inertial.value
         )
 
-        F_vec = Vector(vector=np.array([1., 0., 0.]) * ureg.newton, axis=parent)
-        M_vec = Vector(vector=np.array([0., 0., 0.]) * ureg.newton, axis=parent)
+        F_vec = Vector(vector=np.array([0., 1., 0.]) * ureg.newton, axis=child)
+        M_vec = Vector(vector=np.array([0., 0., 0.]) * ureg.newton, axis=child)
 
-        loads = ForcesMoments(force=F_vec, moment=M_vec)
+        loads_child_axis = ForcesMoments(force=F_vec, moment=M_vec)
+        loads_parent_axis = loads_child_axis.transform_to_axis(parent)
 
-        new_loads = loads.transform_to_axis(child)
-
-        # compute rotation matrix from child's Euler angles (sequence Z, Y, X -> 3,2,1)
-        phi = child.euler_angles.phi.value 
-        theta = child.euler_angles.theta.value 
-        psi = child.euler_angles.psi.value 
-
-        # extract scalars (phi/theta/psi are 1-element arrays)
-        phi = float(np.asarray(phi).item())
-        theta = float(np.asarray(theta).item())
-        psi = float(np.asarray(psi).item())
-
-        Rx = np.array([[1.0, 0.0, 0.0],
-                       [0.0, np.cos(phi), -np.sin(phi)],
-                       [0.0, np.sin(phi),  np.cos(phi)]])
-        Ry = np.array([[np.cos(theta), 0.0, np.sin(theta)],
-                       [0.0,            1.0, 0.0],
-                       [-np.sin(theta), 0.0, np.cos(theta)]])
-        Rz = np.array([[np.cos(psi), -np.sin(psi), 0.0],
-                       [np.sin(psi),  np.cos(psi), 0.0],
-                       [0.0,          0.0,         1.0]])
-        R = Rz @ Ry @ Rx
-
-        F_parent = F_vec.vector.value
-        M_parent = M_vec.vector.value
-
-        expected_F = np.dot(R.T, F_parent)
-        x_trans = float(np.asarray(child.translation_from_origin.x.value).item())
-        y_trans = float(np.asarray(child.translation_from_origin.y.value).item())
-        z_trans = float(np.asarray(child.translation_from_origin.z.value).item())
-        r = np.array([x_trans, y_trans, z_trans])
-        expected_M = np.dot(R.T, M_parent) + np.cross(r, expected_F)
-        np.testing.assert_array_almost_equal(new_loads.M.vector.value, expected_M)
-        self.assertEqual(new_loads.axis.name, child.name)
-
-if __name__ == "__main__":
-    unittest.main()
+        expected_F = np.array([-0.146446609406726, 0.853553390593274, 0.5])
+        expected_M = np.array([0., 0.5, -0.853553390593274])
+        np.testing.assert_array_almost_equal(loads_parent_axis.M.vector.value, expected_M)
+        np.testing.assert_array_almost_equal(loads_parent_axis.F.vector.value, expected_F)
