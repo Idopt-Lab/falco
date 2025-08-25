@@ -156,13 +156,7 @@ class Wing(Component):
         if orientation == "vertical" and dihedral is not None:
             raise ValueError("Cannot specify dihedral for vertical wing.")
            
-        if incidence is not None:
-            if incidence != 0.:
-                self._incidence = self.apply_incidence(incidence)
-            else:
-                self._incidence = 0
         
-
         self._name = f"{self._name}"
         self._tight_fit_ffd = tight_fit_ffd
         self._orientation = orientation
@@ -268,7 +262,7 @@ class Wing(Component):
                 wing_qc_tip_parametric = parametric_geometry[8]
 
 
-        if parametric_geometry is not None:
+        if parametric_geometry is not None and geometry is not None:
             if actuate_angle is not None:
                 if actuate_axis_location is None:
                     axis_location = 0.25
@@ -304,19 +298,23 @@ class Wing(Component):
 
 
 
-        if self._tight_fit_ffd is True:
-            ffd_block = lg.construct_ffd_block_around_entities(
-                entities=geometry, 
-                num_coefficients=(2,2,2), 
-                degree=(1,1,1)
-            )
+        if geometry is not None:
+            if self._tight_fit_ffd is True:
+                ffd_block = lg.construct_ffd_block_around_entities(
+                    entities=geometry, 
+                    num_coefficients=(2,2,2), 
+                    degree=(1,1,1)
+                )
+            else:
+                ffd_block = lg.construct_ffd_block_around_entities(
+                    entities=geometry, 
+                    num_coefficients=num_coefficients, 
+                    degree=(1,3,1)
+                )
+            self._ffd_block = ffd_block
         else:
-            ffd_block = lg.construct_ffd_block_around_entities(
-                entities=geometry, 
-                num_coefficients=num_coefficients, 
-                degree=(1,3,1)
-            )
-        self._ffd_block = ffd_block
+            # When geometry is None (skip_ffd=True), create a dummy FFD block
+            self._ffd_block = None
         
 
 
@@ -332,11 +330,15 @@ class Wing(Component):
         else:
             principal_parametric_dimension = 2
 
-        ffd_sectional_parameterization = VolumeSectionalParameterization(
-            name="ffd_sectional_parameterization",
-            parameterized_points=ffd_block.coefficients,
-            principal_parametric_dimension=principal_parametric_dimension,
-        )
+        if self._ffd_block is not None:
+            ffd_sectional_parameterization = VolumeSectionalParameterization(
+                name="ffd_sectional_parameterization",
+                parameterized_points=ffd_block.coefficients,
+                principal_parametric_dimension=principal_parametric_dimension,
+            )
+        else:
+            # Skip FFD parameterization when geometry is None
+            ffd_sectional_parameterization = None
 
         space_of_linear_3_dof_b_splines = lfs.BSplineSpace(num_parametric_dimensions=1, degree=1, coefficients_shape=(3,))
         space_of_linear_2_dof_b_splines = lfs.BSplineSpace(num_parametric_dimensions=1, degree=1, coefficients_shape=(2,))
@@ -356,9 +358,13 @@ class Wing(Component):
         dihedral_b_spline = lfs.Function(space=space_of_linear_3_dof_b_splines,
                                         coefficients=csdl.Variable(shape=(3,), value=np.array([0, 0., 0])*np.pi/180), name='dihedral_b_spline_coefficients')
 
-        num_ffd_sections = ffd_sectional_parameterization.num_sections
-
-        parametric_b_spline_inputs = np.linspace(0.0, 1.0, num_ffd_sections).reshape((-1, 1))
+        if ffd_sectional_parameterization is not None:
+            num_ffd_sections = ffd_sectional_parameterization.num_sections
+            parametric_b_spline_inputs = np.linspace(0.0, 1.0, num_ffd_sections).reshape((-1, 1))
+        else:
+            # Skip when FFD parameterization is None
+            num_ffd_sections = 3
+            parametric_b_spline_inputs = np.linspace(0.0, 1.0, num_ffd_sections).reshape((-1, 1))
         chord_stretch_sectional_parameters = chord_stretching_b_spline.evaluate(
             parametric_b_spline_inputs
         )
@@ -401,19 +407,20 @@ class Wing(Component):
 
 
 
-        ffd_coefficients = ffd_sectional_parameterization.evaluate(sectional_parameters, plot=False) 
-        ffd_coefficients.name = 'ffd_coefficients'
+        if ffd_sectional_parameterization is not None and self._ffd_block is not None:
+            ffd_coefficients = ffd_sectional_parameterization.evaluate(sectional_parameters, plot=False) 
+            ffd_coefficients.name = 'ffd_coefficients'
+
+            geometry_coefficients = ffd_block.evaluate(ffd_coefficients, plot=False)
+            # print(geometry_coefficients)
+            if geometry is not None:
+                geometry.set_coefficients(geometry_coefficients)
+            # wing.plot()
 
 
-        geometry_coefficients = ffd_block.evaluate(ffd_coefficients, plot=False)
-        # print(geometry_coefficients)
-        geometry.set_coefficients(geometry_coefficients)
-        # wing.plot()
 
 
-
-
-        if parametric_geometry is not None:
+        if parametric_geometry is not None and geometry is not None:
             if self._orientation == "horizontal":
                 wingspan = csdl.norm(geometry.evaluate(wing_le_right_parametric) - geometry.evaluate(wing_le_left_parametric))
                 root_chord = csdl.norm(geometry.evaluate(wing_te_center_parametric) - geometry.evaluate(wing_le_center_parametric))
@@ -449,18 +456,19 @@ class Wing(Component):
         sweep_angle_outer_dv = csdl.Variable(shape=(1,), value=self.parameters.sweep.value * np.pi / 180)
         dihedral_outer_dv = csdl.Variable(shape=(1,), value=self.parameters.dihedral.value* np.pi / 180)
 
-        if self.parameters.actuate_angle is not None:
+        if self.parameters.actuate_angle is not None and geometry is not None:
             if self._orientation == "horizontal":
                 geometry.rotate(axis_origin=self.parameters.actuate_axis_location, axis_vector=np.array([0., 0., 1.]), angles=self.parameters.actuate_angle)
             else:
                 geometry.rotate(axis_origin=self.parameters.actuate_axis_location, axis_vector=np.array([0., 1., 0.]), angles=self.parameters.actuate_angle)
 
         rigid_body_translation = csdl.ImplicitVariable(shape=(3, ), value=0.)
-        for function in self.geometry.functions.values():
-            if len(function.coefficients.shape) != 2:
-                function.coefficients = function.coefficients.reshape((-1, function.coefficients.shape[-1]))
-            shape = function.coefficients.shape
-            function.coefficients = function.coefficients + csdl.expand(rigid_body_translation, shape, action='j->ij')
+        if self.geometry is not None:
+            for function in self.geometry.functions.values():
+                if len(function.coefficients.shape) != 2:
+                    function.coefficients = function.coefficients.reshape((-1, function.coefficients.shape[-1]))
+                shape = function.coefficients.shape
+                function.coefficients = function.coefficients + csdl.expand(rigid_body_translation, shape, action='j->ij')
 
         if self.skip_ffd:
             if parameterization_solver is not None:
@@ -475,7 +483,7 @@ class Wing(Component):
 
 
 
-        if self.skip_ffd is False:
+        if self.skip_ffd is False and ffd_geometric_variables is not None and parametric_geometry is not None and geometry is not None:
             if self._orientation == "horizontal":
                 ffd_geometric_variables.add_variable(wingspan, wingspan_outer_dv)
                 ffd_geometric_variables.add_variable(root_chord, root_chord_outer_dv)
