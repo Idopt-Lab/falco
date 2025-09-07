@@ -2,10 +2,13 @@ import csdl_alpha as csdl
 import ozone as oz
 import numpy as np
 from falco import Loads, Vector, ForcesMoments
-
+from falco import Q_, REPO_ROOT_FOLDER
+import scipy.io as sio
+from pathlib import Path
+from scipy.interpolate import Akima1DInterpolator, RectBivariateSpline, RegularGridInterpolator, RBFInterpolator, LinearNDInterpolator
 
 # Load Data files
-folder_path = REPO_ROOT_FOLDER / 'examples'/ 'basic_examples' / 'b777' 
+folder_path = Path(__file__).parent.parent
 dragpolar_data = sio.loadmat(folder_path / 'DragPolar.mat')
 aerocoeffs_data = sio.loadmat(folder_path / 'AeroDerivatives.mat')
 
@@ -198,4 +201,4 @@ class CDHM(csdl.CustomExplicitOperation):
 CDML_interp = CDML()
 CDHM_interp = CDHM()
 
-def oz_aero(ozone_vars:oz.ODEVars, options):
+# def oz_aero(ozone_vars:oz.ODEVars, options):
