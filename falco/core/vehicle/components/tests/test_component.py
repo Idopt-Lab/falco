@@ -310,6 +310,11 @@ class TestComponentComputeTotalLoads(TestCase):
         mock_fd_state.theta = csdl.Variable(shape=(1,), value=0.0)
         mock_fd_state.phi = csdl.Variable(shape=(1,), value=0.0)
         mock_fd_state.psi = csdl.Variable(shape=(1,), value=0.0)
+        mock_fd_state.axis = axis
+        # Mock the nested states structure that GravityLoads expects
+        mock_fd_state.states = Mock()
+        mock_fd_state.states.theta = csdl.Variable(shape=(1,), value=0.0)
+        mock_fd_state.states.phi = csdl.Variable(shape=(1,), value=0.0)
         mock_controls = Mock()
         
         total_forces, total_moments = component.compute_total_loads(mock_fd_state, mock_controls)
