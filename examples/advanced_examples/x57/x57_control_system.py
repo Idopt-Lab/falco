@@ -68,11 +68,23 @@ class X57ControlSystem(VehicleControlSystem):
         self.engines = self.hl_engines + self.cm_engines
 
 
+        self.u = csdl.concatenate((
+            self.aileron_left.deflection,
+            self.aileron_right.deflection,
+            self.elevator.deflection,
+            self.trim_tab.deflection,
+            self.rudder.deflection
+        ) + tuple(engine.throttle for engine in self.engines), axis=0)
 
-        self.pitch_control = {'Elevator': self.elevator, 'Trim Tab': self.trim_tab}
-        self.roll_control = {'Left Aileron': self.aileron_left, 'Right Aileron': self.aileron_right}
-        self.yaw_control = {'Rudder': self.rudder}
-        self.throttle_control = {'Cruise Engines': self.cm_engines, 'High Lift Engines': self.hl_engines}
+        super().__init__(pitch_control=[self.elevator, self.trim_tab],
+                        roll_control=[self.aileron_left, self.aileron_right],
+                        yaw_control=[self.rudder],
+                        throttle_control=self.engines)
+
+        # self.pitch_control = {'Elevator': self.elevator, 'Trim Tab': self.trim_tab}
+        # self.roll_control = {'Left Aileron': self.aileron_left, 'Right Aileron': self.aileron_right}
+        # self.yaw_control = {'Rudder': self.rudder}
+        # self.throttle_control = {'Cruise Engines': self.cm_engines, 'High Lift Engines': self.hl_engines}
         self.high_lift_control = {'Left Flap': self.flap_left, 
                                   'Right Flap': self.flap_right, 
                                   'Blower': high_lift_blower_component}
@@ -93,15 +105,6 @@ class X57ControlSystem(VehicleControlSystem):
     def control_order(self) -> List[str]:
         return ['roll', 'pitch', 'yaw', 'throttle_control']
     
-    def u(self):
-        self.throttle_control = tuple(engine.throttle for engine in self.engines)
-        control = (
-            self.roll_control['Left Aileron'].deflection,
-            self.roll_control['Right Aileron'].deflection,
-            self.pitch_control['Elevator'].deflection,
-            self.pitch_control['Trim Tab'].deflection,
-            self.yaw_control['Rudder'].deflection) +  self.throttle_control
-        return control
     
     
     def update_controls(self, new_u_vec):

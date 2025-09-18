@@ -103,7 +103,7 @@ for i, cruise_motor in enumerate(cruise_motors):
     cm_engine_torque.name = f'Cruise_Engine_{i}_Torque'
     cm_engine_torque.set_as_constraint(lower=0.0, upper=225, scaler=1e-3) # values from x57_DiTTo_manuscript paper
 
-x57_controls.update_controls(x57_controls.u())
+x57_controls.update_controls(x57_controls.u)
 
 tf, tm = aircraft_component.compute_total_loads(fd_state=cruise.ac_states,controls=x57_controls)
 
@@ -233,7 +233,7 @@ for j, alt in enumerate(altitudes):
         print("Total Torque Available (N*m)")
         print(Total_torque_avail.value)    
         print("Elevator Deflection (deg)")
-        print(x57_controls.pitch_control['Elevator'].deflection.value * 180 / np.pi)
+        print(x57_controls.pitch_control[0].deflection.value * 180 / np.pi)
         print("Pitch Angle (deg)")
         print(cruise.ac_states.states.theta.value * 180 / np.pi)
         print('Flight Path Angle (deg)')

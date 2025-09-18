@@ -411,7 +411,7 @@ class X57Aerodynamics(Loads):
             loads : ForcesMoments
                 Computed forces and moments about the reference point.
             """
-            u = controls.u()
+            u = controls.u
             density = states.atmospheric_states.density
             velocity = states.VTAS
             theta = states.states.theta
@@ -421,12 +421,12 @@ class X57Aerodynamics(Loads):
             beta = states.beta
             i_wing = self.i_wing * 180/np.pi
             AOA = states.alpha * 180/np.pi
-            dstab = controls.pitch_control['Elevator'].deflection
+            dstab = controls.pitch_control[0].deflection  # Elevator
             dflap = controls.high_lift_control['Left Flap'].flag or controls.high_lift_control['Right Flap'].flag 
             blow = controls.high_lift_control['Blower'].flag    
-            daileron = controls.roll_control['Left Aileron'].deflection            
-            dtrim = controls.pitch_control['Trim Tab'].deflection
-            drudder = controls.yaw_control['Rudder'].deflection
+            daileron = controls.roll_control[0].deflection  # Left Aileron           
+            dtrim = controls.pitch_control[1].deflection  # Trim Tab
+            drudder = controls.yaw_control[0].deflection  # Rudder
 
             # blowing affect if HL engines are active
             blow_num = 0
@@ -641,7 +641,7 @@ class X57Propulsion(Loads):
         loads : ForcesMoments
             Computed forces and moments about the reference point.
         """
-        u = controls.u()
+        u = controls.u
         throttle = u[5+self.engine_index]  # Get the throttle for the specific engine
         density = states.atmospheric_states.density  # kg/m^3
         velocity = states.VTAS  # m/s 
@@ -706,7 +706,7 @@ class X57Propulsion(Loads):
         power_shaft : csdl.VariableGroup
             Computed shaft power for the propulsion system.
         """
-        u = controls.u()
+        u = controls.u
         throttle = u[5+self.engine_index]  # Get the throttle for the specific engine
         density = states.atmospheric_states.density
         velocity = states.VTAS 

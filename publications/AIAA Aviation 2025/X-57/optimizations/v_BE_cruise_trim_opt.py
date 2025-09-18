@@ -109,7 +109,7 @@ for i, cruise_motor in enumerate(cruise_motors):
     cm_engine_torque.name = f'Cruise_Engine_{i}_Torque'
     cm_engine_torque.set_as_constraint(lower=1e-6, upper=225, scaler=1e-3) # values from x57_DiTTo_manuscript paper
 
-x57_controls.update_controls(x57_controls.u())
+x57_controls.update_controls(x57_controls.u)
 
 tf, tm = aircraft_component.compute_total_loads(fd_state=cruise.ac_states,controls=x57_controls)
 
@@ -254,19 +254,19 @@ for i, alt in enumerate(alts):
     for engine in x57_controls.cm_engines:
         print(cm_engine_torque.value)
     print("Elevator Deflection (deg)")
-    print(x57_controls.pitch_control['Elevator'].deflection.value * 180 / np.pi)
+    print(x57_controls.pitch_control[0].deflection.value * 180 / np.pi)
     print("Rudder Deflection (deg)")
-    print(x57_controls.yaw_control['Rudder'].deflection.value * 180 / np.pi)
+    print(x57_controls.yaw_control[0].deflection.value * 180 / np.pi)
     print("Left Aileron Deflection (deg)")
-    print(x57_controls.roll_control['Left Aileron'].deflection.value * 180 / np.pi)
+    print(x57_controls.roll_control[0].deflection.value * 180 / np.pi)
     print("Right Aileron Deflection (deg)")
-    print(x57_controls.roll_control['Right Aileron'].deflection.value * 180 / np.pi)
+    print(x57_controls.roll_control[1].deflection.value * 180 / np.pi)
     print("Left Flap Deflection (deg)")
     print(x57_controls.high_lift_control['Left Flap'].deflection.value * 180 / np.pi)
     print("Right Flap Deflection (deg)")
     print(x57_controls.high_lift_control['Right Flap'].deflection.value * 180 / np.pi)
     print("Trim Tab Deflection (deg)")
-    print(x57_controls.pitch_control['Trim Tab'].deflection.value * 180 / np.pi)
+    print(x57_controls.pitch_control[1].deflection.value * 180 / np.pi)
     print("Pitch Angle (deg)")
     print(cruise.parameters.pitch_angle.value * 180 / np.pi)
     print('Angle of Attack (deg)')
