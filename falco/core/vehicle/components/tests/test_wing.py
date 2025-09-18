@@ -1255,8 +1255,144 @@ class TestWingFFDParameterization(TestCase):
             
             # Verify that multiple parameters were added to solver (chord, wingspan, sweep, twist, dihedral)
             self.assertEqual(mock_solver.add_parameter.call_count, 5)
-    
 
+
+class TestWingParametricGeometryScenarios(TestCase):
+    """Test Wing with parametric geometry scenarios."""
+    
+    def setUp(self):
+        recorder = csdl.Recorder(inline=True)
+        recorder.start()
+    
+    def test_wing_with_parametric_geometry_horizontal(self):
+        """Test Wing with parametric geometry for horizontal orientation."""
+        AR = csdl.Variable(value=10.0, shape=(1,), name="AR")
+        S_ref = csdl.Variable(value=20.0, shape=(1,), name="S_ref")
+        
+        # Mock geometry
+        mock_geometry = Mock()
+        mock_geometry.functions = {'test_func': Mock()}
+        mock_geometry.functions['test_func'].coefficients = csdl.Variable(value=np.zeros((33, 3)), shape=(33, 3))
+        mock_geometry.evaluate.return_value = csdl.Variable(value=np.array([1.0, 0.0, 0.0]), shape=(3,))
+        mock_geometry.set_coefficients = Mock()
+        
+        # Mock parametric geometry (9 elements for horizontal orientation)
+        mock_parametric_geometry = [Mock() for _ in range(9)]
+        
+        # Mock all the complex FFD operations
+        with patch('falco.core.vehicle.components.wing.lg') as mock_lg, \
+             patch('falco.core.vehicle.components.wing.lfs') as mock_lfs, \
+             patch('lsdo_geo.core.parameterization.volume_sectional_parameterization.VolumeSectionalParameterization') as mock_vsp, \
+             patch('lsdo_geo.core.parameterization.volume_sectional_parameterization.VolumeSectionalParameterizationInputs') as mock_vspi, \
+             patch('falco.core.vehicle.components.wing.csdl.expand') as mock_expand, \
+             patch('falco.core.vehicle.components.wing.csdl.norm') as mock_norm, \
+             patch('falco.core.vehicle.components.wing.csdl.arcsin') as mock_arcsin, \
+             patch('falco.core.vehicle.components.wing.csdl.linear_combination') as mock_linear_combination:
+            
+            # Mock FFD block
+            mock_ffd_block = Mock()
+            mock_ffd_block.coefficients = csdl.Variable(value=np.zeros((3, 11, 3)), shape=(3, 11, 3))
+            mock_ffd_block.evaluate.return_value = csdl.Variable(value=np.zeros((3, 11, 3)), shape=(3, 11, 3))
+            
+            # Mock lg.construct_ffd_block_around_entities
+            mock_lg.construct_ffd_block_around_entities.return_value = mock_ffd_block
+            
+            # Mock lfs functions
+            mock_bspline_space = Mock()
+            mock_lfs.BSplineSpace.return_value = mock_bspline_space
+            
+            mock_function = Mock()
+            mock_function.coefficients = csdl.Variable(value=np.zeros((3, 11, 3)), shape=(3, 11, 3))
+            mock_function.evaluate.return_value = csdl.Variable(value=np.array([0.0, 0.0]), shape=(2,))
+            mock_lfs.Function.return_value = mock_function
+            
+            # Mock csdl functions
+            mock_expand.return_value = csdl.Variable(value=np.zeros((33, 3)), shape=(33, 3))
+            mock_norm.return_value = csdl.Variable(value=1.0, shape=(1,))
+            mock_arcsin.return_value = csdl.Variable(value=0.1, shape=(1,))
+            mock_linear_combination.return_value = csdl.Variable(value=np.array([0.0, 0.0, 0.0]), shape=(3,))
+            
+            # Mock VolumeSectionalParameterization
+            mock_vsp_instance = Mock()
+            mock_vsp_instance.num_sections = 3
+            mock_vsp_instance.evaluate.return_value = csdl.Variable(value=np.zeros((3, 11, 3)), shape=(3, 11, 3))
+            mock_vsp.return_value = mock_vsp_instance
+            
+            # Mock VolumeSectionalParameterizationInputs
+            mock_vspi_instance = Mock()
+            mock_vspi_instance.add_sectional_stretch = Mock()
+            mock_vspi_instance.add_sectional_translation = Mock()
+            mock_vspi_instance.add_sectional_rotation = Mock()
+            mock_vspi.return_value = mock_vspi_instance
+            
+            wing = Wing(name="test_wing", AR=AR, S_ref=S_ref, geometry=mock_geometry, 
+                       parametric_geometry=mock_parametric_geometry, skip_ffd=False)
+            
+            # Verify that geometry.set_coefficients was called
+            mock_geometry.set_coefficients.assert_called_once()
+
+
+class TestWingFFDSectionalParameterization(TestCase):
+    """Test Wing FFD sectional parameterization scenarios."""
+    
+    def setUp(self):
+        recorder = csdl.Recorder(inline=True)
+        recorder.start()
+    
+    def test_wing_ffd_sectional_parameterization_none(self):
+        """Test Wing with ffd_sectional_parameterization=None."""
+        AR = csdl.Variable(value=10.0, shape=(1,), name="AR")
+        S_ref = csdl.Variable(value=20.0, shape=(1,), name="S_ref")
+        
+        # Mock all the complex FFD operations
+        with patch('falco.core.vehicle.components.wing.lg') as mock_lg, \
+             patch('falco.core.vehicle.components.wing.lfs') as mock_lfs, \
+             patch('lsdo_geo.core.parameterization.volume_sectional_parameterization.VolumeSectionalParameterization') as mock_vsp, \
+             patch('lsdo_geo.core.parameterization.volume_sectional_parameterization.VolumeSectionalParameterizationInputs') as mock_vspi, \
+             patch('falco.core.vehicle.components.wing.csdl.expand') as mock_expand, \
+             patch('falco.core.vehicle.components.wing.csdl.norm') as mock_norm, \
+             patch('falco.core.vehicle.components.wing.csdl.arcsin') as mock_arcsin, \
+             patch('falco.core.vehicle.components.wing.csdl.linear_combination') as mock_linear_combination:
+            
+            # Mock FFD block
+            mock_ffd_block = Mock()
+            mock_ffd_block.coefficients = csdl.Variable(value=np.zeros((3, 11, 3)), shape=(3, 11, 3))
+            mock_ffd_block.evaluate.return_value = csdl.Variable(value=np.array([0.0, 0.0, 0.0]), shape=(3,))
+            
+            # Mock lg.construct_ffd_block_around_entities
+            mock_lg.construct_ffd_block_around_entities.return_value = mock_ffd_block
+            
+            # Mock lfs functions
+            mock_bspline_space = Mock()
+            mock_lfs.BSplineSpace.return_value = mock_bspline_space
+            
+            mock_function = Mock()
+            mock_function.coefficients = csdl.Variable(value=np.zeros((3, 11, 3)), shape=(3, 11, 3))
+            mock_function.evaluate.return_value = csdl.Variable(value=np.array([0.0, 0.0]), shape=(2,))
+            mock_lfs.Function.return_value = mock_function
+            
+            # Mock csdl functions
+            mock_expand.return_value = csdl.Variable(value=np.zeros((3, 11, 3)), shape=(3, 11, 3))
+            mock_norm.return_value = csdl.Variable(value=1.0, shape=(1,))
+            mock_arcsin.return_value = csdl.Variable(value=0.1, shape=(1,))
+            mock_linear_combination.return_value = Mock()
+            
+            # Mock VolumeSectionalParameterization to return None
+            mock_vsp.return_value = None
+            
+            # Mock VolumeSectionalParameterizationInputs
+            mock_vspi_instance = Mock()
+            mock_vspi_instance.add_sectional_stretch = Mock()
+            mock_vspi_instance.add_sectional_translation = Mock()
+            mock_vspi_instance.add_sectional_rotation = Mock()
+            mock_vspi.return_value = mock_vspi_instance
+            
+            wing = Wing(name="test_wing", AR=AR, S_ref=S_ref, geometry=None, skip_ffd=True)
+            
+            # Verify wing was created successfully
+            self.assertIsNotNone(wing)
+            self.assertEqual(wing.parameters.AR, AR)
+            self.assertEqual(wing.parameters.S_ref, S_ref)
 
 
 if __name__ == '__main__':
