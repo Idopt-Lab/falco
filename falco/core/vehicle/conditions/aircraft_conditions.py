@@ -118,6 +118,7 @@ class CruiseParameters(csdl.VariableGroup):
     speed: csdl.Variable
     mach_number: csdl.Variable
     pitch_angle: csdl.Variable
+    yaw_angle: csdl.Variable
     range: csdl.Variable
     time: csdl.Variable
 
@@ -126,6 +127,7 @@ class CruiseParameters(csdl.VariableGroup):
         self.add_check('speed', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
         self.add_check('mach_number', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
         self.add_check('pitch_angle', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
+        self.add_check('yaw_angle', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
         self.add_check('range', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
         self.add_check('time', type=[csdl.Variable, ureg.Quantity], shape=(1,), variablize=True)
 
@@ -302,6 +304,7 @@ class CruiseCondition(Condition):
         altitude (ureg.Quantity or csdl.Variable): Cruise altitude.
         range (ureg.Quantity or csdl.Variable): Cruise range.
         pitch_angle (ureg.Quantity or csdl.Variable): Pitch angle.
+        yaw_angle (ureg.Quantity or csdl.Variable): Yaw angle.
         speed (ureg.Quantity or csdl.Variable): Airspeed.
         mach_number (ureg.Quantity or csdl.Variable): Mach number.
         time (ureg.Quantity or csdl.Variable): Duration of cruise.
@@ -312,6 +315,7 @@ class CruiseCondition(Condition):
                  altitude: Union[ureg.Quantity, csdl.Variable] = Q_(0, 'm'),
                  range: Union[ureg.Quantity, csdl.Variable] = Q_(0, 'm'),
                  pitch_angle: Union[ureg.Quantity, csdl.Variable] = Q_(0, 'rad'),
+                 yaw_angle: Union[ureg.Quantity, csdl.Variable] = Q_(0, 'rad'),
                  speed: Union[ureg.Quantity, csdl.Variable] = Q_(0, 'm/s'),
                  mach_number: Union[ureg.Quantity, csdl.Variable] = Q_(0, 'dimensionless'),
                  time: Union[ureg.Quantity, csdl.Variable] = Q_(0, 's')):
@@ -323,6 +327,7 @@ class CruiseCondition(Condition):
             speed=speed,
             range=range,
             pitch_angle=pitch_angle,
+            yaw_angle=yaw_angle,
             mach_number=mach_number,
             time=time,
         )
@@ -351,7 +356,7 @@ class CruiseCondition(Condition):
         axis.translation_from_origin.z = -self.parameters.altitude  # FD axis z points down
         axis.euler_angles.phi = phi
         axis.euler_angles.theta = self.parameters.pitch_angle
-        axis.euler_angles.psi = psi
+        axis.euler_angles.psi = self.parameters.yaw_angle
         ac_states = AircraftStates(axis=axis)
 
         atmos_states = ac_states.atmospheric_states
@@ -383,7 +388,8 @@ class CruiseCondition(Condition):
             self.parameters.range = range
         else:
             raise NotImplementedError
-        u = V * csdl.cos(self.parameters.pitch_angle)
+        u = V * csdl.cos(self.parameters.pitch_angle) * csdl.cos(self.parameters.yaw_angle)
+        v = V * csdl.cos(self.parameters.pitch_angle) * csdl.sin(self.parameters.yaw_angle)
         w = V * csdl.sin(self.parameters.pitch_angle)
         ac_states = AircraftStates(axis=axis, u=u, v=v, w=w, p=p, q=q, r=r)
         return ac_states
