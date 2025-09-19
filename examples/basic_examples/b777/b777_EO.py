@@ -544,28 +544,13 @@ right_engine_component.load_solvers.append(B777_right_engine)
 # region cruise_cond Condition
 alt = 3000 # alt in m
 Trequired = []
-# mach=0.25 # Takeoff speed
-# mach = 0.86
-# 160 to 213 mph
-mach = 0.75 # mach at stall
-# mach = 0.17 # mach at TO with flaps
+mach = 0.75
 cruise_cond = CruiseCondition(fd_axis=fd_axis, controls=B777_controls,
                             altitude=Q_(alt, 'm'), mach_number=Q_(mach, 'dimensionless'),
                             range=Q_(10000, 'm'), pitch_angle=Q_(0, 'deg'), yaw_angle=Q_(0, 'deg'))
 
-# cruise_cond = CruiseCondition(fd_axis=fd_axis, controls=B777_controls,
-#                             altitude=Q_(alt, 'm'), mach_number=Q_(mach, 'dimensionless'),
-#                             range=Q_(10000, 'm'), pitch_angle=Q_(0, 'deg'))
-# endregion
-pass
-# endregion
 
-# B777_controls.pitch_control[0].deflection.value = np.deg2rad(1.60967749)
-# B777_controls.yaw_control[0].deflection.value = np.deg2rad(4.11809618)
-# B777_controls.roll_control[0].deflection.value = np.deg2rad(2.89870543)
-# B777_controls.roll_control[1].deflection.value = np.deg2rad(0.)
-# B777_controls.engine_right.throttle.value = 1.0
-# B777_controls.engine_left.throttle.value = 0
+pass
 
 
 tf, tm = aircraft_component.compute_total_loads(fd_state=cruise_cond.ac_states,
@@ -577,31 +562,15 @@ B777_controls.roll_control[0].deflection.set_as_design_variable(lower=np.deg2rad
 B777_controls.roll_control[1].deflection.set_as_design_variable(lower=np.deg2rad(-20), upper=np.deg2rad(20))
 B777_controls.engine_right.throttle.set_as_design_variable(lower=0.0,  upper=1.0)
 B777_controls.engine_left.throttle.set_as_design_variable(lower=0.0, upper=0.0)
-# hl_throt_diff = (B777_controls.engine_right.throttle - B777_controls.engine_left.throttle) # setting all engines to the same throttle setting, because of symmetry
-# hl_throt_diff.name = f'HL throttle Diff'
-# hl_throt_diff.set_as_constraint(equals=0)
-# B777_controls.engine_left.throttle.set_as_design_variable(lower=0.0, upper=1)
 
-# cruise_cond.parameters.mach_number.set_as_design_variable(lower=0.1, upper=0.9)
 cruise_cond.parameters.pitch_angle.set_as_design_variable(lower=np.deg2rad(-15), upper=np.deg2rad(15))
-
 cruise_cond.parameters.yaw_angle.set_as_design_variable(lower=-np.deg2rad(15), upper=np.deg2rad(15))
 
-# cruise_cond.parameters.altitude.set_as_design_variable(lower=0, upper=15000)
 aero_results = B777_wing_aero.get_FM_localAxis(cruise_cond.ac_states, cruise_cond.controls, wing_axis)
 Drag = aero_results['loads'].F.vector[0]
 Lift = aero_results['loads'].F.vector[2]
 Moment = aero_results['loads'].M.vector[1]
 
-# throttle_diff = B777_controls.engine_right.throttle - B777_controls.engine_left.throttle
-# throttle_diff.set_as_constraint(lower=-1e-6, upper=1e-6)
-# throttle_diff.name = 'Throttle (R-L) Difference'
-
-
-
-# Lift_scaling = 1/(aircraft_component.mass_properties.mass * 9.81)
-# Drag_scaling = 1/csdl.absolute(Drag)
-# Moment_scaling = 1/csdl.absolute(Moment)
 
 Lift_scaling = 1
 Drag_scaling = 1
@@ -636,14 +605,8 @@ res6.set_as_constraint(lower=-1e-1, upper=1e-1)
 FM = csdl.concatenate((Drag_scaling * tf[0], Lift_scaling * tf[2], Moment_scaling * tm[1]), axis=0)
 FM_res = csdl.absolute(csdl.norm(FM, ord=2))
 FM_res.name = 'FM Minimization Objective'
-# FM_res.set_as_constraint(lower=-1e-6,upper=1e-6) # Scale the objective for better optimization performance
+
 FM_res.set_as_objective()
-
-
-# J = cruise_cond.evaluate_trim_res(component=aircraft_component)
-# J.name = 'J: Trim Scalar'
-# J.set_as_objective()
-
 
 pass
 
