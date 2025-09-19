@@ -43,7 +43,7 @@ jobs:
       # Finally, we run the package unit-tests on the specified OS and python versions.
     - name: Test with pytest and coverage
       run: | 
-        pytest --cov=. --cov-report=xml -k "not test_viz_component_hierarchy" --ignore=tests/test_toy_aircraft/.
+        pytest --cov=. --cov-report=xml -k "not test_viz_component_hierarchy and not toy_aircraft_models"
     - name: Coveralls GitHub Action
       uses: coverallsapp/github-action@v2.3.0
       with:
