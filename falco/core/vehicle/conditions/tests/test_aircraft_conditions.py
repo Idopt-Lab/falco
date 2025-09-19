@@ -171,6 +171,7 @@ class TestCruiseParameters(TestCase):
         speed = csdl.Variable(value=120.0, shape=(1,), name="speed")
         mach_number = csdl.Variable(value=0.35, shape=(1,), name="mach_number")
         pitch_angle = csdl.Variable(value=np.deg2rad(2.0), shape=(1,), name="pitch_angle")
+        yaw_angle = csdl.Variable(value=np.deg2rad(4.0), shape=(1,), name="yaw_angle")
         range_var = csdl.Variable(value=1000000.0, shape=(1,), name="range")
         time = csdl.Variable(value=8333.0, shape=(1,), name="time")
         
@@ -179,6 +180,7 @@ class TestCruiseParameters(TestCase):
             speed=speed,
             mach_number=mach_number,
             pitch_angle=pitch_angle,
+            yaw_angle=yaw_angle,
             range=range_var,
             time=time
         )
@@ -187,6 +189,7 @@ class TestCruiseParameters(TestCase):
         self.assertEqual(params.speed, speed)
         self.assertEqual(params.mach_number, mach_number)
         self.assertEqual(params.pitch_angle, pitch_angle)
+        self.assertEqual(params.yaw_angle, yaw_angle)
         self.assertEqual(params.range, range_var)
         self.assertEqual(params.time, time)
     
@@ -200,6 +203,7 @@ class TestCruiseParameters(TestCase):
             speed=speed,
             mach_number=csdl.Variable(value=0.0, shape=(1,)),
             pitch_angle=csdl.Variable(value=0.0, shape=(1,)),
+            yaw_angle=csdl.Variable(value=0.0, shape=(1,)),
             range=csdl.Variable(value=0.0, shape=(1,)),
             time=csdl.Variable(value=0.0, shape=(1,))
         )
