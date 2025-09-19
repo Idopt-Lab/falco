@@ -1,2 +1,5 @@
 [run]
-omit = setup.py
+omit = 
+    setup.py
+    */test_toy_aircraft/*
+    */toy_aircraft_models.py
